@@ -35,15 +35,13 @@ import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
 import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.SCMSourceOwner;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
@@ -91,17 +89,17 @@ public class GitHubSCMNavigator extends SCMNavigator {
         this.pattern = pattern;
     }
 
-    @Override public Map<String, ? extends List<? extends SCMSource>> discoverSources(SCMSourceOwner context, TaskListener listener) throws IOException, InterruptedException {
-        Map<String,List<? extends SCMSource>> result = new TreeMap<String,List<? extends SCMSource>>();
+    @Override public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
+        TaskListener listener = observer.getListener();
         if (repoOwner.isEmpty()) {
             listener.getLogger().format("Must specify user or organization%n");
-            return result;
+            return;
         }
         String apiUrl = null; // TODO GHE
-        StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUrl, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUrl, scanCredentialsId);
         if (credentials == null) {
             listener.getLogger().println("No scan credentials, skipping");
-            return result;
+            return;
         }
         listener.getLogger().format("Connecting to GitHub using %s%n", CredentialsNameProvider.name(credentials));
         GitHub github = Connector.connect(apiUrl, credentials);
@@ -119,17 +117,17 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 if (!repo.getOwnerName().equals(repoOwner)) {
                     continue; // ignore repos in other orgs when using GHMyself
                 }
-                add(listener, result, repo);
+                add(listener, observer, repo);
             }
-            return result;
+            return;
         }
         GHOrganization org = github.getOrganization(repoOwner);
         if (org != null && repoOwner.equals(org.getLogin())) {
             listener.getLogger().format("Looking up repositories of organization %s%n", repoOwner);
             for (GHRepository repo : org.listRepositories()) {
-                add(listener, result, repo);
+                add(listener, observer, repo);
             }
-            return result;
+            return;
         }
         GHUser user = null;
         try {
@@ -140,14 +138,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         if (user != null && repoOwner.equals(user.getLogin())) {
             listener.getLogger().format("Looking up repositories of user %s%n", repoOwner);
             for (GHRepository repo : user.listRepositories()) {
-                add(listener, result, repo);
+                add(listener, observer, repo);
             }
-            return result;
         }
-        return result;
     }
 
-    private void add(TaskListener listener, Map<String, List<? extends SCMSource>> result, GHRepository repo) throws InterruptedException {
+    private void add(TaskListener listener, SCMSourceObserver observer, GHRepository repo) throws InterruptedException {
         String name = repo.getName();
         if (!Pattern.compile(pattern).matcher(name).matches()) {
             listener.getLogger().format("Ignoring %s%n", name);
@@ -157,11 +153,13 @@ public class GitHubSCMNavigator extends SCMNavigator {
         if (Thread.interrupted()) {
             throw new InterruptedException();
         }
-        List<SCMSource> sources = new ArrayList<SCMSource>();
+        SCMSourceObserver.ProjectObserver projectObserver = observer.observe(name);
         for (GitHubSCMSourceAddition addition : ExtensionList.lookup(GitHubSCMSourceAddition.class)) {
-            sources.addAll(addition.sourcesFor(checkoutCredentialsId, scanCredentialsId, repoOwner, name));
+            for (SCMSource source : addition.sourcesFor(checkoutCredentialsId, scanCredentialsId, repoOwner, name)) {
+                projectObserver.addSource(source);
+            }
         }
-        result.put(name, sources);
+        projectObserver.complete();
     }
 
     public interface GitHubSCMSourceAddition extends ExtensionPoint {
