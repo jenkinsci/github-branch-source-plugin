@@ -22,33 +22,16 @@
  * THE SOFTWARE.
  */
 
-package org.jenkinsci.plugins.github.multibranch;
-
-import hudson.Util;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+package org.jenkinsci.plugins.github_branch_source;
 
 /**
  * @author Stephen Connolly
  */
-public abstract class RepositoryUriResolver {
+public class HttpsRepositoryUriResolver extends RepositoryUriResolver {
 
-    public abstract String getRepositoryUri(String apiUri, String owner, String repository);
-
-    public static String hostnameFromApiUri(String apiUri) {
-        apiUri = Util.fixEmptyAndTrim(apiUri);
-        if (apiUri == null) {
-            return "github.com";
-        }
-        Pattern enterprise = Pattern.compile("^https?://(([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*"
-                + "([A-Za-z]|[A-Za-z][A-Za-z0-9\\-]*[A-Za-z0-9])/api/v3/?.*$");
-        Matcher matcher = enterprise.matcher(apiUri);
-        if (matcher.matches()) {
-            return matcher.group(1);
-        }
-        // fall back to github
-        return "github.com";
+    @Override
+    public String getRepositoryUri(String apiUri, String owner, String repository) {
+        return "https://" + hostnameFromApiUri(apiUri) + "/" + owner + "/" + repository + ".git";
     }
 
 }

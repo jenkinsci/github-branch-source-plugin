@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package org.jenkinsci.plugins.github.multibranch;
+package org.jenkinsci.plugins.github_branch_source;
 
 import hudson.Extension;
 import hudson.console.HyperlinkNote;

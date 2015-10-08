@@ -22,16 +22,16 @@
  * THE SOFTWARE.
  */
 
-package org.jenkinsci.plugins.github.multibranch;
+package org.jenkinsci.plugins.github_branch_source;
 
 /**
  * @author Stephen Connolly
  */
-public class HttpsRepositoryUriResolver extends RepositoryUriResolver {
+public class SshRepositoryUriResolver extends RepositoryUriResolver {
 
     @Override
     public String getRepositoryUri(String apiUri, String owner, String repository) {
-        return "https://" + hostnameFromApiUri(apiUri) + "/" + owner + "/" + repository + ".git";
+        return "git@" + hostnameFromApiUri(apiUri) + ":" + owner + "/" + repository + ".git";
     }
 
 }
