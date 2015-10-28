@@ -88,6 +88,10 @@ public class OriginGitHubSCMSource extends AbstractGitHubSCMSource {
         listener.getLogger().format("  %d branches were processed%n", branches);
     }
 
+    @Override protected SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) {
+        return new SCMRevisionImpl(head, "heads/" + head.getName());
+    }
+
     @Extension public static class DescriptorImpl extends AbstractGitHubSCMSourceDescriptor {
 
         @Override public String getDisplayName() {

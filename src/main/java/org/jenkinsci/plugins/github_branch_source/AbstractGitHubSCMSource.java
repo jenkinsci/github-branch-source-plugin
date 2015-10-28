@@ -49,11 +49,7 @@ import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.api.SCMSourceOwner;
-import org.kohsuke.github.GHMyself;
-import org.kohsuke.github.GHOrganization;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GHUser;
-import org.kohsuke.github.GitHub;
+import org.kohsuke.github.*;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -250,10 +246,21 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
     }
 
     @Override
+    @CheckForNull
     protected SCMRevision retrieve(SCMHead head, TaskListener listener) throws IOException, InterruptedException {
-        // TODO reimplement using GitHub API
-        return super.retrieve(head, listener);
+        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+        if (credentials == null) {
+            listener.getLogger().println("No scan credentials, skipping");
+            return null;
+        }
+        listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(), CredentialsNameProvider.name(credentials));
+        GitHub github = Connector.connect(apiUri, credentials);
+        String fullName = repoOwner + "/" + repository;
+        GHRepository repo = github.getRepository(fullName);
+        return doRetrieve(head, listener, repo);
     }
+
+    protected abstract SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) throws IOException;
 
     public static abstract class AbstractGitHubSCMSourceDescriptor extends SCMSourceDescriptor {
 
