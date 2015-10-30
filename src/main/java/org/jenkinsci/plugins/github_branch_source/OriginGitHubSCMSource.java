@@ -38,6 +38,7 @@ import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
 import org.eclipse.jgit.transport.RefSpec;
 import org.kohsuke.github.GHBranch;
+import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.stapler.DataBoundConstructor;
 
@@ -88,8 +89,9 @@ public class OriginGitHubSCMSource extends AbstractGitHubSCMSource {
         listener.getLogger().format("  %d branches were processed%n", branches);
     }
 
-    @Override protected SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) {
-        return new SCMRevisionImpl(head, "heads/" + head.getName());
+    @Override protected SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) throws IOException {
+        GHRef ref = repo.getRef("heads/" + head.getName());
+        return new SCMRevisionImpl(head, ref.getObject().getSha());
     }
 
     @Extension public static class DescriptorImpl extends AbstractGitHubSCMSourceDescriptor {
