@@ -264,7 +264,12 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
         return doRetrieve(head, listener, repo);
     }
 
-    protected abstract SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) throws IOException;
+    protected /*abstract*/ SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
+        listener.error("Please implement " + getClass().getName() + ".doRetrieve(SCMHead, TaskListener, GHRepository)");
+        SCMHeadObserver.Selector selector = SCMHeadObserver.select(head);
+        doRetrieve(selector, listener, repo);
+        return selector.result();
+    }
 
     public static abstract class AbstractGitHubSCMSourceDescriptor extends SCMSourceDescriptor {
 

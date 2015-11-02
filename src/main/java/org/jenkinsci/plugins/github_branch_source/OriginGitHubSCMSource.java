@@ -89,7 +89,7 @@ public class OriginGitHubSCMSource extends AbstractGitHubSCMSource {
         listener.getLogger().format("  %d branches were processed%n", branches);
     }
 
-    @Override protected SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) throws IOException {
+    @Override protected SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
         GHRef ref = repo.getRef("heads/" + head.getName());
         return new SCMRevisionImpl(head, ref.getObject().getSha());
     }
