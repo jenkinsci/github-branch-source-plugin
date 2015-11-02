@@ -250,9 +250,25 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
     }
 
     @Override
+    @CheckForNull
     protected SCMRevision retrieve(SCMHead head, TaskListener listener) throws IOException, InterruptedException {
-        // TODO reimplement using GitHub API
-        return super.retrieve(head, listener);
+        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+        if (credentials == null) {
+            listener.getLogger().println("No scan credentials, skipping");
+            return null;
+        }
+        listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(), CredentialsNameProvider.name(credentials));
+        GitHub github = Connector.connect(apiUri, credentials);
+        String fullName = repoOwner + "/" + repository;
+        GHRepository repo = github.getRepository(fullName);
+        return doRetrieve(head, listener, repo);
+    }
+
+    protected /*abstract*/ SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
+        listener.error("Please implement " + getClass().getName() + ".doRetrieve(SCMHead, TaskListener, GHRepository)");
+        SCMHeadObserver.Selector selector = SCMHeadObserver.select(head);
+        doRetrieve(selector, listener, repo);
+        return selector.result();
     }
 
     public static abstract class AbstractGitHubSCMSourceDescriptor extends SCMSourceDescriptor {
