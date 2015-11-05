@@ -98,7 +98,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         String apiUrl = null; // TODO GHE
         StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUrl, scanCredentialsId);
         if (credentials == null) {
-            listener.getLogger().println("No scan credentials, skipping");
+            listener.getLogger().format("No scan credentials, skipping%n");
             return;
         }
         listener.getLogger().format("Connecting to GitHub using %s%n", CredentialsNameProvider.name(credentials));
