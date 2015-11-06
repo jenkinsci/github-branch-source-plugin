@@ -11,6 +11,9 @@
         <f:textbox default=".*"/>
     </f:entry>
     <f:advanced>
+        <f:entry title="${%API endpoint}" field="apiUri">
+            <f:select/>
+        </f:entry>
         <f:entry title="${%Checkout credentials}" field="checkoutCredentialsId">
             <f:select default="${descriptor.SAME}"/>
         </f:entry>
