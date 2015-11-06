@@ -86,6 +86,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return pattern;
     }
 
+    @CheckForNull
+    public String getApiUri() {
+        return apiUri;
+    }
+
     @DataBoundSetter public void setPattern(String pattern) {
         Pattern.compile(pattern);
         this.pattern = pattern;
