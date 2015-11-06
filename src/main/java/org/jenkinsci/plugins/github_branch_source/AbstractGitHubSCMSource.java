@@ -332,9 +332,9 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
                 try {
                     myself = github.getMyself();
                 } catch (IllegalStateException e) {
-                    LOGGER.log(Level.FINE, e.getMessage());
+                    LOGGER.log(Level.WARNING, e.getMessage());
                 } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "Access denied");
+                    LOGGER.log(Level.WARNING, e.getMessage());
                     // may be anonymous or bad credentials (unauthorized)
                     // TODO: Manage this exception.
                 }
@@ -348,25 +348,29 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
                 GHOrganization org = null;
                 try {
                     org = github.getOrganization(repoOwner);
+                } catch (FileNotFoundException fnf) {
+                    LOGGER.log(Level.FINE, "There is not any GH Organization named " + repoOwner);
                 } catch (IOException e) {
-                    LOGGER.log(Level.SEVERE, e.getMessage());
+                    LOGGER.log(Level.WARNING, e.getMessage());
                 }
                 if (org != null && repoOwner.equals(org.getLogin())) {
-                    // TODO this is not what you want; use listRepositories(int) instead
-                    for (String name : org.getRepositories().keySet()) {
-                        result.add(name);
+                    for (GHRepository repo : org.listRepositories()) {
+                        result.add(repo.getName());
                     }
+                    return result;
                 }
 
                 GHUser user = null;
                 try {
                     user = github.getUser(repoOwner);
+                } catch (FileNotFoundException fnf) {
+                    LOGGER.log(Level.FINE, "There is not any GH User named " + repoOwner);
                 } catch (IOException e) {
-                    LOGGER.log(Level.SEVERE, e.getMessage());
+                    LOGGER.log(Level.WARNING, e.getMessage());
                 }
                 if (user != null && repoOwner.equals(user.getLogin())) {
-                    for (String name : user.getRepositories().keySet()) {
-                        result.add(name);
+                    for (GHRepository repo : user.listRepositories()) {
+                        result.add(repo.getName());
                     }
                     return result;
                 }
