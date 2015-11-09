@@ -295,7 +295,7 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
 
         public ListBoxModel doFillApiUriItems() {
             ListBoxModel result = new ListBoxModel();
-            result.add("GitHub", "https://github.com");
+            result.add("GitHub", "");
             for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {
                 result.add(e.getName() == null ? e.getApiUri() : e.getName(), e.getApiUri());
             }
