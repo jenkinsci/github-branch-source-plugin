@@ -207,7 +207,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         public ListBoxModel doFillApiUriItems() {
             ListBoxModel result = new ListBoxModel();
-            result.add("Github", "https://github.com");
+            result.add("GitHub", "https://github.com");
             for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {
                 result.add(e.getName() == null ? e.getApiUri() : e.getName(), e.getApiUri());
             }

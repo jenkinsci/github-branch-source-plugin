@@ -24,8 +24,6 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -36,13 +34,15 @@ public abstract class RepositoryUriResolver {
 
     public abstract String getRepositoryUri(String apiUri, String owner, String repository);
 
-    @CheckForNull
-    public static String hostnameFromApiUri(@Nonnull String apiUri) {
-        try {
-            URL endpoint = new URL(apiUri);
-            return endpoint.getHost();
-        } catch (MalformedURLException e) {
-            return null;
+    public static String hostnameFromApiUri(String apiUri) {
+        if (apiUri != null) {
+            try {
+                URL endpoint = new URL(apiUri);
+                return endpoint.getHost();
+            } catch (MalformedURLException e) {
+                // ignore
+            }
         }
+        return "github.com";
     }
 }
