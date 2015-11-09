@@ -89,7 +89,7 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
         this.checkoutCredentialsId = checkoutCredentialsId;
     }
 
-    @Nonnull
+    @CheckForNull
     public String getApiUri() {
         return apiUri;
     }
