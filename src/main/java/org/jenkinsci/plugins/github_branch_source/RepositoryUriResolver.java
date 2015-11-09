@@ -26,6 +26,8 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import hudson.Util;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -38,17 +40,14 @@ public abstract class RepositoryUriResolver {
 
     public static String hostnameFromApiUri(String apiUri) {
         apiUri = Util.fixEmptyAndTrim(apiUri);
-        if (apiUri == null) {
-            return "github.com";
+        try {
+            URL endpoint = new URL(apiUri);
+            if (endpoint.getPath().startsWith("/api/v3")) {
+                return endpoint.getHost();
+            }
+        } catch (MalformedURLException e) {
+            // ignore
         }
-        Pattern enterprise = Pattern.compile("^https?://(([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*"
-                + "([A-Za-z]|[A-Za-z][A-Za-z0-9\\-]*[A-Za-z0-9])/api/v3/?.*$");
-        Matcher matcher = enterprise.matcher(apiUri);
-        if (matcher.matches()) {
-            return matcher.group(1);
-        }
-        // fall back to github
         return "github.com";
     }
-
 }

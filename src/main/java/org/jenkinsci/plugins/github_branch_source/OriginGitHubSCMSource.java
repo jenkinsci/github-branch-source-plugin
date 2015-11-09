@@ -103,8 +103,8 @@ public class OriginGitHubSCMSource extends AbstractGitHubSCMSource {
     }
 
     @Extension public static class OriginGitHubSCMSourceAddition implements GitHubSCMNavigator.GitHubSCMSourceAddition {
-        @Override public List<? extends SCMSource> sourcesFor(String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
-            return Collections.singletonList(new OriginGitHubSCMSource(null, null, checkoutCredentialsId, scanCredentialsId, repoOwner, repository));
+        @Override public List<? extends SCMSource> sourcesFor(String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
+            return Collections.singletonList(new OriginGitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, repository));
         }
     }
 

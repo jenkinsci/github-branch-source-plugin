@@ -58,12 +58,14 @@ public class GitHubSCMNavigator extends SCMNavigator {
     private final String repoOwner;
     private final String scanCredentialsId;
     private final String checkoutCredentialsId;
+    private final String apiUri;
     private String pattern = ".*";
 
-    @DataBoundConstructor public GitHubSCMNavigator(String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
+    @DataBoundConstructor public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
         this.repoOwner = repoOwner;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
         this.checkoutCredentialsId = checkoutCredentialsId;
+        this.apiUri = apiUri;
     }
 
     public String getRepoOwner() {
@@ -84,6 +86,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return pattern;
     }
 
+    @CheckForNull
+    public String getApiUri() {
+        return apiUri;
+    }
+
     @DataBoundSetter public void setPattern(String pattern) {
         Pattern.compile(pattern);
         this.pattern = pattern;
@@ -95,14 +102,13 @@ public class GitHubSCMNavigator extends SCMNavigator {
             listener.getLogger().format("Must specify user or organization%n");
             return;
         }
-        String apiUrl = null; // TODO GHE
-        StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUrl, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), null /* TODO apiUri */, scanCredentialsId);
         if (credentials == null) {
-            listener.getLogger().println("No scan credentials, skipping");
+            listener.getLogger().format("No scan credentials, skipping%n");
             return;
         }
         listener.getLogger().format("Connecting to GitHub using %s%n", CredentialsNameProvider.name(credentials));
-        GitHub github = Connector.connect(apiUrl, credentials);
+        GitHub github = Connector.connect(apiUri, credentials);
         GHMyself myself = null;
         try {
             myself = github.getMyself();
@@ -155,7 +161,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
         SCMSourceObserver.ProjectObserver projectObserver = observer.observe(name);
         for (GitHubSCMSourceAddition addition : ExtensionList.lookup(GitHubSCMSourceAddition.class)) {
-            for (SCMSource source : addition.sourcesFor(checkoutCredentialsId, scanCredentialsId, repoOwner, name)) {
+            for (SCMSource source : addition.sourcesFor(apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name)) {
                 projectObserver.addSource(source);
             }
         }
@@ -163,7 +169,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     public interface GitHubSCMSourceAddition extends ExtensionPoint {
-        List<? extends SCMSource> sourcesFor(String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository);
+        List<? extends SCMSource> sourcesFor(String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository);
     }
 
     @Extension public static class DescriptorImpl extends SCMNavigatorDescriptor {
@@ -173,7 +179,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         @Override public SCMNavigator newInstance(String name) {
-            return new GitHubSCMNavigator(name, "", AbstractGitHubSCMSource.AbstractGitHubSCMSourceDescriptor.SAME);
+            return new GitHubSCMNavigator("", name, "", AbstractGitHubSCMSource.AbstractGitHubSCMSourceDescriptor.SAME);
         }
 
         public FormValidation doCheckScanCredentialsId(@QueryParameter String value) {
@@ -199,6 +205,14 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return result;
         }
 
+        public ListBoxModel doFillApiUriItems() {
+            ListBoxModel result = new ListBoxModel();
+            result.add("Github", "");
+            for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {
+                result.add(e.getName() == null ? e.getApiUri() : e.getName(), e.getApiUri());
+            }
+            return result;
+        }
     }
 
 }

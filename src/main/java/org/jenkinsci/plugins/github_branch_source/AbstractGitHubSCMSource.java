@@ -40,8 +40,12 @@ import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.net.ssl.SSLHandshakeException;
+
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
@@ -273,6 +277,8 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
 
     public static abstract class AbstractGitHubSCMSourceDescriptor extends SCMSourceDescriptor {
 
+        private static final Logger LOGGER = Logger.getLogger(AbstractGitHubSCMSourceDescriptor.class.getName());
+
         public static final String defaultIncludes = "*";
         public static final String defaultExcludes = "";
         public static final String ANONYMOUS = "ANONYMOUS";
@@ -321,12 +327,14 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
             }
             try {
                 GitHub github = Connector.connect(apiUri, Connector.lookupScanCredentials(context, apiUri, scanCredentialsId));
+
                 GHMyself myself = null;
                 try {
                     myself = github.getMyself();
                 } catch (IllegalStateException e) {
-                    // may be anonymous... ok to ignore
+                    LOGGER.log(Level.WARNING, e.getMessage());
                 } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, e.getMessage());
                     // may be anonymous or bad credentials (unauthorized)
                     // TODO: Manage this exception.
                 }
@@ -336,27 +344,40 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
                     }
                     return result;
                 }
-                GHUser user = null;
+
+                GHOrganization org = null;
                 try {
-                    user = github.getUser(repoOwner);
+                    org = github.getOrganization(repoOwner);
+                } catch (FileNotFoundException fnf) {
+                    LOGGER.log(Level.FINE, "There is not any GH Organization named " + repoOwner);
                 } catch (IOException e) {
-                    // may be organization... ok to ignore
+                    LOGGER.log(Level.WARNING, e.getMessage());
                 }
-                if (user != null && repoOwner.equals(user.getLogin())) {
-                    for (String name : user.getRepositories().keySet()) {
-                        result.add(name);
+                if (org != null && repoOwner.equals(org.getLogin())) {
+                    for (GHRepository repo : org.listRepositories()) {
+                        result.add(repo.getName());
                     }
                     return result;
                 }
-                GHOrganization org = github.getOrganization(repoOwner);
-                if (org != null && repoOwner.equals(org.getLogin())) {
-                    // TODO this is not what you want; use listRepositories(int) instead
-                    for (String name : org.getRepositories().keySet()) {
-                        result.add(name);
-                    }
+
+                GHUser user = null;
+                try {
+                    user = github.getUser(repoOwner);
+                } catch (FileNotFoundException fnf) {
+                    LOGGER.log(Level.FINE, "There is not any GH User named " + repoOwner);
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, e.getMessage());
                 }
+                if (user != null && repoOwner.equals(user.getLogin())) {
+                    for (GHRepository repo : user.listRepositories()) {
+                        result.add(repo.getName());
+                    }
+                    return result;
+                }
+            } catch (SSLHandshakeException he) {
+                LOGGER.log(Level.SEVERE, he.getMessage());
             } catch (IOException e) {
-                // ignore
+                LOGGER.log(Level.SEVERE, e.getMessage());
             }
             return result;
         }
