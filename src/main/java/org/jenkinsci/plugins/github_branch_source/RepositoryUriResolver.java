@@ -30,8 +30,6 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * @author Stephen Connolly
