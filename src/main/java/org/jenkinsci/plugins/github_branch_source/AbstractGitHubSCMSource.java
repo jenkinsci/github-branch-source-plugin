@@ -82,13 +82,14 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
 
     protected AbstractGitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
         super(id);
-        this.apiUri = apiUri;
+        this.apiUri = Util.fixEmpty(apiUri);
         this.repoOwner = repoOwner;
         this.repository = repository;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
         this.checkoutCredentialsId = checkoutCredentialsId;
     }
 
+    @Nonnull
     public String getApiUri() {
         return apiUri;
     }
@@ -145,7 +146,7 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
             if (getCredentials(StandardCredentials.class, credentialsId) instanceof SSHUserPrivateKey) {
                 return new SshRepositoryUriResolver();
             } else {
-                // Defaults to HTTPS
+                // Defaults to HTTP/HTTPS
                 return new HttpsRepositoryUriResolver();
             }
         }
@@ -294,7 +295,7 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
 
         public ListBoxModel doFillApiUriItems() {
             ListBoxModel result = new ListBoxModel();
-            result.add("Github", "");
+            result.add("GitHub", "https://github.com");
             for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {
                 result.add(e.getName() == null ? e.getApiUri() : e.getName(), e.getApiUri());
             }
@@ -335,8 +336,6 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
                     LOGGER.log(Level.WARNING, e.getMessage());
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, e.getMessage());
-                    // may be anonymous or bad credentials (unauthorized)
-                    // TODO: Manage this exception.
                 }
                 if (myself != null && repoOwner.equals(myself.getLogin())) {
                     for (String name : myself.getAllRepositories().keySet()) {

@@ -65,7 +65,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         this.repoOwner = repoOwner;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
         this.checkoutCredentialsId = checkoutCredentialsId;
-        this.apiUri = apiUri;
+        this.apiUri = Util.fixEmpty(apiUri);
     }
 
     public String getRepoOwner() {
@@ -102,7 +102,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             listener.getLogger().format("Must specify user or organization%n");
             return;
         }
-        StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), null /* TODO apiUri */, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
         if (credentials == null) {
             listener.getLogger().format("No scan credentials, skipping%n");
             return;
@@ -207,7 +207,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         public ListBoxModel doFillApiUriItems() {
             ListBoxModel result = new ListBoxModel();
-            result.add("Github", "");
+            result.add("Github", "https://github.com");
             for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {
                 result.add(e.getName() == null ? e.getApiUri() : e.getName(), e.getApiUri());
             }
