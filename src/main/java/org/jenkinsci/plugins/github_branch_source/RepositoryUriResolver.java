@@ -24,12 +24,8 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import hudson.Util;
-
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * @author Stephen Connolly
@@ -39,14 +35,13 @@ public abstract class RepositoryUriResolver {
     public abstract String getRepositoryUri(String apiUri, String owner, String repository);
 
     public static String hostnameFromApiUri(String apiUri) {
-        apiUri = Util.fixEmptyAndTrim(apiUri);
-        try {
-            URL endpoint = new URL(apiUri);
-            if (endpoint.getPath().startsWith("/api/v3")) {
+        if (apiUri != null) {
+            try {
+                URL endpoint = new URL(apiUri);
                 return endpoint.getHost();
+            } catch (MalformedURLException e) {
+                // ignore
             }
-        } catch (MalformedURLException e) {
-            // ignore
         }
         return "github.com";
     }
