@@ -29,7 +29,12 @@ import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-import java.util.regex.Pattern;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import org.kohsuke.github.GitHub;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
@@ -94,24 +99,27 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
             return "";
         }
 
-        public FormValidation doCheckApiUrl(@QueryParameter String value) {
-            if (Util.fixEmptyAndTrim(value) == null) {
-                return FormValidation.error("You must specify the API URI");
+        public FormValidation doCheckApiUri(@QueryParameter String apiUri) {
+            if (Util.fixEmptyAndTrim(apiUri) == null) {
+                return FormValidation.warning("You must specify the API URI");
             }
-            Pattern enterprise = Pattern.compile("^https?://(([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\\-]*[a-zA-Z0-9])\\.)*"
-                    + "([A-Za-z]|[A-Za-z][A-Za-z0-9\\-]*[A-Za-z0-9])/api/v3/?$");
-            if (!enterprise.matcher(value).matches()) {
-                return FormValidation.warning(
-                        "This does not look like a GitHub Enterprise API URI. Expecting something like "
-                                + "https://[hostname or ip]/api/v3/");
+            try {
+                URL api = new URL(apiUri);
+                GitHub github = GitHub.connectToEnterpriseAnonymously(api.toString());
+                if (github.isApiUrlValid()) {
+                    return FormValidation.ok();
+                }
+                return FormValidation.warning("This does not look like a GitHub Enterprise API URI");
+            } catch (MalformedURLException mue) {
+                return FormValidation.error("This does not look like a GitHub Enterprise API URI");
+            } catch (IOException e) {
+                return FormValidation.error(e.getMessage());
             }
-            // TODO validate connection
-            return FormValidation.ok();
         }
 
-        public FormValidation doCheckApiName(@QueryParameter String value) {
-            if (Util.fixEmptyAndTrim(value) == null) {
-                return FormValidation.warning("Specifying a name is recommended");
+        public FormValidation doCheckName(@QueryParameter String name) {
+            if (Util.fixEmptyAndTrim(name) == null) {
+                return FormValidation.warning("You must specify the name");
             }
             return FormValidation.ok();
         }

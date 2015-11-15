@@ -36,10 +36,11 @@
             <artifactId>git</artifactId>
             <version>2.3</version>
         </dependency>
+        <!-- TODO: Update when org.jenkins-ci.plugins:github-api is released -->
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.69</version>
+            <version>1.71-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
