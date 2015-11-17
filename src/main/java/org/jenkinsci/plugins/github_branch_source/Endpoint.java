@@ -34,6 +34,8 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
@@ -99,6 +101,7 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
             return "";
         }
 
+        @Restricted(NoExternalUse.class)
         public FormValidation doCheckApiUri(@QueryParameter String apiUri) {
             if (Util.fixEmptyAndTrim(apiUri) == null) {
                 return FormValidation.warning("You must specify the API URI");
@@ -117,6 +120,7 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
             }
         }
 
+        @Restricted(NoExternalUse.class)
         public FormValidation doCheckName(@QueryParameter String name) {
             if (Util.fixEmptyAndTrim(name) == null) {
                 return FormValidation.warning("You must specify the name");
