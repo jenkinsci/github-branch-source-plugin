@@ -109,8 +109,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
             listener.getLogger().format("No scan credentials, skipping%n");
             return;
         }
-        listener.getLogger().format("Connecting to GitHub using %s%n", CredentialsNameProvider.name(credentials));
         GitHub github = Connector.connect(apiUri, credentials);
+        if (!github.isCredentialValid()) {
+            listener.getLogger().format("Invalid scan credentials, skipping%n");
+            return;
+        }
+        listener.getLogger().format("Connecting to GitHub using %s%n", CredentialsNameProvider.name(credentials));
         GHMyself myself = null;
         try {
             myself = github.getMyself();
