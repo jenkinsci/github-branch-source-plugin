@@ -43,6 +43,8 @@ import jenkins.scm.api.SCMNavigatorDescriptor;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.SCMSourceOwner;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHRepository;
@@ -182,9 +184,24 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return new GitHubSCMNavigator("", name, "", AbstractGitHubSCMSource.AbstractGitHubSCMSourceDescriptor.SAME);
         }
 
-        public FormValidation doCheckScanCredentialsId(@QueryParameter String value) {
-            if (!value.isEmpty()) {
-                return FormValidation.ok();
+        @Restricted(NoExternalUse.class)
+        public FormValidation doCheckScanCredentialsId(@AncestorInPath SCMSourceOwner context,
+                @QueryParameter String scanCredentialsId, @QueryParameter String apiUri) {
+            if (!scanCredentialsId.isEmpty()) {
+                StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
+                if (credentials == null) {
+                    FormValidation.error("Invalid credentials");
+                } else {
+                    try {
+                        GitHub connector = Connector.connect(apiUri, credentials);
+                        if (connector.isCredentialValid()) {
+                            return FormValidation.ok();
+                        }
+                    } catch (IOException e) {
+                        // ignore, never thrown
+                    }
+                }
+                return FormValidation.error("Invalid credentials");
             } else {
                 return FormValidation.warning("Credentials are required");
             }
