@@ -105,50 +105,57 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return;
         }
         StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
-        if (credentials == null) {
-            listener.getLogger().format("No scan credentials, skipping%n");
-            return;
-        }
         GitHub github = Connector.connect(apiUri, credentials);
-        if (!github.isCredentialValid()) {
+        if (credentials != null && !github.isCredentialValid()) {
             listener.getLogger().format("Invalid scan credentials, skipping%n");
             return;
         }
-        listener.getLogger().format("Connecting to GitHub using %s%n", CredentialsNameProvider.name(credentials));
-        GHMyself myself = null;
-        try {
-            myself = github.getMyself();
-        } catch (IllegalStateException e) {
-            // may be anonymous... ok to ignore
-        } catch (IOException e) {
-            // may be anonymous... ok to ignore
-        }
-        if (myself != null && repoOwner.equals(myself.getLogin())) {
-            listener.getLogger().format("Looking up repositories of myself %s%n", repoOwner);
-            for (GHRepository repo : myself.listRepositories()) {
-                if (!repo.getOwnerName().equals(repoOwner)) {
-                    continue; // ignore repos in other orgs when using GHMyself
-                }
-                add(listener, observer, repo);
+
+        if (!github.isAnonymous()) {
+            listener.getLogger().format("Connecting to GitHub using %s%n", CredentialsNameProvider.name(credentials));
+            GHMyself myself = null;
+            try {
+                // Requires an authenticated access
+                myself = github.getMyself();
+            } catch (IOException e) {
+                // Something wrong happened, maybe java.net.ConnectException?
             }
-            return;
+            if (myself != null && repoOwner.equals(myself.getLogin())) {
+                listener.getLogger().format("Looking up repositories of myself %s%n%n", repoOwner);
+                for (GHRepository repo : myself.listRepositories()) {
+                    if (!repo.getOwnerName().equals(repoOwner)) {
+                        continue; // ignore repos in other orgs when using GHMyself
+                    }
+                    add(listener, observer, repo);
+                }
+                return;
+            }
+        } else {
+            listener.getLogger().format("Connecting to GitHub using anonymous access%n");
         }
-        GHOrganization org = github.getOrganization(repoOwner);
+
+        GHOrganization org = null;
+        try {
+            org = github.getOrganization(repoOwner);
+        } catch (IOException e) {
+            // may be a user... ok to ignore
+        }
         if (org != null && repoOwner.equals(org.getLogin())) {
-            listener.getLogger().format("Looking up repositories of organization %s%n", repoOwner);
+            listener.getLogger().format("Looking up repositories of organization %s%n%n", repoOwner);
             for (GHRepository repo : org.listRepositories()) {
                 add(listener, observer, repo);
             }
             return;
         }
+
         GHUser user = null;
         try {
             user = github.getUser(repoOwner);
         } catch (IOException e) {
-            // may be organization... ok to ignore
+            // Something wrong happened, maybe java.net.ConnectException?
         }
         if (user != null && repoOwner.equals(user.getLogin())) {
-            listener.getLogger().format("Looking up repositories of user %s%n", repoOwner);
+            listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
             for (GHRepository repo : user.listRepositories()) {
                 add(listener, observer, repo);
             }
@@ -207,7 +214,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 }
                 return FormValidation.error("Invalid credentials");
             } else {
-                return FormValidation.warning("Credentials are required");
+                return FormValidation.warning("Credentials are recommended");
             }
         }
 

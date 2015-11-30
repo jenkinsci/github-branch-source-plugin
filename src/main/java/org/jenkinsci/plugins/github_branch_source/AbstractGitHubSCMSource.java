@@ -197,13 +197,17 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
 
     @Override protected final void retrieve(SCMHeadObserver observer, final TaskListener listener) throws IOException, InterruptedException {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
-        if (credentials == null) {
-            listener.getLogger().println("No scan credentials, skipping");
+        GitHub github = Connector.connect(apiUri, credentials);
+        if (credentials != null && !github.isCredentialValid()) {
+            listener.getLogger().format("Invalid scan credentials, skipping%n");
             return;
         }
-        listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(), CredentialsNameProvider.name(credentials));
-        GitHub github = Connector.connect(apiUri, credentials);
-        String fullName = repoOwner + "/" + repository;
+        if (!github.isAnonymous()) {
+            listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(),
+                    CredentialsNameProvider.name(credentials));
+        } else {
+            listener.getLogger().format("Connecting to %s using anonymous access%n", getDescriptor().getDisplayName());
+        }
         /* TODO call GitHubBuilder withRateLimitHandler to notify listener so we do not get stuck without messages in something like
         java.lang.Thread.State: TIMED_WAITING (sleeping)
                 at java.lang.Thread.sleep(Native Method)
@@ -213,6 +217,7 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
                 at org.kohsuke.github.Requester.to(Requester.java:191)
                 at org.kohsuke.github.GitHub.getRepository(GitHub.java:320)
         */
+        String fullName = repoOwner + "/" + repository;
         final GHRepository repo = github.getRepository(fullName);
         listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
         doRetrieve(observer, listener, repo);
@@ -327,21 +332,24 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
                 return result;
             }
             try {
-                GitHub github = Connector.connect(apiUri, Connector.lookupScanCredentials(context, apiUri, scanCredentialsId));
+                StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
+                GitHub github = Connector.connect(apiUri, credentials);
 
-                GHMyself myself = null;
-                try {
-                    myself = github.getMyself();
-                } catch (IllegalStateException e) {
-                    LOGGER.log(Level.WARNING, e.getMessage());
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, e.getMessage());
-                }
-                if (myself != null && repoOwner.equals(myself.getLogin())) {
-                    for (String name : myself.getAllRepositories().keySet()) {
-                        result.add(name);
+                if (!github.isAnonymous()) {
+                    GHMyself myself = null;
+                    try {
+                        myself = github.getMyself();
+                    } catch (IllegalStateException e) {
+                        LOGGER.log(Level.WARNING, e.getMessage());
+                    } catch (IOException e) {
+                        LOGGER.log(Level.WARNING, e.getMessage());
                     }
-                    return result;
+                    if (myself != null && repoOwner.equals(myself.getLogin())) {
+                        for (String name : myself.getAllRepositories().keySet()) {
+                            result.add(name);
+                        }
+                        return result;
+                    }
                 }
 
                 GHOrganization org = null;
