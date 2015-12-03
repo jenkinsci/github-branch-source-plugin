@@ -31,8 +31,9 @@ import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -96,6 +97,8 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
     @Extension
     public static class DesciptorImpl extends Descriptor<Endpoint> {
 
+        private static final Logger LOGGER = Logger.getLogger(DesciptorImpl.class.getName());
+
         @Override
         public String getDisplayName() {
             return "";
@@ -104,19 +107,16 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
         @Restricted(NoExternalUse.class)
         public FormValidation doCheckApiUri(@QueryParameter String apiUri) {
             if (Util.fixEmptyAndTrim(apiUri) == null) {
-                return FormValidation.warning("You must specify the API URI");
+                return FormValidation.warning("You must specify the API URL");
             }
             try {
                 URL api = new URL(apiUri);
                 GitHub github = GitHub.connectToEnterpriseAnonymously(api.toString());
-                if (github.isApiUrlValid()) {
-                    return FormValidation.ok();
-                }
-                return FormValidation.warning("This does not look like a GitHub Enterprise API URI");
-            } catch (MalformedURLException mue) {
-                return FormValidation.error("This does not look like a GitHub Enterprise API URI");
+                github.checkApiUrlValidity();
+                return FormValidation.ok();
             } catch (IOException e) {
-                return FormValidation.error(e.getMessage());
+                LOGGER.log(Level.WARNING, e.getMessage());
+                return FormValidation.error("This does not look like a GitHub Enterprise API URL");
             }
         }
 
