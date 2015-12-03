@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
@@ -31,6 +32,7 @@ import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.logging.Logger;
 import java.util.logging.Level;
@@ -114,6 +116,10 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
                 GitHub github = GitHub.connectToEnterpriseAnonymously(api.toString());
                 github.checkApiUrlValidity();
                 return FormValidation.ok();
+            } catch (MalformedURLException mue) {
+                return FormValidation.error("This does not look like a GitHub Enterprise API URL");
+            } catch (JsonParseException jpe) {
+                return FormValidation.error("This does not look like a GitHub Enterprise API URL");
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING, e.getMessage());
                 return FormValidation.error("This does not look like a GitHub Enterprise API URL");
