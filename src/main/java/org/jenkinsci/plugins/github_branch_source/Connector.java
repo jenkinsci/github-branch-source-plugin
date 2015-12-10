@@ -36,6 +36,7 @@ import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import hudson.Util;
 import hudson.security.ACL;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -43,6 +44,8 @@ import jenkins.scm.api.SCMSourceOwner;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.RateLimitHandler;
 
 /**
  * Utilities that could perhaps be moved into {@code github-api}.
@@ -68,7 +71,7 @@ public class Connector {
     public static @Nonnull GitHub connect(@CheckForNull String apiUri, @CheckForNull StandardCredentials credentials) throws IOException {
         if (Util.fixEmptyAndTrim(apiUri) == null) {
             if (credentials == null) {
-                return GitHub.connectAnonymously();
+                return new GitHubBuilder().withRateLimitHandler(CUSTOMIZED).build();
             } else if (credentials instanceof StandardUsernamePasswordCredentials) {
                 StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
                 return GitHub.connectUsingPassword(c.getUsername(), c.getPassword().getPlainText());
@@ -107,5 +110,26 @@ public class Connector {
     }
 
     private Connector() {}
+
+    /**
+     * Fail immediately and throw a customized exception.
+     */
+    public static final RateLimitHandler CUSTOMIZED = new RateLimitHandler() {
+
+        @Override
+        public void onError(IOException e, HttpURLConnection uc) throws IOException {
+            try {
+                long limit = Long.parseLong(uc.getHeaderField("X-RateLimit-Limit"));
+                long remaining = Long.parseLong(uc.getHeaderField("X-RateLimit-Remaining"));
+                long reset = Long.parseLong(uc.getHeaderField("X-RateLimit-Reset"));
+
+                throw new RateLimitExceededException("GitHub API rate limit exceeded", limit, remaining, reset);
+            } catch (NumberFormatException nfe) {
+                // Something wrong happened
+                throw new IOException();
+            }
+        }
+
+    };
 
 }

@@ -198,30 +198,26 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
     @Override protected final void retrieve(SCMHeadObserver observer, final TaskListener listener) throws IOException, InterruptedException {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
         GitHub github = Connector.connect(apiUri, credentials);
-        if (credentials != null && !github.isCredentialValid()) {
-            listener.getLogger().format("Invalid scan credentials, skipping%n");
-            return;
+        try {
+            if (credentials != null && !github.isCredentialValid()) {
+                listener.getLogger().format("Invalid scan credentials, skipping%n");
+                return;
+            }
+            if (!github.isAnonymous()) {
+                listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(),
+                        CredentialsNameProvider.name(credentials));
+            } else {
+                listener.getLogger().format("Connecting to %s using anonymous access%n", getDescriptor().getDisplayName());
+            }
+            String fullName = repoOwner + "/" + repository;
+            final GHRepository repo = github.getRepository(fullName);
+            listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
+            doRetrieve(observer, listener, repo);
+            listener.getLogger().format("%nDone examining %s%n%n", fullName);
+        } catch (RateLimitExceededException rle) {
+            listener.getLogger().format("%n%s%n%n", rle.getMessage());
+            throw new InterruptedException();
         }
-        if (!github.isAnonymous()) {
-            listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(),
-                    CredentialsNameProvider.name(credentials));
-        } else {
-            listener.getLogger().format("Connecting to %s using anonymous access%n", getDescriptor().getDisplayName());
-        }
-        /* TODO call GitHubBuilder withRateLimitHandler to notify listener so we do not get stuck without messages in something like
-        java.lang.Thread.State: TIMED_WAITING (sleeping)
-                at java.lang.Thread.sleep(Native Method)
-                at org.kohsuke.github.RateLimitHandler$1.onError(RateLimitHandler.java:38)
-                at org.kohsuke.github.Requester.handleApiError(Requester.java:486)
-                at org.kohsuke.github.Requester._to(Requester.java:245)
-                at org.kohsuke.github.Requester.to(Requester.java:191)
-                at org.kohsuke.github.GitHub.getRepository(GitHub.java:320)
-        */
-        String fullName = repoOwner + "/" + repository;
-        final GHRepository repo = github.getRepository(fullName);
-        listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
-        doRetrieve(observer, listener, repo);
-        listener.getLogger().format("%nDone examining %s%n%n", fullName);
     }
 
     protected abstract void doRetrieve(SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException;

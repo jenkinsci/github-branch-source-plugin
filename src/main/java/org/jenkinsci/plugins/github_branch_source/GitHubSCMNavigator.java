@@ -117,6 +117,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
             try {
                 // Requires an authenticated access
                 myself = github.getMyself();
+            } catch (RateLimitExceededException rle) {
+                listener.getLogger().format("%n%s%n%n", rle.getMessage());
+                throw new InterruptedException();
             } catch (IOException e) {
                 // Something wrong happened, maybe java.net.ConnectException?
             }
@@ -137,6 +140,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         GHOrganization org = null;
         try {
             org = github.getOrganization(repoOwner);
+        } catch (RateLimitExceededException rle) {
+            listener.getLogger().format("%n%s%n%n", rle.getMessage());
+            throw new InterruptedException();
         } catch (IOException e) {
             // may be a user... ok to ignore
         }
@@ -151,6 +157,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         GHUser user = null;
         try {
             user = github.getUser(repoOwner);
+        } catch (RateLimitExceededException rle) {
+            listener.getLogger().format("%n%s%n%n", rle.getMessage());
+            throw new InterruptedException();
         } catch (IOException e) {
             // Something wrong happened, maybe java.net.ConnectException?
         }
