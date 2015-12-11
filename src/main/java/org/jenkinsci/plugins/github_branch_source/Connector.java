@@ -126,7 +126,7 @@ public class Connector {
                 throw new RateLimitExceededException("GitHub API rate limit exceeded", limit, remaining, reset);
             } catch (NumberFormatException nfe) {
                 // Something wrong happened
-                throw new IOException();
+                throw new IOException(nfe);
             }
         }
 
