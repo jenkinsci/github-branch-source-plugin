@@ -117,9 +117,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
             try {
                 // Requires an authenticated access
                 myself = github.getMyself();
-            } catch (RateLimitExceededException rle) {
-                listener.getLogger().format("%n%s%n%n", rle.getMessage());
-                throw new InterruptedException();
             } catch (IOException e) {
                 // Something wrong happened, maybe java.net.ConnectException?
             }
