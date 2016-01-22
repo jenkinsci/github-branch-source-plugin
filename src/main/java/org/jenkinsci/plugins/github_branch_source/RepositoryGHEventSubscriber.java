@@ -5,7 +5,6 @@ import hudson.Extension;
 import hudson.model.Job;
 import hudson.security.ACL;
 import jenkins.branch.OrganizationFolder;
-import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.SCMSourceOwners;
 import net.sf.json.JSONObject;
@@ -53,13 +52,18 @@ public class RepositoryGHEventSubscriber extends GHEventsSubscriber {
     protected void onEvent(GHEvent event, String payload) {
         JSONObject json = JSONObject.fromObject(payload);
         String repoUrl = json.getJSONObject("repository").getString("html_url");
+        boolean fork = json.getJSONObject("repository").getBoolean("fork");
 
-        LOGGER.log(Level.FINE, "Received POST for {0}", repoUrl);
+        LOGGER.log(Level.FINE, "Received REPOSITORY_EVENT for {0}", repoUrl);
         Matcher matcher = REPOSITORY_NAME_PATTERN.matcher(repoUrl);
         if (matcher.matches()) {
-            final GitHubRepositoryName changedRepository = GitHubRepositoryName.create(repoUrl);
-            if (changedRepository == null) {
+            final GitHubRepositoryName repo = GitHubRepositoryName.create(repoUrl);
+            if (repo == null) {
                 LOGGER.log(Level.WARNING, "Malformed repository URL {0}", repoUrl);
+                return;
+            }
+            if (!fork) {
+                LOGGER.log(Level.FINE, "Repository {0} was created but it is empty, will be ignored", repo.getRepositoryName());
                 return;
             }
             ACL.impersonate(ACL.SYSTEM, new Runnable() {
@@ -68,7 +72,7 @@ public class RepositoryGHEventSubscriber extends GHEventsSubscriber {
                         if (owner instanceof OrganizationFolder) {
                             OrganizationFolder orgFolder = (OrganizationFolder) owner;
                             for (GitHubSCMNavigator navigator : orgFolder.getNavigators().getAll(GitHubSCMNavigator.class)) {
-                                if (Pattern.matches(navigator.getPattern(), changedRepository.getRepositoryName())) {
+                                if (Pattern.matches(navigator.getPattern(), repo.getRepositoryName())) {
                                     orgFolder.scheduleBuild();
                                 }
                             }
