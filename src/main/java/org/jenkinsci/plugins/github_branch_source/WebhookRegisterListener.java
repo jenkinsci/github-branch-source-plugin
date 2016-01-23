@@ -80,8 +80,8 @@ public class WebhookRegisterListener extends ItemListener {
                     try {
                         GitHub github = Connector.connect(gitHubSCMSource.getApiUri(), credentials);
                         GHRepository repo = github.getRepository(gitHubSCMSource.getRepoOwner() + "/" + gitHubSCMSource.getRepository());
-                        String url = Jenkins.getActiveInstance().getRootUrl() + "/github-webhook/";
-                        if (!hasHook(repo.getHooks(), url)) {
+                        String url = Jenkins.getActiveInstance().getRootUrl() + "github-webhook/";
+                        if (!existsHook(repo.getHooks(), url)) {
                             repo.createWebHook(new URL(url), Collections.singletonList(GHEvent.PUSH));
                             LOGGER.log(Level.INFO /* FINE */, "A webhook was registered for the repository {0}", repo.getFullName());
                         }
@@ -102,14 +102,16 @@ public class WebhookRegisterListener extends ItemListener {
                     if (gitHubSCMNavigator.getScanCredentialsId() == null) {
                         return;
                     }
-                    StandardCredentials credentials = Connector.lookupScanCredentials(organizationFolder, gitHubSCMNavigator.getApiUri(), gitHubSCMNavigator.getScanCredentialsId());
+                    StandardCredentials credentials = Connector.lookupScanCredentials(organizationFolder,
+                            gitHubSCMNavigator.getApiUri(), gitHubSCMNavigator.getScanCredentialsId());
                     try {
                         GitHub github = Connector.connect(gitHubSCMNavigator.getApiUri(), credentials);
                         GHOrganization org = github.getOrganization(gitHubSCMNavigator.getRepoOwner());
-                        String url = Jenkins.getActiveInstance().getRootUrl() + "/github-webhook/";
-                        if (!hasHook(org.getHooks(), url)) {
+                        String url = Jenkins.getActiveInstance().getRootUrl() + "github-webhook/";
+                        if (!existsHook(org.getHooks(), url)) {
                             org.createWebHook(new URL(url), Collections.singletonList(GHEvent.REPOSITORY));
-                            LOGGER.log(Level.INFO /* FINE */, "A webhook was registered for the organization {0}", org.getName());
+                            LOGGER.log(Level.INFO /* FINE */, "A webhook was registered for the organization {0}",
+                                    org.getHtmlUrl());
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -125,9 +127,9 @@ public class WebhookRegisterListener extends ItemListener {
     }
 
     /**
-     * TODO: Add description.
+     * Verify if exists a webhook by its URL.
      */
-    private boolean hasHook (List<GHHook> hooks, String url) {
+    private boolean existsHook(List<GHHook> hooks, String url) {
         int cont = 0;
         boolean found = false;
         while (!found && cont < hooks.size()) {
@@ -140,4 +142,5 @@ public class WebhookRegisterListener extends ItemListener {
         }
         return found;
     }
+
 }
