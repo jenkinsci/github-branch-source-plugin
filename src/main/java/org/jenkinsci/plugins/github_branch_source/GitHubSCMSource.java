@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 CloudBees, Inc.
+ * Copyright 2015-2016 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import hudson.Extension;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
 import hudson.model.TaskListener;
@@ -39,7 +40,11 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -50,37 +55,47 @@ import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
+import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.api.SCMSourceOwner;
+import org.eclipse.jgit.transport.RefSpec;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.github.GHBranch;
+import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHPullRequest;
+import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
-public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
+public class GitHubSCMSource extends AbstractGitSCMSource {
 
     private final String apiUri;
 
     /** Credentials for actual clone; may be SSH private key. */
     private final String checkoutCredentialsId;
 
-    /** Credentials for GitHub API; currently only supports username/password (access token). */
+    /** Credentials for GitHub API; currently only supports username/password (personal access token). */
     private final String scanCredentialsId;
 
     private final String repoOwner;
 
     private final String repository;
 
-    private @Nonnull String includes = AbstractGitHubSCMSourceDescriptor.defaultIncludes;
+    private @Nonnull String includes = DescriptorImpl.defaultIncludes;
 
-    private @Nonnull String excludes = AbstractGitHubSCMSourceDescriptor.defaultExcludes;
+    private @Nonnull String excludes = DescriptorImpl.defaultExcludes;
 
-    protected AbstractGitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
+    @DataBoundConstructor
+    public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
         super(id);
         this.apiUri = Util.fixEmpty(apiUri);
         this.repoOwner = repoOwner;
@@ -106,9 +121,9 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
     @CheckForNull
     @Override
     public String getCredentialsId() {
-        if (AbstractGitHubSCMSourceDescriptor.ANONYMOUS.equals(checkoutCredentialsId)) {
+        if (DescriptorImpl.ANONYMOUS.equals(checkoutCredentialsId)) {
             return null;
-        } else if (AbstractGitHubSCMSourceDescriptor.SAME.equals(checkoutCredentialsId)) {
+        } else if (DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
             return scanCredentialsId;
         } else {
             return checkoutCredentialsId;
@@ -131,6 +146,12 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
 
     public String getRepository() {
         return repository;
+    }
+
+    @Override
+    protected List<RefSpec> getRefSpecs() {
+        return new ArrayList<RefSpec>(Arrays.asList(new RefSpec("+refs/heads/*:refs/remotes/origin/*"),
+                new RefSpec("+refs/pull/*/merge:refs/remotes/origin/pr/*")));
     }
 
     /**
@@ -165,11 +186,6 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
                 Collections.<DomainRequirement> emptyList()), CredentialsMatchers.allOf(
                 CredentialsMatchers.withId(credentialsId),
                 CredentialsMatchers.instanceOf(type)));
-    }
-
-    @Override
-    public AbstractGitHubSCMSourceDescriptor getDescriptor() {
-        return (AbstractGitHubSCMSourceDescriptor) super.getDescriptor();
     }
 
     @Override
@@ -220,7 +236,72 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    protected abstract void doRetrieve(SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException;
+    protected void doRetrieve(SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
+        SCMSourceCriteria criteria = getCriteria();
+
+        listener.getLogger().format("%n  Getting remote branches...%n");
+        int branches = 0;
+        for (Map.Entry<String,GHBranch> entry : repo.getBranches().entrySet()) {
+            final String branchName = entry.getKey();
+            if (isExcluded(branchName)) {
+                continue;
+            }
+            listener.getLogger().format("%n    Checking branch %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString() + "/tree/" + branchName, branchName));
+            if (criteria != null) {
+                SCMSourceCriteria.Probe probe = getProbe(branchName, "branch", "refs/heads/" + branchName, repo, listener);
+                if (criteria.isHead(probe, listener)) {
+                    listener.getLogger().format("    Met criteria%n%n");
+                } else {
+                    listener.getLogger().format("    Does not meet criteria%n%n");
+                    continue;
+                }
+            }
+            SCMHead head = new SCMHead(branchName);
+            SCMRevision hash = new SCMRevisionImpl(head, entry.getValue().getSHA1());
+            observer.observe(head, hash);
+            if (!observer.isObserving()) {
+                return;
+            }
+            branches++;
+        }
+        listener.getLogger().format("  %d branches were processed%n", branches);
+
+        listener.getLogger().format("%n  Getting remote pull requests...%n");
+        int pullrequests = 0;
+        for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
+            int number = ghPullRequest.getNumber();
+            SCMHead head = new PullRequestSCMHead(number);
+            final String branchName = head.getName();
+            listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
+            // FYI https://developer.github.com/v3/pulls/#response-1
+            Boolean mergeable = ghPullRequest.getMergeable();
+            if (!Boolean.TRUE.equals(mergeable)) {
+                listener.getLogger().format("    Not mergeable, skipping%n%n");
+                continue;
+            }
+            if (repo.getOwner().equals(ghPullRequest.getHead().getUser())) {
+                listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
+                continue;
+            }
+            if (criteria != null) {
+                SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + number + "/head", repo, listener);
+                if (criteria.isHead(probe, listener)) {
+                    listener.getLogger().format("    Met criteria%n");
+                } else {
+                    listener.getLogger().format("    Does not meet criteria%n");
+                    continue;
+                }
+            }
+            SCMRevision hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
+            observer.observe(head, hash);
+            if (!observer.isObserving()) {
+                return;
+            }
+            pullrequests++;
+        }
+        listener.getLogger().format("  %d pull requests were processed%n", pullrequests);
+
+    }
 
     /**
      * Returns a {@link jenkins.scm.api.SCMSourceCriteria.Probe} for use in {@link #doRetrieve}.
@@ -270,27 +351,51 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
         return doRetrieve(head, listener, repo);
     }
 
-    protected /*abstract*/ SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
-        listener.error("Please implement " + getClass().getName() + ".doRetrieve(SCMHead, TaskListener, GHRepository)");
-        SCMHeadObserver.Selector selector = SCMHeadObserver.select(head);
-        doRetrieve(selector, listener, repo);
-        return selector.result();
+    protected SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
+        GHRef ref;
+        if (head instanceof PullRequestSCMHead) {
+            int number = ((PullRequestSCMHead) head).getNumber();
+            ref = repo.getRef("pull/" + number + "/merge");
+        } else {
+            ref = repo.getRef("heads/" + head.getName());
+        }
+        return new SCMRevisionImpl(head, ref.getObject().getSha());
     }
 
-    public static abstract class AbstractGitHubSCMSourceDescriptor extends SCMSourceDescriptor {
+    @Extension public static class DescriptorImpl extends SCMSourceDescriptor {
 
-        private static final Logger LOGGER = Logger.getLogger(AbstractGitHubSCMSourceDescriptor.class.getName());
+        private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
 
         public static final String defaultIncludes = "*";
         public static final String defaultExcludes = "";
         public static final String ANONYMOUS = "ANONYMOUS";
         public static final String SAME = "SAME";
 
-        public FormValidation doCheckScanCredentialsId(@QueryParameter String value) {
-            if (!value.isEmpty()) {
-                return FormValidation.ok();
+        @Override
+        public String getDisplayName() {
+            return "GitHub";
+        }
+
+        @Restricted(NoExternalUse.class)
+        public FormValidation doCheckScanCredentialsId(@AncestorInPath SCMSourceOwner context,
+                @QueryParameter String scanCredentialsId, @QueryParameter String apiUri) {
+            if (!scanCredentialsId.isEmpty()) {
+                StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
+                if (credentials == null) {
+                    FormValidation.error("Invalid credentials");
+                } else {
+                    try {
+                        GitHub connector = Connector.connect(apiUri, credentials);
+                        if (connector.isCredentialValid()) {
+                            return FormValidation.ok();
+                        }
+                    } catch (IOException e) {
+                        // ignore, never thrown
+                    }
+                }
+                return FormValidation.error("Invalid credentials");
             } else {
-                return FormValidation.warning("Credentials are required");
+                return FormValidation.warning("Credentials are recommended");
             }
         }
 
@@ -318,10 +423,8 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
             return result;
         }
 
-        public ListBoxModel doFillRepositoryItems(@AncestorInPath SCMSourceOwner context,
-                                                  @QueryParameter String apiUri,
-                                                  @QueryParameter String scanCredentialsId,
-                                                  @QueryParameter String repoOwner) {
+        public ListBoxModel doFillRepositoryItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri,
+                @QueryParameter String scanCredentialsId, @QueryParameter String repoOwner) {
             ListBoxModel result = new ListBoxModel();
             repoOwner = Util.fixEmptyAndTrim(repoOwner);
             if (repoOwner == null) {
@@ -385,6 +488,12 @@ public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
             return result;
         }
 
+    }
+
+    @Extension public static class GitHubSCMSourceAddition implements GitHubSCMNavigator.GitHubSCMSourceAddition {
+        @Override public List<? extends SCMSource> sourcesFor(String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
+            return Collections.singletonList(new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, repository));
+        }
     }
 
 }

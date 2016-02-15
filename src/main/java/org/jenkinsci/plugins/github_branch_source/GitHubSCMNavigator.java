@@ -198,7 +198,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         @Override public SCMNavigator newInstance(String name) {
-            return new GitHubSCMNavigator("", name, "", AbstractGitHubSCMSource.AbstractGitHubSCMSourceDescriptor.SAME);
+            return new GitHubSCMNavigator("", name, "", GitHubSCMSource.DescriptorImpl.SAME);
         }
 
         @Restricted(NoExternalUse.class)
@@ -233,8 +233,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         public ListBoxModel doFillCheckoutCredentialsIdItems(@AncestorInPath SCMSourceOwner context/* TODO , @QueryParameter String apiUri*/) {
             StandardListBoxModel result = new StandardListBoxModel();
-            result.add("- same as scan credentials -", AbstractGitHubSCMSource.AbstractGitHubSCMSourceDescriptor.SAME);
-            result.add("- anonymous -", AbstractGitHubSCMSource.AbstractGitHubSCMSourceDescriptor.ANONYMOUS);
+            result.add("- same as scan credentials -", GitHubSCMSource.DescriptorImpl.SAME);
+            result.add("- anonymous -", GitHubSCMSource.DescriptorImpl.ANONYMOUS);
             Connector.fillCheckoutCredentialsIdItems(result, context, null);
             return result;
         }
