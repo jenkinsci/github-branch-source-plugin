@@ -239,7 +239,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    protected void doRetrieve(SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
+    private void doRetrieve(SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
         SCMSourceCriteria criteria = getCriteria();
 
         listener.getLogger().format("%n  Getting remote branches...%n");
