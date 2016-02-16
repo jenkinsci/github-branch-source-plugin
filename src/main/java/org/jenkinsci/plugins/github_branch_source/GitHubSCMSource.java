@@ -34,28 +34,16 @@ import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import hudson.Extension;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
 import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.net.ssl.SSLHandshakeException;
-
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
-import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.api.SCMSourceOwner;
@@ -75,6 +63,21 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.net.ssl.SSLHandshakeException;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static hudson.model.Items.XSTREAM2;
 
 public class GitHubSCMSource extends AbstractGitSCMSource {
 
@@ -250,9 +253,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (criteria != null) {
                 SCMSourceCriteria.Probe probe = getProbe(branchName, "branch", "refs/heads/" + branchName, repo, listener);
                 if (criteria.isHead(probe, listener)) {
-                    listener.getLogger().format("    Met criteria%n%n");
+                    listener.getLogger().format("    Met criteria%n");
                 } else {
-                    listener.getLogger().format("    Does not meet criteria%n%n");
+                    listener.getLogger().format("    Does not meet criteria%n");
                     continue;
                 }
             }
@@ -264,7 +267,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             branches++;
         }
-        listener.getLogger().format("  %d branches were processed%n", branches);
+        listener.getLogger().format("%n  %d branches were processed%n", branches);
 
         listener.getLogger().format("%n  Getting remote pull requests...%n");
         int pullrequests = 0;
@@ -286,9 +289,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (criteria != null) {
                 SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + number + "/head", repo, listener);
                 if (criteria.isHead(probe, listener)) {
-                    listener.getLogger().format("    Met criteria%n%n");
+                    listener.getLogger().format("    Met criteria%n");
                 } else {
-                    listener.getLogger().format("    Does not meet criteria%n%n");
+                    listener.getLogger().format("    Does not meet criteria%n");
                     continue;
                 }
             }
@@ -299,7 +302,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             pullrequests++;
         }
-        listener.getLogger().format("  %d pull requests were processed%n", pullrequests);
+        listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
 
     }
 
@@ -370,6 +373,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         public static final String defaultExcludes = "";
         public static final String ANONYMOUS = "ANONYMOUS";
         public static final String SAME = "SAME";
+
+        @Initializer(before = InitMilestone.PLUGINS_STARTED)
+        public static void addAliases() {
+            XSTREAM2.addCompatibilityAlias("org.jenkinsci.plugins.github_branch_source.OriginGitHubSCMSource", GitHubSCMSource.class);
+        }
 
         @Override
         public String getDisplayName() {
