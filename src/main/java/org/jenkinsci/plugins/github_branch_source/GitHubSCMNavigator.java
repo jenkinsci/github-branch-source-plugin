@@ -179,16 +179,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
             throw new InterruptedException();
         }
         SCMSourceObserver.ProjectObserver projectObserver = observer.observe(name);
-        for (GitHubSCMSourceAddition addition : ExtensionList.lookup(GitHubSCMSourceAddition.class)) {
-            for (SCMSource source : addition.sourcesFor(apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name)) {
-                projectObserver.addSource(source);
-            }
-        }
+        projectObserver.addSource(new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name));
         projectObserver.complete();
-    }
-
-    public interface GitHubSCMSourceAddition extends ExtensionPoint {
-        List<? extends SCMSource> sourcesFor(String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository);
     }
 
     @Extension public static class DescriptorImpl extends SCMNavigatorDescriptor {
