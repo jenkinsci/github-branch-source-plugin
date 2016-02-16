@@ -286,9 +286,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (criteria != null) {
                 SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + number + "/head", repo, listener);
                 if (criteria.isHead(probe, listener)) {
-                    listener.getLogger().format("    Met criteria%n");
+                    listener.getLogger().format("    Met criteria%n%n");
                 } else {
-                    listener.getLogger().format("    Does not meet criteria%n");
+                    listener.getLogger().format("    Does not meet criteria%n%n");
                     continue;
                 }
             }

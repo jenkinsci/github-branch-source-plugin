@@ -27,6 +27,8 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import hudson.Extension;
 import hudson.model.Job;
+import hudson.model.JobProperty;
+import hudson.model.JobPropertyDescriptor;
 import hudson.security.ACL;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
@@ -36,6 +38,7 @@ import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 import org.kohsuke.github.GHEvent;
 
 import javax.annotation.Nullable;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -54,10 +57,17 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
     private static final Logger LOGGER = Logger.getLogger(PullRequestGHEventSubscriber.class.getName());
     private static final Pattern REPOSITORY_NAME_PATTERN = Pattern.compile("https?://([^/]+)/([^/]+)/([^/]+)");
 
-
     @Override
     protected boolean isApplicable(@Nullable Job<?, ?> project) {
-        return true;
+        if (project.getParent() instanceof SCMSourceOwner) {
+            SCMSourceOwner owner = (SCMSourceOwner) project.getParent();
+            for (SCMSource source : owner.getSCMSources()) {
+                if (source instanceof GitHubSCMSource) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
