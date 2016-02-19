@@ -44,8 +44,8 @@ public class GitHubWebhookListenerImpl extends GitHubWebHook.Listener {
             @Override public void run() {
                 for (final SCMSourceOwner owner : SCMSourceOwners.all()) {
                     for (SCMSource source : owner.getSCMSources()) {
-                        if (source instanceof AbstractGitHubSCMSource) {
-                            AbstractGitHubSCMSource gitHubSCMSource = (AbstractGitHubSCMSource) source;
+                        if (source instanceof GitHubSCMSource) {
+                            GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) source;
                             if (gitHubSCMSource.getRepoOwner().equals(changedRepository.getUserName()) &&
                                     gitHubSCMSource.getRepository().equals(changedRepository.getRepositoryName())) {
                                 owner.onSCMSourceUpdated(gitHubSCMSource);

@@ -179,16 +179,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
             throw new InterruptedException();
         }
         SCMSourceObserver.ProjectObserver projectObserver = observer.observe(name);
-        for (GitHubSCMSourceAddition addition : ExtensionList.lookup(GitHubSCMSourceAddition.class)) {
-            for (SCMSource source : addition.sourcesFor(apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name)) {
-                projectObserver.addSource(source);
-            }
-        }
+        projectObserver.addSource(new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name));
         projectObserver.complete();
-    }
-
-    public interface GitHubSCMSourceAddition extends ExtensionPoint {
-        List<? extends SCMSource> sourcesFor(String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository);
     }
 
     @Extension public static class DescriptorImpl extends SCMNavigatorDescriptor {
@@ -198,7 +190,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         @Override public SCMNavigator newInstance(String name) {
-            return new GitHubSCMNavigator("", name, "", AbstractGitHubSCMSource.AbstractGitHubSCMSourceDescriptor.SAME);
+            return new GitHubSCMNavigator("", name, "", GitHubSCMSource.DescriptorImpl.SAME);
         }
 
         @Restricted(NoExternalUse.class)
@@ -233,8 +225,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         public ListBoxModel doFillCheckoutCredentialsIdItems(@AncestorInPath SCMSourceOwner context/* TODO , @QueryParameter String apiUri*/) {
             StandardListBoxModel result = new StandardListBoxModel();
-            result.add("- same as scan credentials -", AbstractGitHubSCMSource.AbstractGitHubSCMSourceDescriptor.SAME);
-            result.add("- anonymous -", AbstractGitHubSCMSource.AbstractGitHubSCMSourceDescriptor.ANONYMOUS);
+            result.add("- same as scan credentials -", GitHubSCMSource.DescriptorImpl.SAME);
+            result.add("- anonymous -", GitHubSCMSource.DescriptorImpl.ANONYMOUS);
             Connector.fillCheckoutCredentialsIdItems(result, context, null);
             return result;
         }
