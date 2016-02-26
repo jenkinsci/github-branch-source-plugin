@@ -269,40 +269,44 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         listener.getLogger().format("%n  %d branches were processed%n", branches);
 
-        listener.getLogger().format("%n  Getting remote pull requests...%n");
-        int pullrequests = 0;
-        for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
-            int number = ghPullRequest.getNumber();
-            SCMHead head = new PullRequestSCMHead(number);
-            final String branchName = head.getName();
-            listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
-            // FYI https://developer.github.com/v3/pulls/#response-1
-            Boolean mergeable = ghPullRequest.getMergeable();
-            if (!Boolean.TRUE.equals(mergeable)) {
-                listener.getLogger().format("    Not mergeable, skipping%n%n");
-                continue;
-            }
-            if (repo.getOwner().equals(ghPullRequest.getHead().getUser())) {
-                listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
-                continue;
-            }
-            if (criteria != null) {
-                SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + number + "/head", repo, listener);
-                if (criteria.isHead(probe, listener)) {
-                    listener.getLogger().format("    Met criteria%n");
-                } else {
-                    listener.getLogger().format("    Does not meet criteria%n");
+        if (repo.isPrivate()) {
+            listener.getLogger().format("%n  Getting remote pull requests...%n");
+            int pullrequests = 0;
+            for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
+                int number = ghPullRequest.getNumber();
+                SCMHead head = new PullRequestSCMHead(number);
+                final String branchName = head.getName();
+                listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
+                // FYI https://developer.github.com/v3/pulls/#response-1
+                Boolean mergeable = ghPullRequest.getMergeable();
+                if (!Boolean.TRUE.equals(mergeable)) {
+                    listener.getLogger().format("    Not mergeable, skipping%n%n");
                     continue;
                 }
+                if (repo.getOwner().equals(ghPullRequest.getHead().getUser())) {
+                    listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
+                    continue;
+                }
+                if (criteria != null) {
+                    SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + number + "/head", repo, listener);
+                    if (criteria.isHead(probe, listener)) {
+                        listener.getLogger().format("    Met criteria%n");
+                    } else {
+                        listener.getLogger().format("    Does not meet criteria%n");
+                        continue;
+                    }
+                }
+                SCMRevision hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
+                observer.observe(head, hash);
+                if (!observer.isObserving()) {
+                    return;
+                }
+                pullrequests++;
             }
-            SCMRevision hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
-            observer.observe(head, hash);
-            if (!observer.isObserving()) {
-                return;
-            }
-            pullrequests++;
+            listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
+        } else {
+            listener.getLogger().format("%n  Skipping pull requests for public repositories%n");
         }
-        listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
 
     }
 
