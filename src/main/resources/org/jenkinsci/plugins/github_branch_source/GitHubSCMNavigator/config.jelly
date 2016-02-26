@@ -1,15 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
-    <f:entry title="${%Owner}" field="repoOwner">
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials" xmlns:st="jelly:stapler">
+    <f:entry title="${%Scan credentials}" field="scanCredentialsId">
+        <div class="create-github-api-key-container">
+            <input type="submit" class="j-faux-button j-faux-button-primary create-github-api-key-show" value="${%Create a new GitHub Personal Access Token}"/>
+            <div class="create-github-api-key-form" data-url="${descriptor.getCurrentDescriptorByNameUrl()}" data-action="./createApiKey">
+               <h3>${%Create a new GitHub Personal Access Token}</h3>
+               <p>Jenkins can use your GitHub credentials to securely create a GitHub access token,
+               which you may choose to revoke at any time. Only the access token will be stored in Jenkins, your personal credentials will not. You may also
+               <a target="_blank" href="https://github.com/settings/tokens/new?scopes=repo,admin:repo_hook,admin:org_hook&amp;description=Jenkins+WebHook+Management">manually
+               create a token on GitHub</a>, if you prefer.</p>
+               <div class="input-form">
+                 <label><span>${%GitHub Username}:</span><span><input type="text" name="github-username" class="setting-input" autocomplete="off"/></span></label>
+                 <label><span>${%GitHub Password}:</span><span><input type="password" name="github-password" class="setting-input" autocomplete="off"/></span></label>
+               </div>
+               <span class="error-message"></span>
+               <input type="submit" class="j-faux-button j-faux-button-primary create-github-api-key" value="${%Create GitHub Credential}"/>
+            </div>
+          </div>
+            
+          <div class="create-github-api-key-or">
+              ${%-- use an existing personal access token --}
+          </div>
+          
+          <div class="create-github-api-key-container">
+            <input type="submit" class="j-faux-button j-faux-button-primary create-github-credential-show" value="${%Create a new GitHub Credential in Jenkins}"/>
+            <div class="create-github-api-key-form" data-url="${descriptor.getCurrentDescriptorByNameUrl()}" data-action="./createApiKey">
+               <h3>${%Create a new GitHub credential}</h3>
+               <p>If you already have a GitHub Personal Access Token, use it to create a new credential in Jenkins</p>
+               <div class="input-form">
+                 <label><span>${%GitHub Personal Access Token}:</span><span><input type="text" name="github-username" class="setting-input" autocomplete="off"/></span></label>
+               </div>
+               <span class="error-message"></span>
+               <input type="submit" class="j-faux-button j-faux-button-primary create-github-api-key" value="${%Create GitHub Credential}"/>
+            </div>
+        </div>
+        
+        <div class="create-github-api-key-or">
+            ${%-- or choose existing credentials --}
+        </div>
+        
+         <c:select/>
+    </f:entry>
+     
+    <f:entry title="${%Owner (User/Organization)}" field="repoOwner">
         <f:textbox/>
     </f:entry>
-    <f:entry title="${%Scan credentials}" field="scanCredentialsId">
-        <c:select/>
-    </f:entry>
-    <f:entry title="${%Repository name pattern}" field="pattern">
-        <f:textbox default=".*"/>
-    </f:entry>
+    
+     <f:entry title="${%Repository name pattern}" field="pattern">
+         <f:textbox default=".*"/>
+     </f:entry>
+     
     <f:advanced>
         <f:entry title="${%API endpoint}" field="apiUri">
             <f:select/>
@@ -17,5 +58,10 @@
         <f:entry title="${%Checkout credentials}" field="checkoutCredentialsId">
             <f:select default="${descriptor.SAME}"/>
         </f:entry>
+        <f:entry title="${%Manage WebHooks}" field="manageWebHooks">
+            <f:checkbox name="manageWebHooks" checked="${manageWebHooks}"/>
+        </f:entry>
     </f:advanced>
+    
+    <st:adjunct includes="org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator.github-connector"/>
 </j:jelly>

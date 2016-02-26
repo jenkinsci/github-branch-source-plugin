@@ -1,0 +1,82 @@
+.create-github-api-key-container {
+    position: relative;
+    display: block;
+    margin: 0 0 11px 1px;
+}
+.create-github-api-key-or {
+    margin: 0 0 11px 1px;
+}
+.create-github-api-key-form {
+    display: none;
+    position: absolute;
+    bottom: 32px;
+    left: 0;
+    padding: 2em;
+    box-sizing: border-box;
+    width: 40em;
+    background: #fff;
+    box-shadow: 0 5px 30px #888;
+    border-radius: 5px;
+}
+.create-github-api-key-form h3 {
+    margin-top: 0;
+}
+.create-github-api-key-form .input-form {
+      display: table;
+}
+.create-github-api-key-form label {
+      display: table-row;
+}
+.create-github-api-key-form label > span {
+    display: table-cell;
+    padding: 4px 6px 0 0;
+}
+.create-github-api-key-form .create-github-api-key {
+    float: right;
+    margin-top: 20px;
+}
+.create-github-api-key-form .error-message {
+    display: none;
+}
+.create-github-api-key-form .error-message {
+    color: #d24939;
+    clear: both;
+    float: left;
+    margin-top: 20px;
+    vertical-align: middle;
+    line-height: 30px;
+    background: #fee;
+    border: 1px solid #d24939;
+    padding: 0 22px;
+    border-radius: 2px;
+}
+.create-github-api-key-form.active {
+    display: block;
+}
+.create-github-api-key-form:after {
+    content: '';
+    display: block;
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 6px solid #fff;
+    position: absolute;
+    top: 100%;
+    left: 22px;
+}
+.j-faux-button {
+    font-size: 12px;
+    padding: 8px 20px;
+    border-radius: 1px;
+    border: 1px solid #cccccc;
+    background-color: #e0e0e0;
+    font-family: Helvetica, Arial, sans-serif;
+    color: #505050;
+    font-weight: bold;
+}
+.j-faux-button-primary {
+    background-color: #4b758b;
+    color: #eee;
+    border: 1px solid #5788a1;
+}

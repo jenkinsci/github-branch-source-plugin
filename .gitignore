@@ -2,3 +2,6 @@ target
 work
 /github-branch-source.iml
 /.idea
+/.classpath
+/.project
+/.settings/

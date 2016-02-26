@@ -51,6 +51,7 @@ import org.kohsuke.github.RateLimitHandler;
  * Utilities that could perhaps be moved into {@code github-api}.
  */
 public class Connector {
+    public static final String GITHUB_CREDENTIAL_DOMAIN_URI = "https://github.com";
 
     public static @CheckForNull StandardCredentials lookupScanCredentials(@CheckForNull SCMSourceOwner context, @CheckForNull String apiUri, @CheckForNull String scanCredentialsId) {
         if (Util.fixEmpty(scanCredentialsId) == null) {
@@ -106,7 +107,7 @@ public class Connector {
     }
 
     private static List<DomainRequirement> githubDomainRequirements(String apiUri) {
-        return URIRequirementBuilder.fromUri(StringUtils.defaultIfEmpty(apiUri, "https://github.com")).build();
+        return URIRequirementBuilder.fromUri(StringUtils.defaultIfEmpty(apiUri, GITHUB_CREDENTIAL_DOMAIN_URI)).build();
     }
 
     private Connector() {}
