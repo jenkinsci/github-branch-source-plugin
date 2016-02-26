@@ -30,6 +30,7 @@ import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.cloudbees.plugins.credentials.common.UsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import hudson.Extension;
 import hudson.Util;
@@ -309,6 +310,20 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
 
     }
+
+    /**
+     * Gets the username associated with the scan credentials
+     */
+    public String getScanCredentialUsername() {
+        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+        UsernamePasswordCredentials creds = (UsernamePasswordCredentials) credentials;
+        if (credentials != null) {
+            return creds.getUsername();
+        }
+        return null;
+    }
+
+
 
     /**
      * Returns a {@link jenkins.scm.api.SCMSourceCriteria.Probe} for use in {@link #doRetrieve}.
