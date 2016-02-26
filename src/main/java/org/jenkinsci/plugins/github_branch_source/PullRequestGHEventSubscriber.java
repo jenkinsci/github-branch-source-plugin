@@ -59,11 +59,13 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
 
     @Override
     protected boolean isApplicable(@Nullable Job<?, ?> project) {
-        if (project.getParent() instanceof SCMSourceOwner) {
-            SCMSourceOwner owner = (SCMSourceOwner) project.getParent();
-            for (SCMSource source : owner.getSCMSources()) {
-                if (source instanceof GitHubSCMSource) {
-                    return true;
+        if (project != null) {
+            if (project.getParent() instanceof SCMSourceOwner) {
+                SCMSourceOwner owner = (SCMSourceOwner) project.getParent();
+                for (SCMSource source : owner.getSCMSources()) {
+                    if (source instanceof GitHubSCMSource) {
+                        return true;
+                    }
                 }
             }
         }
