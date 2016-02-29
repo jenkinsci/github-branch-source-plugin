@@ -95,18 +95,18 @@ public class GitHubBuildStatusNotification {
                     Result result = build.getResult();
                     String revisionToNotify = resolveHeadCommit(repo, revision);
                     if (Result.SUCCESS.equals(result)) {
-                        createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, "This commit looks good");
+                        createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CoomitStatus_Good());
                     } else if (Result.UNSTABLE.equals(result)) {
-                        createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, "This commit has test failures");
+                        createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable());
                     } else if (Result.FAILURE.equals(result)) {
-                        createCommitStatus(repo, revisionToNotify, GHCommitState./* TODO or ERROR? */FAILURE, url, "This commit cannot be built");
+                        createCommitStatus(repo, revisionToNotify, GHCommitState./* TODO or ERROR? */FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure());
                     } else if (result != null) { // ABORTED etc.
-                        createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, "Something is wrong with the build of this commit");
+                        createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other());
                     } else {
-                        createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, "This commit is being built");
+                        createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending());
                     }
                     if (result != null) {
-                        listener.getLogger().format("%nGitHub has been notified of this commit’s build result%n%n");
+                        listener.getLogger().format("%n"+Messages.GitHubBuildStatusNotification_CommitStatusSet()+"%n%n");
                     }
                 }
             }
