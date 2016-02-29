@@ -15,7 +15,7 @@
             <f:select/>
         </f:entry>
         <f:entry title="${%Checkout credentials}" field="checkoutCredentialsId">
-            <f:select default="${descriptor.SAME}"/>
+            <c:select default="${descriptor.SAME}"/>
         </f:entry>
     </f:advanced>
 </j:jelly>
