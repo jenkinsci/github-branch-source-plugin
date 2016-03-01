@@ -106,7 +106,7 @@ public class GitHubBuildStatusNotification {
                         createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending());
                     }
                     if (result != null) {
-                        listener.getLogger().format("%n"+Messages.GitHubBuildStatusNotification_CommitStatusSet()+"%n%n");
+                        listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
                     }
                 }
             }
