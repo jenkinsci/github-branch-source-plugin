@@ -1,4 +1,4 @@
-FROM jenkins:1.609.2
+FROM jenkins:1.642.2
 
 # Install Docker CLI (cf. Makefile mount of socket). Could use withTool but why download during demo when we can bake it in?
 USER root
@@ -19,7 +19,6 @@ RUN mkdir /tmp/files
 COPY pipeline-version.txt pipeline-stage-view-plugin-version.txt plugins.txt /tmp/files/
 RUN sed -i "s/@WF_VERSION@/`cat /tmp/files/pipeline-version.txt`/g" /tmp/files/plugins.txt && \
     sed -i "s/@CB_WF_VERSION@/`cat /tmp/files/pipeline-stage-view-plugin-version.txt`/g" /tmp/files/plugins.txt
-ENV JENKINS_UC https://updates.jenkins-ci.org
 RUN /usr/local/bin/plugins.sh /tmp/files/plugins.txt
 
 ADD JENKINS_HOME /usr/share/jenkins/ref

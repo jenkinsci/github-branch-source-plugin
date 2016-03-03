@@ -1,12 +1,7 @@
 ace-editor:1.0.1
-async-http-client:1.7.8
 authentication-tokens:1.2
-branch-api:0.2-beta-7
-cloudbees-folder:5.1-beta-2
-cloudbees-folders-plus:3.0
-cloudbees-github-pull-requests:0.1-beta-2
-cloudbees-license:7.12.1
-cloudbees-template:4.19
+branch-api:1.3
+cloudbees-folder:5.2.2
 credentials:1.24
 docker-commons:1.2
 docker-workflow:1.2
@@ -22,20 +17,17 @@ jquery-detached:1.1.1
 junit:1.9
 mailer:1.16
 mapdb-api:1.0.6.0
-nectar-license:7.2
-nectar-rbac:5.2
 plain-credentials: 1.1
-scm-api:0.3-beta-2
+scm-api:1.0
 script-security:1.15
 workflow-aggregator:@WF_VERSION@
 workflow-api:@WF_VERSION@
 workflow-basic-steps:@WF_VERSION@
-workflow-cps-checkpoint:@CB_WF_VERSION@
 workflow-cps-global-lib:@WF_VERSION@
 workflow-cps:@WF_VERSION@
 workflow-durable-task-step:@WF_VERSION@
 workflow-job:@WF_VERSION@
-workflow-multibranch:1.11-beta-3
+workflow-multibranch:@WF_VERSION@
 workflow-scm-step:@WF_VERSION@
 workflow-step-api:@WF_VERSION@
 workflow-support:@WF_VERSION@
