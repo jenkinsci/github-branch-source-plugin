@@ -7,7 +7,7 @@ To run the demo:
   * from binaries: `WORKSPACE=/tmp/demows docker run --rm -p 8080:8080 -p 4040:4040 -v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE:$WORKSPACE -e WORKSPACE=$WORKSPACE -ti cloudbees/github-organization-demo`
 1. Visit [localhost:8080](http://localhost:8080/).
 1. Prepare your environment in GitHub:
-  1. Create an organization or user account (or use an existing for both cases)
+  1. Create an organization or user account (or use an existing one)
   1. Fork [multibranch-demo](https://github.com/cloudbeers/multibranch-demo) to your own account or organization
   1. Make this public repository [private](https://help.github.com/articles/making-a-public-repository-private) if you want to build pull requests
 1. Create an account named `admin` with a *random* password
