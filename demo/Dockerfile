@@ -24,7 +24,7 @@ RUN /usr/local/bin/plugins.sh /tmp/files/plugins.txt
 ADD JENKINS_HOME /usr/share/jenkins/ref
 RUN sudo chown -R jenkins.jenkins /usr/share/jenkins/ref
 
-ADD pipeline-libs /usr/share/jenkins/ref/workflow-libs
+ADD workflow-libs /usr/share/jenkins/ref/workflow-libs
 RUN cd /usr/share/jenkins/ref/workflow-libs && \
     sudo chown -R jenkins.jenkins . && \
     git config --global user.email "demo@jenkins-ci.org" && \
