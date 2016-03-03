@@ -347,12 +347,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @CheckForNull
     protected SCMRevision retrieve(SCMHead head, TaskListener listener) throws IOException, InterruptedException {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
-        if (credentials == null) {
-            listener.getLogger().println("No scan credentials, skipping");
+        GitHub github = Connector.connect(apiUri, credentials);
+        if (credentials != null && !github.isCredentialValid()) {
+            listener.getLogger().format("Invalid scan credentials, skipping%n");
             return null;
         }
-        listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(), CredentialsNameProvider.name(credentials));
-        GitHub github = Connector.connect(apiUri, credentials);
+        if (!github.isAnonymous()) {
+            listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(),
+                    CredentialsNameProvider.name(credentials));
+        } else {
+            listener.getLogger().format("Connecting to %s using anonymous access%n", getDescriptor().getDisplayName());
+        }
         String fullName = repoOwner + "/" + repository;
         GHRepository repo = github.getRepository(fullName);
         return doRetrieve(head, listener, repo);
