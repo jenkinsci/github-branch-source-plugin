@@ -18,14 +18,14 @@ USER jenkins
 RUN mkdir /tmp/files
 COPY pipeline-version.txt pipeline-stage-view-plugin-version.txt plugins.txt /tmp/files/
 RUN sed -i "s/@WF_VERSION@/`cat /tmp/files/pipeline-version.txt`/g" /tmp/files/plugins.txt && \
-    sed -i "s/@CB_WF_VERSION@/`cat /tmp/files/pipeline-stage-view-plugin-version.txt`/g" /tmp/files/plugins.txt
+    sed -i "s/@PSV_VERSION@/`cat /tmp/files/pipeline-stage-view-plugin-version.txt`/g" /tmp/files/plugins.txt
 RUN /usr/local/bin/plugins.sh /tmp/files/plugins.txt
 
 ADD JENKINS_HOME /usr/share/jenkins/ref
 RUN sudo chown -R jenkins.jenkins /usr/share/jenkins/ref
 
-ADD pipeline-libs /usr/share/jenkins/ref/pipeline-libs
-RUN cd /usr/share/jenkins/ref/pipeline-libs && \
+ADD pipeline-libs /usr/share/jenkins/ref/workflow-libs
+RUN cd /usr/share/jenkins/ref/workflow-libs && \
     sudo chown -R jenkins.jenkins . && \
     git config --global user.email "demo@jenkins-ci.org" && \
     git config --global user.name "Demo" && \

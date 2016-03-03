@@ -20,6 +20,7 @@ mapdb-api:1.0.6.0
 plain-credentials: 1.1
 scm-api:1.0
 script-security:1.15
+pipeline-stage-view:@PSV_VERSION@
 workflow-aggregator:@WF_VERSION@
 workflow-api:@WF_VERSION@
 workflow-basic-steps:@WF_VERSION@
