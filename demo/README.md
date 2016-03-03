@@ -20,7 +20,7 @@ To run the demo:
 1. Click _Folder Computation_ to see repositories being scanned
 1. Go back to the organization index page. You should see `multibranch-demo`, under that one or more branches including `master`, and under each a successful build #1
 1. Add a new webhook, ask to _Send me *everything*_, and specify a URL like `http://SOMETHING.ngrok.io/github-webhook/` (look at the Docker log for the specific hostname). Remember to clean up your webhook when the demo is done
-1. File pull requests and see them being built
+1. File pull requests and see them being built (only if your repository is private)
 
 The image needs to run Docker commands, so it assumes that your Docker daemon is listening to `/var/run/docker.sock` ([discussion](https://github.com/docker/docker/issues/1143)).
 This is not “Docker-in-Docker”; the container only runs the CLI and connects back to the host to start sister containers.
