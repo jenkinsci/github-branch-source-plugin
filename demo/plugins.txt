@@ -19,11 +19,12 @@ junit:1.9
 momentjs:1.1
 mailer:1.16
 mapdb-api:1.0.6.0
+matrix-auth:1.3.2
 plain-credentials: 1.1
 pipeline-stage-view:@PSV_VERSION@
 pipeline-rest-api:@PSV_VERSION@
 scm-api:1.0
-script-security:1.15
+script-security:1.17
 workflow-aggregator:@WF_VERSION@
 workflow-api:@WF_VERSION@
 workflow-basic-steps:@WF_VERSION@
