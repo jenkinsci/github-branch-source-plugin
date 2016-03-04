@@ -26,6 +26,7 @@ pipeline-stage-view:@PSV_VERSION@
 pipeline-rest-api:@PSV_VERSION@
 scm-api:1.0
 script-security:1.17
+token-macro:1.11
 workflow-aggregator:@WF_VERSION@
 workflow-api:@WF_VERSION@
 workflow-basic-steps:@WF_VERSION@
