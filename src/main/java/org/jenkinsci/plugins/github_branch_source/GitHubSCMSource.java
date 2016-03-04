@@ -350,15 +350,25 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @CheckForNull
     protected SCMRevision retrieve(SCMHead head, TaskListener listener) throws IOException, InterruptedException {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
-        if (credentials == null) {
-            listener.getLogger().println("No scan credentials, skipping");
-            return null;
-        }
-        listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(), CredentialsNameProvider.name(credentials));
         GitHub github = Connector.connect(apiUri, credentials);
-        String fullName = repoOwner + "/" + repository;
-        GHRepository repo = github.getRepository(fullName);
-        return doRetrieve(head, listener, repo);
+        try {
+            if (credentials != null && !github.isCredentialValid()) {
+                listener.getLogger().format("Invalid scan credentials, skipping%n");
+                return null;
+            }
+            if (!github.isAnonymous()) {
+                listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(),
+                        CredentialsNameProvider.name(credentials));
+            } else {
+                listener.getLogger().format("Connecting to %s using anonymous access%n", getDescriptor().getDisplayName());
+            }
+            String fullName = repoOwner + "/" + repository;
+            GHRepository repo = github.getRepository(fullName);
+            return doRetrieve(head, listener, repo);
+        } catch (RateLimitExceededException rle) {
+            listener.getLogger().format("%n%s%n%n", rle.getMessage());
+            throw new InterruptedException();
+        }
     }
 
     protected SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
