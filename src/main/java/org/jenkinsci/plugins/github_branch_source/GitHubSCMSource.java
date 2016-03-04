@@ -348,19 +348,24 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     protected SCMRevision retrieve(SCMHead head, TaskListener listener) throws IOException, InterruptedException {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
         GitHub github = Connector.connect(apiUri, credentials);
-        if (credentials != null && !github.isCredentialValid()) {
-            listener.getLogger().format("Invalid scan credentials, skipping%n");
-            return null;
+        try {
+            if (credentials != null && !github.isCredentialValid()) {
+                listener.getLogger().format("Invalid scan credentials, skipping%n");
+                return null;
+            }
+            if (!github.isAnonymous()) {
+                listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(),
+                        CredentialsNameProvider.name(credentials));
+            } else {
+                listener.getLogger().format("Connecting to %s using anonymous access%n", getDescriptor().getDisplayName());
+            }
+            String fullName = repoOwner + "/" + repository;
+            GHRepository repo = github.getRepository(fullName);
+            return doRetrieve(head, listener, repo);
+        } catch (RateLimitExceededException rle) {
+            listener.getLogger().format("%n%s%n%n", rle.getMessage());
+            throw new InterruptedException();
         }
-        if (!github.isAnonymous()) {
-            listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(),
-                    CredentialsNameProvider.name(credentials));
-        } else {
-            listener.getLogger().format("Connecting to %s using anonymous access%n", getDescriptor().getDisplayName());
-        }
-        String fullName = repoOwner + "/" + repository;
-        GHRepository repo = github.getRepository(fullName);
-        return doRetrieve(head, listener, repo);
     }
 
     protected SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
