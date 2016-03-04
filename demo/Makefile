@@ -1,4 +1,4 @@
-IMAGE=jenkins/pipeline-as-code-github-demo
+IMAGE=jenkinsci/pipeline-as-code-github-demo
 TAG=$(shell sed -ne s/github-branch-source://p < plugins.txt)
 # an arbitrary directory we can share with the host
 WORKSPACE=$(shell pwd)/workspace
