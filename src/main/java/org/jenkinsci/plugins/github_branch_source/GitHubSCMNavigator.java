@@ -36,6 +36,8 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.IOException;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import jenkins.scm.api.SCMNavigator;
@@ -107,12 +109,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
         GitHub github = Connector.connect(apiUri, credentials);
         if (credentials != null && !github.isCredentialValid()) {
-            listener.getLogger().format("Invalid scan credentials, skipping%n");
+            listener.getLogger().format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? "github.com" : apiUri);
             return;
         }
 
         if (!github.isAnonymous()) {
-            listener.getLogger().format("Connecting to GitHub using %s%n", CredentialsNameProvider.name(credentials));
+            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? "github.com" : apiUri, CredentialsNameProvider.name(credentials));
             GHMyself myself = null;
             try {
                 // Requires an authenticated access
@@ -131,7 +133,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 return;
             }
         } else {
-            listener.getLogger().format("Connecting to GitHub using anonymous access%n");
+            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? "github.com" : apiUri);
         }
 
         GHOrganization org = null;
@@ -185,6 +187,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
     @Extension public static class DescriptorImpl extends SCMNavigatorDescriptor {
 
+        private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
+
         @Override public String getDisplayName() {
             return "GitHub Organization";
         }
@@ -199,18 +203,20 @@ public class GitHubSCMNavigator extends SCMNavigator {
             if (!scanCredentialsId.isEmpty()) {
                 StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
                 if (credentials == null) {
-                    FormValidation.error("Invalid credentials");
+                    return FormValidation.error("Credentials not found");
                 } else {
                     try {
                         GitHub connector = Connector.connect(apiUri, credentials);
                         if (connector.isCredentialValid()) {
                             return FormValidation.ok();
+                        } else {
+                            return FormValidation.error("Invalid credentials");
                         }
                     } catch (IOException e) {
-                        // ignore, never thrown
+                        LOGGER.log(Level.WARNING, "Exception validating credentials " + CredentialsNameProvider.name(credentials) + " on " + apiUri);
+                        return FormValidation.error("Exception validating credentials");
                     }
                 }
-                return FormValidation.error("Invalid credentials");
             } else {
                 return FormValidation.warning("Credentials are recommended");
             }
