@@ -219,14 +219,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         GitHub github = Connector.connect(apiUri, credentials);
         try {
             if (credentials != null && !github.isCredentialValid()) {
-                listener.getLogger().format("Invalid scan credentials, skipping%n");
+                listener.getLogger().format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? "github.com" : apiUri);
                 return;
             }
             if (!github.isAnonymous()) {
-                listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(),
-                        CredentialsNameProvider.name(credentials));
+                listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? "github.com" : apiUri, CredentialsNameProvider.name(credentials));
             } else {
-                listener.getLogger().format("Connecting to %s using anonymous access%n", getDescriptor().getDisplayName());
+                listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? "github.com" : apiUri);
+            }
+            if (repository == null || repository.isEmpty()) {
+                listener.getLogger().println("No repository selected, skip");
+                return;
             }
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
@@ -394,18 +397,21 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (!scanCredentialsId.isEmpty()) {
                 StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
                 if (credentials == null) {
-                    FormValidation.error("Invalid credentials");
+                    return FormValidation.error("Credentials not found");
                 } else {
                     try {
                         GitHub connector = Connector.connect(apiUri, credentials);
                         if (connector.isCredentialValid()) {
                             return FormValidation.ok();
+                        } else {
+                            return FormValidation.error("Invalid credentials");
                         }
                     } catch (IOException e) {
                         // ignore, never thrown
+                        LOGGER.log(Level.WARNING, "Exception validating credentials " + CredentialsNameProvider.name(credentials) + " on " + apiUri);
+                        return FormValidation.error("Exception validating credentials");
                     }
                 }
-                return FormValidation.error("Invalid credentials");
             } else {
                 return FormValidation.warning("Credentials are recommended");
             }
@@ -453,7 +459,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     } catch (IllegalStateException e) {
                         LOGGER.log(Level.WARNING, e.getMessage());
                     } catch (IOException e) {
-                        LOGGER.log(Level.WARNING, e.getMessage());
+                        LOGGER.log(Level.WARNING, "Exception retrieving the repositories of the owner " + repoOwner +
+                                " on " + apiUri + " with credentials " + CredentialsNameProvider.name(credentials));
                     }
                     if (myself != null && repoOwner.equals(myself.getLogin())) {
                         for (String name : myself.getAllRepositories().keySet()) {
