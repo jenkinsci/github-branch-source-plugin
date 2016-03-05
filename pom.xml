@@ -48,9 +48,10 @@
             </exclusions>
         </dependency>
         <dependency>
+            <!-- Update when 1.74 is released -->
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.71</version>
+            <version>1.74-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>

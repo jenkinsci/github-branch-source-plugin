@@ -417,7 +417,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             return FormValidation.error("Invalid credentials");
                         }
                     } catch (IOException e) {
-                        // ignore, never thrown
                         LOGGER.log(Level.WARNING, "Exception validating credentials " + CredentialsNameProvider.name(credentials) + " on " + apiUri);
                         return FormValidation.error("Exception validating credentials");
                     }

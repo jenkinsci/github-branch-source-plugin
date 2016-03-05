@@ -115,14 +115,23 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
                 URL api = new URL(apiUri);
                 GitHub github = GitHub.connectToEnterpriseAnonymously(api.toString());
                 github.checkApiUrlValidity();
-                return FormValidation.ok();
+                LOGGER.log(Level.FINE, "Trying to configure a GitHub Enterprise server");
+                return FormValidation.ok("GitHub Enterprise server verified");
             } catch (MalformedURLException mue) {
-                return FormValidation.error("This does not look like a GitHub Enterprise API URL");
+                // For example: https:/api.github.com
+                LOGGER.log(Level.WARNING, "Trying to configure a GitHub Enterprise server: " + apiUri);
+                return FormValidation.error("This does not look like a GitHub Enterprise API endpoint");
             } catch (JsonParseException jpe) {
-                return FormValidation.error("This does not look like a GitHub Enterprise API URL");
+                LOGGER.log(Level.WARNING, "Trying to configure a GitHub Enterprise server: " + apiUri);
+                return FormValidation.error("This does not look like a GitHub Enterprise API endpoint");
             } catch (IOException e) {
+                if (e.getMessage().contains("private mode enabled")) {
+                    LOGGER.log(Level.FINE, "Trying to configure a GitHub Enterprise server with private mode enabled");
+                    return FormValidation.ok("GitHub Enterprise server verified");
+                }
+                // For example: https://github.mycompany.com/api gets a FileNotFoundException
                 LOGGER.log(Level.WARNING, e.getMessage());
-                return FormValidation.error("This does not look like a GitHub Enterprise API URL");
+                return FormValidation.error("This does not look like a GitHub Enterprise API endpoint");
             }
         }
 
