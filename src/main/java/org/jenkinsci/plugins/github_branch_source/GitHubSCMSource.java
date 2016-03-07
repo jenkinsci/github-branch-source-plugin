@@ -300,6 +300,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 }
                 String trustedBase = trustedReplacement(repo, ghPullRequest);
                 if (trustedBase != null) {
+                    listener.getLogger().format("    (not from a trusted source)%n");
                     head = new PullRequestSCMHead(number, trustedBase);
                 }
                 SCMRevision hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
