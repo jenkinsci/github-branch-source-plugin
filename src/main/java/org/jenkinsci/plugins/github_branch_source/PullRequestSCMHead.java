@@ -36,12 +36,31 @@ public final class PullRequestSCMHead extends SCMHead {
 
     private static final long serialVersionUID = 1;
 
-    public PullRequestSCMHead(int number) {
+    private String user;
+
+    private String title;
+
+    public PullRequestSCMHead(int number, String user, String title) {
         super(PR_BRANCH_PREFIX + number);
+        this.user = user;
+        this.title = title;
     }
 
     public int getNumber() {
         return Integer.parseInt(getName().substring(PR_BRANCH_PREFIX.length()));
     }
 
+    /**
+     * @return The github login name of the user who created the PR.
+     */
+    public String getUser() {
+        return user;
+    }
+
+    /**
+     * @return Title of the PR.
+     */
+    public String getTitle() {
+        return title;
+    }
 }
