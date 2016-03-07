@@ -38,9 +38,9 @@ public final class PullRequestSCMHead extends SCMHead {
 
     private static final long serialVersionUID = 1;
 
-    public final @CheckForNull SCMRevision trustedBase;
+    public final @CheckForNull String trustedBase;
 
-    public PullRequestSCMHead(int number, @CheckForNull SCMRevision trustedBase) {
+    public PullRequestSCMHead(int number, @CheckForNull String trustedBase) {
         super(PR_BRANCH_PREFIX + number);
         this.trustedBase = trustedBase;
     }

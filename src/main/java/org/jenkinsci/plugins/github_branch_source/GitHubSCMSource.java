@@ -299,7 +299,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         continue;
                     }
                 }
-                SCMRevision trustedBase = trustedReplacement(repo, ghPullRequest);
+                String trustedBase = trustedReplacement(repo, ghPullRequest);
                 if (trustedBase != null) {
                     head = new PullRequestSCMHead(number, trustedBase);
                 }
@@ -389,10 +389,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Override
     public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener) throws IOException, InterruptedException {
         if (revision.getHead() instanceof PullRequestSCMHead) {
-            SCMRevision replacement = ((PullRequestSCMHead) revision.getHead()).trustedBase;
+            PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
+            String replacement = head.trustedBase;
             if (replacement != null) {
-                listener.getLogger().println("Loading trusted files from target branch at " + ((SCMRevisionImpl) replacement).getHash() + " rather than " + ((SCMRevisionImpl) revision).getHash());
-                return replacement;
+                listener.getLogger().println("Loading trusted files from target branch at " + replacement + " rather than " + ((SCMRevisionImpl) revision).getHash());
+                return new SCMRevisionImpl(head, replacement);
             }
         }
         return revision;
@@ -400,22 +401,24 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     /**
      * Evaluates whether this pull request is coming from a trusted source.
-     * A PR filed…
-     * <ul>
-     * <li>…from the origin repository would be trusted, though we are skipping those anyway.
-     * <li>…against a repository owned by a user account is untrusted.
-     * <li>…against a repository in an organization by a user with a membership in that organization is trusted.
-     * <li>…against an organization repository by an outside user is untrusted.
-     * </ul>
+     * Quickest is to check whether the author of the PR
+     * <a href="https://developer.github.com/v3/repos/collaborators/#check-if-a-user-is-a-collaborator">is a collaborator of the repository</a>.
+     * By checking <a href="https://developer.github.com/v3/repos/collaborators/#list-collaborators">all collaborators</a>
+     * it is possible to further ascertain if they are in a team which was specifically granted push permission,
+     * but this is potentially expensive as there might be multiple pages of collaborators to retrieve.
+     * TODO since the GitHub API wrapper currently supports neither, we list all collaborator names and check for membership,
+     * paying the performance penalty without the benefit of the accuracy.
      * @param ghPullRequest a PR
      * @return the base revision, for an untrusted PR; null for a trusted PR
      * @see <a href="https://developer.github.com/v3/pulls/#get-a-single-pull-request">PR metadata</a>
-     * @see <a href="https://developer.github.com/v3/orgs/members/#check-membership">organization membership</a>
      * @see <a href="http://stackoverflow.com/questions/15096331/github-api-how-to-find-the-branches-of-a-pull-request#comment54931031_15096596">base revision oddity</a>
      */
-    private @CheckForNull SCMRevision trustedReplacement(@Nonnull GHRepository repo, @Nonnull GHPullRequest ghPullRequest) {
-        //ghPullRequest.getBase().getSha();
-        return null; // TODO
+    private @CheckForNull String trustedReplacement(@Nonnull GHRepository repo, @Nonnull GHPullRequest ghPullRequest) throws IOException {
+        if (repo.getCollaboratorNames().contains(ghPullRequest.getUser().getLogin())) {
+            return null;
+        } else {
+            return ghPullRequest.getBase().getSha();
+        }
     }
 
     @Extension public static class DescriptorImpl extends SCMSourceDescriptor {
