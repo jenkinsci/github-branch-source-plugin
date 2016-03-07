@@ -272,7 +272,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         listener.getLogger().format("%n  %d branches were processed%n", branches);
 
-        if (repo.isPrivate()) {
             listener.getLogger().format("%n  Getting remote pull requests...%n");
             int pullrequests = 0;
             for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
@@ -311,9 +310,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 pullrequests++;
             }
             listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
-        } else {
-            listener.getLogger().format("%n  Skipping pull requests for public repositories%n");
-        }
 
     }
 
