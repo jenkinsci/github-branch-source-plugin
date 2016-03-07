@@ -274,7 +274,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             int pullrequests = 0;
             for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
                 int number = ghPullRequest.getNumber();
-                SCMHead head = new PullRequestSCMHead(number);
+                String title = ghPullRequest.getTitle();
+                String prUser = ghPullRequest.getUser().getLogin();
+
+                SCMHead head = new PullRequestSCMHead(number, prUser, title);
                 final String branchName = head.getName();
                 listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
                 // FYI https://developer.github.com/v3/pulls/#response-1
