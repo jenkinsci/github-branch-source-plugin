@@ -24,7 +24,9 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import javax.annotation.CheckForNull;
 import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMRevision;
 
 /**
  * Head corresponding to a pull request.
@@ -36,8 +38,11 @@ public final class PullRequestSCMHead extends SCMHead {
 
     private static final long serialVersionUID = 1;
 
-    public PullRequestSCMHead(int number) {
+    public final @CheckForNull SCMRevision trustedBase;
+
+    public PullRequestSCMHead(int number, @CheckForNull SCMRevision trustedBase) {
         super(PR_BRANCH_PREFIX + number);
+        this.trustedBase = trustedBase;
     }
 
     public int getNumber() {

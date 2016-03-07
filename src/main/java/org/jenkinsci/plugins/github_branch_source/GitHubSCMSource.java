@@ -277,7 +277,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             int pullrequests = 0;
             for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
                 int number = ghPullRequest.getNumber();
-                SCMHead head = new PullRequestSCMHead(number);
+                SCMHead head = new PullRequestSCMHead(number, null);
                 final String branchName = head.getName();
                 listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
                 // FYI https://developer.github.com/v3/pulls/#response-1
@@ -298,6 +298,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         listener.getLogger().format("    Does not meet criteria%n");
                         continue;
                     }
+                }
+                SCMRevision trustedBase = trustedReplacement(repo, ghPullRequest);
+                if (trustedBase != null) {
+                    head = new PullRequestSCMHead(number, trustedBase);
                 }
                 SCMRevision hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
                 observer.observe(head, hash);
@@ -380,6 +384,38 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             ref = repo.getRef("heads/" + head.getName());
         }
         return new SCMRevisionImpl(head, ref.getObject().getSha());
+    }
+
+    @Override
+    public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener) throws IOException, InterruptedException {
+        if (revision.getHead() instanceof PullRequestSCMHead) {
+            SCMRevision replacement = ((PullRequestSCMHead) revision.getHead()).trustedBase;
+            if (replacement != null) {
+                listener.getLogger().println("Loading trusted files from target branch at " + ((SCMRevisionImpl) replacement).getHash() + " rather than " + ((SCMRevisionImpl) revision).getHash());
+                return replacement;
+            }
+        }
+        return revision;
+    }
+
+    /**
+     * Evaluates whether this pull request is coming from a trusted source.
+     * A PR filed…
+     * <ul>
+     * <li>…from the origin repository would be trusted, though we are skipping those anyway.
+     * <li>…against a repository owned by a user account is untrusted.
+     * <li>…against a repository in an organization by a user with a membership in that organization is trusted.
+     * <li>…against an organization repository by an outside user is untrusted.
+     * </ul>
+     * @param ghPullRequest a PR
+     * @return the base revision, for an untrusted PR; null for a trusted PR
+     * @see <a href="https://developer.github.com/v3/pulls/#get-a-single-pull-request">PR metadata</a>
+     * @see <a href="https://developer.github.com/v3/orgs/members/#check-membership">organization membership</a>
+     * @see <a href="http://stackoverflow.com/questions/15096331/github-api-how-to-find-the-branches-of-a-pull-request#comment54931031_15096596">base revision oddity</a>
+     */
+    private @CheckForNull SCMRevision trustedReplacement(@Nonnull GHRepository repo, @Nonnull GHPullRequest ghPullRequest) {
+        //ghPullRequest.getBase().getSha();
+        return null; // TODO
     }
 
     @Extension public static class DescriptorImpl extends SCMSourceDescriptor {
