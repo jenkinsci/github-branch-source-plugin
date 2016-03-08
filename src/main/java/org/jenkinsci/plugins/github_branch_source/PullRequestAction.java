@@ -24,42 +24,56 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import hudson.model.Action;
-import java.util.LinkedList;
-import java.util.List;
+import hudson.model.InvisibleAction;
+import java.net.URL;
 import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.actions.ChangeRequestAction;
 import org.kohsuke.github.GHPullRequest;
 
 /**
- * Head corresponding to a pull request.
- * Named like {@code PR-123}.
+ * Metadata about a {@link PullRequestSCMHead}.
  */
-public final class PullRequestSCMHead extends SCMHead {
+final class PullRequestAction extends ChangeRequestAction {
 
-    private static final String PR_BRANCH_PREFIX = "PR-";
+    private final int number;
+    private final URL url;
+    private final String title;
+    private final String userLogin;
+    private final String baseRef;
 
-    private static final long serialVersionUID = 1;
-
-    private final PullRequestAction metadata;
-
-    PullRequestSCMHead(GHPullRequest pr) {
-        super(PR_BRANCH_PREFIX + pr.getNumber());
-        metadata = new PullRequestAction(pr);
-    }
-
-    public int getNumber() {
-        if (metadata != null) {
-            return Integer.parseInt(metadata.getId());
-        } else { // settings compatibility
-            return Integer.parseInt(getName().substring(PR_BRANCH_PREFIX.length()));
-        }
+    PullRequestAction(GHPullRequest pr) {
+        number = pr.getNumber();
+        url = pr.getHtmlUrl();
+        title = pr.getTitle();
+        userLogin = pr.getUser().getLogin();
+        baseRef = pr.getBase().getRef();
     }
 
     @Override
-    public List<? extends Action> getAllActions() {
-        List<Action> actions = new LinkedList<Action>(super.getAllActions());
-        actions.add(metadata);
-        return actions;
+    public String getId() {
+        return Integer.toString(number);
+    }
+
+    @Override
+    public URL getURL() {
+        return url;
+    }
+
+    @Override
+    public String getTitle() {
+        return title;
+    }
+
+    @Override
+    public String getAuthor() {
+        return userLogin;
+    }
+
+    // not currently implementing authorDisplayName or authorEmail since these are another round-trip in current GH API
+
+    @Override
+    public SCMHead getTarget() {
+        return new SCMHead(baseRef);
     }
 
 }
