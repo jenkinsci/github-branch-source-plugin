@@ -276,7 +276,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             int pullrequests = 0;
             for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
                 int number = ghPullRequest.getNumber();
-                SCMHead head = new PullRequestSCMHead(number, null);
+                SCMHead head = new PullRequestSCMHead(number);
                 final String branchName = head.getName();
                 listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
                 // FYI https://developer.github.com/v3/pulls/#response-1
@@ -299,11 +299,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     }
                 }
                 String trustedBase = trustedReplacement(repo, ghPullRequest);
-                if (trustedBase != null) {
+                SCMRevision hash;
+                if (trustedBase == null) {
+                    hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
+                } else {
                     listener.getLogger().format("    (not from a trusted source)%n");
-                    head = new PullRequestSCMHead(number, trustedBase);
+                    hash = new UntrustedPullRequestSCMRevision(head, ghPullRequest.getHead().getSha(), trustedBase);
                 }
-                SCMRevision hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
                 observer.observe(head, hash);
                 if (!observer.isObserving()) {
                     return;
@@ -377,6 +379,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (head instanceof PullRequestSCMHead) {
             int number = ((PullRequestSCMHead) head).getNumber();
             ref = repo.getRef("pull/" + number + "/merge");
+            // TODO if we already had the GHPullRequest.user.login in a field in the PullRequestSCMHead, we could pass that directly and save an API call
+            String trustedBase = trustedReplacement(repo, repo.getPullRequest(number));
+            if (trustedBase != null) {
+                return new UntrustedPullRequestSCMRevision(head, ref.getObject().getSha(), trustedBase);
+            }
         } else {
             ref = repo.getRef("heads/" + head.getName());
         }
@@ -385,13 +392,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @Override
     public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener) throws IOException, InterruptedException {
-        if (revision.getHead() instanceof PullRequestSCMHead) {
+        if (revision instanceof UntrustedPullRequestSCMRevision) {
             PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
-            String replacement = head.trustedBase;
-            if (replacement != null) {
-                listener.getLogger().println("Loading trusted files from target branch at " + replacement + " rather than " + ((SCMRevisionImpl) revision).getHash());
-                return new SCMRevisionImpl(head, replacement);
-            }
+            UntrustedPullRequestSCMRevision rev = (UntrustedPullRequestSCMRevision) revision;
+            listener.getLogger().println("Loading trusted files from target branch at " + rev.baseHash + " rather than " + rev.getHash());
+            return new SCMRevisionImpl(head, rev.baseHash);
         }
         return revision;
     }

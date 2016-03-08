@@ -24,24 +24,19 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMHead;
 
 /**
- * Head corresponding to a pull request.
- * Named like {@code PR-123}.
+ * Revision of a pull request which should load sensitive files from the base branch.
  */
-public final class PullRequestSCMHead extends SCMHead {
+class UntrustedPullRequestSCMRevision extends AbstractGitSCMSource.SCMRevisionImpl {
+    
+    final String baseHash;
 
-    private static final String PR_BRANCH_PREFIX = "PR-";
-
-    private static final long serialVersionUID = 1;
-
-    public PullRequestSCMHead(int number) {
-        super(PR_BRANCH_PREFIX + number);
-    }
-
-    public int getNumber() {
-        return Integer.parseInt(getName().substring(PR_BRANCH_PREFIX.length()));
+    UntrustedPullRequestSCMRevision(SCMHead head, String hash, String baseHash) {
+        super(head, hash);
+        this.baseHash = baseHash;
     }
 
 }
