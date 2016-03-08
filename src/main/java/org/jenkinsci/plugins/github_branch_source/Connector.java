@@ -56,6 +56,7 @@ import org.jenkinsci.plugins.github.internal.GitHubClientCacheOps;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
+import org.kohsuke.github.extras.OkHttpConnector;
 
 import static org.apache.commons.lang3.StringUtils.*;
 import static org.jenkinsci.plugins.github.config.GitHubServerConfig.GITHUB_URL;
