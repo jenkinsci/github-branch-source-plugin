@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.InvisibleAction;
 import java.net.URL;
 import jenkins.scm.api.SCMHead;
@@ -34,6 +35,8 @@ import org.kohsuke.github.GHPullRequest;
  * Metadata about a {@link PullRequestSCMHead}.
  */
 final class PullRequestAction extends ChangeRequestAction {
+
+    private static final long serialVersionUID = 1L;
 
     private final int number;
     private final URL url;
@@ -49,21 +52,25 @@ final class PullRequestAction extends ChangeRequestAction {
         baseRef = pr.getBase().getRef();
     }
 
+    @NonNull
     @Override
     public String getId() {
         return Integer.toString(number);
     }
 
+    @NonNull
     @Override
     public URL getURL() {
         return url;
     }
 
+    @NonNull
     @Override
     public String getTitle() {
         return title;
     }
 
+    @NonNull
     @Override
     public String getAuthor() {
         return userLogin;
@@ -71,6 +78,7 @@ final class PullRequestAction extends ChangeRequestAction {
 
     // not currently implementing authorDisplayName or authorEmail since these are another round-trip in current GH API
 
+    @NonNull
     @Override
     public SCMHead getTarget() {
         return new SCMHead(baseRef);
