@@ -378,7 +378,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (head instanceof PullRequestSCMHead) {
             int number = ((PullRequestSCMHead) head).getNumber();
             ref = repo.getRef("pull/" + number + "/merge");
-            // TODO if we already had the GHPullRequest.user.login in a field in the PullRequestSCMHead, we could pass that directly and save an API call
+            // getPullRequests makes an extra API call, but we need its current .base.sha
             String trustedBase = trustedReplacement(repo, repo.getPullRequest(number));
             if (trustedBase != null) {
                 return new UntrustedPullRequestSCMRevision(head, ref.getObject().getSha(), trustedBase);
