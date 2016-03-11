@@ -275,8 +275,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             listener.getLogger().format("%n  Getting remote pull requests...%n");
             int pullrequests = 0;
             for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
-                int number = ghPullRequest.getNumber();
-                SCMHead head = new PullRequestSCMHead(number);
+                PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest);
                 final String branchName = head.getName();
                 listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
                 // FYI https://developer.github.com/v3/pulls/#response-1
@@ -290,7 +289,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     continue;
                 }
                 if (criteria != null) {
-                    SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + number + "/head", repo, listener);
+                    SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + head.getNumber() + "/head", repo, listener);
                     if (criteria.isHead(probe, listener)) {
                         listener.getLogger().format("    Met criteria%n");
                     } else {
