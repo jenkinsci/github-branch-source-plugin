@@ -71,9 +71,12 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -452,10 +455,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         public ListBoxModel doFillRepositoryItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri,
                 @QueryParameter String scanCredentialsId, @QueryParameter String repoOwner) {
-            ListBoxModel result = new ListBoxModel();
+            Set<String> result = new TreeSet<>();
+
             repoOwner = Util.fixEmptyAndTrim(repoOwner);
             if (repoOwner == null) {
-                return result;
+                return nameAndValueModel(result);
             }
             try {
                 StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
@@ -475,7 +479,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         for (String name : myself.getAllRepositories().keySet()) {
                             result.add(name);
                         }
-                        return result;
+                        return nameAndValueModel(result);
                     }
                 }
 
@@ -491,7 +495,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     for (GHRepository repo : org.listRepositories()) {
                         result.add(repo.getName());
                     }
-                    return result;
+                    return nameAndValueModel(result);
                 }
 
                 GHUser user = null;
@@ -506,14 +510,26 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     for (GHRepository repo : user.listRepositories()) {
                         result.add(repo.getName());
                     }
-                    return result;
+                    return nameAndValueModel(result);
                 }
             } catch (SSLHandshakeException he) {
                 LOGGER.log(Level.SEVERE, he.getMessage());
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, e.getMessage());
             }
-            return result;
+            return nameAndValueModel(result);
+        }
+        /**
+         * Creates a list box model from a list of values.
+         * ({@link ListBoxModel#ListBoxModel(Collection)} takes {@link hudson.util.ListBoxModel.Option}s,
+         * not {@link String}s, and those are not {@link Comparable}.)
+         */
+        private static ListBoxModel nameAndValueModel(Collection<String> items) {
+            ListBoxModel model = new ListBoxModel();
+            for (String item : items) {
+                model.add(item);
+            }
+            return model;
         }
 
     }
