@@ -275,7 +275,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         listener.getLogger().format("%n  %d branches were processed%n", branches);
 
-        if (repo.isPrivate()) {
             listener.getLogger().format("%n  Getting remote pull requests...%n");
             int pullrequests = 0;
             for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
@@ -301,7 +300,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         continue;
                     }
                 }
-                SCMRevision hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
+                String trustedBase = trustedReplacement(repo, ghPullRequest);
+                SCMRevision hash;
+                if (trustedBase == null) {
+                    hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
+                } else {
+                    listener.getLogger().format("    (not from a trusted source)%n");
+                    hash = new UntrustedPullRequestSCMRevision(head, ghPullRequest.getHead().getSha(), trustedBase);
+                }
                 observer.observe(head, hash);
                 if (!observer.isObserving()) {
                     return;
@@ -309,9 +315,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 pullrequests++;
             }
             listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
-        } else {
-            listener.getLogger().format("%n  Skipping pull requests for public repositories%n");
-        }
 
     }
 
@@ -378,10 +381,48 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (head instanceof PullRequestSCMHead) {
             int number = ((PullRequestSCMHead) head).getNumber();
             ref = repo.getRef("pull/" + number + "/merge");
+            // getPullRequests makes an extra API call, but we need its current .base.sha
+            String trustedBase = trustedReplacement(repo, repo.getPullRequest(number));
+            if (trustedBase != null) {
+                return new UntrustedPullRequestSCMRevision(head, ref.getObject().getSha(), trustedBase);
+            }
         } else {
             ref = repo.getRef("heads/" + head.getName());
         }
         return new SCMRevisionImpl(head, ref.getObject().getSha());
+    }
+
+    @Override
+    public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener) throws IOException, InterruptedException {
+        if (revision instanceof UntrustedPullRequestSCMRevision) {
+            PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
+            UntrustedPullRequestSCMRevision rev = (UntrustedPullRequestSCMRevision) revision;
+            listener.getLogger().println("Loading trusted files from target branch at " + rev.baseHash + " rather than " + rev.getHash());
+            return new SCMRevisionImpl(head, rev.baseHash);
+        }
+        return revision;
+    }
+
+    /**
+     * Evaluates whether this pull request is coming from a trusted source.
+     * Quickest is to check whether the author of the PR
+     * <a href="https://developer.github.com/v3/repos/collaborators/#check-if-a-user-is-a-collaborator">is a collaborator of the repository</a>.
+     * By checking <a href="https://developer.github.com/v3/repos/collaborators/#list-collaborators">all collaborators</a>
+     * it is possible to further ascertain if they are in a team which was specifically granted push permission,
+     * but this is potentially expensive as there might be multiple pages of collaborators to retrieve.
+     * TODO since the GitHub API wrapper currently supports neither, we list all collaborator names and check for membership,
+     * paying the performance penalty without the benefit of the accuracy.
+     * @param ghPullRequest a PR
+     * @return the base revision, for an untrusted PR; null for a trusted PR
+     * @see <a href="https://developer.github.com/v3/pulls/#get-a-single-pull-request">PR metadata</a>
+     * @see <a href="http://stackoverflow.com/questions/15096331/github-api-how-to-find-the-branches-of-a-pull-request#comment54931031_15096596">base revision oddity</a>
+     */
+    private @CheckForNull String trustedReplacement(@Nonnull GHRepository repo, @Nonnull GHPullRequest ghPullRequest) throws IOException {
+        if (repo.getCollaboratorNames().contains(ghPullRequest.getUser().getLogin())) {
+            return null;
+        } else {
+            return ghPullRequest.getBase().getSha();
+        }
     }
 
     @Extension public static class DescriptorImpl extends SCMSourceDescriptor {
