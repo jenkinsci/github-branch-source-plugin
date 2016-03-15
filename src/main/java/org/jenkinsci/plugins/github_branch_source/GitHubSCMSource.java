@@ -282,10 +282,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest);
             final String branchName = head.getName();
             listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
-            if (repo.getOwner().equals(ghPullRequest.getHead().getUser())) {
-                listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
-                continue;
-            }
             if (criteria != null) {
                 SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + head.getNumber() + "/head", repo, listener);
                 if (criteria.isHead(probe, listener)) {
