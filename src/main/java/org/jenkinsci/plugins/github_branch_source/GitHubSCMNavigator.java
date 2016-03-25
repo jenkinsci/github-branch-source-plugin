@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import hudson.AbortException;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.TaskListener;
@@ -166,8 +167,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return;
         }
 
-        listener.getLogger().format("%n%s does not correspond to a known GitHub User Account or Organization%n%n", repoOwner);
-        throw new InterruptedException();
+        throw new AbortException(repoOwner + " does not correspond to a known GitHub User Account or Organization");
     }
 
     private void add(TaskListener listener, SCMSourceObserver observer, GHRepository repo) throws InterruptedException {
