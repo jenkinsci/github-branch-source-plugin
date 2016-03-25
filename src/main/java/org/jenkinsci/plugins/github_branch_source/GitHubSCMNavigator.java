@@ -28,21 +28,17 @@ import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import hudson.Extension;
-import hudson.ExtensionList;
-import hudson.ExtensionPoint;
 import hudson.Util;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.IOException;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
-import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.SCMSourceOwner;
 import org.kohsuke.accmod.Restricted;
@@ -167,7 +163,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
             for (GHRepository repo : user.listRepositories()) {
                 add(listener, observer, repo);
             }
+            return;
         }
+
+        listener.getLogger().format("%n%s does not correspond to a known GitHub User Account or Organization%n%n", repoOwner);
+        throw new InterruptedException();
     }
 
     private void add(TaskListener listener, SCMSourceObserver observer, GHRepository repo) throws InterruptedException {
