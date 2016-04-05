@@ -190,7 +190,22 @@ public class GitHubSCMNavigator extends SCMNavigator {
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
 
         @Override public String getDisplayName() {
-            return "GitHub Organization";
+            return Messages.GitHubSCMNavigator_DisplayName();
+        }
+
+        @Override
+        public String getDescription() {
+            return Messages.GitHubSCMNavigator_Description();
+        }
+
+        @Override
+        public String getCategoryId() {
+            return "nested-projects";
+        }
+
+        @Override
+        public String getIconFilePathPattern() {
+            return "plugin/github-branch-source/images/:size/github-scmnavigator.png";
         }
 
         @Override public SCMNavigator newInstance(String name) {

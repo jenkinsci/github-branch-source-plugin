@@ -95,7 +95,7 @@ public class GitHubBuildStatusNotification {
                     Result result = build.getResult();
                     String revisionToNotify = resolveHeadCommit(repo, revision);
                     if (Result.SUCCESS.equals(result)) {
-                        createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CoomitStatus_Good());
+                        createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good());
                     } else if (Result.UNSTABLE.equals(result)) {
                         createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable());
                     } else if (Result.FAILURE.equals(result)) {
