@@ -199,11 +199,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         @Override
-        public String getCategoryId() {
-            return "nested-projects";
-        }
-
-        @Override
         public String getIconFilePathPattern() {
             return "plugin/github-branch-source/images/:size/github-scmnavigator.png";
         }
