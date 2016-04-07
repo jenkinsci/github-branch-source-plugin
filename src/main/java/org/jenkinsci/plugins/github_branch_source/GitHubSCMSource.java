@@ -445,6 +445,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
 
         @Restricted(NoExternalUse.class)
+        public FormValidation doCheckIncludes(@QueryParameter String value) {
+            if (value.isEmpty()) {
+                return FormValidation.warning("Did you mean to use * to match all branches?");
+            }
+            return FormValidation.ok();
+        }
+
+        @Restricted(NoExternalUse.class)
         public FormValidation doCheckScanCredentialsId(@AncestorInPath SCMSourceOwner context,
                 @QueryParameter String scanCredentialsId, @QueryParameter String apiUri) {
             if (!scanCredentialsId.isEmpty()) {
