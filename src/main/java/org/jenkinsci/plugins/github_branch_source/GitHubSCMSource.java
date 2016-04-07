@@ -497,12 +497,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         public ListBoxModel doFillRepositoryItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri,
                 @QueryParameter String scanCredentialsId, @QueryParameter String repoOwner) {
-            Set<String> result = new TreeSet<>(new Comparator<String>() {
-                @Override
-                public int compare(String s1, String s2) {
-                    return s1.compareToIgnoreCase(s2);
-                }
-            });
+            Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
             repoOwner = Util.fixEmptyAndTrim(repoOwner);
             if (repoOwner == null) {
