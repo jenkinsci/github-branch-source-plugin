@@ -447,7 +447,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         @Restricted(NoExternalUse.class)
         public FormValidation doCheckIncludes(@QueryParameter String value) {
             if (value.isEmpty()) {
-                return FormValidation.warning("Did you mean to use * to match all branches?");
+                return FormValidation.warning(Messages.GitHubSCMSource_did_you_mean_to_use_to_match_all_branche());
             }
             return FormValidation.ok();
         }
