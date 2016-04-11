@@ -275,46 +275,46 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         listener.getLogger().format("%n  %d branches were processed%n", branches);
 
-            listener.getLogger().format("%n  Getting remote pull requests...%n");
-            int pullrequests = 0;
-            for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
-                PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest);
-                final String branchName = head.getName();
-                listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
-                // FYI https://developer.github.com/v3/pulls/#response-1
-                Boolean mergeable = ghPullRequest.getMergeable();
-                if (!Boolean.TRUE.equals(mergeable)) {
-                    listener.getLogger().format("    Not mergeable, skipping%n%n");
-                    continue;
-                }
-                if (repo.getOwner().equals(ghPullRequest.getHead().getUser())) {
-                    listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
-                    continue;
-                }
-                if (criteria != null) {
-                    SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + head.getNumber() + "/head", repo, listener);
-                    if (criteria.isHead(probe, listener)) {
-                        listener.getLogger().format("    Met criteria%n");
-                    } else {
-                        listener.getLogger().format("    Does not meet criteria%n");
-                        continue;
-                    }
-                }
-                String trustedBase = trustedReplacement(repo, ghPullRequest);
-                SCMRevision hash;
-                if (trustedBase == null) {
-                    hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
-                } else {
-                    listener.getLogger().format("    (not from a trusted source)%n");
-                    hash = new UntrustedPullRequestSCMRevision(head, ghPullRequest.getHead().getSha(), trustedBase);
-                }
-                observer.observe(head, hash);
-                if (!observer.isObserving()) {
-                    return;
-                }
-                pullrequests++;
+        listener.getLogger().format("%n  Getting remote pull requests...%n");
+        int pullrequests = 0;
+        for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
+            PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest);
+            final String branchName = head.getName();
+            listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
+            // FYI https://developer.github.com/v3/pulls/#response-1
+            Boolean mergeable = ghPullRequest.getMergeable();
+            if (!Boolean.TRUE.equals(mergeable)) {
+                listener.getLogger().format("    Not mergeable, skipping%n%n");
+                continue;
             }
-            listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
+            if (repo.getOwner().equals(ghPullRequest.getHead().getUser())) {
+                listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
+                continue;
+            }
+            if (criteria != null) {
+                SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + head.getNumber() + "/head", repo, listener);
+                if (criteria.isHead(probe, listener)) {
+                    listener.getLogger().format("    Met criteria%n");
+                } else {
+                    listener.getLogger().format("    Does not meet criteria%n");
+                    continue;
+                }
+            }
+            String trustedBase = trustedReplacement(repo, ghPullRequest);
+            SCMRevision hash;
+            if (trustedBase == null) {
+                hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
+            } else {
+                listener.getLogger().format("    (not from a trusted source)%n");
+                hash = new UntrustedPullRequestSCMRevision(head, ghPullRequest.getHead().getSha(), trustedBase);
+            }
+            observer.observe(head, hash);
+            if (!observer.isObserving()) {
+                return;
+            }
+            pullrequests++;
+        }
+        listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
 
     }
 
@@ -445,6 +445,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
 
         @Restricted(NoExternalUse.class)
+        public FormValidation doCheckIncludes(@QueryParameter String value) {
+            if (value.isEmpty()) {
+                return FormValidation.warning(Messages.GitHubSCMSource_did_you_mean_to_use_to_match_all_branche());
+            }
+            return FormValidation.ok();
+        }
+
+        @Restricted(NoExternalUse.class)
         public FormValidation doCheckScanCredentialsId(@AncestorInPath SCMSourceOwner context,
                 @QueryParameter String scanCredentialsId, @QueryParameter String apiUri) {
             if (!scanCredentialsId.isEmpty()) {
@@ -496,7 +504,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         public ListBoxModel doFillRepositoryItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri,
                 @QueryParameter String scanCredentialsId, @QueryParameter String repoOwner) {
-            Set<String> result = new TreeSet<>();
+            Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
             repoOwner = Util.fixEmptyAndTrim(repoOwner);
             if (repoOwner == null) {

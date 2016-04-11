@@ -92,29 +92,38 @@ public class GitHubBuildStatusNotification {
                     } catch (IllegalStateException ise) {
                         url = "http://unconfigured-jenkins-location/" + build.getUrl();
                     }
-                    Result result = build.getResult();
-                    String revisionToNotify = resolveHeadCommit(repo, revision);
-                    if (Result.SUCCESS.equals(result)) {
-                        createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good());
-                    } else if (Result.UNSTABLE.equals(result)) {
-                        createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable());
-                    } else if (Result.FAILURE.equals(result)) {
-                        createCommitStatus(repo, revisionToNotify, GHCommitState./* TODO or ERROR? */FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure());
-                    } else if (result != null) { // ABORTED etc.
-                        createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other());
-                    } else {
-                        createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending());
-                    }
-                    if (result != null) {
-                        listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
+                    boolean ignoreError = false;
+                    try {
+                        Result result = build.getResult();
+                        String revisionToNotify = resolveHeadCommit(repo, revision);
+                        if (Result.SUCCESS.equals(result)) {
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good());
+                        } else if (Result.UNSTABLE.equals(result)) {
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable());
+                        } else if (Result.FAILURE.equals(result)) {
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure());
+                        } else if (result != null) { // ABORTED etc.
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other());
+                        } else {
+                            ignoreError = true;
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending());
+                        }
+                        if (result != null) {
+                            listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
+                        }
+                    } catch (FileNotFoundException fnfe) {
+                        if (!ignoreError) {
+                            listener.getLogger().format("%nCould not update commit status, please check if your scan " +
+                                    "credentials belong to a member of the organization or a collaborator of the " +
+                                    "repository and repo:status scope is selected%n%n");
+                            LOGGER.log(Level.FINE, null, fnfe);
+                        }
                     }
                 }
             }
-        } catch (FileNotFoundException fnfe) {
-            listener.getLogger().format("%nCould not update commit status, please check if your scan credentials belong to a member of the organization or a collaborator of the repository%n%n");
         } catch (IOException ioe) {
             listener.getLogger().format("%nCould not update commit status. Message: %s%n%n", ioe.getMessage());
-            LOGGER.log(Level.WARNING, "Could not update commit status", ioe);
+            LOGGER.log(Level.FINE, "Could not update commit status", ioe);
         }
 
 }
@@ -167,7 +176,7 @@ public class GitHubBuildStatusNotification {
     @Extension public static class PRJobScheduledListener extends QueueListener {
 
         /**
-         * Manages the Github Commit Pending Status.
+         * Manages the GitHub Commit Pending Status.
          */
         @Override public void onEnterWaiting(Queue.WaitingItem wi) {
             if (wi.task instanceof Job) {
@@ -191,8 +200,12 @@ public class GitHubBuildStatusNotification {
                             // In fact the submitter might push another commit before this build even starts.
                             createCommitStatus(repo, pr.getHead().getSha(), GHCommitState.PENDING, url, "This pull request is scheduled to be built");
                         }
+                    } catch (FileNotFoundException fnfe) {
+                        LOGGER.log(Level.WARNING, "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?");
+                        LOGGER.log(Level.FINE, null, fnfe);
                     } catch (IOException ioe) {
-                        LOGGER.log(Level.WARNING, "Could not update commit status", ioe);
+                        LOGGER.log(Level.WARNING, "Could not update commit status to PENDING. Message: " + ioe.getMessage());
+                        LOGGER.log(Level.FINE, null, ioe);
                     }
                 }
             }
@@ -202,6 +215,7 @@ public class GitHubBuildStatusNotification {
 
     /**
      * With this listener one notifies to GitHub when the SCM checkout process has started.
+     * Possible option: GHCommitState.PENDING
      */
     @Extension public static class JobCheckOutListener extends SCMListener {
 
@@ -213,10 +227,10 @@ public class GitHubBuildStatusNotification {
 
     /**
      * With this listener one notifies to GitHub the build result.
+     * Possible options: GHCommitState.SUCCESS, GHCommitState.ERROR or GHCommitState.FAILURE
      */
     @Extension public static class JobCompletedListener extends RunListener<Run<?,?>> {
 
-        @SuppressWarnings("deprecation") // Run.getAbsoluteUrl appropriate here
         @Override public void onCompleted(Run<?, ?> build, TaskListener listener) {
             createBuildCommitStatus(build, listener);
         }
