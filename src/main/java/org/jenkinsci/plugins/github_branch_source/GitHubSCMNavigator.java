@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
 import jenkins.scm.api.SCMSourceObserver;
@@ -62,6 +63,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
     private final String apiUri;
     private String pattern = ".*";
 
+    private @Nonnull String includes = GitHubSCMSource.DescriptorImpl.defaultIncludes;
+    private @Nonnull String excludes = GitHubSCMSource.DescriptorImpl.defaultExcludes;
+
     @DataBoundConstructor public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
         this.repoOwner = repoOwner;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
@@ -69,6 +73,22 @@ public class GitHubSCMNavigator extends SCMNavigator {
         this.apiUri = Util.fixEmpty(apiUri);
     }
 
+    public @Nonnull String getIncludes() {
+        return includes;
+    }
+
+    @DataBoundSetter public void setIncludes(@Nonnull String includes) {
+        this.includes = includes;
+    }
+
+    public @Nonnull String getExcludes() {
+        return excludes;
+    }
+
+    @DataBoundSetter public void setExcludes(@Nonnull String excludes) {
+        this.excludes = excludes;
+    }
+    
     public String getRepoOwner() {
         return repoOwner;
     }
@@ -181,7 +201,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
             throw new InterruptedException();
         }
         SCMSourceObserver.ProjectObserver projectObserver = observer.observe(name);
-        projectObserver.addSource(new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name));
+        
+        GitHubSCMSource ghSCMSource = new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name);
+        ghSCMSource.setExcludes(excludes);
+        ghSCMSource.setIncludes(includes);
+        
+        projectObserver.addSource(ghSCMSource);
         projectObserver.complete();
     }
 
