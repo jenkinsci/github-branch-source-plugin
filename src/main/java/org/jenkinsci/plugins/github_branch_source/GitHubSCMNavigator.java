@@ -63,8 +63,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     private final String apiUri;
     private String pattern = ".*";
 
-    private @Nonnull String includes = GitHubSCMSource.DescriptorImpl.defaultIncludes;
-    private @Nonnull String excludes = GitHubSCMSource.DescriptorImpl.defaultExcludes;
+    private @CheckForNull String includes;
+    private @CheckForNull String excludes;
 
     @DataBoundConstructor public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
         this.repoOwner = repoOwner;
@@ -74,19 +74,19 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     public @Nonnull String getIncludes() {
-        return includes;
+        return includes != null ? includes : DescriptorImpl.defaultIncludes;
     }
 
     @DataBoundSetter public void setIncludes(@Nonnull String includes) {
-        this.includes = includes;
+        this.includes = includes.equals(DescriptorImpl.defaultIncludes) ? null : includes;
     }
 
     public @Nonnull String getExcludes() {
-        return excludes;
+        return excludes != null ? excludes : DescriptorImpl.defaultExcludes;
     }
 
     @DataBoundSetter public void setExcludes(@Nonnull String excludes) {
-        this.excludes = excludes;
+        this.excludes = excludes.equals(DescriptorImpl.defaultExcludes) ? null : excludes;
     }
     
     public String getRepoOwner() {
@@ -203,8 +203,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
         SCMSourceObserver.ProjectObserver projectObserver = observer.observe(name);
         
         GitHubSCMSource ghSCMSource = new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name);
-        ghSCMSource.setExcludes(excludes);
-        ghSCMSource.setIncludes(includes);
+        ghSCMSource.setExcludes(getExcludes());
+        ghSCMSource.setIncludes(getIncludes());
         
         projectObserver.addSource(ghSCMSource);
         projectObserver.complete();
@@ -214,6 +214,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
 
+        public static final String defaultIncludes = GitHubSCMSource.DescriptorImpl.defaultIncludes;
+        public static final String defaultExcludes = GitHubSCMSource.DescriptorImpl.defaultExcludes;
+        public static final String SAME = GitHubSCMSource.DescriptorImpl.SAME;
+        
         @Override public String getDisplayName() {
             return Messages.GitHubSCMNavigator_DisplayName();
         }
