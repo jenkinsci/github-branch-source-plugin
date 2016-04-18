@@ -121,10 +121,10 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
                 return FormValidation.ok("GitHub Enterprise server verified");
             } catch (MalformedURLException mue) {
                 // For example: https:/api.github.com
-                LOGGER.log(Level.WARNING, "Trying to configure a GitHub Enterprise server: " + apiUri);
-                return FormValidation.error("This does not look like a GitHub Enterprise API endpoint");
+                LOGGER.log(Level.WARNING, "Trying to configure a GitHub Enterprise server: " + apiUri, mue.getCause());
+                return FormValidation.error("This does not look like a GitHub Enterprise API endpoint (malformed URL)");
             } catch (JsonParseException jpe) {
-                LOGGER.log(Level.WARNING, "Trying to configure a GitHub Enterprise server: " + apiUri);
+                LOGGER.log(Level.WARNING, "Trying to configure a GitHub Enterprise server: " + apiUri, jpe.getCause());
                 return FormValidation.error("This does not look like a GitHub Enterprise API endpoint");
             } catch (FileNotFoundException fnt) {
                 // For example: https://github.mycompany.com/server/api/v3/ gets a FileNotFoundException
