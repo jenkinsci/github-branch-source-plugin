@@ -122,14 +122,14 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
             } catch (MalformedURLException mue) {
                 // For example: https:/api.github.com
                 LOGGER.log(Level.WARNING, "Trying to configure a GitHub Enterprise server: " + apiUri, mue.getCause());
-                return FormValidation.error("This does not look like a GitHub Enterprise API endpoint (malformed URL)");
+                return FormValidation.error("The endpoint does not look like a GitHub Enterprise (malformed URL)");
             } catch (JsonParseException jpe) {
                 LOGGER.log(Level.WARNING, "Trying to configure a GitHub Enterprise server: " + apiUri, jpe.getCause());
-                return FormValidation.error("This does not look like a GitHub Enterprise API endpoint");
+                return FormValidation.error("The endpoint does not look like a GitHub Enterprise (invalid JSON response)");
             } catch (FileNotFoundException fnt) {
                 // For example: https://github.mycompany.com/server/api/v3/ gets a FileNotFoundException
                 LOGGER.log(Level.WARNING, "Getting HTTP Error 404 for " + apiUri);
-                return FormValidation.error("This does not look like a GitHub Enterprise API endpoint (page not found");
+                return FormValidation.error("The endpoint does not look like a GitHub Enterprise (page not found");
             } catch (IOException e) {
                 // For example: https://github.mycompany.com/api/v3/ or https://github.mycompany.com/api/v3/mypath
                 if (e.getMessage().contains("private mode enabled")) {
@@ -137,7 +137,7 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
                     return FormValidation.warning("Private mode enabled, validation disabled");
                 }
                 LOGGER.log(Level.WARNING, e.getMessage());
-                return FormValidation.error("This does not look like a GitHub Enterprise API endpoint");
+                return FormValidation.error("The endpoint does not look like a GitHub Enterprise (verify network and/or try again later)");
             }
         }
 
