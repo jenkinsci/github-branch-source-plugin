@@ -63,8 +63,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     private final String apiUri;
     private String pattern = ".*";
 
-    private @CheckForNull String includes;
-    private @CheckForNull String excludes;
+    @CheckForNull private String includes;
+    @CheckForNull private String excludes;
 
     @DataBoundConstructor public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
         this.repoOwner = repoOwner;
@@ -73,7 +73,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         this.apiUri = Util.fixEmpty(apiUri);
     }
 
-    public @Nonnull String getIncludes() {
+    @Nonnull public String getIncludes() {
         return includes != null ? includes : DescriptorImpl.defaultIncludes;
     }
 
@@ -81,7 +81,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         this.includes = includes.equals(DescriptorImpl.defaultIncludes) ? null : includes;
     }
 
-    public @Nonnull String getExcludes() {
+    @Nonnull public String getExcludes() {
         return excludes != null ? excludes : DescriptorImpl.defaultExcludes;
     }
 
