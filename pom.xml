@@ -7,11 +7,11 @@
         <version>2.3</version>
     </parent>
     <artifactId>github-branch-source</artifactId>
-    <version>1.4-SNAPSHOT</version>
+    <version>1.6-SNAPSHOT</version>
     <packaging>hpi</packaging>
-    <name>CloudBees GitHub Branch Source Plugin</name>
+    <name>GitHub Branch Source Plugin</name>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/CloudBees+GitHub+Branch+Source+Plugin</url>
-    <description>Multibranch projects and organization folders from GitHub.</description>
+    <description>Multibranch projects and organization folders from GitHub. Maintained by CloudBees, Inc.</description>
     <licenses>
         <license>
             <name>MIT</name>
@@ -21,6 +21,7 @@
 
     <properties>
         <jenkins.version>1.609.3</jenkins.version>
+        <workflow.version>1.15</workflow.version>
     </properties>
 
     <scm>
@@ -33,7 +34,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>scm-api</artifactId>
-            <version>1.0</version>
+            <version>1.2</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -48,10 +49,10 @@
             </exclusions>
         </dependency>
         <dependency>
-            <!-- Update when 1.74 is released -->
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.74-SNAPSHOT</version>
+            <!-- Update when 1.75 is released -->
+            <version>1.75-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -62,6 +63,19 @@
             <groupId>com.coravy.hudson.plugins.github</groupId>
             <artifactId>github</artifactId>
             <version>1.14.0</version>
+        </dependency>
+        <!-- Currently just here for interactive testing via hpi:run: -->
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-aggregator</artifactId>
+            <version>${workflow.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-multibranch</artifactId>
+            <version>${workflow.version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <repositories>

@@ -24,42 +24,29 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import hudson.model.Action;
-import java.util.LinkedList;
-import java.util.List;
+import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMHead;
-import org.kohsuke.github.GHPullRequest;
 
 /**
- * Head corresponding to a pull request.
- * Named like {@code PR-123}.
+ * Revision of a pull request which should load sensitive files from the base branch.
  */
-public final class PullRequestSCMHead extends SCMHead {
+class UntrustedPullRequestSCMRevision extends AbstractGitSCMSource.SCMRevisionImpl {
+    
+    final String baseHash;
 
-    private static final String PR_BRANCH_PREFIX = "PR-";
-
-    private static final long serialVersionUID = 1;
-
-    private final PullRequestAction metadata;
-
-    PullRequestSCMHead(GHPullRequest pr) {
-        super(PR_BRANCH_PREFIX + pr.getNumber());
-        metadata = new PullRequestAction(pr);
-    }
-
-    public int getNumber() {
-        if (metadata != null) {
-            return Integer.parseInt(metadata.getId());
-        } else { // settings compatibility
-            return Integer.parseInt(getName().substring(PR_BRANCH_PREFIX.length()));
-        }
+    UntrustedPullRequestSCMRevision(SCMHead head, String hash, String baseHash) {
+        super(head, hash);
+        this.baseHash = baseHash;
     }
 
     @Override
-    public List<? extends Action> getAllActions() {
-        List<Action> actions = new LinkedList<Action>(super.getAllActions());
-        actions.add(metadata);
-        return actions;
+    public boolean equals(Object o) {
+        return super.equals(o) && baseHash.equals(((UntrustedPullRequestSCMRevision) o).baseHash);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode(); // good enough
     }
 
 }

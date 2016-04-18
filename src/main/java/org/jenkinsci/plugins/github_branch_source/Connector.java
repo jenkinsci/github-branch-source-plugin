@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsMatcher;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
@@ -33,19 +34,33 @@ import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.google.common.hash.Hashing;
+import com.squareup.okhttp.Cache;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.OkUrlFactory;
 import hudson.Util;
 import hudson.security.ACL;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.Proxy;
 import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+
+import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSourceOwner;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
+import org.jenkinsci.plugins.github.config.GitHubServerConfig;
+import org.jenkinsci.plugins.github.internal.GitHubClientCacheOps;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
+import org.kohsuke.github.extras.OkHttpConnector;
+
+import static org.apache.commons.lang3.StringUtils.*;
+import static org.jenkinsci.plugins.github.config.GitHubServerConfig.GITHUB_URL;
+import static org.jenkinsci.plugins.github.internal.GitHubClientCacheOps.toCacheDir;
 
 /**
  * Utilities that could perhaps be moved into {@code github-api}.
@@ -69,27 +84,43 @@ public class Connector {
     }
 
     public static @Nonnull GitHub connect(@CheckForNull String apiUri, @CheckForNull StandardCredentials credentials) throws IOException {
-        if (Util.fixEmptyAndTrim(apiUri) == null) {
-            if (credentials == null) {
-                return new GitHubBuilder().withRateLimitHandler(CUSTOMIZED).build();
-            } else if (credentials instanceof StandardUsernamePasswordCredentials) {
-                StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
-                return GitHub.connectUsingPassword(c.getUsername(), c.getPassword().getPlainText());
-            } else {
-                // TODO OAuth support
-                throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
-            }
-        } else {
-            if (credentials == null) {
-                return GitHub.connectToEnterprise(apiUri, null, null);
-            } else if (credentials instanceof StandardUsernamePasswordCredentials) {
-                StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
-                return GitHub.connectToEnterprise(apiUri, c.getUsername(), c.getPassword().getPlainText());
-            } else {
-                // TODO OAuth support
-                throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
-            }
+        GitHubServerConfig config = new GitHubServerConfig(credentials!=null ? credentials.getId() : null);
+        String apiUrl = Util.fixEmptyAndTrim(apiUri);
+        if (apiUrl !=null) {
+            config.setCustomApiUrl(true);
+            config.setApiUrl(apiUrl);
         }
+
+// Can't do this until github plugin support username/password
+//        GitHub gh = GitHubServerConfig.loginToGithub().apply(config);
+
+        GitHubBuilder gb = new GitHubBuilder();
+
+        if (apiUrl !=null) {
+            gb.withEndpoint(apiUrl);
+        }
+
+        gb.withRateLimitHandler(CUSTOMIZED);
+        OkHttpClient client = new OkHttpClient().setProxy(getProxy(defaultIfBlank(apiUrl, GITHUB_URL)));
+        client.setCache(GitHubClientCacheOps.toCacheDir().apply(config));
+        if (config.getClientCacheSize() > 0) {
+            Cache cache = toCacheDir().apply(config);
+            client.setCache(cache);
+        }
+
+        gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
+
+        if (credentials == null) {
+            // nothing further to configure
+        } else if (credentials instanceof StandardUsernamePasswordCredentials) {
+            StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
+            gb.withPassword(c.getUsername(), c.getPassword().getPlainText());
+        } else {
+            // TODO OAuth support
+            throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
+        }
+
+        return gb.build();
     }
 
     public static void fillScanCredentialsIdItems(StandardListBoxModel result, @CheckForNull SCMSourceOwner context, @CheckForNull String apiUri) {
@@ -108,6 +139,36 @@ public class Connector {
     private static List<DomainRequirement> githubDomainRequirements(String apiUri) {
         return URIRequirementBuilder.fromUri(StringUtils.defaultIfEmpty(apiUri, "https://github.com")).build();
     }
+
+    /**
+     * Uses proxy if configured on pluginManager/advanced page
+     *
+     * @param apiUrl GitHub's url to build proxy to
+     *
+     * @return proxy to use it in connector. Should not be null as it can lead to unexpected behaviour
+     */
+    @Nonnull
+    private static Proxy getProxy(String apiUrl) {
+        Jenkins jenkins = GitHubWebHook.getJenkinsInstance();
+
+        if (jenkins.proxy == null) {
+            return Proxy.NO_PROXY;
+        } else {
+            return jenkins.proxy.createProxy(apiUrl);
+        }
+    }
+
+    /**
+     * @param config url and creds id to be hashed
+     *
+     * @return unique id for folder name to create cache inside of base cache dir
+     */
+    private static String hashed(GitHubServerConfig config) {
+        return Hashing.murmur3_32().newHasher()
+                .putString(trimToEmpty(config.getApiUrl()))
+                .putString(trimToEmpty(config.getCredentialsId())).hash().toString();
+    }
+
 
     private Connector() {}
 

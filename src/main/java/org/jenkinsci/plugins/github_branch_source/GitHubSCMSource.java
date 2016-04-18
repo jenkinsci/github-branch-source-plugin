@@ -71,9 +71,12 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -272,44 +275,46 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         listener.getLogger().format("%n  %d branches were processed%n", branches);
 
-        if (repo.isPrivate()) {
-            listener.getLogger().format("%n  Getting remote pull requests...%n");
-            int pullrequests = 0;
-            for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
-                int number = ghPullRequest.getNumber();
-                SCMHead head = new PullRequestSCMHead(number);
-                final String branchName = head.getName();
-                listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
-                // FYI https://developer.github.com/v3/pulls/#response-1
-                Boolean mergeable = ghPullRequest.getMergeable();
-                if (!Boolean.TRUE.equals(mergeable)) {
-                    listener.getLogger().format("    Not mergeable, skipping%n%n");
-                    continue;
-                }
-                if (repo.getOwner().equals(ghPullRequest.getHead().getUser())) {
-                    listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
-                    continue;
-                }
-                if (criteria != null) {
-                    SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + number + "/head", repo, listener);
-                    if (criteria.isHead(probe, listener)) {
-                        listener.getLogger().format("    Met criteria%n");
-                    } else {
-                        listener.getLogger().format("    Does not meet criteria%n");
-                        continue;
-                    }
-                }
-                SCMRevision hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
-                observer.observe(head, hash);
-                if (!observer.isObserving()) {
-                    return;
-                }
-                pullrequests++;
+        listener.getLogger().format("%n  Getting remote pull requests...%n");
+        int pullrequests = 0;
+        for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
+            PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest);
+            final String branchName = head.getName();
+            listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
+            // FYI https://developer.github.com/v3/pulls/#response-1
+            Boolean mergeable = ghPullRequest.getMergeable();
+            if (!Boolean.TRUE.equals(mergeable)) {
+                listener.getLogger().format("    Not mergeable, skipping%n%n");
+                continue;
             }
-            listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
-        } else {
-            listener.getLogger().format("%n  Skipping pull requests for public repositories%n");
+            if (repo.getOwner().equals(ghPullRequest.getHead().getUser())) {
+                listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
+                continue;
+            }
+            if (criteria != null) {
+                SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + head.getNumber() + "/head", repo, listener);
+                if (criteria.isHead(probe, listener)) {
+                    listener.getLogger().format("    Met criteria%n");
+                } else {
+                    listener.getLogger().format("    Does not meet criteria%n");
+                    continue;
+                }
+            }
+            String trustedBase = trustedReplacement(repo, ghPullRequest);
+            SCMRevision hash;
+            if (trustedBase == null) {
+                hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
+            } else {
+                listener.getLogger().format("    (not from a trusted source)%n");
+                hash = new UntrustedPullRequestSCMRevision(head, ghPullRequest.getHead().getSha(), trustedBase);
+            }
+            observer.observe(head, hash);
+            if (!observer.isObserving()) {
+                return;
+            }
+            pullrequests++;
         }
+        listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
 
     }
 
@@ -376,10 +381,48 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (head instanceof PullRequestSCMHead) {
             int number = ((PullRequestSCMHead) head).getNumber();
             ref = repo.getRef("pull/" + number + "/merge");
+            // getPullRequests makes an extra API call, but we need its current .base.sha
+            String trustedBase = trustedReplacement(repo, repo.getPullRequest(number));
+            if (trustedBase != null) {
+                return new UntrustedPullRequestSCMRevision(head, ref.getObject().getSha(), trustedBase);
+            }
         } else {
             ref = repo.getRef("heads/" + head.getName());
         }
         return new SCMRevisionImpl(head, ref.getObject().getSha());
+    }
+
+    @Override
+    public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener) throws IOException, InterruptedException {
+        if (revision instanceof UntrustedPullRequestSCMRevision) {
+            PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
+            UntrustedPullRequestSCMRevision rev = (UntrustedPullRequestSCMRevision) revision;
+            listener.getLogger().println("Loading trusted files from target branch at " + rev.baseHash + " rather than " + rev.getHash());
+            return new SCMRevisionImpl(head, rev.baseHash);
+        }
+        return revision;
+    }
+
+    /**
+     * Evaluates whether this pull request is coming from a trusted source.
+     * Quickest is to check whether the author of the PR
+     * <a href="https://developer.github.com/v3/repos/collaborators/#check-if-a-user-is-a-collaborator">is a collaborator of the repository</a>.
+     * By checking <a href="https://developer.github.com/v3/repos/collaborators/#list-collaborators">all collaborators</a>
+     * it is possible to further ascertain if they are in a team which was specifically granted push permission,
+     * but this is potentially expensive as there might be multiple pages of collaborators to retrieve.
+     * TODO since the GitHub API wrapper currently supports neither, we list all collaborator names and check for membership,
+     * paying the performance penalty without the benefit of the accuracy.
+     * @param ghPullRequest a PR
+     * @return the base revision, for an untrusted PR; null for a trusted PR
+     * @see <a href="https://developer.github.com/v3/pulls/#get-a-single-pull-request">PR metadata</a>
+     * @see <a href="http://stackoverflow.com/questions/15096331/github-api-how-to-find-the-branches-of-a-pull-request#comment54931031_15096596">base revision oddity</a>
+     */
+    private @CheckForNull String trustedReplacement(@Nonnull GHRepository repo, @Nonnull GHPullRequest ghPullRequest) throws IOException {
+        if (repo.getCollaboratorNames().contains(ghPullRequest.getUser().getLogin())) {
+            return null;
+        } else {
+            return ghPullRequest.getBase().getSha();
+        }
     }
 
     @Extension public static class DescriptorImpl extends SCMSourceDescriptor {
@@ -399,6 +442,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         @Override
         public String getDisplayName() {
             return "GitHub";
+        }
+
+        @Restricted(NoExternalUse.class)
+        public FormValidation doCheckIncludes(@QueryParameter String value) {
+            if (value.isEmpty()) {
+                return FormValidation.warning(Messages.GitHubSCMSource_did_you_mean_to_use_to_match_all_branche());
+            }
+            return FormValidation.ok();
         }
 
         @Restricted(NoExternalUse.class)
@@ -452,10 +503,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         public ListBoxModel doFillRepositoryItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri,
                 @QueryParameter String scanCredentialsId, @QueryParameter String repoOwner) {
-            ListBoxModel result = new ListBoxModel();
+            Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+
             repoOwner = Util.fixEmptyAndTrim(repoOwner);
             if (repoOwner == null) {
-                return result;
+                return nameAndValueModel(result);
             }
             try {
                 StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
@@ -475,7 +527,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         for (String name : myself.getAllRepositories().keySet()) {
                             result.add(name);
                         }
-                        return result;
+                        return nameAndValueModel(result);
                     }
                 }
 
@@ -491,7 +543,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     for (GHRepository repo : org.listRepositories()) {
                         result.add(repo.getName());
                     }
-                    return result;
+                    return nameAndValueModel(result);
                 }
 
                 GHUser user = null;
@@ -506,14 +558,26 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     for (GHRepository repo : user.listRepositories()) {
                         result.add(repo.getName());
                     }
-                    return result;
+                    return nameAndValueModel(result);
                 }
             } catch (SSLHandshakeException he) {
                 LOGGER.log(Level.SEVERE, he.getMessage());
             } catch (IOException e) {
                 LOGGER.log(Level.SEVERE, e.getMessage());
             }
-            return result;
+            return nameAndValueModel(result);
+        }
+        /**
+         * Creates a list box model from a list of values.
+         * ({@link ListBoxModel#ListBoxModel(Collection)} takes {@link hudson.util.ListBoxModel.Option}s,
+         * not {@link String}s, and those are not {@link Comparable}.)
+         */
+        private static ListBoxModel nameAndValueModel(Collection<String> items) {
+            ListBoxModel model = new ListBoxModel();
+            for (String item : items) {
+                model.add(item);
+            }
+            return model;
         }
 
     }
