@@ -119,7 +119,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             } catch (IOException e) {
                 // Something wrong happened, maybe java.net.ConnectException?
             }
-            if (myself != null && repoOwner.equals(myself.getLogin())) {
+            if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
                 listener.getLogger().format("Looking up repositories of myself %s%n%n", repoOwner);
                 for (GHRepository repo : myself.listRepositories()) {
                     if (!repo.getOwnerName().equals(repoOwner)) {
@@ -142,7 +142,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         } catch (IOException e) {
             // may be a user... ok to ignore
         }
-        if (org != null && repoOwner.equals(org.getLogin())) {
+        if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
             listener.getLogger().format("Looking up repositories of organization %s%n%n", repoOwner);
             for (GHRepository repo : org.listRepositories()) {
                 add(listener, observer, repo);
@@ -159,7 +159,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         } catch (IOException e) {
             // Something wrong happened, maybe java.net.ConnectException?
         }
-        if (user != null && repoOwner.equals(user.getLogin())) {
+        if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
             listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
             for (GHRepository repo : user.listRepositories()) {
                 add(listener, observer, repo);
