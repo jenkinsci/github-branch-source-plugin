@@ -31,6 +31,7 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -124,12 +125,16 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
             } catch (JsonParseException jpe) {
                 LOGGER.log(Level.WARNING, "Trying to configure a GitHub Enterprise server: " + apiUri);
                 return FormValidation.error("This does not look like a GitHub Enterprise API endpoint");
+            } catch (FileNotFoundException fnt) {
+                // For example: https://github.mycompany.com/server/api/v3/ gets a FileNotFoundException
+                LOGGER.log(Level.WARNING, "Getting HTTP Error 404 for " + apiUri);
+                return FormValidation.error("This does not look like a GitHub Enterprise API endpoint");
             } catch (IOException e) {
+                // For example: https://github.mycompany.com/api/v3/ or https://github.mycompany.com/api/v3/mypath
                 if (e.getMessage().contains("private mode enabled")) {
-                    LOGGER.log(Level.FINE, "Trying to configure a GitHub Enterprise server with private mode enabled");
-                    return FormValidation.ok("GitHub Enterprise server verified");
+                    LOGGER.log(Level.FINE, e.getMessage());
+                    return FormValidation.warning("Private mode enabled, validation disabled");
                 }
-                // For example: https://github.mycompany.com/api gets a FileNotFoundException
                 LOGGER.log(Level.WARNING, e.getMessage());
                 return FormValidation.error("This does not look like a GitHub Enterprise API endpoint");
             }
