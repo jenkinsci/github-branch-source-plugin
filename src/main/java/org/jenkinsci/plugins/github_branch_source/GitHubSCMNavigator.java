@@ -38,6 +38,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
 import jenkins.scm.api.SCMSourceObserver;
@@ -62,6 +63,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
     private final String apiUri;
     private String pattern = ".*";
 
+    @CheckForNull private String includes;
+    @CheckForNull private String excludes;
+
     @DataBoundConstructor public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
         this.repoOwner = repoOwner;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
@@ -69,6 +73,22 @@ public class GitHubSCMNavigator extends SCMNavigator {
         this.apiUri = Util.fixEmpty(apiUri);
     }
 
+    @Nonnull public String getIncludes() {
+        return includes != null ? includes : DescriptorImpl.defaultIncludes;
+    }
+
+    @DataBoundSetter public void setIncludes(@Nonnull String includes) {
+        this.includes = includes.equals(DescriptorImpl.defaultIncludes) ? null : includes;
+    }
+
+    @Nonnull public String getExcludes() {
+        return excludes != null ? excludes : DescriptorImpl.defaultExcludes;
+    }
+
+    @DataBoundSetter public void setExcludes(@Nonnull String excludes) {
+        this.excludes = excludes.equals(DescriptorImpl.defaultExcludes) ? null : excludes;
+    }
+    
     public String getRepoOwner() {
         return repoOwner;
     }
@@ -181,7 +201,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
             throw new InterruptedException();
         }
         SCMSourceObserver.ProjectObserver projectObserver = observer.observe(name);
-        projectObserver.addSource(new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name));
+        
+        GitHubSCMSource ghSCMSource = new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name);
+        ghSCMSource.setExcludes(getExcludes());
+        ghSCMSource.setIncludes(getIncludes());
+        
+        projectObserver.addSource(ghSCMSource);
         projectObserver.complete();
     }
 
@@ -189,6 +214,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
 
+        public static final String defaultIncludes = GitHubSCMSource.DescriptorImpl.defaultIncludes;
+        public static final String defaultExcludes = GitHubSCMSource.DescriptorImpl.defaultExcludes;
+        public static final String SAME = GitHubSCMSource.DescriptorImpl.SAME;
+        
         @Override public String getDisplayName() {
             return Messages.GitHubSCMNavigator_DisplayName();
         }
