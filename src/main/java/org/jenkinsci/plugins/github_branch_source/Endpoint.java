@@ -129,7 +129,7 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
             } catch (FileNotFoundException fnt) {
                 // For example: https://github.mycompany.com/server/api/v3/ gets a FileNotFoundException
                 LOGGER.log(Level.WARNING, "Getting HTTP Error 404 for " + apiUri);
-                return FormValidation.error("This does not look like a GitHub Enterprise API endpoint");
+                return FormValidation.error("This does not look like a GitHub Enterprise API endpoint (page not found");
             } catch (IOException e) {
                 // For example: https://github.mycompany.com/api/v3/ or https://github.mycompany.com/api/v3/mypath
                 if (e.getMessage().contains("private mode enabled")) {
