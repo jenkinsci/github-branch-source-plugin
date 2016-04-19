@@ -42,7 +42,9 @@ import hudson.Util;
 import hudson.security.ACL;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.Proxy;
+import java.net.URL;
 import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -101,6 +103,7 @@ public class Connector {
         }
 
         gb.withRateLimitHandler(CUSTOMIZED);
+
         OkHttpClient client = new OkHttpClient().setProxy(getProxy(defaultIfBlank(apiUrl, GITHUB_URL)));
         client.setCache(GitHubClientCacheOps.toCacheDir().apply(config));
         if (config.getClientCacheSize() > 0) {
@@ -151,10 +154,17 @@ public class Connector {
     private static Proxy getProxy(String apiUrl) {
         Jenkins jenkins = GitHubWebHook.getJenkinsInstance();
 
+        String host;
+        try {
+            host = new URL(apiUrl).getHost();
+        } catch (MalformedURLException e) {
+            throw new RuntimeException("Could not extract host from api url", e);
+        }
+
         if (jenkins.proxy == null) {
             return Proxy.NO_PROXY;
         } else {
-            return jenkins.proxy.createProxy(apiUrl);
+            return jenkins.proxy.createProxy(host);
         }
     }
 
