@@ -31,6 +31,7 @@ import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -115,14 +116,28 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
                 URL api = new URL(apiUri);
                 GitHub github = GitHub.connectToEnterpriseAnonymously(api.toString());
                 github.checkApiUrlValidity();
-                return FormValidation.ok();
+                LOGGER.log(Level.FINE, "Trying to configure a GitHub Enterprise server");
+                // For example: https://api.github.com/ or https://github.mycompany.com/api/v3/ (with private mode disabled).
+                return FormValidation.ok("GitHub Enterprise server verified");
             } catch (MalformedURLException mue) {
-                return FormValidation.error("This does not look like a GitHub Enterprise API URL");
+                // For example: https:/api.github.com
+                LOGGER.log(Level.WARNING, "Trying to configure a GitHub Enterprise server: " + apiUri, mue.getCause());
+                return FormValidation.error("The endpoint does not look like a GitHub Enterprise (malformed URL)");
             } catch (JsonParseException jpe) {
-                return FormValidation.error("This does not look like a GitHub Enterprise API URL");
+                LOGGER.log(Level.WARNING, "Trying to configure a GitHub Enterprise server: " + apiUri, jpe.getCause());
+                return FormValidation.error("The endpoint does not look like a GitHub Enterprise (invalid JSON response)");
+            } catch (FileNotFoundException fnt) {
+                // For example: https://github.mycompany.com/server/api/v3/ gets a FileNotFoundException
+                LOGGER.log(Level.WARNING, "Getting HTTP Error 404 for " + apiUri);
+                return FormValidation.error("The endpoint does not look like a GitHub Enterprise (page not found");
             } catch (IOException e) {
+                // For example: https://github.mycompany.com/api/v3/ or https://github.mycompany.com/api/v3/mypath
+                if (e.getMessage().contains("private mode enabled")) {
+                    LOGGER.log(Level.FINE, e.getMessage());
+                    return FormValidation.warning("Private mode enabled, validation disabled");
+                }
                 LOGGER.log(Level.WARNING, e.getMessage());
-                return FormValidation.error("This does not look like a GitHub Enterprise API URL");
+                return FormValidation.error("The endpoint does not look like a GitHub Enterprise (verify network and/or try again later)");
             }
         }
 

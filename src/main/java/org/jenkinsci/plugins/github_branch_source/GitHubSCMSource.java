@@ -524,7 +524,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         LOGGER.log(Level.WARNING, "Exception retrieving the repositories of the owner " + repoOwner +
                                 " on " + apiUri + " with credentials " + CredentialsNameProvider.name(credentials));
                     }
-                    if (myself != null && repoOwner.equals(myself.getLogin())) {
+                    if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
                         for (String name : myself.getAllRepositories().keySet()) {
                             result.add(name);
                         }
@@ -540,7 +540,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, e.getMessage());
                 }
-                if (org != null && repoOwner.equals(org.getLogin())) {
+                if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
                     for (GHRepository repo : org.listRepositories()) {
                         result.add(repo.getName());
                     }
@@ -555,7 +555,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, e.getMessage());
                 }
-                if (user != null && repoOwner.equals(user.getLogin())) {
+                if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
                     for (GHRepository repo : user.listRepositories()) {
                         result.add(repo.getName());
                     }
