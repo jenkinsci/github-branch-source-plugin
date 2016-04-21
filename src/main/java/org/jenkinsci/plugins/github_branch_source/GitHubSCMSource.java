@@ -51,6 +51,7 @@ import org.eclipse.jgit.transport.RefSpec;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHBranch;
+import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
@@ -340,9 +341,20 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             @Override public boolean exists(@Nonnull String path) throws IOException {
                 try {
-                    repo.getFileContent(path, ref);
-                    listener.getLogger().format("      %s exists in this %s%n", path, thing);
-                    return true;
+                    List<GHContent> directoryContent = repo.getDirectoryContent("/", ref);
+                    for (GHContent content : directoryContent) {
+                        if (content.isFile()) {
+                            if (content.getName().equals(path)) {
+                                listener.getLogger().format("      %s exists in this %s%n", path, thing);
+                                return true;
+                            }
+                            if (content.getName().equalsIgnoreCase(path)) {
+                                listener.getLogger().format("      %s not found (but found %s, search is case sensitive) in this %s, skipping", path, content.getName(), thing);
+                            }
+                        }
+                    }
+                    listener.getLogger().format("      %s does not exist in this %s%n", path, thing);
+                    return false;
                 } catch (FileNotFoundException x) {
                     listener.getLogger().format("      %s does not exist in this %s%n", path, thing);
                     return false;
