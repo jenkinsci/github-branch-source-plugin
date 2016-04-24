@@ -281,12 +281,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest);
             final String branchName = head.getName();
             listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
-            // FYI https://developer.github.com/v3/pulls/#response-1
-            Boolean mergeable = ghPullRequest.getMergeable();
-            if (!Boolean.TRUE.equals(mergeable)) {
-                listener.getLogger().format("    Not mergeable, skipping%n%n");
-                continue;
-            }
             if (repo.getOwner().equals(ghPullRequest.getHead().getUser())) {
                 listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
                 continue;
@@ -294,6 +288,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (criteria != null) {
                 SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + head.getNumber() + "/head", repo, listener);
                 if (criteria.isHead(probe, listener)) {
+                    // FYI https://developer.github.com/v3/pulls/#response-1
+                    Boolean mergeable = ghPullRequest.getMergeable();
+                    if (!Boolean.TRUE.equals(mergeable)) {
+                        listener.getLogger().format("      Not mergeable, but it will included%n");
+                    }
                     listener.getLogger().format("    Met criteria%n");
                 } else {
                     listener.getLogger().format("    Does not meet criteria%n");
