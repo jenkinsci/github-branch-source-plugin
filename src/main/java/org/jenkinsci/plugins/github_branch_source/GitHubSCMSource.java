@@ -353,7 +353,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         }
                     }
                 }
-                listener.getLogger().format("      %s does not exist in this %s%n", path, thing);
+                listener.getLogger().format("      ‘%s’ does not exist in this %s%n", path, thing);
                 return false;
             }
         };
