@@ -340,18 +340,25 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 return 0; // TODO
             }
             @Override public boolean exists(@Nonnull String path) throws IOException {
-                List<GHContent> directoryContent = repo.getDirectoryContent("/", ref);
-                for (GHContent content : directoryContent) {
-                    if (content.isFile()) {
-                        if (content.getName().equals(path)) {
-                            listener.getLogger().format("      ‘%s’ exists in this %s%n", path, thing);
-                            return true;
-                        }
-                        if (content.getName().equalsIgnoreCase(path)) {
-                            listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive) in this %s, skipping%n", path, content.getName(), thing);
-                            return false;
+                try {
+                    int index = path.lastIndexOf('/') + 1;
+                    List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), ref);
+                    for (GHContent content : directoryContent) {
+                        if (content.isFile()) {
+                            String filename = path.substring(index);
+                            if (content.getName().equals(filename)) {
+                                listener.getLogger().format("      ‘%s’ exists in this %s%n", path, thing);
+                                return true;
+                            }
+                            if (content.getName().equalsIgnoreCase(filename)) {
+                                listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive) in this %s, skipping%n", path, content.getName(), thing);
+                                return false;
+                            }
                         }
                     }
+                } catch (FileNotFoundException fnf) {
+                    listener.getLogger().format("      ‘%s’ does not exist in this %s%n", path, thing);
+                    return false;
                 }
                 listener.getLogger().format("      ‘%s’ does not exist in this %s%n", path, thing);
                 return false;
