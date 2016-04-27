@@ -357,8 +357,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         }
                     }
                 } catch (FileNotFoundException fnf) {
-                    listener.getLogger().format("      ‘%s’ does not exist in this %s%n", path, thing);
-                    return false;
+                    // means that does not exist and this is handled below this try/catch block.
                 }
                 listener.getLogger().format("      ‘%s’ does not exist in this %s%n", path, thing);
                 return false;
