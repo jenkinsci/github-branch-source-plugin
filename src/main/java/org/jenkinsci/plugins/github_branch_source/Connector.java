@@ -88,17 +88,17 @@ public class Connector {
     public static @Nonnull GitHub connect(@CheckForNull String apiUri, @CheckForNull StandardCredentials credentials) throws IOException {
         GitHubServerConfig config = new GitHubServerConfig(credentials!=null ? credentials.getId() : null);
         String apiUrl = Util.fixEmptyAndTrim(apiUri);
-        if (apiUrl !=null) {
+        if (apiUrl != null) {
             config.setCustomApiUrl(true);
             config.setApiUrl(apiUrl);
         }
 
-// Can't do this until github plugin support username/password
-//        GitHub gh = GitHubServerConfig.loginToGithub().apply(config);
+        // Can't do this until github plugin support username/password
+        // GitHub gh = GitHubServerConfig.loginToGithub().apply(config);
 
         GitHubBuilder gb = new GitHubBuilder();
 
-        if (apiUrl !=null) {
+        if (apiUrl != null) {
             gb.withEndpoint(apiUrl);
         }
 

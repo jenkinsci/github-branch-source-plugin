@@ -51,6 +51,7 @@ import org.eclipse.jgit.transport.RefSpec;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHBranch;
+import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
@@ -340,13 +341,26 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             @Override public boolean exists(@Nonnull String path) throws IOException {
                 try {
-                    repo.getFileContent(path, ref);
-                    listener.getLogger().format("      %s exists in this %s%n", path, thing);
-                    return true;
-                } catch (FileNotFoundException x) {
-                    listener.getLogger().format("      %s does not exist in this %s%n", path, thing);
-                    return false;
+                    int index = path.lastIndexOf('/') + 1;
+                    List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), ref);
+                    for (GHContent content : directoryContent) {
+                        if (content.isFile()) {
+                            String filename = path.substring(index);
+                            if (content.getName().equals(filename)) {
+                                listener.getLogger().format("      ‘%s’ exists in this %s%n", path, thing);
+                                return true;
+                            }
+                            if (content.getName().equalsIgnoreCase(filename)) {
+                                listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive) in this %s, skipping%n", path, content.getName(), thing);
+                                return false;
+                            }
+                        }
+                    }
+                } catch (FileNotFoundException fnf) {
+                    // means that does not exist and this is handled below this try/catch block.
                 }
+                listener.getLogger().format("      ‘%s’ does not exist in this %s%n", path, thing);
+                return false;
             }
         };
     }
@@ -447,7 +461,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         @Restricted(NoExternalUse.class)
         public FormValidation doCheckIncludes(@QueryParameter String value) {
             if (value.isEmpty()) {
-                return FormValidation.warning(Messages.GitHubSCMSource_did_you_mean_to_use_to_match_all_branche());
+                return FormValidation.warning(Messages.GitHubSCMSource_did_you_mean_to_use_to_match_all_branches());
             }
             return FormValidation.ok();
         }
