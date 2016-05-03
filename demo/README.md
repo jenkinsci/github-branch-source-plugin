@@ -9,7 +9,6 @@ To run the demo:
 1. Prepare your environment in GitHub:
   1. Create an organization or user account (or use an existing one)
   1. Fork [multibranch-demo](https://github.com/cloudbeers/multibranch-demo) to your own account or organization
-  1. Make this public repository [private](https://help.github.com/articles/making-a-public-repository-private) if you want to build pull requests
 1. Log in with the random administrative password printed to the Docker log. Skip the rest of the setup wizard (close the dialog).
 1. Go to _Credentials » GitHub_ and add a username/password pair using an access token generated [here](https://github.com/settings/tokens):
   1. Configure a personal access token with these scopes: `repo:status` and `public_repo` 
