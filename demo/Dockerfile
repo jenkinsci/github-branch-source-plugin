@@ -1,4 +1,4 @@
-FROM jenkins:1.642.2
+FROM jenkins:2.0
 
 # Install Docker CLI (cf. Makefile mount of socket). Could use withTool but why download during demo when we can bake it in?
 USER root
@@ -16,9 +16,7 @@ RUN wget -O /tmp/ngrok.zip https://dl.ngrok.com/ngrok_2.0.19_linux_amd64.zip && 
 USER jenkins
 
 RUN mkdir /tmp/files
-COPY pipeline-version.txt pipeline-stage-view-plugin-version.txt plugins.txt /tmp/files/
-RUN sed -i "s/@WF_VERSION@/`cat /tmp/files/pipeline-version.txt`/g" /tmp/files/plugins.txt && \
-    sed -i "s/@PSV_VERSION@/`cat /tmp/files/pipeline-stage-view-plugin-version.txt`/g" /tmp/files/plugins.txt
+COPY plugins.txt /tmp/files/
 RUN /usr/local/bin/plugins.sh /tmp/files/plugins.txt
 
 ADD JENKINS_HOME /usr/share/jenkins/ref

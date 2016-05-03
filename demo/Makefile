@@ -11,7 +11,7 @@ run: build
 	mkdir $(WORKSPACE)
 	docker run --rm -p 8080:8080 -p 4040:4040 -v /var/run/docker.sock:/var/run/docker.sock -v $(WORKSPACE):$(WORKSPACE) -e WORKSPACE=$(WORKSPACE) -ti $(IMAGE):$(TAG)
 
-# TODO support snapshots somehow TBD
+# TODO support snapshots using technique from workflow-aggregator-plugin/demo/Makefile
 
 push:
 	docker push $(IMAGE):$(TAG)
