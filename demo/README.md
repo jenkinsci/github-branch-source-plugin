@@ -10,14 +10,13 @@ To run the demo:
   1. Create an organization or user account (or use an existing one)
   1. Fork [multibranch-demo](https://github.com/cloudbeers/multibranch-demo) to your own account or organization
   1. Make this public repository [private](https://help.github.com/articles/making-a-public-repository-private) if you want to build pull requests
-1. Create an account named `admin` with a *random* password
+1. Log in with the random administrative password printed to the Docker log. Skip the rest of the setup wizard (close the dialog).
 1. Go to _Credentials » GitHub_ and add a username/password pair using an access token generated [here](https://github.com/settings/tokens):
   1. Configure a personal access token with these scopes: `repo:status` and `public_repo` 
-1. Create a new item (any name), selecting _GitHub Organization_
+1. Create a new item, selecting _GitHub Organization_ as the type, and setting the name to your account or organization name (for example, `cloudbeers`).
 1. Select your credentials token under _Scan Credentials_
 1. Optionally set the repository pattern to `multibranch.*`
-1. _Save_
-1. Click _Folder Computation_ to see repositories being scanned
+1. _Save_; you will see repositories being scanned.
 1. Go back to the organization index page. You should see `multibranch-demo`, under that one or more branches including `master`, and under each a successful build #1
 1. Add a new webhook, ask to _Send me *everything*_, and specify a URL like `http://SOMETHING.ngrok.io/github-webhook/` (look at the Docker log for the specific hostname). Remember to clean up your webhook when the demo is done
 1. File pull requests and see them being built (only if your repository is private)
