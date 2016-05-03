@@ -290,7 +290,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 if (criteria.isHead(probe, listener)) {
                     // FYI https://developer.github.com/v3/pulls/#response-1
                     Boolean mergeable = ghPullRequest.getMergeable();
-                    if (!Boolean.TRUE.equals(mergeable)) {
+                    if (Boolean.FALSE.equals(mergeable)) {
                         listener.getLogger().format("      Not mergeable, but it will be included%n");
                     }
                     listener.getLogger().format("    Met criteria%n");
