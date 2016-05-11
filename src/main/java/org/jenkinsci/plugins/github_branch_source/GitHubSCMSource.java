@@ -249,43 +249,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     private void doRetrieve(SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
         SCMSourceCriteria criteria = getCriteria();
 
-        listener.getLogger().format("%n  Getting remote branches...%n");
-        int branches = 0;
-        for (Map.Entry<String,GHBranch> entry : repo.getBranches().entrySet()) {
-            final String branchName = entry.getKey();
-            if (isExcluded(branchName)) {
-                continue;
-            }
-            listener.getLogger().format("%n    Checking branch %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString() + "/tree/" + branchName, branchName));
-            if (criteria != null) {
-                SCMSourceCriteria.Probe probe = getProbe(branchName, "branch", "refs/heads/" + branchName, repo, listener);
-                if (criteria.isHead(probe, listener)) {
-                    listener.getLogger().format("    Met criteria%n");
-                } else {
-                    listener.getLogger().format("    Does not meet criteria%n");
-                    continue;
-                }
-            }
-            SCMHead head = new SCMHead(branchName);
-            SCMRevision hash = new SCMRevisionImpl(head, entry.getValue().getSHA1());
-            observer.observe(head, hash);
-            if (!observer.isObserving()) {
-                return;
-            }
-            branches++;
-        }
-        listener.getLogger().format("%n  %d branches were processed%n", branches);
-
         listener.getLogger().format("%n  Getting remote pull requests...%n");
         int pullrequests = 0;
         for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
             PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest);
             final String branchName = head.getName();
             listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
-            if (repo.getOwner().equals(ghPullRequest.getHead().getUser())) {
-                listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
-                continue;
-            }
+
             if (criteria != null) {
                 SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + head.getNumber() + "/head", repo, listener);
                 if (criteria.isHead(probe, listener)) {
@@ -454,7 +424,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         @Override
         public String getDisplayName() {
-            return "GitHub";
+            return "GitHub Pull Requests";
         }
 
         @Restricted(NoExternalUse.class)

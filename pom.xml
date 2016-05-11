@@ -6,10 +6,10 @@
         <artifactId>plugin</artifactId>
         <version>2.3</version>
     </parent>
-    <artifactId>github-branch-source</artifactId>
+    <artifactId>github-pull-request-branch-source</artifactId>
     <version>1.7-SNAPSHOT</version>
     <packaging>hpi</packaging>
-    <name>GitHub Branch Source Plugin</name>
+    <name>GitHub Pull Request Source Plugin</name>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/CloudBees+GitHub+Branch+Source+Plugin</url>
     <description>Multibranch projects and organization folders from GitHub. Maintained by CloudBees, Inc.</description>
     <licenses>
