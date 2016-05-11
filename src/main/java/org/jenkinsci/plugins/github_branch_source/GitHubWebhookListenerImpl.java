@@ -24,6 +24,8 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import java.util.concurrent.TimeUnit;
+
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import com.cloudbees.jenkins.GitHubWebHook;
 import hudson.Extension;
@@ -31,6 +33,7 @@ import hudson.security.ACL;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.SCMSourceOwners;
+import jenkins.util.Timer;
 
 /**
  * This listener is registered only when {@link org.kohsuke.github.GHEvent} PUSH is received.
@@ -40,20 +43,25 @@ public class GitHubWebhookListenerImpl extends GitHubWebHook.Listener {
 
     @Override
     public void onPushRepositoryChanged(String pusherName, final GitHubRepositoryName changedRepository) {
-        ACL.impersonate(ACL.SYSTEM, new Runnable() {
+        // Delaying the indexing for some seconds to avoid GitHub cache
+        Timer.get().schedule(new Runnable() {
             @Override public void run() {
-                for (final SCMSourceOwner owner : SCMSourceOwners.all()) {
-                    for (SCMSource source : owner.getSCMSources()) {
-                        if (source instanceof GitHubSCMSource) {
-                            GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) source;
-                            if (gitHubSCMSource.getRepoOwner().equals(changedRepository.getUserName()) &&
-                                    gitHubSCMSource.getRepository().equals(changedRepository.getRepositoryName())) {
-                                owner.onSCMSourceUpdated(gitHubSCMSource);
+                ACL.impersonate(ACL.SYSTEM, new Runnable() {
+                    @Override public void run() {
+                        for (final SCMSourceOwner owner : SCMSourceOwners.all()) {
+                            for (SCMSource source : owner.getSCMSources()) {
+                                if (source instanceof GitHubSCMSource) {
+                                    GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) source;
+                                    if (gitHubSCMSource.getRepoOwner().equals(changedRepository.getUserName()) &&
+                                            gitHubSCMSource.getRepository().equals(changedRepository.getRepositoryName())) {
+                                        owner.onSCMSourceUpdated(gitHubSCMSource);
+                                    }
+                                }
                             }
                         }
                     }
-                }
+                });
             }
-        });
+        }, 10, TimeUnit.SECONDS);
     }
 }
