@@ -130,7 +130,7 @@ public class Connector {
         try {
             github.checkApiUrlValidity();
         } catch (HttpException e) {
-            LOGGER.log(Level.SEVERE, e.getMessage());
+            LOGGER.log(Level.SEVERE, null, e);
             String message = String.format("It seems %s is unreachable%n", apiUrl == null ? GITHUB_URL : apiUrl);
             throw new AbortException(message);
         }
