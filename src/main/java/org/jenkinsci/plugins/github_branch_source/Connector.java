@@ -102,11 +102,6 @@ public class Connector {
 
         gb.withRateLimitHandler(CUSTOMIZED);
         OkHttpClient client = new OkHttpClient().setProxy(getProxy(defaultIfBlank(apiUrl, GITHUB_URL)));
-        client.setCache(GitHubClientCacheOps.toCacheDir().apply(config));
-        if (config.getClientCacheSize() > 0) {
-            Cache cache = toCacheDir().apply(config);
-            client.setCache(cache);
-        }
 
         gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
 
