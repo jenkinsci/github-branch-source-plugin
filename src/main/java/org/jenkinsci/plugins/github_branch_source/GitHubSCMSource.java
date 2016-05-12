@@ -233,7 +233,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? "github.com" : apiUri);
             }
             if (repository == null || repository.isEmpty()) {
-                throw new AbortException("No repository selected, skipping");
+                throw new AbortException(String.format("No repository selected, skipping%n"));
             }
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
@@ -241,8 +241,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             doRetrieve(observer, listener, repo);
             listener.getLogger().format("%nDone examining %s%n%n", fullName);
         } catch (RateLimitExceededException rle) {
-            listener.getLogger().format("%n%s%n%n", rle.getMessage());
-            throw new InterruptedException();
+            throw new AbortException(String.format("%s%n", rle.getMessage()));
         }
     }
 
@@ -373,6 +372,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (credentials != null && !github.isCredentialValid()) {
                 listener.getLogger().format("Invalid scan credentials, skipping%n");
                 return null;
+
             }
             if (!github.isAnonymous()) {
                 listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(),
@@ -384,8 +384,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             GHRepository repo = github.getRepository(fullName);
             return doRetrieve(head, listener, repo);
         } catch (RateLimitExceededException rle) {
-            listener.getLogger().format("%n%s%n%n", rle.getMessage());
-            throw new InterruptedException();
+            throw new AbortException(String.format("%s%n", rle.getMessage()));
         }
     }
 

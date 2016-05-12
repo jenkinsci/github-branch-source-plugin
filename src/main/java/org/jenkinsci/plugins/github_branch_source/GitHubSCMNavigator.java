@@ -120,7 +120,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @Override public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
         TaskListener listener = observer.getListener();
         if (repoOwner.isEmpty()) {
-            throw new AbortException("Must specify user or organization%n");
+            throw new AbortException(String.format("Must specify user or organization%n"));
         }
         StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
         GitHub github = Connector.connect(apiUri, credentials);
@@ -131,13 +131,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         if (!github.isAnonymous()) {
             listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? "github.com" : apiUri, CredentialsNameProvider.name(credentials));
-            GHMyself myself = github.getMyself();
+            GHMyself myself = null;
             try {
                 // Requires an authenticated access
                 myself = github.getMyself();
             } catch (RateLimitExceededException rle) {
-                listener.getLogger().format("%n%s%n%n", rle.getMessage());
-                throw new InterruptedException();
+                throw new AbortException(String.format("%s%n", rle.getMessage()));
             }
             if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
                 listener.getLogger().format("Looking up repositories of myself %s%n%n", repoOwner);
@@ -157,8 +156,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         try {
             org = github.getOrganization(repoOwner);
         } catch (RateLimitExceededException rle) {
-            listener.getLogger().format("%n%s%n%n", rle.getMessage());
-            throw new InterruptedException();
+            throw new AbortException(String.format("%s%n", rle.getMessage()));
         }
         if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
             listener.getLogger().format("Looking up repositories of organization %s%n%n", repoOwner);
