@@ -46,7 +46,7 @@ public class GitHubWebhookListenerImpl extends GitHubWebHook.Listener {
     private static final Logger LOGGER = Logger.getLogger(GitHubWebhookListenerImpl.class.getName());
 
     @Override
-    public void onPushRepositoryChanged(String pusherName, final GitHubRepositoryName changedRepository) {
+    public void onPushRepositoryChanged(final String pusherName, final GitHubRepositoryName changedRepository) {
         // Delaying the indexing for some seconds to avoid GitHub cache
         Timer.get().schedule(new Runnable() {
             @Override public void run() {
