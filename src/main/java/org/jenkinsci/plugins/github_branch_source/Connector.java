@@ -131,7 +131,7 @@ public class Connector {
             github.checkApiUrlValidity();
         } catch (HttpException e) {
             LOGGER.log(Level.SEVERE, e.getMessage());
-            String message = String.format("It seems {0} is unreachable", apiUrl == null ? GITHUB_URL : apiUrl);
+            String message = String.format("It seems %s is unreachable%n", apiUrl == null ? GITHUB_URL : apiUrl);
             throw new AbortException(message);
         }
 
