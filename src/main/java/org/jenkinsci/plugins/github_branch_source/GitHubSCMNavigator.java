@@ -120,24 +120,24 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @Override public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
         TaskListener listener = observer.getListener();
         if (repoOwner.isEmpty()) {
-            listener.getLogger().format("Must specify user or organization%n");
-            return;
+            throw new AbortException("Must specify user or organization%n");
         }
         StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
         GitHub github = Connector.connect(apiUri, credentials);
         if (credentials != null && !github.isCredentialValid()) {
-            listener.getLogger().format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? "github.com" : apiUri);
-            return;
+            String message = String.format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? "github.com" : apiUri);
+            throw new AbortException(message);
         }
 
         if (!github.isAnonymous()) {
             listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? "github.com" : apiUri, CredentialsNameProvider.name(credentials));
-            GHMyself myself = null;
+            GHMyself myself = github.getMyself();
             try {
                 // Requires an authenticated access
                 myself = github.getMyself();
-            } catch (IOException e) {
-                // Something wrong happened, maybe java.net.ConnectException?
+            } catch (RateLimitExceededException rle) {
+                listener.getLogger().format("%n%s%n%n", rle.getMessage());
+                throw new InterruptedException();
             }
             if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
                 listener.getLogger().format("Looking up repositories of myself %s%n%n", repoOwner);
@@ -159,8 +159,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
         } catch (RateLimitExceededException rle) {
             listener.getLogger().format("%n%s%n%n", rle.getMessage());
             throw new InterruptedException();
-        } catch (IOException e) {
-            // may be a user... ok to ignore
         }
         if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
             listener.getLogger().format("Looking up repositories of organization %s%n%n", repoOwner);
@@ -176,8 +174,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
         } catch (RateLimitExceededException rle) {
             listener.getLogger().format("%n%s%n%n", rle.getMessage());
             throw new InterruptedException();
-        } catch (IOException e) {
-            // Something wrong happened, maybe java.net.ConnectException?
         }
         if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
             listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);

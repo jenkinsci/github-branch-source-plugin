@@ -38,12 +38,15 @@ import com.google.common.hash.Hashing;
 import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
+import hudson.AbortException;
 import hudson.Util;
 import hudson.security.ACL;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
 import java.util.List;
+import java.util.logging.Logger;
+import java.util.logging.Level;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -55,6 +58,7 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.jenkinsci.plugins.github.internal.GitHubClientCacheOps;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.HttpException;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.OkHttpConnector;
 
@@ -66,6 +70,8 @@ import static org.jenkinsci.plugins.github.internal.GitHubClientCacheOps.toCache
  * Utilities that could perhaps be moved into {@code github-api}.
  */
 public class Connector {
+
+    private static final Logger LOGGER = Logger.getLogger(Connector.class.getName());
 
     public static @CheckForNull StandardCredentials lookupScanCredentials(@CheckForNull SCMSourceOwner context, @CheckForNull String apiUri, @CheckForNull String scanCredentialsId) {
         if (Util.fixEmpty(scanCredentialsId) == null) {
@@ -84,7 +90,7 @@ public class Connector {
     }
 
     public static @Nonnull GitHub connect(@CheckForNull String apiUri, @CheckForNull StandardCredentials credentials) throws IOException {
-        GitHubServerConfig config = new GitHubServerConfig(credentials!=null ? credentials.getId() : null);
+        GitHubServerConfig config = new GitHubServerConfig(credentials != null ? credentials.getId() : null);
         String apiUrl = Util.fixEmptyAndTrim(apiUri);
         if (apiUrl != null) {
             config.setCustomApiUrl(true);
@@ -120,7 +126,16 @@ public class Connector {
             throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
         }
 
-        return gb.build();
+        GitHub github = gb.build();
+        try {
+            github.checkApiUrlValidity();
+        } catch (HttpException e) {
+            LOGGER.log(Level.SEVERE, e.getMessage());
+            String message = String.format("It seems {0} is unreachable", apiUrl == null ? GITHUB_URL : apiUrl);
+            throw new AbortException(message);
+        }
+
+        return github;
     }
 
     public static void fillScanCredentialsIdItems(StandardListBoxModel result, @CheckForNull SCMSourceOwner context, @CheckForNull String apiUri) {

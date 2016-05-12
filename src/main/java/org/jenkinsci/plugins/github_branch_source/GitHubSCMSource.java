@@ -31,6 +31,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import hudson.AbortException;
 import hudson.Extension;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
@@ -223,8 +224,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         GitHub github = Connector.connect(apiUri, credentials);
         try {
             if (credentials != null && !github.isCredentialValid()) {
-                listener.getLogger().format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? "github.com" : apiUri);
-                return;
+                String message = String.format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? "github.com" : apiUri);
+                throw new AbortException(message);
             }
             if (!github.isAnonymous()) {
                 listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? "github.com" : apiUri, CredentialsNameProvider.name(credentials));
@@ -232,8 +233,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? "github.com" : apiUri);
             }
             if (repository == null || repository.isEmpty()) {
-                listener.getLogger().println("No repository selected, skip");
-                return;
+                throw new AbortException("No repository selected, skipping");
             }
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
