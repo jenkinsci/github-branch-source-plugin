@@ -246,7 +246,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    private void doRetrieve(SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException {
+    private void doRetrieve(SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
         SCMSourceCriteria criteria = getCriteria();
 
         listener.getLogger().format("%n  Getting remote branches...%n");
@@ -282,8 +282,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest);
             final String branchName = head.getName();
             listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
-            //throw new IOException("PULLREQUEST URL"+ghPullRequest.getUrl());
-            System.out.println("PULLREQUEST URL "+ghPullRequest.getUrl());
             // FYI https://developer.github.com/v3/pulls/#response-1
             Boolean mergeable = ghPullRequest.getMergeable();
             if (!Boolean.TRUE.equals(mergeable)) {
