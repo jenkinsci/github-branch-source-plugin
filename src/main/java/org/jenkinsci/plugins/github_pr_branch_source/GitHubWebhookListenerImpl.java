@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package org.jenkinsci.plugins.github_branch_source;
+package org.jenkinsci.plugins.github_pr_branch_source;
 
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import com.cloudbees.jenkins.GitHubWebHook;

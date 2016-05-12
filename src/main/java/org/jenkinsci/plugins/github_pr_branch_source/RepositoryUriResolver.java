@@ -22,19 +22,27 @@
  * THE SOFTWARE.
  */
 
-package org.jenkinsci.plugins.github_branch_source;
+package org.jenkinsci.plugins.github_pr_branch_source;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 
 /**
  * @author Stephen Connolly
  */
-public class HttpsRepositoryUriResolver extends RepositoryUriResolver {
+public abstract class RepositoryUriResolver {
 
-    @Override
-    public String getRepositoryUri(String apiUri, String owner, String repository) {
-        if (apiUri == null || apiUri.startsWith("https://")) {
-            return "https://" + hostnameFromApiUri(apiUri) + "/" + owner + "/" + repository + ".git";
-        } else {
-            return "http://" + hostnameFromApiUri(apiUri) + "/" + owner + "/" + repository + ".git";
+    public abstract String getRepositoryUri(String apiUri, String owner, String repository);
+
+    public static String hostnameFromApiUri(String apiUri) {
+        if (apiUri != null) {
+            try {
+                URL endpoint = new URL(apiUri);
+                return endpoint.getHost();
+            } catch (MalformedURLException e) {
+                // ignore
+            }
         }
+        return "github.com";
     }
 }

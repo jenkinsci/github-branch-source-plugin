@@ -22,50 +22,19 @@
  * THE SOFTWARE.
  */
 
-package org.jenkinsci.plugins.github_branch_source;
+package org.jenkinsci.plugins.github_pr_branch_source;
 
-import java.io.IOException;
+/**
+ * @author Stephen Connolly
+ */
+public class HttpsRepositoryUriResolver extends RepositoryUriResolver {
 
-public class RateLimitExceededException extends IOException {
-
-    private static final long serialVersionUID = 1L;
-
-    private long limit;
-
-    private long remaining;
-
-    private long reset;
-
-    public RateLimitExceededException() {
-        super();
+    @Override
+    public String getRepositoryUri(String apiUri, String owner, String repository) {
+        if (apiUri == null || apiUri.startsWith("https://")) {
+            return "https://" + hostnameFromApiUri(apiUri) + "/" + owner + "/" + repository + ".git";
+        } else {
+            return "http://" + hostnameFromApiUri(apiUri) + "/" + owner + "/" + repository + ".git";
+        }
     }
-
-    public RateLimitExceededException(String msg, long limit, long remaining, long reset) {
-        super(msg);
-        this.limit = limit;
-        this.remaining = remaining;
-        this.reset = reset;
-    }
-
-    public RateLimitExceededException(Throwable cause) {
-        initCause(cause);
-    }
-
-    public RateLimitExceededException(String message, Throwable cause) {
-        super(message);
-        initCause(cause);
-    }
-
-    public long getReset() {
-        return reset;
-    }
-
-    public long getRemaining() {
-        return remaining;
-    }
-
-    public long getLimit() {
-        return limit;
-    }
-
 }

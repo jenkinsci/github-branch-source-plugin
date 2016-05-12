@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2016 CloudBees, Inc.
+ * Copyright 2015 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,31 +22,50 @@
  * THE SOFTWARE.
  */
 
-package org.jenkinsci.plugins.github_branch_source;
+package org.jenkinsci.plugins.github_pr_branch_source;
 
-import jenkins.plugins.git.AbstractGitSCMSource;
-import jenkins.scm.api.SCMHead;
+import java.io.IOException;
 
-/**
- * Revision of a pull request which should load sensitive files from the base branch.
- */
-class UntrustedPullRequestSCMRevision extends AbstractGitSCMSource.SCMRevisionImpl {
-    
-    final String baseHash;
+public class RateLimitExceededException extends IOException {
 
-    UntrustedPullRequestSCMRevision(SCMHead head, String hash, String baseHash) {
-        super(head, hash);
-        this.baseHash = baseHash;
+    private static final long serialVersionUID = 1L;
+
+    private long limit;
+
+    private long remaining;
+
+    private long reset;
+
+    public RateLimitExceededException() {
+        super();
     }
 
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o) && baseHash.equals(((UntrustedPullRequestSCMRevision) o).baseHash);
+    public RateLimitExceededException(String msg, long limit, long remaining, long reset) {
+        super(msg);
+        this.limit = limit;
+        this.remaining = remaining;
+        this.reset = reset;
     }
 
-    @Override
-    public int hashCode() {
-        return super.hashCode(); // good enough
+    public RateLimitExceededException(Throwable cause) {
+        initCause(cause);
+    }
+
+    public RateLimitExceededException(String message, Throwable cause) {
+        super(message);
+        initCause(cause);
+    }
+
+    public long getReset() {
+        return reset;
+    }
+
+    public long getRemaining() {
+        return remaining;
+    }
+
+    public long getLimit() {
+        return limit;
     }
 
 }

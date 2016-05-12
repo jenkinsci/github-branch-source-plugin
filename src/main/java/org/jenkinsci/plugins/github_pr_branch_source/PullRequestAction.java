@@ -22,10 +22,10 @@
  * THE SOFTWARE.
  */
 
-package org.jenkinsci.plugins.github_branch_source;
+package org.jenkinsci.plugins.github_pr_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.model.InvisibleAction;
+
 import java.net.URL;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.actions.ChangeRequestAction;

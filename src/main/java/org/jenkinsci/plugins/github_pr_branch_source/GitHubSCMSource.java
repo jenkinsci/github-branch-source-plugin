@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  */
 
-package org.jenkinsci.plugins.github_branch_source;
+package org.jenkinsci.plugins.github_pr_branch_source;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
@@ -50,7 +50,6 @@ import jenkins.scm.api.SCMSourceOwner;
 import org.eclipse.jgit.transport.RefSpec;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.github.GHBranch;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHMyself;
@@ -75,7 +74,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -419,7 +417,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         @Initializer(before = InitMilestone.PLUGINS_STARTED)
         public static void addAliases() {
-            XSTREAM2.addCompatibilityAlias("org.jenkinsci.plugins.github_branch_source.OriginGitHubSCMSource", GitHubSCMSource.class);
+            XSTREAM2.addCompatibilityAlias("org.jenkinsci.plugins.github_pr_branch_source.OriginGitHubSCMSource", GitHubSCMSource.class);
         }
 
         @Override
