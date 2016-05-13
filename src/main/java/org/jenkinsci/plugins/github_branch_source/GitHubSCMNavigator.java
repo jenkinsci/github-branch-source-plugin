@@ -33,6 +33,8 @@ import hudson.Util;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,10 +52,13 @@ import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.HttpException;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+
+import static org.jenkinsci.plugins.github.config.GitHubServerConfig.GITHUB_URL;
 
 public class GitHubSCMNavigator extends SCMNavigator {
 
@@ -119,25 +124,37 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
     @Override public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
         TaskListener listener = observer.getListener();
+
+        // Input data validation
         if (repoOwner.isEmpty()) {
-            listener.getLogger().format("Must specify user or organization%n");
-            return;
+            throw new AbortException("Must specify user or organization");
         }
+
         StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
+
+        // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
+        try {
+            github.checkApiUrlValidity();
+        } catch (HttpException e) {
+            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
+            throw new AbortException(message);
+        }
+
+        // Input data validation
         if (credentials != null && !github.isCredentialValid()) {
-            listener.getLogger().format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? "github.com" : apiUri);
-            return;
+            String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
+            throw new AbortException(message);
         }
 
         if (!github.isAnonymous()) {
-            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? "github.com" : apiUri, CredentialsNameProvider.name(credentials));
+            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
             GHMyself myself = null;
             try {
                 // Requires an authenticated access
                 myself = github.getMyself();
-            } catch (IOException e) {
-                // Something wrong happened, maybe java.net.ConnectException?
+            } catch (RateLimitExceededException rle) {
+                throw new AbortException(rle.getMessage());
             }
             if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
                 listener.getLogger().format("Looking up repositories of myself %s%n%n", repoOwner);
@@ -150,17 +167,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 return;
             }
         } else {
-            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? "github.com" : apiUri);
+            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
         }
 
         GHOrganization org = null;
         try {
             org = github.getOrganization(repoOwner);
         } catch (RateLimitExceededException rle) {
-            listener.getLogger().format("%n%s%n%n", rle.getMessage());
-            throw new InterruptedException();
-        } catch (IOException e) {
-            // may be a user... ok to ignore
+            throw new AbortException(rle.getMessage());
+        } catch (FileNotFoundException fnf) {
+            // may be an user... ok to ignore
         }
         if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
             listener.getLogger().format("Looking up repositories of organization %s%n%n", repoOwner);
@@ -174,10 +190,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         try {
             user = github.getUser(repoOwner);
         } catch (RateLimitExceededException rle) {
-            listener.getLogger().format("%n%s%n%n", rle.getMessage());
-            throw new InterruptedException();
-        } catch (IOException e) {
-            // Something wrong happened, maybe java.net.ConnectException?
+            throw new AbortException(rle.getMessage());
+        } catch (FileNotFoundException fnf) {
+            // the user may not exist... ok to ignore
         }
         if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
             listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
@@ -205,7 +220,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         GitHubSCMSource ghSCMSource = new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name);
         ghSCMSource.setExcludes(getExcludes());
         ghSCMSource.setIncludes(getIncludes());
-        
+
         projectObserver.addSource(ghSCMSource);
         projectObserver.complete();
     }
