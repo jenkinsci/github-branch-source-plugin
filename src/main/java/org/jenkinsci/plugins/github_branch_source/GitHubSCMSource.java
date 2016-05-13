@@ -229,13 +229,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         try {
             github.checkApiUrlValidity();
         } catch (HttpException e) {
-            String message = String.format("It seems %s is unreachable%n", apiUri == null ? GITHUB_URL : apiUri);
+            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
 
         try {
+            // Input data validation
             if (credentials != null && !github.isCredentialValid()) {
-                String message = String.format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
+                String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
                 throw new AbortException(message);
             }
             if (!github.isAnonymous()) {
@@ -243,16 +244,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             } else {
                 listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
             }
+
+            // Input data validation
             if (repository == null || repository.isEmpty()) {
-                throw new AbortException(String.format("No repository selected, skipping%n"));
+                throw new AbortException("No repository selected, skipping");
             }
+
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
             listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
             doRetrieve(observer, listener, repo);
             listener.getLogger().format("%nDone examining %s%n%n", fullName);
         } catch (RateLimitExceededException rle) {
-            throw new AbortException(String.format("%s%n", rle.getMessage()));
+            throw new AbortException(rle.getMessage());
         }
     }
 
@@ -384,13 +388,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         try {
             github.checkApiUrlValidity();
         } catch (HttpException e) {
-            String message = String.format("It seems %s is unreachable%n", apiUri == null ? GITHUB_URL : apiUri);
+            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
 
         try {
             if (credentials != null && !github.isCredentialValid()) {
-                String message = String.format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
+                String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
                 throw new AbortException(message);
             }
             if (!github.isAnonymous()) {
@@ -402,7 +406,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             GHRepository repo = github.getRepository(fullName);
             return doRetrieve(head, listener, repo);
         } catch (RateLimitExceededException rle) {
-            throw new AbortException(String.format("%s%n", rle.getMessage()));
+            throw new AbortException(rle.getMessage());
         }
     }
 

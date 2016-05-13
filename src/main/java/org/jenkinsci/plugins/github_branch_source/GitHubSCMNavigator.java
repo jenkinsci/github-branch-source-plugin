@@ -122,6 +122,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
     @Override public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
         TaskListener listener = observer.getListener();
+
+        // Input data validation
+        if (repoOwner.isEmpty()) {
+            throw new AbortException("Must specify user or organization");
+        }
+
         StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
 
         // Github client and validation
@@ -129,16 +135,13 @@ public class GitHubSCMNavigator extends SCMNavigator {
         try {
             github.checkApiUrlValidity();
         } catch (HttpException e) {
-            String message = String.format("It seems %s is unreachable%n", apiUri == null ? GITHUB_URL : apiUri);
+            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
 
-        // Input data validation: Owner and credentials.
-        if (repoOwner.isEmpty()) {
-            throw new AbortException(String.format("Must specify user or organization%n"));
-        }
+        // Input data validation
         if (credentials != null && !github.isCredentialValid()) {
-            String message = String.format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
+            String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
 
@@ -149,7 +152,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 // Requires an authenticated access
                 myself = github.getMyself();
             } catch (RateLimitExceededException rle) {
-                throw new AbortException(String.format("%s%n", rle.getMessage()));
+                throw new AbortException(rle.getMessage());
             }
             if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
                 listener.getLogger().format("Looking up repositories of myself %s%n%n", repoOwner);
@@ -169,7 +172,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         try {
             org = github.getOrganization(repoOwner);
         } catch (RateLimitExceededException rle) {
-            throw new AbortException(String.format("%s%n", rle.getMessage()));
+            throw new AbortException(rle.getMessage());
+        } catch (IOException e) {
+            // may be an user... ok to ignore
         }
         if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
             listener.getLogger().format("Looking up repositories of organization %s%n%n", repoOwner);
@@ -183,7 +188,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         try {
             user = github.getUser(repoOwner);
         } catch (RateLimitExceededException rle) {
-            throw new AbortException(String.format("%s%n", rle.getMessage()));
+            throw new AbortException(rle.getMessage());
         }
         if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
             listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
