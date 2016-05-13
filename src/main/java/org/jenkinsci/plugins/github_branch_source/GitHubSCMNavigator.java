@@ -33,6 +33,8 @@ import hudson.Util;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -173,7 +175,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             org = github.getOrganization(repoOwner);
         } catch (RateLimitExceededException rle) {
             throw new AbortException(rle.getMessage());
-        } catch (IOException e) {
+        } catch (FileNotFoundException fnf) {
             // may be an user... ok to ignore
         }
         if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
@@ -189,6 +191,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
             user = github.getUser(repoOwner);
         } catch (RateLimitExceededException rle) {
             throw new AbortException(rle.getMessage());
+        } catch (FileNotFoundException fnf) {
+            // the user may not exist... ok to ignore
         }
         if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
             listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
@@ -216,7 +220,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         GitHubSCMSource ghSCMSource = new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name);
         ghSCMSource.setExcludes(getExcludes());
         ghSCMSource.setIncludes(getIncludes());
-        
+
         projectObserver.addSource(ghSCMSource);
         projectObserver.complete();
     }
