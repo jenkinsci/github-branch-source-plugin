@@ -172,8 +172,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         try {
             user = github.getUser(repoOwner);
         } catch (RateLimitExceededException rle) {
-            listener.getLogger().format("%n%s%n%n", rle.getMessage());
-            throw new InterruptedException();
+            throw new AbortException(String.format("%s%n", rle.getMessage()));
         }
         if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
             listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
