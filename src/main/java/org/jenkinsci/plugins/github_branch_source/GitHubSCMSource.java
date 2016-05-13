@@ -61,6 +61,7 @@ import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.HttpException;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -222,7 +223,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @Override protected final void retrieve(SCMHeadObserver observer, final TaskListener listener) throws IOException, InterruptedException {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+
+        // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
+        try {
+            github.checkApiUrlValidity();
+        } catch (HttpException e) {
+            String message = String.format("It seems %s is unreachable%n", apiUri == null ? GITHUB_URL : apiUri);
+            throw new AbortException(message);
+        }
+
         try {
             if (credentials != null && !github.isCredentialValid()) {
                 String message = String.format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
@@ -368,7 +378,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @CheckForNull
     protected SCMRevision retrieve(SCMHead head, TaskListener listener) throws IOException, InterruptedException {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+
+        // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
+        try {
+            github.checkApiUrlValidity();
+        } catch (HttpException e) {
+            String message = String.format("It seems %s is unreachable%n", apiUri == null ? GITHUB_URL : apiUri);
+            throw new AbortException(message);
+        }
+
         try {
             if (credentials != null && !github.isCredentialValid()) {
                 String message = String.format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
@@ -377,7 +396,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (!github.isAnonymous()) {
                 listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
             } else {
-                listener.getLogger().format("Connecting to %s using anonymous access%n", apiUri == null ? "github.com" : apiUri);
+                listener.getLogger().format("Connecting to %s using anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
             }
             String fullName = repoOwner + "/" + repository;
             GHRepository repo = github.getRepository(fullName);

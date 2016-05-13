@@ -50,6 +50,7 @@ import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.HttpException;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -121,11 +122,21 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
     @Override public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
         TaskListener listener = observer.getListener();
+        StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
+
+        // Github client and validation
+        GitHub github = Connector.connect(apiUri, credentials);
+        try {
+            github.checkApiUrlValidity();
+        } catch (HttpException e) {
+            String message = String.format("It seems %s is unreachable%n", apiUri == null ? GITHUB_URL : apiUri);
+            throw new AbortException(message);
+        }
+
+        // Input data validation: Owner and credentials.
         if (repoOwner.isEmpty()) {
             throw new AbortException(String.format("Must specify user or organization%n"));
         }
-        StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
-        GitHub github = Connector.connect(apiUri, credentials);
         if (credentials != null && !github.isCredentialValid()) {
             String message = String.format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
             throw new AbortException(message);
