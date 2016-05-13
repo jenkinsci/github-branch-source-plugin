@@ -83,6 +83,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static hudson.model.Items.XSTREAM2;
+import static org.jenkinsci.plugins.github.config.GitHubServerConfig.GITHUB_URL;
 
 public class GitHubSCMSource extends AbstractGitSCMSource {
 
@@ -224,13 +225,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         GitHub github = Connector.connect(apiUri, credentials);
         try {
             if (credentials != null && !github.isCredentialValid()) {
-                String message = String.format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? "github.com" : apiUri);
+                String message = String.format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
                 throw new AbortException(message);
             }
             if (!github.isAnonymous()) {
-                listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? "github.com" : apiUri, CredentialsNameProvider.name(credentials));
+                listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
             } else {
-                listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? "github.com" : apiUri);
+                listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
             }
             if (repository == null || repository.isEmpty()) {
                 throw new AbortException(String.format("No repository selected, skipping%n"));
@@ -370,15 +371,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         GitHub github = Connector.connect(apiUri, credentials);
         try {
             if (credentials != null && !github.isCredentialValid()) {
-                listener.getLogger().format("Invalid scan credentials, skipping%n");
-                return null;
-
+                String message = String.format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
+                throw new AbortException(message);
             }
             if (!github.isAnonymous()) {
-                listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(),
-                        CredentialsNameProvider.name(credentials));
+                listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
             } else {
-                listener.getLogger().format("Connecting to %s using anonymous access%n", getDescriptor().getDisplayName());
+                listener.getLogger().format("Connecting to %s using anonymous access%n", apiUri == null ? "github.com" : apiUri);
             }
             String fullName = repoOwner + "/" + repository;
             GHRepository repo = github.getRepository(fullName);
