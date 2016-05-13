@@ -27,8 +27,6 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import hudson.Extension;
 import hudson.model.Job;
-import hudson.model.JobProperty;
-import hudson.model.JobPropertyDescriptor;
 import hudson.security.ACL;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
@@ -39,7 +37,6 @@ import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 import org.kohsuke.github.GHEvent;
 
 import javax.annotation.Nullable;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -118,7 +115,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                         }
                     });
                 }
-            }, 10, TimeUnit.SECONDS);
+            }, 5, TimeUnit.SECONDS);
         } else {
             LOGGER.log(Level.WARNING, "Malformed repository URL {0}", repoUrl);
         }

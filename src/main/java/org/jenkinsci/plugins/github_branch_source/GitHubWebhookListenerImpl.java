@@ -72,6 +72,6 @@ public class GitHubWebhookListenerImpl extends GitHubWebHook.Listener {
                     }
                 });
             }
-        }, 10, TimeUnit.SECONDS);
+        }, 5, TimeUnit.SECONDS);
     }
 }
