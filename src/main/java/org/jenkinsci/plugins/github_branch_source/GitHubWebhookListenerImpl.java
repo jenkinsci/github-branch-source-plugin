@@ -24,6 +24,8 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import java.util.concurrent.TimeUnit;
+
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import com.cloudbees.jenkins.GitHubWebHook;
 import hudson.Extension;
@@ -33,6 +35,7 @@ import java.util.logging.Logger;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.SCMSourceOwners;
+import jenkins.util.Timer;
 
 /**
  * This listener is registered only when {@link org.kohsuke.github.GHEvent} PUSH is received.
@@ -44,26 +47,31 @@ public class GitHubWebhookListenerImpl extends GitHubWebHook.Listener {
 
     @Override
     public void onPushRepositoryChanged(final String pusherName, final GitHubRepositoryName changedRepository) {
-        ACL.impersonate(ACL.SYSTEM, new Runnable() {
+        // Delaying the indexing for some seconds to avoid GitHub cache
+        Timer.get().schedule(new Runnable() {
             @Override public void run() {
-                boolean found = false;
-                for (final SCMSourceOwner owner : SCMSourceOwners.all()) {
-                    for (SCMSource source : owner.getSCMSources()) {
-                        if (source instanceof GitHubSCMSource) {
-                            GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) source;
-                            if (gitHubSCMSource.getRepoOwner().equals(changedRepository.getUserName()) &&
-                                    gitHubSCMSource.getRepository().equals(changedRepository.getRepositoryName())) {
-                                found = true;
-                                LOGGER.log(Level.FINE, "push event from {0} on {1}:{2}/{3} forwarded to {4}", new Object[] {pusherName, changedRepository.getHost(), changedRepository.getUserName(), changedRepository.getRepositoryName(), owner.getFullName()});
-                                owner.onSCMSourceUpdated(gitHubSCMSource);
+                ACL.impersonate(ACL.SYSTEM, new Runnable() {
+                    @Override public void run() {
+                        boolean found = false;
+                        for (final SCMSourceOwner owner : SCMSourceOwners.all()) {
+                            for (SCMSource source : owner.getSCMSources()) {
+                                if (source instanceof GitHubSCMSource) {
+                                    GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) source;
+                                    if (gitHubSCMSource.getRepoOwner().equals(changedRepository.getUserName()) &&
+                                            gitHubSCMSource.getRepository().equals(changedRepository.getRepositoryName())) {
+                                        found = true;
+                                        LOGGER.log(Level.FINE, "push event from {0} on {1}:{2}/{3} forwarded to {4}", new Object[] {pusherName, changedRepository.getHost(), changedRepository.getUserName(), changedRepository.getRepositoryName(), owner.getFullName()});
+                                        owner.onSCMSourceUpdated(gitHubSCMSource);
+                                    }
+                                }
                             }
                         }
+                        if (!found) {
+                            LOGGER.log(Level.FINE, "push event from {0} on {1}:{2}/{3} did not match any project", new Object[] {pusherName, changedRepository.getHost(), changedRepository.getUserName(), changedRepository.getRepositoryName()});
+                        }
                     }
-                }
-                if (!found) {
-                    LOGGER.log(Level.FINE, "push event from {0} on {1}:{2}/{3} did not match any project", new Object[] {pusherName, changedRepository.getHost(), changedRepository.getUserName(), changedRepository.getRepositoryName()});
-                }
+                });
             }
-        });
+        }, 5, TimeUnit.SECONDS);
     }
 }
