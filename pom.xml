@@ -7,7 +7,7 @@
         <version>2.3</version>
     </parent>
     <artifactId>github-branch-source</artifactId>
-    <version>1.7-SNAPSHOT</version>
+    <version>1.8-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <name>GitHub Branch Source Plugin</name>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/CloudBees+GitHub+Branch+Source+Plugin</url>
@@ -21,7 +21,7 @@
 
     <properties>
         <jenkins.version>1.609.3</jenkins.version>
-        <workflow.version>1.15</workflow.version>
+        <workflow.version>1.14</workflow.version>
     </properties>
 
     <scm>

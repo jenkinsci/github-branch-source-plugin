@@ -31,6 +31,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import hudson.AbortException;
 import hudson.Extension;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
@@ -60,6 +61,7 @@ import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.HttpException;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -82,6 +84,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static hudson.model.Items.XSTREAM2;
+import static org.jenkinsci.plugins.github.config.GitHubServerConfig.GITHUB_URL;
 
 public class GitHubSCMSource extends AbstractGitSCMSource {
 
@@ -220,29 +223,40 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @Override protected final void retrieve(SCMHeadObserver observer, final TaskListener listener) throws IOException, InterruptedException {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+
+        // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         try {
+            github.checkApiUrlValidity();
+        } catch (HttpException e) {
+            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
+            throw new AbortException(message);
+        }
+
+        try {
+            // Input data validation
             if (credentials != null && !github.isCredentialValid()) {
-                listener.getLogger().format("Invalid scan credentials %s to connect to %s, skipping%n", CredentialsNameProvider.name(credentials), apiUri == null ? "github.com" : apiUri);
-                return;
+                String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
+                throw new AbortException(message);
             }
             if (!github.isAnonymous()) {
-                listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? "github.com" : apiUri, CredentialsNameProvider.name(credentials));
+                listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
             } else {
-                listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? "github.com" : apiUri);
+                listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
             }
+
+            // Input data validation
             if (repository == null || repository.isEmpty()) {
-                listener.getLogger().println("No repository selected, skip");
-                return;
+                throw new AbortException("No repository selected, skipping");
             }
+
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
             listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
             doRetrieve(observer, listener, repo);
             listener.getLogger().format("%nDone examining %s%n%n", fullName);
         } catch (RateLimitExceededException rle) {
-            listener.getLogger().format("%n%s%n%n", rle.getMessage());
-            throw new InterruptedException();
+            throw new AbortException(rle.getMessage());
         }
     }
 
@@ -282,12 +296,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest);
             final String branchName = head.getName();
             listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
-            // FYI https://developer.github.com/v3/pulls/#response-1
-            Boolean mergeable = ghPullRequest.getMergeable();
-            if (!Boolean.TRUE.equals(mergeable)) {
-                listener.getLogger().format("    Not mergeable, skipping%n%n");
-                continue;
-            }
             if (repo.getOwner().equals(ghPullRequest.getHead().getUser())) {
                 listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
                 continue;
@@ -295,6 +303,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (criteria != null) {
                 SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + head.getNumber() + "/head", repo, listener);
                 if (criteria.isHead(probe, listener)) {
+                    // FYI https://developer.github.com/v3/pulls/#response-1
+                    Boolean mergeable = ghPullRequest.getMergeable();
+                    if (Boolean.FALSE.equals(mergeable)) {
+                        listener.getLogger().format("      Not mergeable, but it will be included%n");
+                    }
                     listener.getLogger().format("    Met criteria%n");
                 } else {
                     listener.getLogger().format("    Does not meet criteria%n");
@@ -369,24 +382,31 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @CheckForNull
     protected SCMRevision retrieve(SCMHead head, TaskListener listener) throws IOException, InterruptedException {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+
+        // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         try {
+            github.checkApiUrlValidity();
+        } catch (HttpException e) {
+            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
+            throw new AbortException(message);
+        }
+
+        try {
             if (credentials != null && !github.isCredentialValid()) {
-                listener.getLogger().format("Invalid scan credentials, skipping%n");
-                return null;
+                String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
+                throw new AbortException(message);
             }
             if (!github.isAnonymous()) {
-                listener.getLogger().format("Connecting to %s using %s%n", getDescriptor().getDisplayName(),
-                        CredentialsNameProvider.name(credentials));
+                listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
             } else {
-                listener.getLogger().format("Connecting to %s using anonymous access%n", getDescriptor().getDisplayName());
+                listener.getLogger().format("Connecting to %s using anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
             }
             String fullName = repoOwner + "/" + repository;
             GHRepository repo = github.getRepository(fullName);
             return doRetrieve(head, listener, repo);
         } catch (RateLimitExceededException rle) {
-            listener.getLogger().format("%n%s%n%n", rle.getMessage());
-            throw new InterruptedException();
+            throw new AbortException(rle.getMessage());
         }
     }
 

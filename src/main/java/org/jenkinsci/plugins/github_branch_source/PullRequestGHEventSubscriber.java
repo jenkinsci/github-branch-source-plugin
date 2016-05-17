@@ -27,19 +27,18 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import hudson.Extension;
 import hudson.model.Job;
-import hudson.model.JobProperty;
-import hudson.model.JobPropertyDescriptor;
 import hudson.security.ACL;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.SCMSourceOwners;
+import jenkins.util.Timer;
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 import org.kohsuke.github.GHEvent;
 
 import javax.annotation.Nullable;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -97,21 +96,26 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                 LOGGER.log(Level.WARNING, "Malformed repository URL {0}", repoUrl);
                 return;
             }
-            ACL.impersonate(ACL.SYSTEM, new Runnable() {
+            // Delaying the indexing for some seconds to avoid GitHub cache
+            Timer.get().schedule(new Runnable() {
                 @Override public void run() {
-                    for (final SCMSourceOwner owner : SCMSourceOwners.all()) {
-                        for (SCMSource source : owner.getSCMSources()) {
-                            if (source instanceof GitHubSCMSource) {
-                                GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) source;
-                                if (gitHubSCMSource.getRepoOwner().equals(changedRepository.getUserName()) &&
-                                        gitHubSCMSource.getRepository().equals(changedRepository.getRepositoryName())) {
-                                    owner.onSCMSourceUpdated(gitHubSCMSource);
+                    ACL.impersonate(ACL.SYSTEM, new Runnable() {
+                        @Override public void run() {
+                            for (final SCMSourceOwner owner : SCMSourceOwners.all()) {
+                                for (SCMSource source : owner.getSCMSources()) {
+                                    if (source instanceof GitHubSCMSource) {
+                                        GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) source;
+                                        if (gitHubSCMSource.getRepoOwner().equals(changedRepository.getUserName()) &&
+                                                gitHubSCMSource.getRepository().equals(changedRepository.getRepositoryName())) {
+                                            owner.onSCMSourceUpdated(gitHubSCMSource);
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
+                    });
                 }
-            });
+            }, 5, TimeUnit.SECONDS);
         } else {
             LOGGER.log(Level.WARNING, "Malformed repository URL {0}", repoUrl);
         }
