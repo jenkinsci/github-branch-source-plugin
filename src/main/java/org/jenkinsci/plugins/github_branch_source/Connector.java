@@ -35,14 +35,15 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.google.common.hash.Hashing;
-import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
 import hudson.Util;
 import hudson.security.ACL;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.Proxy;
+import java.net.URL;
 import java.util.List;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
@@ -52,15 +53,13 @@ import jenkins.scm.api.SCMSourceOwner;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
-import org.jenkinsci.plugins.github.internal.GitHubClientCacheOps;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.OkHttpConnector;
 
-import static org.apache.commons.lang3.StringUtils.*;
+import static org.apache.commons.lang3.StringUtils.trimToEmpty;
 import static org.jenkinsci.plugins.github.config.GitHubServerConfig.GITHUB_URL;
-import static org.jenkinsci.plugins.github.internal.GitHubClientCacheOps.toCacheDir;
 
 /**
  * Utilities that could perhaps be moved into {@code github-api}.
@@ -84,24 +83,20 @@ public class Connector {
     }
 
     public static @Nonnull GitHub connect(@CheckForNull String apiUri, @CheckForNull StandardCredentials credentials) throws IOException {
-        GitHubServerConfig config = new GitHubServerConfig(credentials!=null ? credentials.getId() : null);
         String apiUrl = Util.fixEmptyAndTrim(apiUri);
-        if (apiUrl != null) {
-            config.setCustomApiUrl(true);
-            config.setApiUrl(apiUrl);
+        String host;
+        try {
+            apiUrl = apiUrl != null ? apiUrl : GITHUB_URL;
+            host = new URL(apiUrl).getHost();
+        } catch (MalformedURLException e) {
+            throw new IOException("Invalid GitHub API URL: " + apiUrl, e);
         }
-
-        // Can't do this until github plugin support username/password
-        // GitHub gh = GitHubServerConfig.loginToGithub().apply(config);
 
         GitHubBuilder gb = new GitHubBuilder();
-
-        if (apiUrl != null) {
-            gb.withEndpoint(apiUrl);
-        }
-
+        gb.withEndpoint(apiUrl);
         gb.withRateLimitHandler(CUSTOMIZED);
-        OkHttpClient client = new OkHttpClient().setProxy(getProxy(defaultIfBlank(apiUrl, GITHUB_URL)));
+
+        OkHttpClient client = new OkHttpClient().setProxy(getProxy(host));
 
         gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
 
@@ -138,18 +133,18 @@ public class Connector {
     /**
      * Uses proxy if configured on pluginManager/advanced page
      *
-     * @param apiUrl GitHub's url to build proxy to
+     * @param host GitHub's hostname to build proxy to
      *
      * @return proxy to use it in connector. Should not be null as it can lead to unexpected behaviour
      */
     @Nonnull
-    private static Proxy getProxy(String apiUrl) {
+    private static Proxy getProxy(@Nonnull String host) {
         Jenkins jenkins = GitHubWebHook.getJenkinsInstance();
 
         if (jenkins.proxy == null) {
             return Proxy.NO_PROXY;
         } else {
-            return jenkins.proxy.createProxy(apiUrl);
+            return jenkins.proxy.createProxy(host);
         }
     }
 
