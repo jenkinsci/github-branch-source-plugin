@@ -56,6 +56,7 @@ import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -81,8 +82,8 @@ public class GitHubBuildStatusNotification {
     @SuppressWarnings("deprecation") // Run.getAbsoluteUrl appropriate here
     private static void createBuildCommitStatus(Run<?,?> build, TaskListener listener) {
         try {
-            GHRepository repo = lookUpRepo(build.getParent());
-            if (repo != null) {
+            List<GHRepository> repos = lookUpRepos(build.getParent());
+            if (repos != null) {
                 SCMRevisionAction action = build.getAction(SCMRevisionAction.class);
                 if (action != null) {
                     SCMRevision revision = action.getRevision();
@@ -95,21 +96,24 @@ public class GitHubBuildStatusNotification {
                     boolean ignoreError = false;
                     try {
                         Result result = build.getResult();
-                        String revisionToNotify = resolveHeadCommit(repo, revision);
-                        if (Result.SUCCESS.equals(result)) {
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good());
-                        } else if (Result.UNSTABLE.equals(result)) {
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable());
-                        } else if (Result.FAILURE.equals(result)) {
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure());
-                        } else if (result != null) { // ABORTED etc.
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other());
-                        } else {
-                            ignoreError = true;
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending());
-                        }
-                        if (result != null) {
-                            listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
+                        GHRepository repo = resolveRepository(repos, revision);
+                        if (repo != null) {
+                            String revisionToNotify = resolveHeadCommit(repo, revision);
+                            if (Result.SUCCESS.equals(result)) {
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good());
+                            } else if (Result.UNSTABLE.equals(result)) {
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable());
+                            } else if (Result.FAILURE.equals(result)) {
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure());
+                            } else if (result != null) { // ABORTED etc.
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other());
+                            } else {
+                                ignoreError = true;
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending());
+                            }
+                            if (result != null) {
+                                listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
+                            }
                         }
                     } catch (FileNotFoundException fnfe) {
                         if (!ignoreError) {
@@ -136,20 +140,21 @@ public class GitHubBuildStatusNotification {
      * @throws IOException
      */
     private static @CheckForNull
-    GHRepository lookUpRepo(@Nonnull Job<?,?> job) throws IOException {
+    List<GHRepository> lookUpRepos(@Nonnull Job<?,?> job) throws IOException {
+        List<GHRepository> result = new ArrayList<GHRepository>();
         ItemGroup<?> multiBranchProject = job.getParent();
         if (multiBranchProject instanceof SCMSourceOwner) {
             SCMSourceOwner scmSourceOwner = (SCMSourceOwner) multiBranchProject;
-            GitHubSCMSource source = getSCMSource(scmSourceOwner);
-            if (source != null) {
+            List<GitHubSCMSource> sources = getSCMSources(scmSourceOwner);
+            for (GitHubSCMSource source: sources) {
                 if (source.getScanCredentialsId() != null) {
                     GitHub github = Connector.connect(source.getApiUri(), Connector.lookupScanCredentials
                             (scmSourceOwner, null, source.getScanCredentialsId()));
-                    return github.getRepository(source.getRepoOwner() + "/" + source.getRepository());
+                    result.add(github.getRepository(source.getRepoOwner() + "/" + source.getRepository()));
                 }
             }
         }
-        return null;
+        return result;
     }
 
     /**
@@ -160,13 +165,14 @@ public class GitHubBuildStatusNotification {
      * @return A {@link GitHubSCMSource} or null
      */
     @CheckForNull
-    private static GitHubSCMSource getSCMSource(final SCMSourceOwner scmSourceOwner) {
+    private static List<GitHubSCMSource> getSCMSources(final SCMSourceOwner scmSourceOwner) {
+        List<GitHubSCMSource> sources = new ArrayList<GitHubSCMSource>();
         for (SCMSource scmSource : scmSourceOwner.getSCMSources()) {
             if (scmSource instanceof GitHubSCMSource) {
-                return (GitHubSCMSource) scmSource;
+                sources.add((GitHubSCMSource) scmSource);
             }
         }
-        return null;
+        return sources;
     }
 
     /**
@@ -186,9 +192,22 @@ public class GitHubBuildStatusNotification {
                 SCMHead head = SCMHead.HeadByItem.findHead(job);
                 if (head instanceof PullRequestSCMHead) {
                     try {
-                        GHRepository repo = lookUpRepo(job);
+                        int number = ((PullRequestSCMHead) head).getNumber();
+                        GHRepository repo = null;
+
+                        for(GHRepository temprepo : lookUpRepos(job)) {
+                            try {
+                                GHPullRequest pr = temprepo.getPullRequest(number);
+                                repo = temprepo;
+                            } catch (FileNotFoundException fnfe) {
+                                LOGGER.log(Level.WARNING, "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?");
+                                LOGGER.log(Level.FINE, null, fnfe);
+                            } catch (IOException ioe) {
+                                LOGGER.log(Level.WARNING, "Could not update commit status to PENDING. Message: " + ioe.getMessage());
+                                LOGGER.log(Level.FINE, null, ioe);
+                            }
+                        }
                         if (repo != null) {
-                            int number = ((PullRequestSCMHead) head).getNumber();
                             GHPullRequest pr = repo.getPullRequest(number);
                             String url;
                             try {
@@ -235,6 +254,23 @@ public class GitHubBuildStatusNotification {
             createBuildCommitStatus(build, listener);
         }
 
+    }
+
+    private static GHRepository resolveRepository(List<GHRepository> repos, SCMRevision revision) throws IllegalArgumentException {
+        if (revision instanceof SCMRevisionImpl) {
+            for (GHRepository repo : repos) {
+                SCMRevisionImpl rev = (SCMRevisionImpl) revision;
+                try {
+                    GHCommit commit = repo.getCommit(rev.getHash());
+                    // If we didn't get a not found, this must be the correct repository.
+                    return repo;
+                } catch (IOException e) {
+                    // Record the exception to be able to debug later
+                    LOGGER.log(Level.WARNING, null, e);
+                }
+            }
+        }
+        throw new IllegalArgumentException();
     }
 
     private static String resolveHeadCommit(GHRepository repo, SCMRevision revision) throws IllegalArgumentException {
