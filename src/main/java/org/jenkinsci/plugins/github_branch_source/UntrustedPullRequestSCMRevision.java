@@ -39,6 +39,16 @@ class UntrustedPullRequestSCMRevision extends AbstractGitSCMSource.SCMRevisionIm
         this.baseHash = baseHash;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o) && baseHash.equals(((UntrustedPullRequestSCMRevision) o).baseHash);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode(); // good enough
+    }
+
     private Object readResolve() {
         return new PullRequestSCMRevision((PullRequestSCMHead) getHead(), baseHash, getHash());
     }
