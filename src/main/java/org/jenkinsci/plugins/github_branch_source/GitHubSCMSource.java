@@ -753,6 +753,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (buildOriginBranchWithPR && buildOriginPRUnmerged) {
                 return FormValidation.warning("Redundant to build an origin PR both as a branch and as an unmerged PR");
             }
+            if (buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerged && !buildOriginPRUnmerged && !buildForkPRMerged && !buildForkPRUnmerged) {
+                // TODO in principle we could make doRetrieve populate originBranchesWithPR without actually including any PRs, but it would be more work and probably never wanted anyway.
+                return FormValidation.warning("If you are not building any PRs, all origin branches will be built.");
+            }
             return FormValidation.ok();
         }
 
