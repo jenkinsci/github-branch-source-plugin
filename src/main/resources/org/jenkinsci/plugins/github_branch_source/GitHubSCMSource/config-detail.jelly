@@ -29,7 +29,7 @@
     <f:entry title="${%Build origin branches also filed as PRs}" field="buildOriginBranchWithPR">
         <f:checkbox default="${descriptor.defaultBuildOriginBranchWithPR}"/>
     </f:entry>
-    <!-- TODO I18N (% syntax chokes on parents) -->
+    <!-- TODO I18N (% syntax chokes on parentheses) -->
     <f:entry title="Build origin PRs (merged with base branch)" field="buildOriginPRMerged">
         <f:checkbox default="${descriptor.defaultBuildOriginPRMerged}"/>
     </f:entry>
