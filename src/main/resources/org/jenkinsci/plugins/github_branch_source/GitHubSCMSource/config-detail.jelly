@@ -29,16 +29,17 @@
     <f:entry title="${%Build origin branches also filed as PRs}" field="buildOriginBranchWithPR">
         <f:checkbox default="${descriptor.defaultBuildOriginBranchWithPR}"/>
     </f:entry>
-    <f:entry title="${%Build origin PRs (merged with base branch)}" field="buildOriginPRMerged">
+    <!-- TODO I18N (% syntax chokes on parents) -->
+    <f:entry title="Build origin PRs (merged with base branch)" field="buildOriginPRMerged">
         <f:checkbox default="${descriptor.defaultBuildOriginPRMerged}"/>
     </f:entry>
-    <f:entry title="${%Build origin PRs (unmerged)}" field="buildOriginPRUnmerged">
+    <f:entry title="Build origin PRs (unmerged)" field="buildOriginPRUnmerged">
         <f:checkbox default="${descriptor.defaultBuildOriginPRUnmerged}"/>
     </f:entry>
-    <f:entry title="${%Build fork PRs (merged with base branch)}" field="buildForkPRMerged">
+    <f:entry title="Build fork PRs (merged with base branch)" field="buildForkPRMerged">
         <f:checkbox default="${descriptor.defaultBuildForkPRMerged}"/>
     </f:entry>
-    <f:entry title="${%Build fork PRs (unmerged)}" field="buildForkPRUnmerged">
+    <f:entry title="Build fork PRs (unmerged)" field="buildForkPRUnmerged">
         <f:checkbox default="${descriptor.defaultBuildForkPRUnmerged}"/>
     </f:entry>
   </f:advanced>

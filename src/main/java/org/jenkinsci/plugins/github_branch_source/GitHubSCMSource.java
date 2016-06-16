@@ -31,6 +31,7 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.Util;
@@ -141,6 +142,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         this.checkoutCredentialsId = checkoutCredentialsId;
     }
 
+    @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="Only non-null after we set them here!")
     private Object readResolve() {
         if (buildOriginBranch == null) {
             buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
@@ -179,6 +181,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @CheckForNull
     @Override
+    @SuppressWarnings("ConvertToStringSwitch") // more cumbersome with null check
     public String getCredentialsId() {
         if (DescriptorImpl.ANONYMOUS.equals(checkoutCredentialsId)) {
             return null;
@@ -209,7 +212,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @Override
     protected List<RefSpec> getRefSpecs() {
-        return new ArrayList<RefSpec>(Arrays.asList(new RefSpec("+refs/heads/*:refs/remotes/origin/*"),
+        return new ArrayList<>(Arrays.asList(new RefSpec("+refs/heads/*:refs/remotes/origin/*"),
                 new RefSpec("+refs/pull/*/head:refs/remotes/origin/pr/*")));
     }
 
@@ -513,6 +516,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     protected SCMSourceCriteria.Probe getProbe(final String branch, final String thing, final String ref, final
             GHRepository repo, final TaskListener listener) {
         return new SCMSourceCriteria.Probe() {
+            private static final long serialVersionUID = 5012552654534124387L;
             @Override public String name() {
                 return branch;
             }
@@ -681,8 +685,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @Extension public static class DescriptorImpl extends SCMSourceDescriptor {
 
-        private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
-
         public static final String defaultIncludes = "*";
         public static final String defaultExcludes = "";
         public static final String ANONYMOUS = "ANONYMOUS";
@@ -729,7 +731,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         }
                     } catch (IOException e) {
                         // ignore, never thrown
-                        LOGGER.log(Level.WARNING, "Exception validating credentials " + CredentialsNameProvider.name(credentials) + " on " + apiUri);
+                        LOGGER.log(Level.WARNING, "Exception validating credentials {0} on {1}", new Object[] {CredentialsNameProvider.name(credentials), apiUri});
                         return FormValidation.error("Exception validating credentials");
                     }
                 }
@@ -803,8 +805,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     } catch (IllegalStateException e) {
                         LOGGER.log(Level.WARNING, e.getMessage());
                     } catch (IOException e) {
-                        LOGGER.log(Level.WARNING, "Exception retrieving the repositories of the owner " + repoOwner +
-                                " on " + apiUri + " with credentials " + CredentialsNameProvider.name(credentials));
+                        LOGGER.log(Level.WARNING, "Exception retrieving the repositories of the owner {0} on {1} with credentials {2}",
+                            new Object[] {repoOwner, apiUri, CredentialsNameProvider.name(credentials)});
                     }
                     if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
                         for (String name : myself.getAllRepositories().keySet()) {
@@ -818,7 +820,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 try {
                     org = github.getOrganization(repoOwner);
                 } catch (FileNotFoundException fnf) {
-                    LOGGER.log(Level.FINE, "There is not any GH Organization named " + repoOwner);
+                    LOGGER.log(Level.FINE, "There is not any GH Organization named {0}", repoOwner);
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, e.getMessage());
                 }
@@ -833,7 +835,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 try {
                     user = github.getUser(repoOwner);
                 } catch (FileNotFoundException fnf) {
-                    LOGGER.log(Level.FINE, "There is not any GH User named " + repoOwner);
+                    LOGGER.log(Level.FINE, "There is not any GH User named {0}", repoOwner);
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, e.getMessage());
                 }
