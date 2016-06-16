@@ -383,6 +383,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
                     continue;
                 }
+                if (!fork) {
+                    originBranchesWithPR.add(ghPullRequest.getHead().getRef());
+                }
                 boolean trusted = isTrusted(repo, ghPullRequest);
                 if (!trusted) {
                     listener.getLogger().format("    (not from a trusted source)%n");
