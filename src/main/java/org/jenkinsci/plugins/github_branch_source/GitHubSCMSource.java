@@ -611,7 +611,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @Override
     public SCM build(SCMHead head, SCMRevision revision) {
-        SCM scm = super.build(head, revision);
         if (head instanceof PullRequestSCMHead && ((PullRequestSCMHead) head).isMerge()) {
             PullRequestAction action = head.getAction(PullRequestAction.class);
             String baseName;
@@ -620,11 +619,21 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             } else {
                 baseName = "master?"; // OK if not found, just informational anyway
             }
-            ((GitSCM) scm).getExtensions().add(new MergeWith(baseName, ((PullRequestSCMRevision) revision).getBaseHash()));
+            PullRequestSCMRevision prRev = (PullRequestSCMRevision) revision;
+            GitSCM scm = (GitSCM) super.build(/* does this matter? */head, new SCMRevisionImpl(/* again probably irrelevant */head, prRev.getPullHash()));
+            scm.getExtensions().add(new MergeWith(baseName, prRev.getBaseHash()));
+            return scm;
+        } else {
+            return super.build(head, /* casting just as an assertion */(SCMRevisionImpl) revision);
         }
-        return scm;
     }
-    /** Similar to {@link PreBuildMerge}, but we cannot use that unmodified: we need to specify the exact base branch hash. */
+    /**
+     * Similar to {@link PreBuildMerge}, but we cannot use that unmodified: we need to specify the exact base branch hash.
+     * It is possible to just ask Git to check out {@code refs/pull/123/merge}, but this has two problems:
+     * GitHub’s implementation is not all that reliable (for example JENKINS-33237, and time-delayed snapshots);
+     * and it is subject to a race condition between the {@code baseHash} we think we are merging with and a possibly newer one that was just pushed.
+     * Performing the merge ourselves is simple enough and ensures that we are building exactly what the {@link PullRequestSCMRevision} represented.
+     */
     private static class MergeWith extends GitSCMExtension {
         private final String baseName;
         private final String baseHash;
