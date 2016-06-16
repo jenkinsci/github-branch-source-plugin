@@ -53,14 +53,17 @@ public final class PullRequestSCMHead extends SCMHead {
         if (metadata != null) {
             return Integer.parseInt(metadata.getId());
         } else { // settings compatibility
+            // if predating PullRequestAction, then also predate -merged/-unmerged suffices
             return Integer.parseInt(getName().substring("PR-".length()));
         }
     }
-    
+
+    /** Default for old settings. */
     private Object readResolve() {
         if (merge == null) {
             merge = true;
         }
+        // leave trusted at false to be on the safe side
         return this;
     }
 

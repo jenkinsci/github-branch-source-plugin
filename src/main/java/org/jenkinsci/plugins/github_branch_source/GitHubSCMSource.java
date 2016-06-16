@@ -89,6 +89,7 @@ import hudson.plugins.git.GitException;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.Revision;
 import hudson.plugins.git.extensions.GitSCMExtension;
+import hudson.plugins.git.extensions.impl.PreBuildMerge;
 import hudson.plugins.git.util.MergeRecord;
 import hudson.scm.SCM;
 import java.util.HashSet;
@@ -142,6 +143,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         this.checkoutCredentialsId = checkoutCredentialsId;
     }
 
+    /** Use defaults for old settings. */
     @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="Only non-null after we set them here!")
     private Object readResolve() {
         if (buildOriginBranch == null) {
@@ -213,7 +215,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Override
     protected List<RefSpec> getRefSpecs() {
         return new ArrayList<>(Arrays.asList(new RefSpec("+refs/heads/*:refs/remotes/origin/*"),
-                new RefSpec("+refs/pull/*/head:refs/remotes/origin/pr/*")));
+            // For PRs we check out the head, then perhaps merge with the base branch.
+            new RefSpec("+refs/pull/*/head:refs/remotes/origin/pr/*")));
     }
 
     /**
@@ -369,6 +372,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     private void doRetrieve(SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
         SCMSourceCriteria criteria = getCriteria();
 
+        // To implement buildOriginBranch && !buildOriginBranchWithPR we need to first find the pull requests, so we can skip corresponding origin branches later. Awkward.
         Set<String> originBranchesWithPR = new HashSet<>();
 
         if (buildOriginPRMerged || buildOriginPRUnmerged || buildForkPRMerged || buildForkPRUnmerged) {
@@ -402,6 +406,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         if (buildForkPRUnmerged) {
                             branchName += "-merged"; // make sure they are distinct
                         }
+                        // If we only build merged, or only unmerged, then we use the /PR-\d+/ scheme as before.
                     }
                     if (merge && !fork) {
                         if (!buildOriginPRMerged) {
@@ -429,6 +434,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     }
                     PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge, trusted);
                     if (criteria != null) {
+                        // Would be more precise to check whether the merge of the base branch head with the PR branch head contains a given file, etc.,
+                        // but this would be a lot more work, and is unlikely to differ from using refs/pull/123/merge:
                         SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + number + (merge ? "/merge" : "/head"), repo, listener);
                         if (criteria.isHead(probe, listener)) {
                             // FYI https://developer.github.com/v3/pulls/#response-1
@@ -606,7 +613,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public SCM build(SCMHead head, SCMRevision revision) {
         SCM scm = super.build(head, revision);
         if (head instanceof PullRequestSCMHead && ((PullRequestSCMHead) head).isMerge()) {
-            // Similar to PreBuildMerge, but we cannot use that unmodified: we need to specify the exact base branch hash.
             PullRequestAction action = head.getAction(PullRequestAction.class);
             String baseName;
             if (action != null) {
@@ -618,6 +624,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         return scm;
     }
+    /** Similar to {@link PreBuildMerge}, but we cannot use that unmodified: we need to specify the exact base branch hash. */
     private static class MergeWith extends GitSCMExtension {
         private final String baseName;
         private final String baseHash;
@@ -645,8 +652,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 checkoutCommand.execute();
                 throw x;
             }
-            build.addAction(new MergeRecord(baseName, baseHash));
-            return new Revision(git.revParse(Constants.HEAD));
+            build.addAction(new MergeRecord(baseName, baseHash)); // does not seem to be used, but just in case
+            return new Revision(git.revParse(Constants.HEAD)); // note that this ensures Build.revision != Build.marked
         }
     }
 
@@ -689,6 +696,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         public static final String defaultExcludes = "";
         public static final String ANONYMOUS = "ANONYMOUS";
         public static final String SAME = "SAME";
+        // Prior to JENKINS-33161 the unconditional behavior was to build fork PRs plus origin branches, and try to build a merge revision for PRs.
         public static final boolean defaultBuildOriginBranch = true;
         public static final boolean defaultBuildOriginBranchWithPR = true;
         public static final boolean defaultBuildOriginPRMerged = false;
