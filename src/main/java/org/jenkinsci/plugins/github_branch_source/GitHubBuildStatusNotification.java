@@ -44,10 +44,8 @@ import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
-import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHCommitState;
 import org.kohsuke.github.GHPullRequest;
-import org.kohsuke.github.GHPullRequestCommitDetail;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
@@ -56,7 +54,6 @@ import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -239,35 +236,12 @@ public class GitHubBuildStatusNotification {
 
     private static String resolveHeadCommit(GHRepository repo, SCMRevision revision) throws IllegalArgumentException {
         if (revision instanceof SCMRevisionImpl) {
-            SCMRevisionImpl rev = (SCMRevisionImpl) revision;
-            try {
-                GHCommit commit = repo.getCommit(rev.getHash());
-                List<GHCommit> parents = commit.getParents();
-                // if revision has two parent commits, we have really a MergeCommit
-                if (parents.size() == 2) {
-                    SCMHead head = revision.getHead();
-                    // MergeCommit is coming from a pull request
-                    if (head instanceof PullRequestSCMHead) {
-                        GHPullRequest pullRequest = repo.getPullRequest(((PullRequestSCMHead) head).getNumber());
-                        for (GHPullRequestCommitDetail commitDetail : pullRequest.listCommits()) {
-                            if (commitDetail.getSha().equals(parents.get(0).getSHA1())) {
-                                // Parent commit (HeadCommit) found in PR commit list
-                                return parents.get(0).getSHA1();
-                            }
-                        }
-                        // First parent commit not found in PR commit list, so returning the second one.
-                        return parents.get(1).getSHA1();
-                    } else {
-                        return rev.getHash();
-                    }
-                }
-                return rev.getHash();
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, null, e);
-                throw new IllegalArgumentException(e);
-            }
+            return ((SCMRevisionImpl) revision).getHash();
+        } else if (revision instanceof PullRequestSCMRevision) {
+            return ((PullRequestSCMRevision) revision).getPullHash();
+        } else {
+            throw new IllegalArgumentException("did not recognize " + revision);
         }
-        throw new IllegalArgumentException();
     }
 
     private GitHubBuildStatusNotification() {}

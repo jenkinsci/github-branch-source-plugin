@@ -57,7 +57,6 @@ import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHPullRequest;
-import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
@@ -84,9 +83,24 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static hudson.model.Items.XSTREAM2;
+import hudson.model.Run;
+import hudson.plugins.git.GitException;
+import hudson.plugins.git.GitSCM;
+import hudson.plugins.git.Revision;
+import hudson.plugins.git.extensions.GitSCMExtension;
+import hudson.plugins.git.util.MergeRecord;
+import hudson.scm.SCM;
+import java.util.HashSet;
+import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.lib.ObjectId;
+import org.jenkinsci.plugins.gitclient.CheckoutCommand;
+import org.jenkinsci.plugins.gitclient.GitClient;
+import org.jenkinsci.plugins.gitclient.MergeCommand;
 import static org.jenkinsci.plugins.github.config.GitHubServerConfig.GITHUB_URL;
 
 public class GitHubSCMSource extends AbstractGitSCMSource {
+
+    private static final Logger LOGGER = Logger.getLogger(GitHubSCMSource.class.getName());
 
     private final String apiUri;
 
@@ -104,6 +118,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     private @Nonnull String excludes = DescriptorImpl.defaultExcludes;
 
+    /** Whether to build regular origin branches. */
+    private @Nonnull Boolean buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
+    /** Whether to build origin branches which happen to also have a PR filed from them (but here we are naming and building as a branch). */
+    private @Nonnull Boolean buildOriginBranchWithPR = DescriptorImpl.defaultBuildOriginBranchWithPR;
+    /** Whether to build PRs filed from the origin, where the build is of the merge with the base branch. */
+    private @Nonnull Boolean buildOriginPRMerged = DescriptorImpl.defaultBuildOriginPRMerged;
+    /** Whether to build PRs filed from the origin, where the build is of the branch head. */
+    private @Nonnull Boolean buildOriginPRUnmerged = DescriptorImpl.defaultBuildOriginPRUnmerged;
+    /** Whether to build PRs filed from a fork, where the build is of the merge with the base branch. */
+    private @Nonnull Boolean buildForkPRMerged = DescriptorImpl.defaultBuildForkPRMerged;
+    /** Whether to build PRs filed from a fork, where the build is of the branch head. */
+    private @Nonnull Boolean buildForkPRUnmerged = DescriptorImpl.defaultBuildForkPRUnmerged;
+
     @DataBoundConstructor
     public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
         super(id);
@@ -112,6 +139,28 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         this.repository = repository;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
         this.checkoutCredentialsId = checkoutCredentialsId;
+    }
+
+    private Object readResolve() {
+        if (buildOriginBranch == null) {
+            buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
+        }
+        if (buildOriginBranchWithPR == null) {
+            buildOriginBranchWithPR = DescriptorImpl.defaultBuildOriginBranchWithPR;
+        }
+        if (buildOriginPRMerged == null) {
+            buildOriginPRMerged = DescriptorImpl.defaultBuildOriginPRMerged;
+        }
+        if (buildOriginPRUnmerged == null) {
+            buildOriginPRUnmerged = DescriptorImpl.defaultBuildOriginPRUnmerged;
+        }
+        if (buildForkPRMerged == null) {
+            buildForkPRMerged = DescriptorImpl.defaultBuildForkPRMerged;
+        }
+        if (buildForkPRUnmerged == null) {
+            buildForkPRUnmerged = DescriptorImpl.defaultBuildForkPRUnmerged;
+        }
+        return this;
     }
 
     @CheckForNull
@@ -161,7 +210,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Override
     protected List<RefSpec> getRefSpecs() {
         return new ArrayList<RefSpec>(Arrays.asList(new RefSpec("+refs/heads/*:refs/remotes/origin/*"),
-                new RefSpec("+refs/pull/*/merge:refs/remotes/origin/pr/*")));
+                new RefSpec("+refs/pull/*/head:refs/remotes/origin/pr/*")));
     }
 
     /**
@@ -216,6 +265,60 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         this.excludes = excludes;
     }
 
+    public Boolean getBuildOriginBranch() {
+        return buildOriginBranch;
+    }
+
+    @DataBoundSetter
+    public void setBuildOriginBranch(Boolean buildOriginBranch) {
+        this.buildOriginBranch = buildOriginBranch;
+    }
+
+    public Boolean getBuildOriginBranchWithPR() {
+        return buildOriginBranchWithPR;
+    }
+
+    @DataBoundSetter
+    public void setBuildOriginBranchWithPR(Boolean buildOriginBranchWithPR) {
+        this.buildOriginBranchWithPR = buildOriginBranchWithPR;
+    }
+
+    public Boolean getBuildOriginPRMerged() {
+        return buildOriginPRMerged;
+    }
+
+    @DataBoundSetter
+    public void setBuildOriginPRMerged(Boolean buildOriginPRMerged) {
+        this.buildOriginPRMerged = buildOriginPRMerged;
+    }
+
+    public Boolean getBuildOriginPRUnmerged() {
+        return buildOriginPRUnmerged;
+    }
+
+    @DataBoundSetter
+    public void setBuildOriginPRUnmerged(Boolean buildOriginPRUnmerged) {
+        this.buildOriginPRUnmerged = buildOriginPRUnmerged;
+    }
+
+    public Boolean getBuildForkPRMerged() {
+        return buildForkPRMerged;
+    }
+
+    @DataBoundSetter
+    public void setBuildForkPRMerged(Boolean buildForkPRMerged) {
+        this.buildForkPRMerged = buildForkPRMerged;
+    }
+
+    public Boolean getBuildForkPRUnmerged() {
+        return buildForkPRUnmerged;
+    }
+
+    @DataBoundSetter
+    public void setBuildForkPRUnmerged(Boolean buildForkPRUnmerged) {
+        this.buildForkPRUnmerged = buildForkPRUnmerged;
+    }
+
     @Override
     public String getRemote() {
         return getUriResolver().getRepositoryUri(apiUri, repoOwner, repository);
@@ -263,73 +366,134 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     private void doRetrieve(SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
         SCMSourceCriteria criteria = getCriteria();
 
-        listener.getLogger().format("%n  Getting remote branches...%n");
-        int branches = 0;
-        for (Map.Entry<String,GHBranch> entry : repo.getBranches().entrySet()) {
-            final String branchName = entry.getKey();
-            if (isExcluded(branchName)) {
-                continue;
-            }
-            listener.getLogger().format("%n    Checking branch %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString() + "/tree/" + branchName, branchName));
-            if (criteria != null) {
-                SCMSourceCriteria.Probe probe = getProbe(branchName, "branch", "refs/heads/" + branchName, repo, listener);
-                if (criteria.isHead(probe, listener)) {
-                    listener.getLogger().format("    Met criteria%n");
-                } else {
-                    listener.getLogger().format("    Does not meet criteria%n");
+        Set<String> originBranchesWithPR = new HashSet<>();
+
+        if (buildOriginPRMerged || buildOriginPRUnmerged || buildForkPRMerged || buildForkPRUnmerged) {
+            listener.getLogger().format("%n  Getting remote pull requests...%n");
+            int pullrequests = 0;
+            for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
+                int number = ghPullRequest.getNumber();
+                listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + number));
+                boolean fork = !repo.getOwner().equals(ghPullRequest.getHead().getUser());
+                if (fork && !buildForkPRMerged && !buildForkPRUnmerged) {
+                    listener.getLogger().format("    Submitted from fork, skipping%n%n");
                     continue;
                 }
-            }
-            SCMHead head = new SCMHead(branchName);
-            SCMRevision hash = new SCMRevisionImpl(head, entry.getValue().getSHA1());
-            observer.observe(head, hash);
-            if (!observer.isObserving()) {
-                return;
-            }
-            branches++;
-        }
-        listener.getLogger().format("%n  %d branches were processed%n", branches);
-
-        listener.getLogger().format("%n  Getting remote pull requests...%n");
-        int pullrequests = 0;
-        for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
-            PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest);
-            final String branchName = head.getName();
-            listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + branchName));
-            if (repo.getOwner().equals(ghPullRequest.getHead().getUser())) {
-                listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
-                continue;
-            }
-            if (criteria != null) {
-                SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + head.getNumber() + "/head", repo, listener);
-                if (criteria.isHead(probe, listener)) {
-                    // FYI https://developer.github.com/v3/pulls/#response-1
-                    Boolean mergeable = ghPullRequest.getMergeable();
-                    if (Boolean.FALSE.equals(mergeable)) {
-                        listener.getLogger().format("      Not mergeable, but it will be included%n");
+                if (!fork && !buildOriginPRMerged && !buildOriginPRUnmerged) {
+                    listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
+                    continue;
+                }
+                boolean trusted = isTrusted(repo, ghPullRequest);
+                if (!trusted) {
+                    listener.getLogger().format("    (not from a trusted source)%n");
+                }
+                for (boolean merge : new boolean[] {false, true}) {
+                    String branchName = "PR-" + number;
+                    if (merge && fork) {
+                        if (!buildForkPRMerged) {
+                            continue; // not doing this combination
+                        }
+                        if (buildForkPRUnmerged) {
+                            branchName += "-merged"; // make sure they are distinct
+                        }
                     }
-                    listener.getLogger().format("    Met criteria%n");
-                } else {
-                    listener.getLogger().format("    Does not meet criteria%n");
+                    if (merge && !fork) {
+                        if (!buildOriginPRMerged) {
+                            continue;
+                        }
+                        if (buildForkPRUnmerged) {
+                            branchName += "-merged";
+                        }
+                    }
+                    if (!merge && fork) {
+                        if (!buildForkPRUnmerged) {
+                            continue;
+                        }
+                        if (buildForkPRMerged) {
+                            branchName += "-unmerged";
+                        }
+                    }
+                    if (!merge && !fork) {
+                        if (!buildOriginPRUnmerged) {
+                            continue;
+                        }
+                        if (buildOriginPRMerged) {
+                            branchName += "-unmerged";
+                        }
+                    }
+                    PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge, trusted);
+                    if (criteria != null) {
+                        SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + number + (merge ? "/merge" : "/head"), repo, listener);
+                        if (criteria.isHead(probe, listener)) {
+                            // FYI https://developer.github.com/v3/pulls/#response-1
+                            Boolean mergeable = ghPullRequest.getMergeable();
+                            if (Boolean.FALSE.equals(mergeable)) {
+                                if (merge)  {
+                                    listener.getLogger().format("      Not mergeable, build likely to fail%n");
+                                } else {
+                                    listener.getLogger().format("      Not mergeable, but will be built anyway%n");
+                                }
+                            }
+                            listener.getLogger().format("    Met criteria%n");
+                        } else {
+                            listener.getLogger().format("    Does not meet criteria%n");
+                            continue;
+                        }
+                    }
+                    String baseHash;
+                    if (merge) {
+                        baseHash = repo.getRef("heads/" + ghPullRequest.getBase().getRef()).getObject().getSha();
+                    } else {
+                        baseHash = ghPullRequest.getBase().getSha();
+                    }
+                    PullRequestSCMRevision rev = new PullRequestSCMRevision(head, baseHash, ghPullRequest.getHead().getSha());
+                    observer.observe(head, rev);
+                    if (!observer.isObserving()) {
+                        return;
+                    }
+                }
+                pullrequests++;
+            }
+            listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
+        }
+
+        if (buildOriginBranch || buildOriginBranchWithPR) {
+            listener.getLogger().format("%n  Getting remote branches...%n");
+            int branches = 0;
+            for (Map.Entry<String,GHBranch> entry : repo.getBranches().entrySet()) {
+                final String branchName = entry.getKey();
+                if (isExcluded(branchName)) {
                     continue;
                 }
+                boolean hasPR = originBranchesWithPR.contains(branchName);
+                if (!hasPR && !buildOriginBranch) {
+                    listener.getLogger().format("%n    Skipping branch %s since there is no corresponding PR%n", branchName);
+                    continue;
+                }
+                if (hasPR && !buildOriginBranchWithPR) {
+                    listener.getLogger().format("%n    Skipping branch %s since there is a corresponding PR%n", branchName);
+                    continue;
+                }
+                listener.getLogger().format("%n    Checking branch %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString() + "/tree/" + branchName, branchName));
+                if (criteria != null) {
+                    SCMSourceCriteria.Probe probe = getProbe(branchName, "branch", "refs/heads/" + branchName, repo, listener);
+                    if (criteria.isHead(probe, listener)) {
+                        listener.getLogger().format("    Met criteria%n");
+                    } else {
+                        listener.getLogger().format("    Does not meet criteria%n");
+                        continue;
+                    }
+                }
+                SCMHead head = new SCMHead(branchName);
+                SCMRevision hash = new SCMRevisionImpl(head, entry.getValue().getSHA1());
+                observer.observe(head, hash);
+                if (!observer.isObserving()) {
+                    return;
+                }
+                branches++;
             }
-            String trustedBase = trustedReplacement(repo, ghPullRequest);
-            SCMRevision hash;
-            if (trustedBase == null) {
-                hash = new SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
-            } else {
-                listener.getLogger().format("    (not from a trusted source)%n");
-                hash = new UntrustedPullRequestSCMRevision(head, ghPullRequest.getHead().getSha(), trustedBase);
-            }
-            observer.observe(head, hash);
-            if (!observer.isObserving()) {
-                return;
-            }
-            pullrequests++;
+            listener.getLogger().format("%n  %d branches were processed%n", branches);
         }
-        listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
-
     }
 
     /**
@@ -411,28 +575,85 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     protected SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
-        GHRef ref;
         if (head instanceof PullRequestSCMHead) {
-            int number = ((PullRequestSCMHead) head).getNumber();
-            ref = repo.getRef("pull/" + number + "/merge");
-            // getPullRequests makes an extra API call, but we need its current .base.sha
-            String trustedBase = trustedReplacement(repo, repo.getPullRequest(number));
-            if (trustedBase != null) {
-                return new UntrustedPullRequestSCMRevision(head, ref.getObject().getSha(), trustedBase);
+            PullRequestSCMHead prhead = (PullRequestSCMHead) head;
+            int number = prhead.getNumber();
+            GHPullRequest pr = repo.getPullRequest(number);
+            String baseHash;
+            if (prhead.isMerge()) {
+                PullRequestAction metadata = prhead.getAction(PullRequestAction.class);
+                if (metadata == null) {
+                throw new IOException("Cannot find base branch metadata from " + prhead);
+                }
+                baseHash = repo.getRef("heads/" + metadata.getTarget().getName()).getObject().getSha();
+            } else {
+                baseHash = pr.getBase().getSha();
             }
+            return new PullRequestSCMRevision((PullRequestSCMHead) head, baseHash, pr.getHead().getSha());
         } else {
-            ref = repo.getRef("heads/" + head.getName());
+            return new SCMRevisionImpl(head, repo.getRef("heads/" + head.getName()).getObject().getSha());
         }
-        return new SCMRevisionImpl(head, ref.getObject().getSha());
+    }
+
+    @Override
+    public SCM build(SCMHead head, SCMRevision revision) {
+        SCM scm = super.build(head, revision);
+        if (head instanceof PullRequestSCMHead && ((PullRequestSCMHead) head).isMerge()) {
+            // Similar to PreBuildMerge, but we cannot use that unmodified: we need to specify the exact base branch hash.
+            PullRequestAction action = head.getAction(PullRequestAction.class);
+            String baseName;
+            if (action != null) {
+                baseName = action.getTarget().getName();
+            } else {
+                baseName = "master?"; // OK if not found, just informational anyway
+            }
+            ((GitSCM) scm).getExtensions().add(new MergeWith(baseName, ((PullRequestSCMRevision) revision).getBaseHash()));
+        }
+        return scm;
+    }
+    private static class MergeWith extends GitSCMExtension {
+        private final String baseName;
+        private final String baseHash;
+        MergeWith(String baseName, String baseHash) {
+            this.baseName = baseName;
+            this.baseHash = baseHash;
+        }
+        @Override
+        public Revision decorateRevisionToBuild(GitSCM scm, Run<?, ?> build, GitClient git, TaskListener listener, Revision marked, Revision rev) throws IOException, InterruptedException, GitException {
+            listener.getLogger().println("Merging " + baseName + " commit " + baseHash + " into PR head commit " + rev.getSha1String());
+            try {
+                MergeCommand cmd = git.merge().setRevisionToMerge(ObjectId.fromString(baseHash));
+                for (GitSCMExtension ext : scm.getExtensions()) {
+                    // By default we do a regular merge, allowing it to fast-forward.
+                    ext.decorateMergeCommand(scm, build, git, listener, cmd);
+                }
+                cmd.execute();
+            } catch (GitException x) {
+                // Try to revert merge conflict markers.
+                // TODO IGitAPI offers a reset(hard) method yet GitClient does not. Why?
+                CheckoutCommand checkoutCommand = git.checkout().ref(rev.getSha1String());
+                for (GitSCMExtension ext : scm.getExtensions()) {
+                    ext.decorateCheckoutCommand(scm, build, git, listener, checkoutCommand);
+                }
+                checkoutCommand.execute();
+                throw x;
+            }
+            build.addAction(new MergeRecord(baseName, baseHash));
+            return new Revision(git.revParse(Constants.HEAD));
+        }
     }
 
     @Override
     public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener) throws IOException, InterruptedException {
-        if (revision instanceof UntrustedPullRequestSCMRevision) {
-            PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
-            UntrustedPullRequestSCMRevision rev = (UntrustedPullRequestSCMRevision) revision;
-            listener.getLogger().println("Loading trusted files from target branch at " + rev.baseHash + " rather than " + rev.getHash());
-            return new SCMRevisionImpl(head, rev.baseHash);
+        if (revision instanceof PullRequestSCMRevision && !((PullRequestSCMHead) revision.getHead()).isTrusted()) {
+            PullRequestAction metadata = revision.getHead().getAction(PullRequestAction.class);
+            if (metadata != null) {
+                PullRequestSCMRevision rev = (PullRequestSCMRevision) revision;
+                listener.getLogger().println("Loading trusted files from target branch at " + rev.getBaseHash() + " rather than " + rev.getPullHash());
+                return new SCMRevisionImpl(metadata.getTarget(), rev.getBaseHash());
+            } else {
+                throw new IOException("Cannot find base branch metadata from " + revision.getHead());
+            }
         }
         return revision;
     }
@@ -447,16 +668,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * TODO since the GitHub API wrapper currently supports neither, we list all collaborator names and check for membership,
      * paying the performance penalty without the benefit of the accuracy.
      * @param ghPullRequest a PR
-     * @return the base revision, for an untrusted PR; null for a trusted PR
+     * @return true if this is a trusted PR
      * @see <a href="https://developer.github.com/v3/pulls/#get-a-single-pull-request">PR metadata</a>
      * @see <a href="http://stackoverflow.com/questions/15096331/github-api-how-to-find-the-branches-of-a-pull-request#comment54931031_15096596">base revision oddity</a>
      */
-    private @CheckForNull String trustedReplacement(@Nonnull GHRepository repo, @Nonnull GHPullRequest ghPullRequest) throws IOException {
-        if (repo.getCollaboratorNames().contains(ghPullRequest.getUser().getLogin())) {
-            return null;
-        } else {
-            return ghPullRequest.getBase().getSha();
-        }
+    private boolean isTrusted(@Nonnull GHRepository repo, @Nonnull GHPullRequest ghPullRequest) throws IOException {
+        return repo.getCollaboratorNames().contains(ghPullRequest.getUser().getLogin());
     }
 
     @Extension public static class DescriptorImpl extends SCMSourceDescriptor {
@@ -467,6 +684,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         public static final String defaultExcludes = "";
         public static final String ANONYMOUS = "ANONYMOUS";
         public static final String SAME = "SAME";
+        public static final boolean defaultBuildOriginBranch = true;
+        public static final boolean defaultBuildOriginBranchWithPR = true;
+        public static final boolean defaultBuildOriginPRMerged = false;
+        public static final boolean defaultBuildOriginPRUnmerged = false;
+        public static final boolean defaultBuildForkPRMerged = true;
+        public static final boolean defaultBuildForkPRUnmerged = false;
 
         @Initializer(before = InitMilestone.PLUGINS_STARTED)
         public static void addAliases() {
@@ -510,6 +733,24 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             } else {
                 return FormValidation.warning("Credentials are recommended");
             }
+        }
+
+        @Restricted(NoExternalUse.class)
+        public FormValidation doCheckBuildOriginBranch/* arbitrary which one we pick for web method name */(
+            @QueryParameter boolean buildOriginBranch,
+            @QueryParameter boolean buildOriginBranchWithPR,
+            @QueryParameter boolean buildOriginPRMerged,
+            @QueryParameter boolean buildOriginPRUnmerged,
+            @QueryParameter boolean buildForkPRMerged,
+            @QueryParameter boolean buildForkPRUnmerged
+        ) {
+            if (!buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerged && !buildOriginPRUnmerged && !buildForkPRMerged && !buildForkPRUnmerged) {
+                return FormValidation.warning("You need to build something!");
+            }
+            if (buildOriginBranchWithPR && buildOriginPRUnmerged) {
+                return FormValidation.warning("Redundant to build an origin PR both as a branch and as an unmerged PR");
+            }
+            return FormValidation.ok();
         }
 
         public ListBoxModel doFillApiUriItems() {

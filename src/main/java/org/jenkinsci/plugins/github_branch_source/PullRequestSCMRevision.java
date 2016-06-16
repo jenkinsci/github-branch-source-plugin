@@ -24,33 +24,54 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import jenkins.plugins.git.AbstractGitSCMSource;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMRevision;
 
-@Deprecated
-class UntrustedPullRequestSCMRevision extends AbstractGitSCMSource.SCMRevisionImpl {
+/**
+ * Revision of a pull request.
+ */
+class PullRequestSCMRevision extends SCMRevision {
     
-    private static final long serialVersionUID = -6961458604178249880L;
-    
-    final String baseHash;
+    private static final long serialVersionUID = 1L;
 
-    private UntrustedPullRequestSCMRevision(SCMHead head, String hash, String baseHash) {
-        super(head, hash);
+    private final @NonNull String baseHash;
+    private final @NonNull String pullHash;
+
+    PullRequestSCMRevision(@NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash) {
+        super(head);
         this.baseHash = baseHash;
+        this.pullHash = pullHash;
+    }
+
+    /**
+     * The commit hash of the base branch we are tracking.
+     * If {@link PullRequestSCMHead#isMerge}, this would be the current head of the base branch.
+     * Otherwise it would be the PR’s {@code .base.sha}, the common ancestor of the PR branch and the base branch.
+     */
+    public @NonNull String getBaseHash() {
+        return baseHash;
+    }
+
+    /**
+     * The commit hash of the head of the pull request branch.
+     */
+    public @NonNull String getPullHash() {
+        return pullHash;
     }
 
     @Override
     public boolean equals(Object o) {
-        return super.equals(o) && baseHash.equals(((UntrustedPullRequestSCMRevision) o).baseHash);
+        if (!(o instanceof PullRequestSCMRevision)) {
+            return false;
+        }
+        PullRequestSCMRevision other = (PullRequestSCMRevision) o;
+        return getHead().equals(other.getHead()) && baseHash.equals(other.baseHash) && pullHash.equals(other.pullHash);
     }
 
     @Override
     public int hashCode() {
-        return super.hashCode(); // good enough
-    }
-
-    private Object readResolve() {
-        return new PullRequestSCMRevision((PullRequestSCMHead) getHead(), baseHash, getHash());
+        return pullHash.hashCode();
     }
 
 }

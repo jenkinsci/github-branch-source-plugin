@@ -70,6 +70,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
     @CheckForNull private String includes;
     @CheckForNull private String excludes;
+    // TODO buildXXX to match GitHubSCMSource
 
     @DataBoundConstructor public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
         this.repoOwner = repoOwner;
