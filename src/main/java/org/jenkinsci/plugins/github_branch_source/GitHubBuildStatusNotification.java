@@ -70,9 +70,9 @@ public class GitHubBuildStatusNotification {
     
     private static final Logger LOGGER = Logger.getLogger(GitHubBuildStatusNotification.class.getName());
 
-    private static void createCommitStatus(@Nonnull GHRepository repo, @Nonnull String revision, @Nonnull GHCommitState state, @Nonnull String url, @Nonnull String message) throws IOException {
+    private static void createCommitStatus(@Nonnull GHRepository repo, @Nonnull String revision, @Nonnull GHCommitState state, @Nonnull String url, @Nonnull String message, @Nonnull Job<?,?> job) throws IOException {
         LOGGER.log(Level.FINE, "{0}/commit/{1} {2} from {3}", new Object[] {repo.getHtmlUrl(), revision, state, url});
-        repo.createCommitStatus(revision, state, url, message, "Jenkins");
+        repo.createCommitStatus(revision, state, url, message, "Jenkins job " + job.getName());
     }
 
     @SuppressWarnings("deprecation") // Run.getAbsoluteUrl appropriate here
@@ -93,17 +93,18 @@ public class GitHubBuildStatusNotification {
                     try {
                         Result result = build.getResult();
                         String revisionToNotify = resolveHeadCommit(repo, revision);
+                        Job<?,?> job = build.getParent();
                         if (Result.SUCCESS.equals(result)) {
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good());
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good(), job);
                         } else if (Result.UNSTABLE.equals(result)) {
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable());
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable(), job);
                         } else if (Result.FAILURE.equals(result)) {
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure());
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure(), job);
                         } else if (result != null) { // ABORTED etc.
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other());
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other(), job);
                         } else {
                             ignoreError = true;
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending());
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending(), job);
                         }
                         if (result != null) {
                             listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
@@ -195,7 +196,7 @@ public class GitHubBuildStatusNotification {
                             }
                             // Has not been built yet, so we can only guess that the current PR head is what will be built.
                             // In fact the submitter might push another commit before this build even starts.
-                            createCommitStatus(repo, pr.getHead().getSha(), GHCommitState.PENDING, url, "This pull request is scheduled to be built");
+                            createCommitStatus(repo, pr.getHead().getSha(), GHCommitState.PENDING, url, "This pull request is scheduled to be built", job);
                         }
                     } catch (FileNotFoundException fnfe) {
                         LOGGER.log(Level.WARNING, "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?");
