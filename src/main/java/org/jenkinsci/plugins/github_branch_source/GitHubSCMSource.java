@@ -611,17 +611,27 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @Override
     public SCM build(SCMHead head, SCMRevision revision) {
-        if (head instanceof PullRequestSCMHead && ((PullRequestSCMHead) head).isMerge()) {
-            PullRequestAction action = head.getAction(PullRequestAction.class);
-            String baseName;
-            if (action != null) {
-                baseName = action.getTarget().getName();
-            } else {
-                baseName = "master?"; // OK if not found, just informational anyway
+        if (revision == null) {
+            // TODO will this work sanely for PRs? Branch.scm seems to be used only as a fallback for SCMBinder/SCMVar where they would perhaps better just report an error.
+            return super.build(head, null);
+        } else if (head instanceof PullRequestSCMHead) {
+            if (!(revision instanceof PullRequestSCMRevision)) {
+                // TODO this seems to happen for PR-6-unmerged in cloudbeers/PR-demo; why?
+                LOGGER.log(Level.WARNING, "Unexpected revision class {0} for {1}", new Object[] {revision.getClass().getName(), head});
+                return super.build(head, revision);
             }
             PullRequestSCMRevision prRev = (PullRequestSCMRevision) revision;
             GitSCM scm = (GitSCM) super.build(/* does this matter? */head, new SCMRevisionImpl(/* again probably irrelevant */head, prRev.getPullHash()));
-            scm.getExtensions().add(new MergeWith(baseName, prRev.getBaseHash()));
+            if (((PullRequestSCMHead) head).isMerge()) {
+                PullRequestAction action = head.getAction(PullRequestAction.class);
+                String baseName;
+                if (action != null) {
+                    baseName = action.getTarget().getName();
+                } else {
+                    baseName = "master?"; // OK if not found, just informational anyway
+                }
+                scm.getExtensions().add(new MergeWith(baseName, prRev.getBaseHash()));
+            }
             return scm;
         } else {
             return super.build(head, /* casting just as an assertion */(SCMRevisionImpl) revision);
@@ -644,6 +654,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         @Override
         public Revision decorateRevisionToBuild(GitSCM scm, Run<?, ?> build, GitClient git, TaskListener listener, Revision marked, Revision rev) throws IOException, InterruptedException, GitException {
             listener.getLogger().println("Merging " + baseName + " commit " + baseHash + " into PR head commit " + rev.getSha1String());
+            checkout(scm, build, git, listener, rev);
             try {
                 MergeCommand cmd = git.merge().setRevisionToMerge(ObjectId.fromString(baseHash));
                 for (GitSCMExtension ext : scm.getExtensions()) {
@@ -654,15 +665,21 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             } catch (GitException x) {
                 // Try to revert merge conflict markers.
                 // TODO IGitAPI offers a reset(hard) method yet GitClient does not. Why?
-                CheckoutCommand checkoutCommand = git.checkout().ref(rev.getSha1String());
-                for (GitSCMExtension ext : scm.getExtensions()) {
-                    ext.decorateCheckoutCommand(scm, build, git, listener, checkoutCommand);
-                }
-                checkoutCommand.execute();
+                checkout(scm, build, git, listener, rev);
+                // TODO would be nicer to throw an AbortException with just the message, but this is actually worse pending https://github.com/jenkinsci/git-client-plugin/pull/208
                 throw x;
             }
             build.addAction(new MergeRecord(baseName, baseHash)); // does not seem to be used, but just in case
-            return new Revision(git.revParse(Constants.HEAD)); // note that this ensures Build.revision != Build.marked
+            ObjectId mergeRev = git.revParse(Constants.HEAD);
+            listener.getLogger().println("Merge succeeded, producing " + mergeRev.name());
+            return new Revision(mergeRev); // note that this ensures Build.revision != Build.marked
+        }
+        private void checkout(GitSCM scm, Run<?,?> build, GitClient git, TaskListener listener, Revision rev) throws InterruptedException, IOException, GitException {
+            CheckoutCommand checkoutCommand = git.checkout().ref(rev.getSha1String());
+            for (GitSCMExtension ext : scm.getExtensions()) {
+                ext.decorateCheckoutCommand(scm, build, git, listener, checkoutCommand);
+            }
+            checkoutCommand.execute();
         }
     }
 
