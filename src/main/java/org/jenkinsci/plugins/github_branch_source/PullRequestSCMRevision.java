@@ -74,4 +74,9 @@ class PullRequestSCMRevision extends SCMRevision {
         return pullHash.hashCode();
     }
 
+    @Override
+    public String toString() {
+        return getHead() instanceof PullRequestSCMHead && ((PullRequestSCMHead) getHead()).isMerge() ? pullHash + "+" + baseHash : pullHash;
+    }
+
 }
