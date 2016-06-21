@@ -597,7 +597,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (prhead.isMerge()) {
                 PullRequestAction metadata = prhead.getAction(PullRequestAction.class);
                 if (metadata == null) {
-                throw new IOException("Cannot find base branch metadata from " + prhead);
+                    throw new IOException("Cannot find base branch metadata from " + prhead);
                 }
                 baseHash = repo.getRef("heads/" + metadata.getTarget().getName()).getObject().getSha();
             } else {
