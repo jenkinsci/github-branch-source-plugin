@@ -775,7 +775,34 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
 
         @Restricted(NoExternalUse.class)
-        public FormValidation doCheckBuildOriginBranch/* arbitrary which one we pick for web method name */(
+        public FormValidation doCheckBuildOriginBranchWithPR(
+            @QueryParameter boolean buildOriginBranch,
+            @QueryParameter boolean buildOriginBranchWithPR,
+            @QueryParameter boolean buildOriginPRMerge,
+            @QueryParameter boolean buildOriginPRHead,
+            @QueryParameter boolean buildForkPRMerge,
+            @QueryParameter boolean buildForkPRHead
+        ) {
+            if (buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerge && !buildOriginPRHead && !buildForkPRMerge && !buildForkPRHead) {
+                // TODO in principle we could make doRetrieve populate originBranchesWithPR without actually including any PRs, but it would be more work and probably never wanted anyway.
+                return FormValidation.warning("If you are not building any PRs, all origin branches will be built.");
+            }
+            return FormValidation.ok();
+        }
+
+        @Restricted(NoExternalUse.class)
+        public FormValidation doCheckBuildOriginPRHead(@QueryParameter boolean buildOriginBranchWithPR, @QueryParameter boolean buildOriginPRMerge, @QueryParameter boolean buildOriginPRHead) {
+            if (buildOriginBranchWithPR && buildOriginPRHead) {
+                return FormValidation.warning("Redundant to build an origin PR both as a branch and as an unmerged PR.");
+            }
+            if (buildOriginPRMerge && buildOriginPRHead) {
+                return FormValidation.ok("Merged vs. unmerged PRs will be distinguished in the job name (*-merge vs. *-head).");
+            }
+            return FormValidation.ok();
+        }
+
+        @Restricted(NoExternalUse.class)
+        public FormValidation doCheckBuildForkPRHead/* web method name controls UI position of message; we want this at the bottom */(
             @QueryParameter boolean buildOriginBranch,
             @QueryParameter boolean buildOriginBranchWithPR,
             @QueryParameter boolean buildOriginPRMerge,
@@ -786,14 +813,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (!buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerge && !buildOriginPRHead && !buildForkPRMerge && !buildForkPRHead) {
                 return FormValidation.warning("You need to build something!");
             }
-            if (buildOriginBranchWithPR && buildOriginPRHead) {
-                return FormValidation.warning("Redundant to build an origin PR both as a branch and as an unmerged PR");
-            }
-            if (buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerge && !buildOriginPRHead && !buildForkPRMerge && !buildForkPRHead) {
-                // TODO in principle we could make doRetrieve populate originBranchesWithPR without actually including any PRs, but it would be more work and probably never wanted anyway.
-                return FormValidation.warning("If you are not building any PRs, all origin branches will be built.");
-            }
-            if (buildOriginPRMerge && buildOriginPRHead || buildForkPRMerge && buildForkPRHead) {
+            if (buildForkPRMerge && buildForkPRHead) {
                 return FormValidation.ok("Merged vs. unmerged PRs will be distinguished in the job name (*-merge vs. *-head).");
             }
             return FormValidation.ok();
