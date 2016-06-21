@@ -657,6 +657,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             listener.getLogger().println("Merging " + baseName + " commit " + baseHash + " into PR head commit " + rev.getSha1String());
             checkout(scm, build, git, listener, rev);
             try {
+                git.setAuthor("Jenkins", /* could parse out of JenkinsLocationConfiguration.get().getAdminAddress() but seems overkill */"nobody@nowhere");
+                git.setCommitter("Jenkins", "nobody@nowhere");
                 MergeCommand cmd = git.merge().setRevisionToMerge(ObjectId.fromString(baseHash));
                 for (GitSCMExtension ext : scm.getExtensions()) {
                     // By default we do a regular merge, allowing it to fast-forward.
