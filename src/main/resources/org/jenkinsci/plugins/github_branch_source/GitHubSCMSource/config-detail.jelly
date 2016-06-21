@@ -30,17 +30,17 @@
         <f:checkbox default="${descriptor.defaultBuildOriginBranchWithPR}"/>
     </f:entry>
     <!-- TODO I18N (% syntax chokes on parentheses) -->
-    <f:entry title="Build origin PRs (merged with base branch)" field="buildOriginPRMerged">
-        <f:checkbox default="${descriptor.defaultBuildOriginPRMerged}"/>
+    <f:entry title="Build origin PRs (merged with base branch)" field="buildOriginPRMerge">
+        <f:checkbox default="${descriptor.defaultBuildOriginPRMerge}"/>
     </f:entry>
-    <f:entry title="Build origin PRs (unmerged)" field="buildOriginPRUnmerged">
-        <f:checkbox default="${descriptor.defaultBuildOriginPRUnmerged}"/>
+    <f:entry title="Build origin PRs (unmerged head)" field="buildOriginPRHead">
+        <f:checkbox default="${descriptor.defaultBuildOriginPRHead"/>
     </f:entry>
-    <f:entry title="Build fork PRs (merged with base branch)" field="buildForkPRMerged">
-        <f:checkbox default="${descriptor.defaultBuildForkPRMerged}"/>
+    <f:entry title="Build fork PRs (merged with base branch)" field="buildForkPRMerge">
+        <f:checkbox default="${descriptor.defaultBuildForkPRMerge}"/>
     </f:entry>
-    <f:entry title="Build fork PRs (unmerged)" field="buildForkPRUnmerged">
-        <f:checkbox default="${descriptor.defaultBuildForkPRUnmerged}"/>
+    <f:entry title="Build fork PRs (unmerged head)" field="buildForkPRHead">
+        <f:checkbox default="${descriptor.defaultBuildForkPRHead}"/>
     </f:entry>
   </f:advanced>
 </j:jelly>

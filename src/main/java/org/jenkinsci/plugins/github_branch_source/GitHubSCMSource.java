@@ -125,13 +125,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /** Whether to build origin branches which happen to also have a PR filed from them (but here we are naming and building as a branch). */
     private @Nonnull Boolean buildOriginBranchWithPR = DescriptorImpl.defaultBuildOriginBranchWithPR;
     /** Whether to build PRs filed from the origin, where the build is of the merge with the base branch. */
-    private @Nonnull Boolean buildOriginPRMerged = DescriptorImpl.defaultBuildOriginPRMerged;
+    private @Nonnull Boolean buildOriginPRMerge = DescriptorImpl.defaultBuildOriginPRMerge;
     /** Whether to build PRs filed from the origin, where the build is of the branch head. */
-    private @Nonnull Boolean buildOriginPRUnmerged = DescriptorImpl.defaultBuildOriginPRUnmerged;
+    private @Nonnull Boolean buildOriginPRHead = DescriptorImpl.defaultBuildOriginPRHead;
     /** Whether to build PRs filed from a fork, where the build is of the merge with the base branch. */
-    private @Nonnull Boolean buildForkPRMerged = DescriptorImpl.defaultBuildForkPRMerged;
+    private @Nonnull Boolean buildForkPRMerge = DescriptorImpl.defaultBuildForkPRMerge;
     /** Whether to build PRs filed from a fork, where the build is of the branch head. */
-    private @Nonnull Boolean buildForkPRUnmerged = DescriptorImpl.defaultBuildForkPRUnmerged;
+    private @Nonnull Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
 
     @DataBoundConstructor
     public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
@@ -152,17 +152,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (buildOriginBranchWithPR == null) {
             buildOriginBranchWithPR = DescriptorImpl.defaultBuildOriginBranchWithPR;
         }
-        if (buildOriginPRMerged == null) {
-            buildOriginPRMerged = DescriptorImpl.defaultBuildOriginPRMerged;
+        if (buildOriginPRMerge == null) {
+            buildOriginPRMerge = DescriptorImpl.defaultBuildOriginPRMerge;
         }
-        if (buildOriginPRUnmerged == null) {
-            buildOriginPRUnmerged = DescriptorImpl.defaultBuildOriginPRUnmerged;
+        if (buildOriginPRHead == null) {
+            buildOriginPRHead = DescriptorImpl.defaultBuildOriginPRHead;
         }
-        if (buildForkPRMerged == null) {
-            buildForkPRMerged = DescriptorImpl.defaultBuildForkPRMerged;
+        if (buildForkPRMerge == null) {
+            buildForkPRMerge = DescriptorImpl.defaultBuildForkPRMerge;
         }
-        if (buildForkPRUnmerged == null) {
-            buildForkPRUnmerged = DescriptorImpl.defaultBuildForkPRUnmerged;
+        if (buildForkPRHead == null) {
+            buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
         }
         return this;
     }
@@ -289,40 +289,40 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         this.buildOriginBranchWithPR = buildOriginBranchWithPR;
     }
 
-    public Boolean getBuildOriginPRMerged() {
-        return buildOriginPRMerged;
+    public Boolean getBuildOriginPRMerge() {
+        return buildOriginPRMerge;
     }
 
     @DataBoundSetter
-    public void setBuildOriginPRMerged(Boolean buildOriginPRMerged) {
-        this.buildOriginPRMerged = buildOriginPRMerged;
+    public void setBuildOriginPRMerge(Boolean buildOriginPRMerge) {
+        this.buildOriginPRMerge = buildOriginPRMerge;
     }
 
-    public Boolean getBuildOriginPRUnmerged() {
-        return buildOriginPRUnmerged;
-    }
-
-    @DataBoundSetter
-    public void setBuildOriginPRUnmerged(Boolean buildOriginPRUnmerged) {
-        this.buildOriginPRUnmerged = buildOriginPRUnmerged;
-    }
-
-    public Boolean getBuildForkPRMerged() {
-        return buildForkPRMerged;
+    public Boolean getBuildOriginPRHead() {
+        return buildOriginPRHead;
     }
 
     @DataBoundSetter
-    public void setBuildForkPRMerged(Boolean buildForkPRMerged) {
-        this.buildForkPRMerged = buildForkPRMerged;
+    public void setBuildOriginPRHead(Boolean buildOriginPRHead) {
+        this.buildOriginPRHead = buildOriginPRHead;
     }
 
-    public Boolean getBuildForkPRUnmerged() {
-        return buildForkPRUnmerged;
+    public Boolean getBuildForkPRMerge() {
+        return buildForkPRMerge;
     }
 
     @DataBoundSetter
-    public void setBuildForkPRUnmerged(Boolean buildForkPRUnmerged) {
-        this.buildForkPRUnmerged = buildForkPRUnmerged;
+    public void setBuildForkPRMerge(Boolean buildForkPRMerge) {
+        this.buildForkPRMerge = buildForkPRMerge;
+    }
+
+    public Boolean getBuildForkPRHead() {
+        return buildForkPRHead;
+    }
+
+    @DataBoundSetter
+    public void setBuildForkPRHead(Boolean buildForkPRHead) {
+        this.buildForkPRHead = buildForkPRHead;
     }
 
     @Override
@@ -375,18 +375,18 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // To implement buildOriginBranch && !buildOriginBranchWithPR we need to first find the pull requests, so we can skip corresponding origin branches later. Awkward.
         Set<String> originBranchesWithPR = new HashSet<>();
 
-        if (buildOriginPRMerged || buildOriginPRUnmerged || buildForkPRMerged || buildForkPRUnmerged) {
+        if (buildOriginPRMerge || buildOriginPRHead || buildForkPRMerge || buildForkPRHead) {
             listener.getLogger().format("%n  Getting remote pull requests...%n");
             int pullrequests = 0;
             for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
                 int number = ghPullRequest.getNumber();
                 listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + number));
                 boolean fork = !repo.getOwner().equals(ghPullRequest.getHead().getUser());
-                if (fork && !buildForkPRMerged && !buildForkPRUnmerged) {
+                if (fork && !buildForkPRMerge && !buildForkPRHead) {
                     listener.getLogger().format("    Submitted from fork, skipping%n%n");
                     continue;
                 }
-                if (!fork && !buildOriginPRMerged && !buildOriginPRUnmerged) {
+                if (!fork && !buildOriginPRMerge && !buildOriginPRHead) {
                     listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
                     continue;
                 }
@@ -400,36 +400,36 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 for (boolean merge : new boolean[] {false, true}) {
                     String branchName = "PR-" + number;
                     if (merge && fork) {
-                        if (!buildForkPRMerged) {
+                        if (!buildForkPRMerge) {
                             continue; // not doing this combination
                         }
-                        if (buildForkPRUnmerged) {
-                            branchName += "-merged"; // make sure they are distinct
+                        if (buildForkPRHead) {
+                            branchName += "-merge"; // make sure they are distinct
                         }
                         // If we only build merged, or only unmerged, then we use the /PR-\d+/ scheme as before.
                     }
                     if (merge && !fork) {
-                        if (!buildOriginPRMerged) {
+                        if (!buildOriginPRMerge) {
                             continue;
                         }
-                        if (buildForkPRUnmerged) {
-                            branchName += "-merged";
+                        if (buildForkPRHead) {
+                            branchName += "-merge";
                         }
                     }
                     if (!merge && fork) {
-                        if (!buildForkPRUnmerged) {
+                        if (!buildForkPRHead) {
                             continue;
                         }
-                        if (buildForkPRMerged) {
-                            branchName += "-unmerged";
+                        if (buildForkPRMerge) {
+                            branchName += "-head";
                         }
                     }
                     if (!merge && !fork) {
-                        if (!buildOriginPRUnmerged) {
+                        if (!buildOriginPRHead) {
                             continue;
                         }
-                        if (buildOriginPRMerged) {
-                            branchName += "-unmerged";
+                        if (buildOriginPRMerge) {
+                            branchName += "-head";
                         }
                     }
                     PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge, trusted);
@@ -689,7 +689,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             PullRequestAction metadata = revision.getHead().getAction(PullRequestAction.class);
             if (metadata != null) {
                 PullRequestSCMRevision rev = (PullRequestSCMRevision) revision;
-                listener.getLogger().println("Loading trusted files from target branch at " + rev.getBaseHash() + " rather than " + rev.getPullHash());
+                listener.getLogger().println("Loading trusted files from base branch " + metadata.getTarget().getName() + " at " + rev.getBaseHash() + " rather than " + rev.getPullHash());
                 return new SCMRevisionImpl(metadata.getTarget(), rev.getBaseHash());
             } else {
                 throw new IOException("Cannot find base branch metadata from " + revision.getHead());
@@ -725,10 +725,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Prior to JENKINS-33161 the unconditional behavior was to build fork PRs plus origin branches, and try to build a merge revision for PRs.
         public static final boolean defaultBuildOriginBranch = true;
         public static final boolean defaultBuildOriginBranchWithPR = true;
-        public static final boolean defaultBuildOriginPRMerged = false;
-        public static final boolean defaultBuildOriginPRUnmerged = false;
-        public static final boolean defaultBuildForkPRMerged = true;
-        public static final boolean defaultBuildForkPRUnmerged = false;
+        public static final boolean defaultBuildOriginPRMerge = false;
+        public static final boolean defaultBuildOriginPRHead = false;
+        public static final boolean defaultBuildForkPRMerge = true;
+        public static final boolean defaultBuildForkPRHead = false;
 
         @Initializer(before = InitMilestone.PLUGINS_STARTED)
         public static void addAliases() {
@@ -778,23 +778,23 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         public FormValidation doCheckBuildOriginBranch/* arbitrary which one we pick for web method name */(
             @QueryParameter boolean buildOriginBranch,
             @QueryParameter boolean buildOriginBranchWithPR,
-            @QueryParameter boolean buildOriginPRMerged,
-            @QueryParameter boolean buildOriginPRUnmerged,
-            @QueryParameter boolean buildForkPRMerged,
-            @QueryParameter boolean buildForkPRUnmerged
+            @QueryParameter boolean buildOriginPRMerge,
+            @QueryParameter boolean buildOriginPRHead,
+            @QueryParameter boolean buildForkPRMerge,
+            @QueryParameter boolean buildForkPRHead
         ) {
-            if (!buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerged && !buildOriginPRUnmerged && !buildForkPRMerged && !buildForkPRUnmerged) {
+            if (!buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerge && !buildOriginPRHead && !buildForkPRMerge && !buildForkPRHead) {
                 return FormValidation.warning("You need to build something!");
             }
-            if (buildOriginBranchWithPR && buildOriginPRUnmerged) {
+            if (buildOriginBranchWithPR && buildOriginPRHead) {
                 return FormValidation.warning("Redundant to build an origin PR both as a branch and as an unmerged PR");
             }
-            if (buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerged && !buildOriginPRUnmerged && !buildForkPRMerged && !buildForkPRUnmerged) {
+            if (buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerge && !buildOriginPRHead && !buildForkPRMerge && !buildForkPRHead) {
                 // TODO in principle we could make doRetrieve populate originBranchesWithPR without actually including any PRs, but it would be more work and probably never wanted anyway.
                 return FormValidation.warning("If you are not building any PRs, all origin branches will be built.");
             }
-            if (buildOriginPRMerged && buildOriginPRUnmerged || buildForkPRMerged && buildForkPRUnmerged) {
-                return FormValidation.ok("Merged vs. unmerged PRs will be distinguished in the job name.");
+            if (buildOriginPRMerge && buildOriginPRHead || buildForkPRMerge && buildForkPRHead) {
+                return FormValidation.ok("Merged vs. unmerged PRs will be distinguished in the job name (*-merge vs. *-head).");
             }
             return FormValidation.ok();
         }
