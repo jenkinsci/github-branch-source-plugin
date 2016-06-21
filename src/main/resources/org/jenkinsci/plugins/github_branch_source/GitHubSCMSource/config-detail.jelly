@@ -22,24 +22,22 @@
     <f:entry title="${%Exclude branches}" field="excludes">
       <f:textbox default="${descriptor.defaultExcludes}"/>
     </f:entry>
-    <!-- TODO add help-build*.html -->
-    <f:entry title="${%Build origin branches}" field="buildOriginBranch">
+    <f:entry title="${%buildOriginBranch.title}" field="buildOriginBranch">
         <f:checkbox default="${descriptor.defaultBuildOriginBranch}"/>
     </f:entry>
-    <f:entry title="${%Build origin branches also filed as PRs}" field="buildOriginBranchWithPR">
+    <f:entry title="${%buildOriginBranchWithPR.title}" field="buildOriginBranchWithPR">
         <f:checkbox default="${descriptor.defaultBuildOriginBranchWithPR}"/>
     </f:entry>
-    <!-- TODO I18N (% syntax chokes on parentheses) -->
-    <f:entry title="Build origin PRs (merged with base branch)" field="buildOriginPRMerge">
+    <f:entry title="${%buildOriginPRMerge.title}" field="buildOriginPRMerge">
         <f:checkbox default="${descriptor.defaultBuildOriginPRMerge}"/>
     </f:entry>
-    <f:entry title="Build origin PRs (unmerged head)" field="buildOriginPRHead">
+    <f:entry title="${%buildOriginPRHead.title}" field="buildOriginPRHead">
         <f:checkbox default="${descriptor.defaultBuildOriginPRHead}"/>
     </f:entry>
-    <f:entry title="Build fork PRs (merged with base branch)" field="buildForkPRMerge">
+    <f:entry title="${%buildForkPRMerge.title}" field="buildForkPRMerge">
         <f:checkbox default="${descriptor.defaultBuildForkPRMerge}"/>
     </f:entry>
-    <f:entry title="Build fork PRs (unmerged head)" field="buildForkPRHead">
+    <f:entry title="${%buildForkPRHead.title}" field="buildForkPRHead">
         <f:checkbox default="${descriptor.defaultBuildForkPRHead}"/>
     </f:entry>
   </f:advanced>
