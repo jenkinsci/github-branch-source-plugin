@@ -271,57 +271,57 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         this.excludes = excludes;
     }
 
-    public Boolean getBuildOriginBranch() {
+    public boolean getBuildOriginBranch() {
         return buildOriginBranch;
     }
 
     @DataBoundSetter
-    public void setBuildOriginBranch(Boolean buildOriginBranch) {
+    public void setBuildOriginBranch(boolean buildOriginBranch) {
         this.buildOriginBranch = buildOriginBranch;
     }
 
-    public Boolean getBuildOriginBranchWithPR() {
+    public boolean getBuildOriginBranchWithPR() {
         return buildOriginBranchWithPR;
     }
 
     @DataBoundSetter
-    public void setBuildOriginBranchWithPR(Boolean buildOriginBranchWithPR) {
+    public void setBuildOriginBranchWithPR(boolean buildOriginBranchWithPR) {
         this.buildOriginBranchWithPR = buildOriginBranchWithPR;
     }
 
-    public Boolean getBuildOriginPRMerge() {
+    public boolean getBuildOriginPRMerge() {
         return buildOriginPRMerge;
     }
 
     @DataBoundSetter
-    public void setBuildOriginPRMerge(Boolean buildOriginPRMerge) {
+    public void setBuildOriginPRMerge(boolean buildOriginPRMerge) {
         this.buildOriginPRMerge = buildOriginPRMerge;
     }
 
-    public Boolean getBuildOriginPRHead() {
+    public boolean getBuildOriginPRHead() {
         return buildOriginPRHead;
     }
 
     @DataBoundSetter
-    public void setBuildOriginPRHead(Boolean buildOriginPRHead) {
+    public void setBuildOriginPRHead(boolean buildOriginPRHead) {
         this.buildOriginPRHead = buildOriginPRHead;
     }
 
-    public Boolean getBuildForkPRMerge() {
+    public boolean getBuildForkPRMerge() {
         return buildForkPRMerge;
     }
 
     @DataBoundSetter
-    public void setBuildForkPRMerge(Boolean buildForkPRMerge) {
+    public void setBuildForkPRMerge(boolean buildForkPRMerge) {
         this.buildForkPRMerge = buildForkPRMerge;
     }
 
-    public Boolean getBuildForkPRHead() {
+    public boolean getBuildForkPRHead() {
         return buildForkPRHead;
     }
 
     @DataBoundSetter
-    public void setBuildForkPRHead(Boolean buildForkPRHead) {
+    public void setBuildForkPRHead(boolean buildForkPRHead) {
         this.buildForkPRHead = buildForkPRHead;
     }
 
