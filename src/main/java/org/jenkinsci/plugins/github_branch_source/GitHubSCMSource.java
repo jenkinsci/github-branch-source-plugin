@@ -432,6 +432,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             branchName += "-head";
                         }
                     }
+                    listener.getLogger().format("    Job name: %s%n", branchName);
                     PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge, trusted);
                     if (criteria != null) {
                         // Would be more precise to check whether the merge of the base branch head with the PR branch head contains a given file, etc.,
