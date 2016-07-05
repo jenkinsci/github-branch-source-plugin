@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.Util;
@@ -41,6 +42,7 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.inject.Inject;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
 import jenkins.scm.api.SCMSourceObserver;
@@ -70,12 +72,48 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
     @CheckForNull private String includes;
     @CheckForNull private String excludes;
+    /** Whether to build regular origin branches. */
+    private @Nonnull Boolean buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
+    /** Whether to build origin branches which happen to also have a PR filed from them (but here we are naming and building as a branch). */
+    private @Nonnull Boolean buildOriginBranchWithPR = DescriptorImpl.defaultBuildOriginBranchWithPR;
+    /** Whether to build PRs filed from the origin, where the build is of the merge with the base branch. */
+    private @Nonnull Boolean buildOriginPRMerge = DescriptorImpl.defaultBuildOriginPRMerge;
+    /** Whether to build PRs filed from the origin, where the build is of the branch head. */
+    private @Nonnull Boolean buildOriginPRHead = DescriptorImpl.defaultBuildOriginPRHead;
+    /** Whether to build PRs filed from a fork, where the build is of the merge with the base branch. */
+    private @Nonnull Boolean buildForkPRMerge = DescriptorImpl.defaultBuildForkPRMerge;
+    /** Whether to build PRs filed from a fork, where the build is of the branch head. */
+    private @Nonnull Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
 
     @DataBoundConstructor public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
         this.repoOwner = repoOwner;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
         this.checkoutCredentialsId = checkoutCredentialsId;
         this.apiUri = Util.fixEmpty(apiUri);
+    }
+
+    /** Use defaults for old settings. */
+    @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="Only non-null after we set them here!")
+    private Object readResolve() {
+        if (buildOriginBranch == null) {
+            buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
+        }
+        if (buildOriginBranchWithPR == null) {
+            buildOriginBranchWithPR = DescriptorImpl.defaultBuildOriginBranchWithPR;
+        }
+        if (buildOriginPRMerge == null) {
+            buildOriginPRMerge = DescriptorImpl.defaultBuildOriginPRMerge;
+        }
+        if (buildOriginPRHead == null) {
+            buildOriginPRHead = DescriptorImpl.defaultBuildOriginPRHead;
+        }
+        if (buildForkPRMerge == null) {
+            buildForkPRMerge = DescriptorImpl.defaultBuildForkPRMerge;
+        }
+        if (buildForkPRHead == null) {
+            buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+        }
+        return this;
     }
 
     @Nonnull public String getIncludes() {
@@ -94,6 +132,60 @@ public class GitHubSCMNavigator extends SCMNavigator {
         this.excludes = excludes.equals(DescriptorImpl.defaultExcludes) ? null : excludes;
     }
     
+    public boolean getBuildOriginBranch() {
+        return buildOriginBranch;
+    }
+
+    @DataBoundSetter
+    public void setBuildOriginBranch(boolean buildOriginBranch) {
+        this.buildOriginBranch = buildOriginBranch;
+    }
+
+    public boolean getBuildOriginBranchWithPR() {
+        return buildOriginBranchWithPR;
+    }
+
+    @DataBoundSetter
+    public void setBuildOriginBranchWithPR(boolean buildOriginBranchWithPR) {
+        this.buildOriginBranchWithPR = buildOriginBranchWithPR;
+    }
+
+    public boolean getBuildOriginPRMerge() {
+        return buildOriginPRMerge;
+    }
+
+    @DataBoundSetter
+    public void setBuildOriginPRMerge(boolean buildOriginPRMerge) {
+        this.buildOriginPRMerge = buildOriginPRMerge;
+    }
+
+    public boolean getBuildOriginPRHead() {
+        return buildOriginPRHead;
+    }
+
+    @DataBoundSetter
+    public void setBuildOriginPRHead(boolean buildOriginPRHead) {
+        this.buildOriginPRHead = buildOriginPRHead;
+    }
+
+    public boolean getBuildForkPRMerge() {
+        return buildForkPRMerge;
+    }
+
+    @DataBoundSetter
+    public void setBuildForkPRMerge(boolean buildForkPRMerge) {
+        this.buildForkPRMerge = buildForkPRMerge;
+    }
+
+    public boolean getBuildForkPRHead() {
+        return buildForkPRHead;
+    }
+
+    @DataBoundSetter
+    public void setBuildForkPRHead(boolean buildForkPRHead) {
+        this.buildForkPRHead = buildForkPRHead;
+    }
+
     public String getRepoOwner() {
         return repoOwner;
     }
@@ -220,6 +312,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         GitHubSCMSource ghSCMSource = new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name);
         ghSCMSource.setExcludes(getExcludes());
         ghSCMSource.setIncludes(getIncludes());
+        ghSCMSource.setBuildOriginBranch(getBuildOriginBranch());
+        ghSCMSource.setBuildOriginBranchWithPR(getBuildOriginBranchWithPR());
+        ghSCMSource.setBuildOriginPRMerge(getBuildOriginPRMerge());
+        ghSCMSource.setBuildOriginPRHead(getBuildOriginPRHead());
+        ghSCMSource.setBuildForkPRMerge(getBuildForkPRMerge());
+        ghSCMSource.setBuildForkPRHead(getBuildForkPRHead());
 
         projectObserver.addSource(ghSCMSource);
         projectObserver.complete();
@@ -232,6 +330,14 @@ public class GitHubSCMNavigator extends SCMNavigator {
         public static final String defaultIncludes = GitHubSCMSource.DescriptorImpl.defaultIncludes;
         public static final String defaultExcludes = GitHubSCMSource.DescriptorImpl.defaultExcludes;
         public static final String SAME = GitHubSCMSource.DescriptorImpl.SAME;
+        public static final boolean defaultBuildOriginBranch = GitHubSCMSource.DescriptorImpl.defaultBuildOriginBranch;
+        public static final boolean defaultBuildOriginBranchWithPR = GitHubSCMSource.DescriptorImpl.defaultBuildOriginBranchWithPR;
+        public static final boolean defaultBuildOriginPRMerge = GitHubSCMSource.DescriptorImpl.defaultBuildOriginPRMerge;
+        public static final boolean defaultBuildOriginPRHead = GitHubSCMSource.DescriptorImpl.defaultBuildOriginPRHead;
+        public static final boolean defaultBuildForkPRMerge = GitHubSCMSource.DescriptorImpl.defaultBuildForkPRMerge;
+        public static final boolean defaultBuildForkPRHead = GitHubSCMSource.DescriptorImpl.defaultBuildForkPRHead;
+
+        @Inject private GitHubSCMSource.DescriptorImpl delegate;
         
         @Override public String getDisplayName() {
             return Messages.GitHubSCMNavigator_DisplayName();
@@ -299,6 +405,43 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
             return result;
         }
+
+        // TODO repeating configuration blocks like this is clumsy; better to factor shared config into a Describable and use f:property
+
+        @Restricted(NoExternalUse.class)
+        public FormValidation doCheckIncludes(@QueryParameter String value) {
+            return delegate.doCheckIncludes(value);
+        }
+
+        @Restricted(NoExternalUse.class)
+        public FormValidation doCheckBuildOriginBranchWithPR(
+            @QueryParameter boolean buildOriginBranch,
+            @QueryParameter boolean buildOriginBranchWithPR,
+            @QueryParameter boolean buildOriginPRMerge,
+            @QueryParameter boolean buildOriginPRHead,
+            @QueryParameter boolean buildForkPRMerge,
+            @QueryParameter boolean buildForkPRHead
+        ) {
+            return delegate.doCheckBuildOriginBranchWithPR(buildOriginBranch, buildOriginBranchWithPR, buildOriginPRMerge, buildOriginPRHead, buildForkPRMerge, buildForkPRHead);
+        }
+
+        @Restricted(NoExternalUse.class)
+        public FormValidation doCheckBuildOriginPRHead(@QueryParameter boolean buildOriginBranchWithPR, @QueryParameter boolean buildOriginPRMerge, @QueryParameter boolean buildOriginPRHead) {
+            return delegate.doCheckBuildOriginPRHead(buildOriginBranchWithPR, buildOriginPRMerge, buildOriginPRHead);
+        }
+
+        @Restricted(NoExternalUse.class)
+        public FormValidation doCheckBuildForkPRHead/* web method name controls UI position of message; we want this at the bottom */(
+            @QueryParameter boolean buildOriginBranch,
+            @QueryParameter boolean buildOriginBranchWithPR,
+            @QueryParameter boolean buildOriginPRMerge,
+            @QueryParameter boolean buildOriginPRHead,
+            @QueryParameter boolean buildForkPRMerge,
+            @QueryParameter boolean buildForkPRHead
+        ) {
+            return delegate.doCheckBuildForkPRHead(buildOriginBranch, buildOriginBranchWithPR, buildOriginPRMerge, buildOriginPRHead, buildForkPRMerge, buildForkPRHead);
+        }
+
     }
 
 }

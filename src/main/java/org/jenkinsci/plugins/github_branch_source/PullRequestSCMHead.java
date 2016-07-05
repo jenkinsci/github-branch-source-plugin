@@ -32,27 +32,54 @@ import org.kohsuke.github.GHPullRequest;
 
 /**
  * Head corresponding to a pull request.
- * Named like {@code PR-123}.
+ * Named like {@code PR-123} or {@code PR-123-merged} or {@code PR-123-unmerged}.
  */
 public final class PullRequestSCMHead extends SCMHead {
-
-    private static final String PR_BRANCH_PREFIX = "PR-";
 
     private static final long serialVersionUID = 1;
 
     private final PullRequestAction metadata;
+    private Boolean merge;
+    private final boolean trusted;
 
-    PullRequestSCMHead(GHPullRequest pr) {
-        super(PR_BRANCH_PREFIX + pr.getNumber());
+    PullRequestSCMHead(GHPullRequest pr, String name, boolean merge, boolean trusted) {
+        super(name);
         metadata = new PullRequestAction(pr);
+        this.merge = merge;
+        this.trusted = trusted;
     }
 
     public int getNumber() {
         if (metadata != null) {
             return Integer.parseInt(metadata.getId());
         } else { // settings compatibility
-            return Integer.parseInt(getName().substring(PR_BRANCH_PREFIX.length()));
+            // if predating PullRequestAction, then also predate -merged/-unmerged suffices
+            return Integer.parseInt(getName().substring("PR-".length()));
         }
+    }
+
+    /** Default for old settings. */
+    private Object readResolve() {
+        if (merge == null) {
+            merge = true;
+        }
+        // leave trusted at false to be on the safe side
+        return this;
+    }
+
+    /**
+     * Whether we intend to build the merge of the PR head with the base branch.
+     * 
+     */
+    public boolean isMerge() {
+        return merge;
+    }
+
+    /**
+     * Whether this PR was observed to have come from a trusted author.
+     */
+    public boolean isTrusted() {
+        return trusted;
     }
 
     @Override

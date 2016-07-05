@@ -44,10 +44,8 @@ import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
-import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHCommitState;
 import org.kohsuke.github.GHPullRequest;
-import org.kohsuke.github.GHPullRequestCommitDetail;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
@@ -56,7 +54,6 @@ import javax.annotation.Nonnull;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -73,9 +70,9 @@ public class GitHubBuildStatusNotification {
     
     private static final Logger LOGGER = Logger.getLogger(GitHubBuildStatusNotification.class.getName());
 
-    private static void createCommitStatus(@Nonnull GHRepository repo, @Nonnull String revision, @Nonnull GHCommitState state, @Nonnull String url, @Nonnull String message) throws IOException {
+    private static void createCommitStatus(@Nonnull GHRepository repo, @Nonnull String revision, @Nonnull GHCommitState state, @Nonnull String url, @Nonnull String message, @Nonnull Job<?,?> job) throws IOException {
         LOGGER.log(Level.FINE, "{0}/commit/{1} {2} from {3}", new Object[] {repo.getHtmlUrl(), revision, state, url});
-        repo.createCommitStatus(revision, state, url, message, "Jenkins");
+        repo.createCommitStatus(revision, state, url, message, "Jenkins job " + job.getName());
     }
 
     @SuppressWarnings("deprecation") // Run.getAbsoluteUrl appropriate here
@@ -96,17 +93,18 @@ public class GitHubBuildStatusNotification {
                     try {
                         Result result = build.getResult();
                         String revisionToNotify = resolveHeadCommit(repo, revision);
+                        Job<?,?> job = build.getParent();
                         if (Result.SUCCESS.equals(result)) {
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good());
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good(), job);
                         } else if (Result.UNSTABLE.equals(result)) {
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable());
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable(), job);
                         } else if (Result.FAILURE.equals(result)) {
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure());
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure(), job);
                         } else if (result != null) { // ABORTED etc.
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other());
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other(), job);
                         } else {
                             ignoreError = true;
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending());
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending(), job);
                         }
                         if (result != null) {
                             listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
@@ -198,7 +196,7 @@ public class GitHubBuildStatusNotification {
                             }
                             // Has not been built yet, so we can only guess that the current PR head is what will be built.
                             // In fact the submitter might push another commit before this build even starts.
-                            createCommitStatus(repo, pr.getHead().getSha(), GHCommitState.PENDING, url, "This pull request is scheduled to be built");
+                            createCommitStatus(repo, pr.getHead().getSha(), GHCommitState.PENDING, url, "This pull request is scheduled to be built", job);
                         }
                     } catch (FileNotFoundException fnfe) {
                         LOGGER.log(Level.WARNING, "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?");
@@ -239,35 +237,12 @@ public class GitHubBuildStatusNotification {
 
     private static String resolveHeadCommit(GHRepository repo, SCMRevision revision) throws IllegalArgumentException {
         if (revision instanceof SCMRevisionImpl) {
-            SCMRevisionImpl rev = (SCMRevisionImpl) revision;
-            try {
-                GHCommit commit = repo.getCommit(rev.getHash());
-                List<GHCommit> parents = commit.getParents();
-                // if revision has two parent commits, we have really a MergeCommit
-                if (parents.size() == 2) {
-                    SCMHead head = revision.getHead();
-                    // MergeCommit is coming from a pull request
-                    if (head instanceof PullRequestSCMHead) {
-                        GHPullRequest pullRequest = repo.getPullRequest(((PullRequestSCMHead) head).getNumber());
-                        for (GHPullRequestCommitDetail commitDetail : pullRequest.listCommits()) {
-                            if (commitDetail.getSha().equals(parents.get(0).getSHA1())) {
-                                // Parent commit (HeadCommit) found in PR commit list
-                                return parents.get(0).getSHA1();
-                            }
-                        }
-                        // First parent commit not found in PR commit list, so returning the second one.
-                        return parents.get(1).getSHA1();
-                    } else {
-                        return rev.getHash();
-                    }
-                }
-                return rev.getHash();
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, null, e);
-                throw new IllegalArgumentException(e);
-            }
+            return ((SCMRevisionImpl) revision).getHash();
+        } else if (revision instanceof PullRequestSCMRevision) {
+            return ((PullRequestSCMRevision) revision).getPullHash();
+        } else {
+            throw new IllegalArgumentException("did not recognize " + revision);
         }
-        throw new IllegalArgumentException();
     }
 
     private GitHubBuildStatusNotification() {}
