@@ -7,7 +7,7 @@
         <version>2.3</version>
     </parent>
     <artifactId>github-branch-source</artifactId>
-    <version>1.9-SNAPSHOT</version>
+    <version>1.8.1</version>
     <packaging>hpi</packaging>
     <name>GitHub Branch Source Plugin</name>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/GitHub+Branch+Source+Plugin</url>
@@ -28,7 +28,7 @@
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-        <tag>HEAD</tag>
+        <tag>github-branch-source-1.8.1</tag>
     </scm>
     <dependencies>
         <dependency>
