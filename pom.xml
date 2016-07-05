@@ -10,7 +10,7 @@
     <version>1.9-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <name>GitHub Branch Source Plugin</name>
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/CloudBees+GitHub+Branch+Source+Plugin</url>
+    <url>https://wiki.jenkins-ci.org/display/JENKINS/GitHub+Branch+Source+Plugin</url>
     <description>Multibranch projects and organization folders from GitHub. Maintained by CloudBees, Inc.</description>
     <licenses>
         <license>
