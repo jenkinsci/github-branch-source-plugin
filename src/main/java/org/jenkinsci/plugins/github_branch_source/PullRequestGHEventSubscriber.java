@@ -101,6 +101,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                 @Override public void run() {
                     ACL.impersonate(ACL.SYSTEM, new Runnable() {
                         @Override public void run() {
+                            boolean found = false;
                             for (final SCMSourceOwner owner : SCMSourceOwners.all()) {
                                 for (SCMSource source : owner.getSCMSources()) {
                                     if (source instanceof GitHubSCMSource) {
@@ -108,9 +109,14 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                                         if (gitHubSCMSource.getRepoOwner().equals(changedRepository.getUserName()) &&
                                                 gitHubSCMSource.getRepository().equals(changedRepository.getRepositoryName())) {
                                             owner.onSCMSourceUpdated(gitHubSCMSource);
+                                            LOGGER.log(Level.FINE, "PR event on {0}:{1}/{2} forwarded to {3}", new Object[] {changedRepository.getHost(), changedRepository.getUserName(), changedRepository.getRepositoryName(), owner.getFullName()});
+                                            found = true;
                                         }
                                     }
                                 }
+                            }
+                            if (!found) {
+                                LOGGER.log(Level.FINE, "PR event on {0}:{1}/{2} did not match any project", new Object[] {changedRepository.getHost(), changedRepository.getUserName(), changedRepository.getRepositoryName()});
                             }
                         }
                     });
