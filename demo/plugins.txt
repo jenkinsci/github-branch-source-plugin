@@ -11,7 +11,7 @@ git-server:1.6
 git:2.5.2
 github:1.19.2
 github-api:1.76
-github-branch-source:1.7
+github-branch-source:1.8.1
 github-organization-folder:1.3
 handlebars:1.1.1
 icon-shim:2.0.3
