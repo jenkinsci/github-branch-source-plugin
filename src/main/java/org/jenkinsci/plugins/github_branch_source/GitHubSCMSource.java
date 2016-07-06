@@ -669,7 +669,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 // Try to revert merge conflict markers.
                 // TODO IGitAPI offers a reset(hard) method yet GitClient does not. Why?
                 checkout(scm, build, git, listener, rev);
-                // TODO would be nicer to throw an AbortException with just the message, but this is actually worse pending https://github.com/jenkinsci/git-client-plugin/pull/208
+                // TODO would be nicer to throw an AbortException with just the message, but this is actually worse until git-client 1.19.7+
                 throw x;
             }
             build.addAction(new MergeRecord(baseName, baseHash)); // does not seem to be used, but just in case
