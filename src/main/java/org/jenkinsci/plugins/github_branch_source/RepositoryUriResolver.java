@@ -32,7 +32,7 @@ import java.net.URL;
  */
 public abstract class RepositoryUriResolver {
 
-    public abstract String getRepositoryUri(String apiUri, String owner, String repository);
+    public abstract String getRepositoryUri(String apiUri, String owner, String repository, String httpUrl, String sshUrl);
 
     public static String hostnameFromApiUri(String apiUri) {
         if (apiUri != null) {

@@ -308,8 +308,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
             throw new InterruptedException();
         }
         SCMSourceObserver.ProjectObserver projectObserver = observer.observe(name);
-        
-        GitHubSCMSource ghSCMSource = new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name);
+
+        GitHubSCMSource ghSCMSource = new GitHubSCMSource(null, apiUri, checkoutCredentialsId,
+                scanCredentialsId, repoOwner, name, repo.gitHttpTransportUrl(), repo.getSshUrl());
         ghSCMSource.setExcludes(getExcludes());
         ghSCMSource.setIncludes(getIncludes());
         ghSCMSource.setBuildOriginBranch(getBuildOriginBranch());

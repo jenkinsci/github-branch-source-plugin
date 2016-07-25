@@ -116,6 +116,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     private final String repository;
 
+    private final String httpGitUrl;
+
+    private final String sshGitUrl;
+
     private @Nonnull String includes = DescriptorImpl.defaultIncludes;
 
     private @Nonnull String excludes = DescriptorImpl.defaultExcludes;
@@ -134,13 +138,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     private @Nonnull Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
 
     @DataBoundConstructor
-    public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
+    public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository, String httpGitUrl, String sshGitUrl) {
         super(id);
         this.apiUri = Util.fixEmpty(apiUri);
         this.repoOwner = repoOwner;
         this.repository = repository;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
         this.checkoutCredentialsId = checkoutCredentialsId;
+        this.httpGitUrl = Util.fixEmpty(httpGitUrl);
+        this.sshGitUrl = Util.fixEmpty(sshGitUrl);
     }
 
     /** Use defaults for old settings. */
@@ -327,7 +333,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @Override
     public String getRemote() {
-        return getUriResolver().getRepositoryUri(apiUri, repoOwner, repository);
+        String credentialsId = getCredentialsId();
+        return getUriResolver().getRepositoryUri(apiUri, repoOwner, repository, httpGitUrl, sshGitUrl);
     }
 
     @Override protected final void retrieve(SCMHeadObserver observer, final TaskListener listener) throws IOException, InterruptedException {

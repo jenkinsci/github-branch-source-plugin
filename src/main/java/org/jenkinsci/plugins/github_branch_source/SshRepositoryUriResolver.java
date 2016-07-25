@@ -30,8 +30,12 @@ package org.jenkinsci.plugins.github_branch_source;
 public class SshRepositoryUriResolver extends RepositoryUriResolver {
 
     @Override
-    public String getRepositoryUri(String apiUri, String owner, String repository) {
-        return "git@" + hostnameFromApiUri(apiUri) + ":" + owner + "/" + repository + ".git";
+    public String getRepositoryUri(String apiUri, String owner, String repository, String httpUrl, String sshUrl) {
+        if (sshUrl != null) {
+            return sshUrl;
+        } else {
+            return "git@" + hostnameFromApiUri(apiUri) + ":" + owner + "/" + repository + ".git";
+        }
     }
 
 }
