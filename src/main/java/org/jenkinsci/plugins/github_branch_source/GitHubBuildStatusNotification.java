@@ -67,12 +67,18 @@ import java.util.logging.Logger;
  *
  */
 public class GitHubBuildStatusNotification {
-    
+
     private static final Logger LOGGER = Logger.getLogger(GitHubBuildStatusNotification.class.getName());
 
     private static void createCommitStatus(@Nonnull GHRepository repo, @Nonnull String revision, @Nonnull GHCommitState state, @Nonnull String url, @Nonnull String message, @Nonnull Job<?,?> job) throws IOException {
         LOGGER.log(Level.FINE, "{0}/commit/{1} {2} from {3}", new Object[] {repo.getHtmlUrl(), revision, state, url});
-        repo.createCommitStatus(revision, state, url, message, "Jenkins job " + job.getName());
+        String status_context;
+        if (job.getName().startsWith("PR-")) {
+            status_context = "continuous-integration/jenkins/pr";
+        } else {
+            status_context = "continuous-integration/jenkins/branch";
+        }
+        repo.createCommitStatus(revision, state, url, message, status_context);
     }
 
     @SuppressWarnings("deprecation") // Run.getAbsoluteUrl appropriate here
