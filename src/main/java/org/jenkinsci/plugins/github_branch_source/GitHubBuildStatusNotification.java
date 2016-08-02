@@ -203,7 +203,7 @@ public class GitHubBuildStatusNotification {
                             }
                             // Has not been built yet, so we can only guess that the current PR head is what will be built.
                             // In fact the submitter might push another commit before this build even starts.
-                            createCommitStatus(repo, revision, GHCommitState.PENDING, url, "This pull request is scheduled to be built");
+                            createCommitStatus(repo, revision, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Queued());
                         }
                     } catch (FileNotFoundException fnfe) {
                         LOGGER.log(Level.WARNING, "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?");
