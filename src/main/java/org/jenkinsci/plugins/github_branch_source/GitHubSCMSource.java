@@ -380,6 +380,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             int pullrequests = 0;
             for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
                 int number = ghPullRequest.getNumber();
+                String branchName = "PR-" + number;
+                if (isExcluded(branchName)) {
+                    continue;
+                }
                 listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + number));
                 boolean fork = !repo.getOwner().equals(ghPullRequest.getHead().getUser());
                 if (fork && !buildForkPRMerge && !buildForkPRHead) {
@@ -398,7 +402,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     listener.getLogger().format("    (not from a trusted source)%n");
                 }
                 for (boolean merge : new boolean[] {false, true}) {
-                    String branchName = "PR-" + number;
                     if (merge && fork) {
                         if (!buildForkPRMerge) {
                             continue; // not doing this combination
