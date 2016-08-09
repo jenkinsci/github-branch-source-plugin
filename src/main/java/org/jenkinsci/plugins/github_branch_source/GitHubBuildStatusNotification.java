@@ -67,12 +67,20 @@ import java.util.logging.Logger;
  *
  */
 public class GitHubBuildStatusNotification {
-    
+
     private static final Logger LOGGER = Logger.getLogger(GitHubBuildStatusNotification.class.getName());
 
-    private static void createCommitStatus(@Nonnull GHRepository repo, @Nonnull String revision, @Nonnull GHCommitState state, @Nonnull String url, @Nonnull String message, @Nonnull Job<?,?> job) throws IOException {
+    private static void createCommitStatus(@Nonnull GHRepository repo, @Nonnull SCMRevision revision, @Nonnull GHCommitState state, @Nonnull String url, @Nonnull String message) throws IOException {
         LOGGER.log(Level.FINE, "{0}/commit/{1} {2} from {3}", new Object[] {repo.getHtmlUrl(), revision, state, url});
-        repo.createCommitStatus(revision, state, url, message, "Jenkins job " + job.getName());
+        String status_context;
+        String revisionToNotify = resolveHeadCommit(repo, revision);
+
+        if (revision instanceof PullRequestSCMRevision) {
+            status_context = "continuous-integration/jenkins/pr";
+        } else {
+            status_context = "continuous-integration/jenkins/branch";
+        }
+        repo.createCommitStatus(revisionToNotify, state, url, message, status_context);
     }
 
     @SuppressWarnings("deprecation") // Run.getAbsoluteUrl appropriate here
@@ -92,19 +100,17 @@ public class GitHubBuildStatusNotification {
                     boolean ignoreError = false;
                     try {
                         Result result = build.getResult();
-                        String revisionToNotify = resolveHeadCommit(repo, revision);
-                        Job<?,?> job = build.getParent();
                         if (Result.SUCCESS.equals(result)) {
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good(), job);
+                            createCommitStatus(repo, revision, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good());
                         } else if (Result.UNSTABLE.equals(result)) {
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable(), job);
+                            createCommitStatus(repo, revision, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable());
                         } else if (Result.FAILURE.equals(result)) {
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure(), job);
+                            createCommitStatus(repo, revision, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure());
                         } else if (result != null) { // ABORTED etc.
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other(), job);
+                            createCommitStatus(repo, revision, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other());
                         } else {
                             ignoreError = true;
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending(), job);
+                            createCommitStatus(repo, revision, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending());
                         }
                         if (result != null) {
                             listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
@@ -188,6 +194,7 @@ public class GitHubBuildStatusNotification {
                         if (repo != null) {
                             int number = ((PullRequestSCMHead) head).getNumber();
                             GHPullRequest pr = repo.getPullRequest(number);
+                            PullRequestSCMRevision revision = new PullRequestSCMRevision((PullRequestSCMHead) head, pr.getBase().getSha(), pr.getHead().getSha());
                             String url;
                             try {
                                 url = job.getAbsoluteUrl();
@@ -196,7 +203,7 @@ public class GitHubBuildStatusNotification {
                             }
                             // Has not been built yet, so we can only guess that the current PR head is what will be built.
                             // In fact the submitter might push another commit before this build even starts.
-                            createCommitStatus(repo, pr.getHead().getSha(), GHCommitState.PENDING, url, "This pull request is scheduled to be built", job);
+                            createCommitStatus(repo, revision, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Queued());
                         }
                     } catch (FileNotFoundException fnfe) {
                         LOGGER.log(Level.WARNING, "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?");
