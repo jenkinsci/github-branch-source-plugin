@@ -104,7 +104,6 @@ public class GitHubBuildStatusNotification {
                         Result result = build.getResult();
                         String revisionToNotify = resolveHeadCommit(repo, revision);
                         SCMHead head = revision.getHead();
-                        Job<?,?> job = build.getParent();
                         if (Result.SUCCESS.equals(result)) {
                             createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good(), head);
                         } else if (Result.UNSTABLE.equals(result)) {
