@@ -1,4 +1,4 @@
-FROM jenkinsci/jenkins:2.7
+FROM jenkins:2.7.2
 
 # Install Docker CLI (cf. Makefile mount of socket). Could use withTool but why download during demo when we can bake it in?
 USER root
