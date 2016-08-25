@@ -675,7 +675,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             build.addAction(new MergeRecord(baseName, baseHash)); // does not seem to be used, but just in case
             ObjectId mergeRev = git.revParse(Constants.HEAD);
             listener.getLogger().println("Merge succeeded, producing " + mergeRev.name());
-            return new Revision(mergeRev); // note that this ensures Build.revision != Build.marked
+            return new Revision(mergeRev, rev.getBranches()); // note that this ensures Build.revision != Build.marked
         }
         private void checkout(GitSCM scm, Run<?,?> build, GitClient git, TaskListener listener, Revision rev) throws InterruptedException, IOException, GitException {
             CheckoutCommand checkoutCommand = git.checkout().ref(rev.getSha1String());
