@@ -61,7 +61,7 @@
         <dependency>
             <groupId>com.coravy.hudson.plugins.github</groupId>
             <artifactId>github</artifactId>
-            <version>1.14.0</version>
+            <version>1.14.1</version>
         </dependency>
         <!-- Currently just here for interactive testing via hpi:run: -->
         <dependency>
