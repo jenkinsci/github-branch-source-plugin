@@ -22,8 +22,8 @@ RUN /usr/local/bin/plugins.sh /tmp/files/plugins.txt
 ADD JENKINS_HOME /usr/share/jenkins/ref
 RUN sudo chown -R jenkins.jenkins /usr/share/jenkins/ref
 
-ADD workflow-libs /usr/share/jenkins/ref/workflow-libs
-RUN cd /usr/share/jenkins/ref/workflow-libs && \
+ADD standard-build-lib /usr/share/jenkins/libs/standard-build
+RUN cd /usr/share/jenkins/libs/standard-build && \
     sudo chown -R jenkins.jenkins . && \
     git config --global user.email "demo@jenkins-ci.org" && \
     git config --global user.name "Demo" && \
@@ -37,4 +37,5 @@ EXPOSE 4040
 CMD perl -p -e "s!DEMO_WORKSPACE!$WORKSPACE!" /usr/share/jenkins/ref/config-TMPL.xml > /usr/share/jenkins/ref/config.xml && \
     sudo chmod a+rw /var/run/docker.sock && \
     ngrok http --log=stdout --log-level=debug 8080 | fgrep ngrok.io & \
+    git daemon --verbose --enable=receive-pack --base-path=/usr/share/jenkins/libs --export-all & \
     /usr/local/bin/jenkins.sh
