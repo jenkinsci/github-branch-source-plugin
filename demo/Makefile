@@ -21,6 +21,9 @@ build-snapshot:
 run-snapshot: build-snapshot
 	$(DOCKER_RUN) $(IMAGE):SNAPSHOT
 
+clean:
+	rm -rf snapshot-plugins
+
 push:
 	docker push $(IMAGE):$(TAG)
 	echo "consider also: make push-latest"

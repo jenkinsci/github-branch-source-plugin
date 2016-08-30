@@ -30,7 +30,7 @@ plain-credentials:1.2
 scm-api:1.2
 script-security:1.22
 ssh-credentials:1.12
-structs:1.4
+structs:1.5
 token-macro:1.12.1
 workflow-aggregator:2.2
 workflow-api:2.2
