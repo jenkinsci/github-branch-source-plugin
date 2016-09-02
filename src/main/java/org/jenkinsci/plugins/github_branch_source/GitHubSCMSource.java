@@ -69,6 +69,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.net.ssl.SSLHandshakeException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -369,6 +370,53 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
+    /**
+     * Returns the job name to use for a PR, or null if we do not want to build it
+     */
+    @Nullable
+    public String getPRJobName(int number, boolean merge, boolean fork) {
+        String branchName = "PR-" + number;
+
+        if (merge && fork) {
+            if (!buildForkPRMerge) {
+                return null; // not doing this combination
+            }
+            if (buildForkPRHead) {
+                branchName += "-merge"; // make sure they are distinct
+            }
+            // If we only build merged, or only unmerged, then we use the /PR-\d+/ scheme as before.
+        }
+
+        if (merge && !fork) {
+            if (!buildOriginPRMerge) {
+                return null;
+            }
+            if (buildForkPRHead) {
+                branchName += "-merge";
+            }
+        }
+
+        if (!merge && fork) {
+            if (!buildForkPRHead) {
+                return null;
+            }
+            if (buildForkPRMerge) {
+                branchName += "-head";
+            }
+        }
+
+        if (!merge && !fork) {
+            if (!buildOriginPRHead) {
+                return null;
+            }
+            if (buildOriginPRMerge) {
+                branchName += "-head";
+            }
+        }
+
+        return branchName;
+    }
+
     private void doRetrieve(SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
         SCMSourceCriteria criteria = getCriteria();
 
@@ -398,40 +446,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     listener.getLogger().format("    (not from a trusted source)%n");
                 }
                 for (boolean merge : new boolean[] {false, true}) {
-                    String branchName = "PR-" + number;
-                    if (merge && fork) {
-                        if (!buildForkPRMerge) {
-                            continue; // not doing this combination
-                        }
-                        if (buildForkPRHead) {
-                            branchName += "-merge"; // make sure they are distinct
-                        }
-                        // If we only build merged, or only unmerged, then we use the /PR-\d+/ scheme as before.
+                    String branchName = getPRJobName(number, merge, fork);
+
+                    if (branchName == null) {
+                        continue;
                     }
-                    if (merge && !fork) {
-                        if (!buildOriginPRMerge) {
-                            continue;
-                        }
-                        if (buildForkPRHead) {
-                            branchName += "-merge";
-                        }
-                    }
-                    if (!merge && fork) {
-                        if (!buildForkPRHead) {
-                            continue;
-                        }
-                        if (buildForkPRMerge) {
-                            branchName += "-head";
-                        }
-                    }
-                    if (!merge && !fork) {
-                        if (!buildOriginPRHead) {
-                            continue;
-                        }
-                        if (buildOriginPRMerge) {
-                            branchName += "-head";
-                        }
-                    }
+
                     listener.getLogger().format("    Job name: %s%n", branchName);
                     PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge, trusted);
                     if (criteria != null) {
