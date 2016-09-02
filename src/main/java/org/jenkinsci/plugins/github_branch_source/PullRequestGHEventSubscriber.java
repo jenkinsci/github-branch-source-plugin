@@ -26,17 +26,24 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import hudson.Extension;
+import hudson.model.CauseAction;
 import hudson.model.Job;
 import hudson.security.ACL;
-import jenkins.scm.api.SCMSource;
-import jenkins.scm.api.SCMSourceOwner;
-import jenkins.scm.api.SCMSourceOwners;
+import jenkins.branch.BranchProjectFactory;
+import jenkins.model.ParameterizedJobMixIn;
+import jenkins.scm.api.*;
 import jenkins.util.Timer;
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
-import org.kohsuke.github.GHEvent;
+import org.jenkinsci.plugins.workflow.job.WorkflowJob;
+import org.jenkinsci.plugins.workflow.job.WorkflowRun;
+import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
+import org.kohsuke.github.*;
+import org.kohsuke.github.GHEventPayload.PullRequest;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.io.StringReader;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -84,8 +91,8 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
      * @param payload payload of gh-event. Never blank
      */
     @Override
-    protected void onEvent(GHEvent event, String payload) {
-        JSONObject json = JSONObject.fromObject(payload);
+    protected void onEvent(final GHEvent event, final String payload) {
+        final JSONObject json = JSONObject.fromObject(payload);
         String repoUrl = json.getJSONObject("repository").getString("html_url");
 
         LOGGER.log(Level.FINE, "Received POST for {0}", repoUrl);
@@ -108,9 +115,22 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                                         GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) source;
                                         if (gitHubSCMSource.getRepoOwner().equals(changedRepository.getUserName()) &&
                                                 gitHubSCMSource.getRepository().equals(changedRepository.getRepositoryName())) {
-                                            owner.onSCMSourceUpdated(gitHubSCMSource);
-                                            LOGGER.log(Level.FINE, "PR event on {0}:{1}/{2} forwarded to {3}", new Object[] {changedRepository.getHost(), changedRepository.getUserName(), changedRepository.getRepositoryName(), owner.getFullName()});
-                                            found = true;
+
+                                            if (owner instanceof WorkflowMultiBranchProject) {
+                                                found = doUpdateFromEvent(payload, json, (WorkflowMultiBranchProject) owner, (GitHubSCMSource) source);
+
+                                                if (found) {
+                                                    LOGGER.log(Level.FINE, "PR event on {0}:{1}/{2} forwarded to {3} individually", new Object[] {changedRepository.getHost(), changedRepository.getUserName(), changedRepository.getRepositoryName(), owner.getFullName()});
+                                                } else {
+                                                    LOGGER.log(Level.FINE, "PR event on {0}:{1}/{2} - could not forward to {3} individually", new Object[] {changedRepository.getHost(), changedRepository.getUserName(), changedRepository.getRepositoryName(), owner.getFullName()});
+                                                }
+                                            }
+
+                                            if (!found) {
+                                                owner.onSCMSourceUpdated(gitHubSCMSource);
+                                                LOGGER.log(Level.FINE, "PR event on {0}:{1}/{2} forwarded to {3} (full onSCMSourceUpdated)", new Object[] {changedRepository.getHost(), changedRepository.getUserName(), changedRepository.getRepositoryName(), owner.getFullName()});
+                                                found = true;
+                                            }
                                         }
                                     }
                                 }
@@ -125,5 +145,75 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
         } else {
             LOGGER.log(Level.WARNING, "Malformed repository URL {0}", repoUrl);
         }
+    }
+
+    private boolean doUpdateFromEvent(String payload, JSONObject json, WorkflowMultiBranchProject owner, GitHubSCMSource source) {
+        GitHub github;
+        GHPullRequest pull;
+        GHRepository repository;
+        boolean trusted;
+
+        try {
+            github = source.getGitHub();
+            pull = getPullRequest(payload, github).getPullRequest();
+
+            LOGGER.log(Level.INFO, "Got PR object from event payload: " + pull.getNumber());
+
+            repository = source.getRepository(github);
+            trusted = source.isTrusted(repository, pull);
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Could not connect to GitHub during webhook update: " + e);
+            return false;
+        }
+
+        String prHeadOwner = json.getJSONObject("pull_request").getJSONObject("head").getJSONObject("repo").getJSONObject("owner").getString("login");
+        boolean fork = !source.getRepoOwner().equals(prHeadOwner); // ?
+
+        String baseHash = pull.getBase().getSha();
+        String headHash = pull.getHead().getSha();
+
+        boolean found = false;
+
+        for (boolean merge : new boolean[] {false, true}) {
+            String name = source.getPRJobName(pull.getNumber(), merge, fork);
+
+            if (name == null) {
+                continue;
+            }
+
+            PullRequestSCMHead head = new PullRequestSCMHead(pull, name, merge, trusted);
+            PullRequestSCMRevision revision = new PullRequestSCMRevision(head, baseHash, headHash);
+
+            found = found || scheduleBuild(owner, revision, name);
+        }
+
+        return found;
+    }
+
+    /**
+     * todo Rough copy from MultiBranchProject.scheduleBuild because I'm not sure how to access it here
+     */
+    private boolean scheduleBuild(WorkflowMultiBranchProject owner, SCMRevision revision, String name) {
+        BranchProjectFactory<WorkflowJob, WorkflowRun> factory = owner.getProjectFactory();
+        WorkflowJob job = owner.getJob(name);
+
+        if (ParameterizedJobMixIn.scheduleBuild2(job, 0, new CauseAction(new WebhookEventCause())) != null) {
+            LOGGER.log(Level.INFO, "Scheduled build for branch: " + name);
+
+            try {
+                factory.setRevisionHash(job, revision);
+                return true;
+            } catch (IOException e) {
+                LOGGER.log(Level.SEVERE, "Could not update last revision hash: " + e);
+            }
+        } else {
+            LOGGER.log(Level.INFO, "Did not schedule build for branch: " + name);
+        }
+
+        return false;
+    }
+
+    private PullRequest getPullRequest(String payload, GitHub gh) throws IOException {
+        return gh.parseEventPayload(new StringReader(payload), PullRequest.class);
     }
 }

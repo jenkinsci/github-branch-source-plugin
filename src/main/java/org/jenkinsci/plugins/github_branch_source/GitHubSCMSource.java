@@ -398,7 +398,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * Returns the job name to use for a PR, or null if we do not want to build it
      */
     @Nullable
-    public String getPRJobName(int number, boolean merge, boolean fork) {
+    String getPRJobName(int number, boolean merge, boolean fork) {
         String branchName = "PR-" + number;
 
         if (merge && fork) {
