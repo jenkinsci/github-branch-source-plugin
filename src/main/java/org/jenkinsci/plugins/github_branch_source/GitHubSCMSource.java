@@ -335,7 +335,36 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
 
         // Github client and validation
+        GitHub github = getGitHub();
+
+        if (!github.isAnonymous()) {
+            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
+        } else {
+            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
+        }
+
+        try {
+            // Input data validation
+            if (repository == null || repository.isEmpty()) {
+                throw new AbortException("No repository selected, skipping");
+            }
+
+            String fullName = repoOwner + "/" + repository;
+            final GHRepository repo = getRepository(github);
+
+            listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
+            doRetrieve(observer, listener, repo);
+            listener.getLogger().format("%nDone examining %s%n%n", fullName);
+        } catch (RateLimitExceededException rle) {
+            throw new AbortException(rle.getMessage());
+        }
+    }
+
+    GitHub getGitHub() throws IOException {
+        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+
         GitHub github = Connector.connect(apiUri, credentials);
+
         try {
             github.checkApiUrlValidity();
         } catch (HttpException e) {
@@ -349,25 +378,20 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
                 throw new AbortException(message);
             }
-            if (!github.isAnonymous()) {
-                listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
-            } else {
-                listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
-            }
 
             // Input data validation
             if (repository == null || repository.isEmpty()) {
                 throw new AbortException("No repository selected, skipping");
             }
 
-            String fullName = repoOwner + "/" + repository;
-            final GHRepository repo = github.getRepository(fullName);
-            listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
-            doRetrieve(observer, listener, repo);
-            listener.getLogger().format("%nDone examining %s%n%n", fullName);
+            return github;
         } catch (RateLimitExceededException rle) {
             throw new AbortException(rle.getMessage());
         }
+    }
+
+    GHRepository getRepository(GitHub github) throws IOException {
+        return github.getRepository(repoOwner + "/" + repository);
     }
 
     /**
@@ -735,7 +759,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * @see <a href="https://developer.github.com/v3/pulls/#get-a-single-pull-request">PR metadata</a>
      * @see <a href="http://stackoverflow.com/questions/15096331/github-api-how-to-find-the-branches-of-a-pull-request#comment54931031_15096596">base revision oddity</a>
      */
-    private boolean isTrusted(@Nonnull GHRepository repo, @Nonnull GHPullRequest ghPullRequest) throws IOException {
+    boolean isTrusted(@Nonnull GHRepository repo, @Nonnull GHPullRequest ghPullRequest) throws IOException {
         return repo.getCollaboratorNames().contains(ghPullRequest.getUser().getLogin());
     }
 
