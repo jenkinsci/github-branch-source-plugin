@@ -518,40 +518,73 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (buildOriginBranch || buildOriginBranchWithPR) {
             listener.getLogger().format("%n  Getting remote branches...%n");
             int branches = 0;
-            for (Map.Entry<String,GHBranch> entry : repo.getBranches().entrySet()) {
-                final String branchName = entry.getKey();
-                if (isExcluded(branchName)) {
+            for (Map.Entry<String, GHBranch> entry : repo.getBranches().entrySet()) {
+                SCMRevision hash;
+
+                try {
+                    hash = generateRevisionForBranch(
+                            entry.getKey(),
+                            entry.getValue().getSHA1(),
+                            repo,
+                            originBranchesWithPR,
+                            listener,
+                            criteria
+                    );
+                } catch (IOException e) {
+                    listener.getLogger().format("%n  exception generating revision %s%n", e);
                     continue;
                 }
-                boolean hasPR = originBranchesWithPR.contains(branchName);
-                if (!hasPR && !buildOriginBranch) {
-                    listener.getLogger().format("%n    Skipping branch %s since there is no corresponding PR%n", branchName);
+
+                if (hash == null) {
                     continue;
                 }
-                if (hasPR && !buildOriginBranchWithPR) {
-                    listener.getLogger().format("%n    Skipping branch %s since there is a corresponding PR%n", branchName);
-                    continue;
-                }
-                listener.getLogger().format("%n    Checking branch %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString() + "/tree/" + branchName, branchName));
-                if (criteria != null) {
-                    SCMSourceCriteria.Probe probe = getProbe(branchName, "branch", "refs/heads/" + branchName, repo, listener);
-                    if (criteria.isHead(probe, listener)) {
-                        listener.getLogger().format("    Met criteria%n");
-                    } else {
-                        listener.getLogger().format("    Does not meet criteria%n");
-                        continue;
-                    }
-                }
-                SCMHead head = new SCMHead(branchName);
-                SCMRevision hash = new SCMRevisionImpl(head, entry.getValue().getSHA1());
-                observer.observe(head, hash);
+
+                observer.observe(hash.getHead(), hash);
+
                 if (!observer.isObserving()) {
                     return;
                 }
+
                 branches++;
             }
             listener.getLogger().format("%n  %d branches were processed%n", branches);
         }
+    }
+
+    @Nullable
+    SCMRevision generateRevisionForBranch(String branchName, String sha1, GHRepository repo, Set<String> originBranchesWithPR, TaskListener listener, SCMSourceCriteria criteria) throws IOException {
+        if (isExcluded(branchName)) {
+            listener.getLogger().format("%n    Skipping branch %s since it is excluded%n", branchName);
+            return null;
+        }
+
+        boolean hasPR = originBranchesWithPR.contains(branchName);
+
+        if (!hasPR && !buildOriginBranch) {
+            listener.getLogger().format("%n    Skipping branch %s since there is no corresponding PR%n", branchName);
+            return null;
+        }
+
+        if (hasPR && !buildOriginBranchWithPR) {
+            listener.getLogger().format("%n    Skipping branch %s since there is a corresponding PR%n", branchName);
+            return null;
+        }
+
+        listener.getLogger().format("%n    Checking branch %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString() + "/tree/" + branchName, branchName));
+
+        if (criteria != null) {
+            SCMSourceCriteria.Probe probe = getProbe(branchName, "branch", "refs/heads/" + branchName, repo, listener);
+            if (criteria.isHead(probe, listener)) {
+                listener.getLogger().format("    Met criteria%n");
+            } else {
+                listener.getLogger().format("    Does not meet criteria%n");
+                return null;
+            }
+        }
+
+        SCMHead head = new SCMHead(branchName);
+
+        return new SCMRevisionImpl(head, sha1);
     }
 
     /**
