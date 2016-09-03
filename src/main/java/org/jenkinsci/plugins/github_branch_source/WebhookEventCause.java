@@ -31,7 +31,7 @@ import hudson.model.Run;
 /**
  * Declares that a build was due to a GitHub webhook event.
  */
-public final class WebhookEventCause extends Cause {
+final class WebhookEventCause extends Cause {
 
     WebhookEventCause() {
     }
@@ -40,25 +40,7 @@ public final class WebhookEventCause extends Cause {
      * {@inheritDoc}
      */
     @Override
-    public void onAddedTo(Run build) {
-        ItemGroup<?> g = build.getParent().getParent();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void onLoad(Run<?, ?> build) {
-        onAddedTo(build);
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public String getShortDescription() {
         return "GitHub webhook event";
     }
-
 }
