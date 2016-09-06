@@ -8,7 +8,7 @@ docker-workflow:1.7
 durable-task:1.12
 git-client:1.21.0
 git-server:1.7
-git:2.5.3
+git:2.6.0
 github:1.21.1
 github-api:1.77
 github-branch-source:1.9
