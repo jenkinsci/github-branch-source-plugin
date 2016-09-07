@@ -22,15 +22,6 @@ RUN /usr/local/bin/plugins.sh /tmp/files/plugins.txt
 ADD JENKINS_HOME /usr/share/jenkins/ref
 RUN sudo chown -R jenkins.jenkins /usr/share/jenkins/ref
 
-ADD workflow-libs /usr/share/jenkins/ref/workflow-libs
-RUN cd /usr/share/jenkins/ref/workflow-libs && \
-    sudo chown -R jenkins.jenkins . && \
-    git config --global user.email "demo@jenkins-ci.org" && \
-    git config --global user.name "Demo" && \
-    git init && \
-    git add . && \
-    git commit -m 'Initial library state.'
-
 # ngrok management UI on http://localhost:4040/; TODO outside the container just get a connection reset immediately, why?
 EXPOSE 4040
 
