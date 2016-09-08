@@ -44,6 +44,7 @@ import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
+import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.kohsuke.github.GHCommitState;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
@@ -93,12 +94,7 @@ public class GitHubBuildStatusNotification {
                 SCMRevisionAction action = build.getAction(SCMRevisionAction.class);
                 if (action != null) {
                     SCMRevision revision = action.getRevision();
-                    String url;
-                    try {
-                        url = build.getAbsoluteUrl();
-                    } catch (IllegalStateException ise) {
-                        url = "http://unconfigured-jenkins-location/" + build.getUrl();
-                    }
+                    String url = DisplayURLProvider.get().getRunURL(build);
                     boolean ignoreError = false;
                     try {
                         Result result = build.getResult();
@@ -198,12 +194,7 @@ public class GitHubBuildStatusNotification {
                         if (repo != null) {
                             int number = ((PullRequestSCMHead) head).getNumber();
                             GHPullRequest pr = repo.getPullRequest(number);
-                            String url;
-                            try {
-                                url = job.getAbsoluteUrl();
-                            } catch (IllegalStateException ise) {
-                                url = "http://unconfigured-jenkins-location/" + job.getUrl();
-                            }
+                            String url = DisplayURLProvider.get().getJobURL(job);
                             // Has not been built yet, so we can only guess that the current PR head is what will be built.
                             // In fact the submitter might push another commit before this build even starts.
                             createCommitStatus(repo, pr.getHead().getSha(), GHCommitState.PENDING, url, "This pull request is scheduled to be built", head);
