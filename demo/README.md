@@ -4,7 +4,7 @@ To run the demo:
 
 1. Start the image:
   * from sources: `make run`
-  * from binaries: `WORKSPACE=/tmp/demows docker run --rm -p 8080:8080 -p 4040:4040 -v /var/run/docker.sock:/var/run/docker.sock -v $WORKSPACE:$WORKSPACE -e WORKSPACE=$WORKSPACE -ti jenkinsci/pipeline-as-code-github-demo`
+  * from binaries: `docker run --rm -p 8080:8080 -p 4040:4040 -v /var/run/docker.sock:/var/run/docker.sock -ti jenkinsci/pipeline-as-code-github-demo`
 1. Visit [localhost:8080](http://localhost:8080/).
 1. Prepare your environment in GitHub:
   1. Create an organization or user account (or use an existing one)

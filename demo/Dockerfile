@@ -25,7 +25,6 @@ RUN sudo chown -R jenkins.jenkins /usr/share/jenkins/ref
 # ngrok management UI on http://localhost:4040/; TODO outside the container just get a connection reset immediately, why?
 EXPOSE 4040
 
-CMD perl -p -e "s!DEMO_WORKSPACE!$WORKSPACE!" /usr/share/jenkins/ref/config-TMPL.xml > /usr/share/jenkins/ref/config.xml && \
-    sudo chmod a+rw /var/run/docker.sock && \
+CMD sudo chmod a+rw /var/run/docker.sock && \
     ngrok http --log=stdout --log-level=debug 8080 | fgrep ngrok.io & \
     /usr/local/bin/jenkins.sh

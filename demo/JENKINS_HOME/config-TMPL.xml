@@ -1,4 +1,0 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<hudson>
-  <workspaceDir>DEMO_WORKSPACE/${ITEM_FULL_NAME}</workspaceDir>
-</hudson>
