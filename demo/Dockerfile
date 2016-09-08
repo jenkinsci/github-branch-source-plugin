@@ -1,18 +1,21 @@
-FROM jenkins:2.7.2
+FROM jenkins:2.7.3
 
 # Install Docker CLI (cf. Makefile mount of socket). Could use withTool but why download during demo when we can bake it in?
 USER root
 
 # Minimum for docker-workflow. Docker server does not accept a client newer than itself (older is OK).
-RUN wget -O /usr/bin/docker --no-check-certificate https://get.docker.com/builds/Linux/x86_64/docker-1.4.0
-RUN chmod a+x /usr/bin/docker
-RUN apt-get update
-RUN apt-get install sudo
-RUN adduser jenkins sudo
-RUN echo 'Defaults !authenticate' >> /etc/sudoers
+RUN wget -q -O /usr/bin/docker --no-check-certificate https://get.docker.com/builds/Linux/x86_64/docker-1.4.0 && \
+    chmod a+x /usr/bin/docker && \
+    apt-get update && \
+    apt-get install sudo && \
+    adduser jenkins sudo && \
+    echo 'Defaults !authenticate' >> /etc/sudoers
 
 # Not available in this distribution from universe (Utopic has 1.6):
-RUN wget -O /tmp/ngrok.zip https://dl.ngrok.com/ngrok_2.0.19_linux_amd64.zip && cd /usr/local/bin && unzip /tmp/ngrok.zip && rm /tmp/ngrok.zip
+RUN wget -q -O /tmp/ngrok.zip https://dl.ngrok.com/ngrok_2.0.19_linux_amd64.zip && \
+    cd /usr/local/bin && \
+    unzip /tmp/ngrok.zip && \
+    rm /tmp/ngrok.zip
 USER jenkins
 
 RUN mkdir /tmp/files
