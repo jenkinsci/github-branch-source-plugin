@@ -398,7 +398,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     listener.getLogger().format("    (not from a trusted source)%n");
                 }
                 for (boolean merge : new boolean[] {false, true}) {
-                    String branchName = "PR-" + number;
+                    String branchName = "PR/" + number;
                     if (merge && fork) {
                         if (!buildForkPRMerge) {
                             continue; // not doing this combination
