@@ -885,9 +885,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     LOGGER.log(Level.WARNING, e.getMessage());
                 }
                 if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
-                    for (GHRepository repo : org.listRepositories()) {
+                    LOGGER.log(Level.FINE, "as {0} looking for repositories in {1}", new Object[] {scanCredentialsId, repoOwner});
+                    for (GHRepository repo : org.listRepositories(100)) {
+                        LOGGER.log(Level.FINE, "as {0} found {1}/{2}", new Object[] {scanCredentialsId, repoOwner, repo.getName()});
                         result.add(repo.getName());
                     }
+                    LOGGER.log(Level.FINE, "as {0} result of {1} is {2}", new Object[] {scanCredentialsId, repoOwner, result});
                     return nameAndValueModel(result);
                 }
 
@@ -900,7 +903,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     LOGGER.log(Level.WARNING, e.getMessage());
                 }
                 if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
-                    for (GHRepository repo : user.listRepositories()) {
+                    for (GHRepository repo : user.listRepositories(100)) {
                         result.add(repo.getName());
                     }
                     return nameAndValueModel(result);
