@@ -68,7 +68,7 @@ import java.util.logging.Logger;
  *
  */
 public class GitHubBuildStatusNotification {
-    
+
     private static final Logger LOGGER = Logger.getLogger(GitHubBuildStatusNotification.class.getName());
 
     private static void createCommitStatus(@Nonnull GHRepository repo, @Nonnull String revision, @Nonnull GHCommitState state, @Nonnull String url, @Nonnull String message, @Nonnull SCMHead head) throws IOException {
@@ -197,7 +197,7 @@ public class GitHubBuildStatusNotification {
                             String url = DisplayURLProvider.get().getJobURL(job);
                             // Has not been built yet, so we can only guess that the current PR head is what will be built.
                             // In fact the submitter might push another commit before this build even starts.
-                            createCommitStatus(repo, pr.getHead().getSha(), GHCommitState.PENDING, url, "This pull request is scheduled to be built", head);
+                            createCommitStatus(repo, pr.getHead().getSha(), GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Queued(), head);
                         }
                     } catch (FileNotFoundException fnfe) {
                         LOGGER.log(Level.WARNING, "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?");
