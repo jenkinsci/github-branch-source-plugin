@@ -375,7 +375,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // To implement buildOriginBranch && !buildOriginBranchWithPR we need to first find the pull requests, so we can skip corresponding origin branches later. Awkward.
         Set<String> originBranchesWithPR = new HashSet<>();
 
-        if (buildOriginPRMerge || buildOriginPRHead || buildForkPRMerge || buildForkPRHead) {
+        if (buildOriginBranchWithPR || buildOriginPRMerge || buildOriginPRHead || buildForkPRMerge || buildForkPRHead) {
             listener.getLogger().format("%n  Getting remote pull requests...%n");
             int pullrequests = 0;
             for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
@@ -386,7 +386,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     listener.getLogger().format("    Submitted from fork, skipping%n%n");
                     continue;
                 }
-                if (!fork && !buildOriginPRMerge && !buildOriginPRHead) {
+                if (!fork && !buildOriginPRMerge && !buildOriginPRHead && !buildOriginBranchWithPR) {
                     listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
                     continue;
                 }
