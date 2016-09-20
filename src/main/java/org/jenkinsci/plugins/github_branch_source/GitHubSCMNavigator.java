@@ -250,7 +250,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
             if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
                 listener.getLogger().format("Looking up repositories of myself %s%n%n", repoOwner);
-                for (GHRepository repo : myself.listRepositories()) {
+                for (GHRepository repo : myself.listRepositories(100)) {
                     if (!repo.getOwnerName().equals(repoOwner)) {
                         continue; // ignore repos in other orgs when using GHMyself
                     }
@@ -272,7 +272,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
         if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
             listener.getLogger().format("Looking up repositories of organization %s%n%n", repoOwner);
-            for (GHRepository repo : org.listRepositories()) {
+            for (GHRepository repo : org.listRepositories(100)) {
                 add(listener, observer, repo);
             }
             return;
@@ -288,7 +288,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
         if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
             listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
-            for (GHRepository repo : user.listRepositories()) {
+            for (GHRepository repo : user.listRepositories(100)) {
                 add(listener, observer, repo);
             }
             return;
