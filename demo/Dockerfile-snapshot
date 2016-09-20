@@ -1,2 +1,0 @@
-FROM jenkinsci/pipeline-as-code-github-demo:RELEASE
-ADD snapshot-plugins /usr/share/jenkins/ref/plugins
