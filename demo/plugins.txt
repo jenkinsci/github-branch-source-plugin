@@ -12,7 +12,7 @@ org.jenkins-ci.plugins:git-server:1.7
 org.jenkins-ci.plugins:git:3.0.0
 com.coravy.hudson.plugins.github:github:1.21.1
 org.jenkins-ci.plugins:github-api:1.77
-org.jenkins-ci.plugins:github-branch-source:1.10-SNAPSHOT
+org.jenkins-ci.plugins:github-branch-source:1.10
 org.jenkins-ci.plugins:github-organization-folder:1.5
 org.jenkins-ci.ui:handlebars:1.1.1
 org.jenkins-ci.plugins.icon-shim:icon-shim:2.0.3
