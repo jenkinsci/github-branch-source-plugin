@@ -69,6 +69,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import javax.net.ssl.SSLHandshakeException;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -334,7 +335,36 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
 
         // Github client and validation
+        GitHub github = getGitHub();
+
+        if (!github.isAnonymous()) {
+            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
+        } else {
+            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
+        }
+
+        try {
+            // Input data validation
+            if (repository == null || repository.isEmpty()) {
+                throw new AbortException("No repository selected, skipping");
+            }
+
+            String fullName = repoOwner + "/" + repository;
+            final GHRepository repo = getRepository(github);
+
+            listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
+            doRetrieve(observer, listener, repo);
+            listener.getLogger().format("%nDone examining %s%n%n", fullName);
+        } catch (RateLimitExceededException rle) {
+            throw new AbortException(rle.getMessage());
+        }
+    }
+
+    GitHub getGitHub() throws IOException {
+        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+
         GitHub github = Connector.connect(apiUri, credentials);
+
         try {
             github.checkApiUrlValidity();
         } catch (HttpException e) {
@@ -348,25 +378,67 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
                 throw new AbortException(message);
             }
-            if (!github.isAnonymous()) {
-                listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
-            } else {
-                listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
-            }
 
             // Input data validation
             if (repository == null || repository.isEmpty()) {
                 throw new AbortException("No repository selected, skipping");
             }
 
-            String fullName = repoOwner + "/" + repository;
-            final GHRepository repo = github.getRepository(fullName);
-            listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
-            doRetrieve(observer, listener, repo);
-            listener.getLogger().format("%nDone examining %s%n%n", fullName);
+            return github;
         } catch (RateLimitExceededException rle) {
             throw new AbortException(rle.getMessage());
         }
+    }
+
+    GHRepository getRepository(GitHub github) throws IOException {
+        return github.getRepository(repoOwner + "/" + repository);
+    }
+
+    /**
+     * Returns the job name to use for a PR, or null if we do not want to build it
+     */
+    @Nullable
+    String getPRJobName(int number, boolean merge, boolean fork) {
+        String branchName = "PR-" + number;
+
+        if (merge && fork) {
+            if (!buildForkPRMerge) {
+                return null; // not doing this combination
+            }
+            if (buildForkPRHead) {
+                branchName += "-merge"; // make sure they are distinct
+            }
+            // If we only build merged, or only unmerged, then we use the /PR-\d+/ scheme as before.
+        }
+
+        if (merge && !fork) {
+            if (!buildOriginPRMerge) {
+                return null;
+            }
+            if (buildForkPRHead) {
+                branchName += "-merge";
+            }
+        }
+
+        if (!merge && fork) {
+            if (!buildForkPRHead) {
+                return null;
+            }
+            if (buildForkPRMerge) {
+                branchName += "-head";
+            }
+        }
+
+        if (!merge && !fork) {
+            if (!buildOriginPRHead) {
+                return null;
+            }
+            if (buildOriginPRMerge) {
+                branchName += "-head";
+            }
+        }
+
+        return branchName;
     }
 
     private void doRetrieve(SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
@@ -398,40 +470,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     listener.getLogger().format("    (not from a trusted source)%n");
                 }
                 for (boolean merge : new boolean[] {false, true}) {
-                    String branchName = "PR-" + number;
-                    if (merge && fork) {
-                        if (!buildForkPRMerge) {
-                            continue; // not doing this combination
-                        }
-                        if (buildForkPRHead) {
-                            branchName += "-merge"; // make sure they are distinct
-                        }
-                        // If we only build merged, or only unmerged, then we use the /PR-\d+/ scheme as before.
+                    String branchName = getPRJobName(number, merge, fork);
+
+                    if (branchName == null) {
+                        continue;
                     }
-                    if (merge && !fork) {
-                        if (!buildOriginPRMerge) {
-                            continue;
-                        }
-                        if (buildForkPRHead) {
-                            branchName += "-merge";
-                        }
-                    }
-                    if (!merge && fork) {
-                        if (!buildForkPRHead) {
-                            continue;
-                        }
-                        if (buildForkPRMerge) {
-                            branchName += "-head";
-                        }
-                    }
-                    if (!merge && !fork) {
-                        if (!buildOriginPRHead) {
-                            continue;
-                        }
-                        if (buildOriginPRMerge) {
-                            branchName += "-head";
-                        }
-                    }
+
                     listener.getLogger().format("    Job name: %s%n", branchName);
                     PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge, trusted);
                     if (criteria != null) {
@@ -474,40 +518,73 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (buildOriginBranch || buildOriginBranchWithPR) {
             listener.getLogger().format("%n  Getting remote branches...%n");
             int branches = 0;
-            for (Map.Entry<String,GHBranch> entry : repo.getBranches().entrySet()) {
-                final String branchName = entry.getKey();
-                if (isExcluded(branchName)) {
+            for (Map.Entry<String, GHBranch> entry : repo.getBranches().entrySet()) {
+                SCMRevision hash;
+
+                try {
+                    hash = generateRevisionForBranch(
+                            entry.getKey(),
+                            entry.getValue().getSHA1(),
+                            repo,
+                            originBranchesWithPR,
+                            listener,
+                            criteria
+                    );
+                } catch (IOException e) {
+                    listener.getLogger().format("%n  exception generating revision %s%n", e);
                     continue;
                 }
-                boolean hasPR = originBranchesWithPR.contains(branchName);
-                if (!hasPR && !buildOriginBranch) {
-                    listener.getLogger().format("%n    Skipping branch %s since there is no corresponding PR%n", branchName);
+
+                if (hash == null) {
                     continue;
                 }
-                if (hasPR && !buildOriginBranchWithPR) {
-                    listener.getLogger().format("%n    Skipping branch %s since there is a corresponding PR%n", branchName);
-                    continue;
-                }
-                listener.getLogger().format("%n    Checking branch %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString() + "/tree/" + branchName, branchName));
-                if (criteria != null) {
-                    SCMSourceCriteria.Probe probe = getProbe(branchName, "branch", "refs/heads/" + branchName, repo, listener);
-                    if (criteria.isHead(probe, listener)) {
-                        listener.getLogger().format("    Met criteria%n");
-                    } else {
-                        listener.getLogger().format("    Does not meet criteria%n");
-                        continue;
-                    }
-                }
-                SCMHead head = new SCMHead(branchName);
-                SCMRevision hash = new SCMRevisionImpl(head, entry.getValue().getSHA1());
-                observer.observe(head, hash);
+
+                observer.observe(hash.getHead(), hash);
+
                 if (!observer.isObserving()) {
                     return;
                 }
+
                 branches++;
             }
             listener.getLogger().format("%n  %d branches were processed%n", branches);
         }
+    }
+
+    @Nullable
+    SCMRevision generateRevisionForBranch(String branchName, String sha1, GHRepository repo, Set<String> originBranchesWithPR, TaskListener listener, SCMSourceCriteria criteria) throws IOException {
+        if (isExcluded(branchName)) {
+            listener.getLogger().format("%n    Skipping branch %s since it is excluded%n", branchName);
+            return null;
+        }
+
+        boolean hasPR = originBranchesWithPR.contains(branchName);
+
+        if (!hasPR && !buildOriginBranch) {
+            listener.getLogger().format("%n    Skipping branch %s since there is no corresponding PR%n", branchName);
+            return null;
+        }
+
+        if (hasPR && !buildOriginBranchWithPR) {
+            listener.getLogger().format("%n    Skipping branch %s since there is a corresponding PR%n", branchName);
+            return null;
+        }
+
+        listener.getLogger().format("%n    Checking branch %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString() + "/tree/" + branchName, branchName));
+
+        if (criteria != null) {
+            SCMSourceCriteria.Probe probe = getProbe(branchName, "branch", "refs/heads/" + branchName, repo, listener);
+            if (criteria.isHead(probe, listener)) {
+                listener.getLogger().format("    Met criteria%n");
+            } else {
+                listener.getLogger().format("    Does not meet criteria%n");
+                return null;
+            }
+        }
+
+        SCMHead head = new SCMHead(branchName);
+
+        return new SCMRevisionImpl(head, sha1);
     }
 
     /**
@@ -715,7 +792,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * @see <a href="https://developer.github.com/v3/pulls/#get-a-single-pull-request">PR metadata</a>
      * @see <a href="http://stackoverflow.com/questions/15096331/github-api-how-to-find-the-branches-of-a-pull-request#comment54931031_15096596">base revision oddity</a>
      */
-    private boolean isTrusted(@Nonnull GHRepository repo, @Nonnull GHPullRequest ghPullRequest) throws IOException {
+    boolean isTrusted(@Nonnull GHRepository repo, @Nonnull GHPullRequest ghPullRequest) throws IOException {
         return repo.getCollaboratorNames().contains(ghPullRequest.getUser().getLogin());
     }
 
