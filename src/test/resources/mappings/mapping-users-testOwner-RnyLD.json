@@ -1,0 +1,34 @@
+{
+  "uuid" : "0e452e52-5b22-36c8-9daf-6d8e72709259",
+  "request" : {
+    "url" : "/users/testOwner",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "body-users-testOwner-RnyLD.json",
+    "headers" : {
+      "Server" : "GitHub.com",
+      "Date" : "Thu, 29 Sep 2016 03:37:02 GMT",
+      "Content-Type" : "application/json; charset=utf-8",
+      "Status" : "200 OK",
+      "X-RateLimit-Limit" : "60",
+      "X-RateLimit-Remaining" : "47",
+      "X-RateLimit-Reset" : "1475120570",
+      "Cache-Control" : "public, max-age=60, s-maxage=60",
+      "Vary" : [ "Accept", "Accept-Encoding" ],
+      "ETag" : "\"216b05f03665536de787c7c20d2494a0\"",
+      "Last-Modified" : "Wed, 14 Sep 2016 16:47:38 GMT",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "Access-Control-Expose-Headers" : "ETag, Link, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval",
+      "Access-Control-Allow-Origin" : "*",
+      "Content-Security-Policy" : "default-src 'none'",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "X-Content-Type-Options" : "nosniff",
+      "X-Frame-Options" : "deny",
+      "X-XSS-Protection" : "1; mode=block",
+      "X-Served-By" : "7efb7ae49588ef0269c6a1c1bd3721d9",
+      "X-GitHub-Request-Id" : "AE634EED:C7B6:A29491C:57EC8C5E"
+    }
+  }
+}

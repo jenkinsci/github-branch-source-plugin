@@ -34,6 +34,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.google.common.base.Charsets;
 import com.google.common.hash.Hashing;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
@@ -155,8 +156,8 @@ public class Connector {
      */
     private static String hashed(GitHubServerConfig config) {
         return Hashing.murmur3_32().newHasher()
-                .putString(trimToEmpty(config.getApiUrl()))
-                .putString(trimToEmpty(config.getCredentialsId())).hash().toString();
+                .putString(trimToEmpty(config.getApiUrl()), Charsets.UTF_16LE)
+                .putString(trimToEmpty(config.getCredentialsId()), Charsets.UTF_16LE).hash().toString();
     }
 
 
