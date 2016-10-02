@@ -17,17 +17,16 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.junit.Assert.*;
 import static org.hamcrest.Matchers.contains;
 
 public class GitHubSCMSourceTest {
-    @ClassRule
-    public static WireMockClassRule wireMockRule = new WireMockClassRule(8089);
     @Rule
-    public WireMockClassRule instanceRule = wireMockRule;
+    public WireMockRule wireMockRule = new WireMockRule(8089);
+
 
     @Rule
     public JenkinsRule jrule = new JenkinsRule();
