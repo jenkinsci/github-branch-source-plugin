@@ -212,6 +212,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         return repository;
     }
 
+    /** {@inheritDoc} */
+    @Override
+    public String getPronoun() {
+        return Messages.GitHubSCMSource_Pronoun();
+    }
+
     @Override
     protected List<RefSpec> getRefSpecs() {
         return new ArrayList<>(Arrays.asList(new RefSpec("+refs/heads/*:refs/remotes/origin/*"),
@@ -498,7 +504,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         continue;
                     }
                 }
-                SCMHead head = new SCMHead(branchName);
+                SCMHead head = new BranchSCMHead(branchName);
                 SCMRevision hash = new SCMRevisionImpl(head, entry.getValue().getSHA1());
                 observer.observe(head, hash);
                 if (!observer.isObserving()) {
@@ -740,7 +746,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         @Override
         public String getDisplayName() {
-            return "GitHub";
+            return Messages.GitHubSCMSource_DisplayName();
         }
 
         @Restricted(NoExternalUse.class)
