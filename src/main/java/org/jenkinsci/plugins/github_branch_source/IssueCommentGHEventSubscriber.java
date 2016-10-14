@@ -35,6 +35,8 @@ import hudson.Extension;
 import hudson.model.CauseAction;
 import hudson.model.Job;
 import hudson.security.ACL;
+import jenkins.branch.BranchProperty;
+import jenkins.branch.MultiBranchProject;
 import jenkins.model.ParameterizedJobMixIn;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
@@ -63,10 +65,6 @@ public class IssueCommentGHEventSubscriber extends GHEventsSubscriber {
      * Regex pattern for a pull request ID.
      */
     private static final Pattern PULL_REQUEST_ID_PATTERN = Pattern.compile("https?://[^/]+/[^/]+/[^/]+/pull/(\\d+)");
-    /**
-     * String representing the comment body to trigger a build on.
-     */
-    private static final String COMMENT_BODY_TRIGGER_BUILD = "REBUILD";
     /**
      * String representing the created action on an issue comment.
      */
@@ -106,7 +104,7 @@ public class IssueCommentGHEventSubscriber extends GHEventsSubscriber {
         JSONObject json = JSONObject.fromObject(payload);
 
         // Make sure this issue is a PR
-        String issueUrl = json.getJSONObject("issue").getString("html_url");
+        final String issueUrl = json.getJSONObject("issue").getString("html_url");
         Matcher matcher = PULL_REQUEST_ID_PATTERN.matcher(issueUrl);
         if (!matcher.matches()) {
             LOGGER.log(Level.FINE, "Issue comment is not for a pull request, ignoring {0}", issueUrl);
@@ -117,13 +115,7 @@ public class IssueCommentGHEventSubscriber extends GHEventsSubscriber {
         final String pullRequestJobName = "PR-" + pullRequestId;
         
         // Verify that the comment body matches the trigger build string
-        final String comment = json.getJSONObject("comment").getString("body");
-        if (!COMMENT_BODY_TRIGGER_BUILD.equals(comment == null ? "" : comment.trim())) {
-            LOGGER.log(Level.FINER, "Issue comment does not match the trigger build string ({0}) for PR {1}",
-                    new Object[] { COMMENT_BODY_TRIGGER_BUILD, issueUrl }
-            );
-            return;
-        }
+        final String commentBody = json.getJSONObject("comment").getString("body");
         final String commentUrl = json.getJSONObject("comment").getString("html_url");
 
         // Make sure the action is edited or created (not deleted)
@@ -152,7 +144,7 @@ public class IssueCommentGHEventSubscriber extends GHEventsSubscriber {
         ACL.impersonate(ACL.SYSTEM, new Runnable() {
             @Override
             public void run() {
-                boolean found = false;
+                boolean jobFound = false;
                 for (final SCMSourceOwner owner : SCMSourceOwners.all()) {
                     for (SCMSource source : owner.getSCMSources()) {
                         if (!(source instanceof GitHubSCMSource)) {
@@ -163,25 +155,59 @@ public class IssueCommentGHEventSubscriber extends GHEventsSubscriber {
                                 gitHubSCMSource.getRepository().equals(changedRepository.getRepositoryName())) {
                             for (Job<?, ?> job : owner.getAllJobs()) {
                                 if (job.getName().equals(pullRequestJobName)) {
-                                    ParameterizedJobMixIn.scheduleBuild2(job, 0,
-                                            new CauseAction(new GitHubPullRequestCommentCause(commentUrl)));
-                                    LOGGER.log(Level.FINE, "Triggered build for {0} due to PR comment on {1}:{2}/{3}",
-                                            new Object[] {
-                                                    job.getFullName(),
-                                                    changedRepository.getHost(),
-                                                    changedRepository.getUserName(),
-                                                    changedRepository.getRepositoryName()
-                                            }
-                                    );
-                                    found = true;
+                                    if (!(job.getParent() instanceof MultiBranchProject)) {
+                                        continue;
+                                    }
+                                    boolean propFound = false;
+                                    for (BranchProperty prop : ((MultiBranchProject) job.getParent()).getProjectFactory().
+                                            getBranch(job).getProperties()) {
+                                        if (!(prop instanceof TriggerPRCommentBranchProperty)) {
+                                            continue;
+                                        }
+                                        propFound = true;
+                                        String expectedCommentBody = ((TriggerPRCommentBranchProperty) prop).getCommentBody();
+                                        if (expectedCommentBody.equals(commentBody)) {
+                                            ParameterizedJobMixIn.scheduleBuild2(job, 0,
+                                                    new CauseAction(new GitHubPullRequestCommentCause(commentUrl)));
+                                            LOGGER.log(Level.FINE,
+                                                    "Triggered build for {0} due to PR comment on {1}:{2}/{3}",
+                                                    new Object[] {
+                                                            job.getFullName(),
+                                                            changedRepository.getHost(),
+                                                            changedRepository.getUserName(),
+                                                            changedRepository.getRepositoryName()
+                                                    }
+                                            );
+                                        } else {
+                                            LOGGER.log(Level.FINER,
+                                                    "Issue comment does not match the trigger build string ({0}) for PR {1}",
+                                                    new Object[] { expectedCommentBody, issueUrl }
+                                            );
+                                            return;
+                                        }
+                                        break;
+                                    }
+
+                                    if (!propFound) {
+                                        LOGGER.log(Level.FINE, "Job {0} for {1}:{2}/{3} does not have a trigger branch property",
+                                                new Object[] {
+                                                        job.getFullName(),
+                                                        changedRepository.getHost(),
+                                                        changedRepository.getUserName(),
+                                                        changedRepository.getRepositoryName()
+                                                }
+                                        );
+                                    }
+
+                                    jobFound = true;
                                     break;
                                 }
                             }
                         }
                     }
                 }
-                if (!found) {
-                    LOGGER.log(Level.FINE, "PR comment on {0}:{1}/{2} did not match any project or job",
+                if (!jobFound) {
+                    LOGGER.log(Level.FINE, "PR comment on {0}:{1}/{2} did not match any job",
                         new Object[] {
                             changedRepository.getHost(), changedRepository.getUserName(),
                             changedRepository.getRepositoryName()
