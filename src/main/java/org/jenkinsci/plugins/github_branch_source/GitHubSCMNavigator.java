@@ -34,7 +34,6 @@ import hudson.Util;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -341,7 +340,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
         public static final boolean defaultBuildForkPRHead = GitHubSCMSource.DescriptorImpl.defaultBuildForkPRHead;
 
         @Inject private GitHubSCMSource.DescriptorImpl delegate;
-        
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String getPronoun() {
+            return Messages.GitHubSCMNavigator_Pronoun();
+        }
+
         @Override public String getDisplayName() {
             return Messages.GitHubSCMNavigator_DisplayName();
         }

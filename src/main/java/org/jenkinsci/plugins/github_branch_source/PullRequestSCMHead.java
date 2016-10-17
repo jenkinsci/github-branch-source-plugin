@@ -49,6 +49,14 @@ public final class PullRequestSCMHead extends SCMHead {
         this.trusted = trusted;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getPronoun() {
+        return Messages.PullRequestSCMHead_Pronoun();
+    }
+
     public int getNumber() {
         if (metadata != null) {
             return Integer.parseInt(metadata.getId());
