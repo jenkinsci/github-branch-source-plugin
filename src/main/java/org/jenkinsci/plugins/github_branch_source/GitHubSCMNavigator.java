@@ -47,6 +47,9 @@ import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
 import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.SCMSourceOwner;
+import org.jenkins.ui.icon.Icon;
+import org.jenkins.ui.icon.IconSet;
+import org.jenkins.ui.icon.IconSpec;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHMyself;
@@ -323,7 +326,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         projectObserver.complete();
     }
 
-    @Extension public static class DescriptorImpl extends SCMNavigatorDescriptor {
+    @Extension public static class DescriptorImpl extends SCMNavigatorDescriptor implements IconSpec {
 
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
 
@@ -353,7 +356,13 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return "plugin/github-branch-source/images/:size/github-scmnavigator.png";
         }
 
-        @Override public SCMNavigator newInstance(String name) {
+        @Override
+        public String getIconClassName() {
+            return "icon-github-scm-navigator";
+        }
+
+        @Override
+        public SCMNavigator newInstance(String name) {
             return new GitHubSCMNavigator("", name, "", GitHubSCMSource.DescriptorImpl.SAME);
         }
 
@@ -442,6 +451,24 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return delegate.doCheckBuildForkPRHead(buildOriginBranch, buildOriginBranchWithPR, buildOriginPRMerge, buildOriginPRHead, buildForkPRMerge, buildForkPRHead);
         }
 
+        static {
+            IconSet.icons.addIcon(
+                    new Icon("icon-github-scm-navigator icon-sm",
+                            "plugin/github-branch-source/images/16x16/github-scmnavigator.png",
+                            Icon.ICON_SMALL_STYLE));
+            IconSet.icons.addIcon(
+                    new Icon("icon-github-scm-navigator icon-md",
+                            "plugin/github-branch-source/images/24x24/github-scmnavigator.png",
+                            Icon.ICON_MEDIUM_STYLE));
+            IconSet.icons.addIcon(
+                    new Icon("icon-github-scm-navigator icon-lg",
+                            "plugin/github-branch-source/images/32x32/github-scmnavigator.png",
+                            Icon.ICON_LARGE_STYLE));
+            IconSet.icons.addIcon(
+                    new Icon("icon-github-scm-navigator icon-xlg",
+                            "plugin/github-branch-source/images/48x48/github-scmnavigator.png",
+                            Icon.ICON_XLARGE_STYLE));
+        }
     }
 
 }
