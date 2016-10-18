@@ -24,10 +24,13 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import hudson.Util;
 import hudson.model.InvisibleAction;
 import java.io.IOException;
+import java.io.ObjectStreamException;
 import java.net.URL;
 import jenkins.branch.OrganizationFolder;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.github.GHUser;
 
 /**
@@ -47,12 +50,19 @@ public class GitHubOrgAction extends InvisibleAction {
 
     public GitHubOrgAction(URL url, String name, String avatar) {
         this.url = url;
-        this.name = name;
-        this.avatar = avatar;
+        this.name = Util.fixEmpty(name);
+        this.avatar = Util.fixEmpty(avatar);
     }
 
     public GitHubOrgAction(GitHubOrgAction that) {
         this(that.getUrl(), that.getName(), that.getAvatar());
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        if ((name != null && StringUtils.isBlank(name))
+                || (avatar != null && StringUtils.isBlank(avatar)))
+            return new GitHubOrgAction(this);
+        return this;
     }
 
     public URL getUrl() {
@@ -60,10 +70,49 @@ public class GitHubOrgAction extends InvisibleAction {
     }
 
     public String getName() {
-        return name;
+        return Util.fixEmpty(name);
     }
 
     public String getAvatar() {
-        return avatar;
+        return Util.fixEmpty(avatar);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        GitHubOrgAction that = (GitHubOrgAction) o;
+
+        return getUrl() != null ? getUrl().equals(that.getUrl()) : that.getUrl() == null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode() {
+        return getUrl() != null ? getUrl().hashCode() : 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+        return "GitHubOrgAction{" +
+                "url=" + url +
+                ", name='" + name + '\'' +
+                ", avatar='" + avatar + '\'' +
+                "}";
+    }
+
+
 }

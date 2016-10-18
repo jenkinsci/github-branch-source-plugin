@@ -24,9 +24,12 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import hudson.Util;
 import hudson.model.InvisibleAction;
+import java.io.ObjectStreamException;
 import java.net.URL;
 import jenkins.branch.MultiBranchProject;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.github.GHRepository;
 
 /**
@@ -46,12 +49,19 @@ public class GitHubRepoAction extends InvisibleAction {
 
     public GitHubRepoAction(URL url, String description, String homepage) {
         this.url = url;
-        this.description = description;
-        this.homepage = homepage;
+        this.description = Util.fixEmpty(description);
+        this.homepage = Util.fixEmpty(homepage);
     }
 
     public GitHubRepoAction(GitHubRepoAction that) {
         this(that.getUrl(), that.getDescription(), that.getHomepage());
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+        if ((description != null && StringUtils.isBlank(description))
+                || (homepage != null && StringUtils.isBlank(homepage)))
+            return new GitHubRepoAction(this);
+        return this;
     }
 
     public URL getUrl() {
@@ -64,5 +74,43 @@ public class GitHubRepoAction extends InvisibleAction {
 
     public String getHomepage() {
         return homepage;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        GitHubRepoAction that = (GitHubRepoAction) o;
+
+        return getUrl() != null ? getUrl().equals(that.getUrl()) : that.getUrl() == null;
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode() {
+        return getUrl() != null ? getUrl().hashCode() : 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+        return "GitHubRepoAction{" +
+                "url=" + url +
+                ", description='" + description + '\'' +
+                ", homepage='" + homepage + '\'' +
+                "}";
     }
 }
