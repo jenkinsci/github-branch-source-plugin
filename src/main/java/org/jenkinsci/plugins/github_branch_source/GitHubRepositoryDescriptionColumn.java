@@ -24,7 +24,9 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import com.cloudbees.hudson.plugins.folder.Folder;
 import hudson.Extension;
+import hudson.model.Actionable;
 import hudson.model.Item;
 import hudson.model.Job;
 import hudson.views.ListViewColumn;
@@ -46,8 +48,8 @@ public class GitHubRepositoryDescriptionColumn extends ListViewColumn {
     @Restricted(NoExternalUse.class)
     @SuppressWarnings("unused") // used via Jelly EL binding
     public GitHubRepoAction getRepositoryOf(Item item) {
-        if (item instanceof Job) {
-            return ((Job) item).getAction(GitHubRepoAction.class);
+        if (item instanceof Actionable) {
+            return ((Actionable) item).getAction(GitHubRepoAction.class);
         }
         return null;
     }
