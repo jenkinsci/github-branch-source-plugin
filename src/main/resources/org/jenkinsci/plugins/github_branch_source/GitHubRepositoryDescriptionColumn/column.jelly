@@ -3,7 +3,7 @@
   <td>
     <j:set var="p" value="${col.getRepositoryOf(job)}"/>
     <j:choose>
-      <j:when test="${p != null and p.homepage != null">
+      <j:when test="${p != null and p.homepage != null}">
         <a href="${p.homepage}">${p.description}</a>
       </j:when>
       <j:when test="${p != null and p.homepage == null}">
