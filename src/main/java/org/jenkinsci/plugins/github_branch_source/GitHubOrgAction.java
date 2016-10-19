@@ -91,7 +91,7 @@ public class GitHubOrgAction extends InvisibleAction {
 
         GitHubOrgAction that = (GitHubOrgAction) o;
 
-        return getUrl() != null ? getUrl().equals(that.getUrl()) : that.getUrl() == null;
+        return getUrl() != null ? getUrl().toExternalForm().equals(that.getUrl().toExternalForm()) : that.getUrl() == null;
     }
 
     /**
@@ -99,7 +99,7 @@ public class GitHubOrgAction extends InvisibleAction {
      */
     @Override
     public int hashCode() {
-        return getUrl() != null ? getUrl().hashCode() : 0;
+        return getUrl() != null ? getUrl().toExternalForm().hashCode() : 0;
     }
 
     /**
