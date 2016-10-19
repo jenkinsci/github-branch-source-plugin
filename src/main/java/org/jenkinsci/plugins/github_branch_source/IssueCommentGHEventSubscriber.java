@@ -151,10 +151,10 @@ public class IssueCommentGHEventSubscriber extends GHEventsSubscriber {
                             continue;
                         }
                         GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) source;
-                        if (gitHubSCMSource.getRepoOwner().equals(changedRepository.getUserName()) &&
-                                gitHubSCMSource.getRepository().equals(changedRepository.getRepositoryName())) {
+                        if (gitHubSCMSource.getRepoOwner().equalsIgnoreCase(changedRepository.getUserName()) &&
+                                gitHubSCMSource.getRepository().equalsIgnoreCase(changedRepository.getRepositoryName())) {
                             for (Job<?, ?> job : owner.getAllJobs()) {
-                                if (job.getName().equals(pullRequestJobName)) {
+                                if (job.getName().equalsIgnoreCase(pullRequestJobName)) {
                                     if (!(job.getParent() instanceof MultiBranchProject)) {
                                         continue;
                                     }
@@ -166,7 +166,7 @@ public class IssueCommentGHEventSubscriber extends GHEventsSubscriber {
                                         }
                                         propFound = true;
                                         String expectedCommentBody = ((TriggerPRCommentBranchProperty) prop).getCommentBody();
-                                        if (expectedCommentBody.equals(commentBody)) {
+                                        if (expectedCommentBody.equalsIgnoreCase(commentBody)) {
                                             ParameterizedJobMixIn.scheduleBuild2(job, 0,
                                                     new CauseAction(new GitHubPullRequestCommentCause(commentUrl)));
                                             LOGGER.log(Level.FINE,
