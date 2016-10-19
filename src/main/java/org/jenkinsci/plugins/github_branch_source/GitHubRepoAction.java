@@ -90,7 +90,7 @@ public class GitHubRepoAction extends InvisibleAction {
 
         GitHubRepoAction that = (GitHubRepoAction) o;
 
-        return getUrl() != null ? getUrl().equals(that.getUrl()) : that.getUrl() == null;
+        return getUrl() != null ? getUrl().toExternalForm().equals(that.getUrl().toExternalForm()) : that.getUrl() == null;
 
     }
 
@@ -99,7 +99,7 @@ public class GitHubRepoAction extends InvisibleAction {
      */
     @Override
     public int hashCode() {
-        return getUrl() != null ? getUrl().hashCode() : 0;
+        return getUrl() != null ? getUrl().toExternalForm().hashCode() : 0;
     }
 
     /**
