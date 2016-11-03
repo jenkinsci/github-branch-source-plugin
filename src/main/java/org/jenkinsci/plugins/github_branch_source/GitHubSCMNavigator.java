@@ -261,9 +261,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
                 listener.getLogger().format("Looking up repositories of myself %s%n%n", repoOwner);
                 for (GHRepository repo : myself.listRepositories(100)) {
-                    if (Thread.interrupted()) {
-                        throw new InterruptedException();
-                    }
+                    checkInterrupt();
                     if (!repo.getOwnerName().equals(repoOwner)) {
                         continue; // ignore repos in other orgs when using GHMyself
                     }
@@ -286,9 +284,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
             listener.getLogger().format("Looking up repositories of organization %s%n%n", repoOwner);
             for (GHRepository repo : org.listRepositories(100)) {
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
+                checkInterrupt();
                 add(listener, observer, repo);
             }
             return;
@@ -305,9 +301,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
             listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
             for (GHRepository repo : user.listRepositories(100)) {
-                if (Thread.interrupted()) {
-                    throw new InterruptedException();
-                }
+                checkInterrupt();
                 add(listener, observer, repo);
             }
             return;
@@ -323,9 +317,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return;
         }
         listener.getLogger().format("Proposing %s%n", name);
-        if (Thread.interrupted()) {
-            throw new InterruptedException();
-        }
+        checkInterrupt();
         SCMSourceObserver.ProjectObserver projectObserver = observer.observe(name);
         
         GitHubSCMSource ghSCMSource = new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name);

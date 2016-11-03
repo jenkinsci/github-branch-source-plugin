@@ -408,6 +408,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             listener.getLogger().format("%n  Getting remote pull requests...%n");
             int pullrequests = 0;
             for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
+                checkInterrupt();
                 int number = ghPullRequest.getNumber();
                 listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + number));
                 boolean fork = !repo.getOwner().equals(ghPullRequest.getHead().getUser());
@@ -505,6 +506,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             listener.getLogger().format("%n  Getting remote branches...%n");
             int branches = 0;
             for (Map.Entry<String,GHBranch> entry : repo.getBranches().entrySet()) {
+                checkInterrupt();
                 final String branchName = entry.getKey();
                 if (isExcluded(branchName)) {
                     continue;
