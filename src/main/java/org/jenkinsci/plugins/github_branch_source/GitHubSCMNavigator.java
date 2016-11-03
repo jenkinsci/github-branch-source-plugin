@@ -357,10 +357,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         result.put(GitHubOrgMetadataAction.class, new GitHubOrgMetadataAction(u));
         result.put(GitHubLink.class, new GitHubLink("icon-github-logo", u.getHtmlUrl()));
         listener.getLogger().printf("Organization URL: %s%n", HyperlinkNote.encodeTo(u.getHtmlUrl().toExternalForm(), u.getName()));
+        GitHubOrgWebHook.register(hub, repoOwner);
         return result;
     }
 
-    @Extension public static class DescriptorImpl extends SCMNavigatorDescriptor implements IconSpec {
+    @Extension
+    public static class DescriptorImpl extends SCMNavigatorDescriptor implements IconSpec {
 
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
 
