@@ -27,15 +27,20 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.Util;
+import hudson.console.HyperlinkNote;
+import hudson.model.Action;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -44,8 +49,11 @@ import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
+import jenkins.scm.api.SCMNavigatorOwner;
+import jenkins.scm.api.SCMSourceCategory;
 import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.SCMSourceOwner;
+import jenkins.scm.impl.UncategorizedSCMSourceCategory;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
@@ -253,6 +261,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
             if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
                 listener.getLogger().format("Looking up repositories of myself %s%n%n", repoOwner);
                 for (GHRepository repo : myself.listRepositories(100)) {
+                    if (Thread.interrupted()) {
+                        throw new InterruptedException();
+                    }
                     if (!repo.getOwnerName().equals(repoOwner)) {
                         continue; // ignore repos in other orgs when using GHMyself
                     }
@@ -275,6 +286,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
             listener.getLogger().format("Looking up repositories of organization %s%n%n", repoOwner);
             for (GHRepository repo : org.listRepositories(100)) {
+                if (Thread.interrupted()) {
+                    throw new InterruptedException();
+                }
                 add(listener, observer, repo);
             }
             return;
@@ -291,6 +305,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
             listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
             for (GHRepository repo : user.listRepositories(100)) {
+                if (Thread.interrupted()) {
+                    throw new InterruptedException();
+                }
                 add(listener, observer, repo);
             }
             return;
@@ -323,6 +340,24 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         projectObserver.addSource(ghSCMSource);
         projectObserver.complete();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
+    public Map<Class<? extends Action>, Action> retrieveActions(@NonNull SCMNavigatorOwner owner,
+                                                                @NonNull TaskListener listener) throws IOException {
+        listener.getLogger().printf("Looking up details of %s...%n", getRepoOwner());
+        Map<Class<? extends Action>, Action> result = new HashMap<>();
+        StandardCredentials credentials = Connector.lookupScanCredentials(owner, getApiUri(), getScanCredentialsId());
+        GitHub hub = Connector.connect(getApiUri(), credentials);
+        GHUser u = hub.getUser(getRepoOwner());
+        result.put(GitHubOrgMetadataAction.class, new GitHubOrgMetadataAction(u));
+        result.put(GitHubLink.class, new GitHubLink("icon-github-logo", u.getHtmlUrl()));
+        listener.getLogger().printf("Organization URL: %s%n", HyperlinkNote.encodeTo(u.getHtmlUrl().toExternalForm(), u.getName()));
+        return result;
     }
 
     @Extension public static class DescriptorImpl extends SCMNavigatorDescriptor implements IconSpec {
@@ -371,6 +406,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @Override
         public SCMNavigator newInstance(String name) {
             return new GitHubSCMNavigator("", name, "", GitHubSCMSource.DescriptorImpl.SAME);
+        }
+
+        @NonNull
+        @Override
+        protected SCMSourceCategory[] createCategories() {
+            return new SCMSourceCategory[]{
+                    new UncategorizedSCMSourceCategory(Messages._GitHubSCMNavigator_UncategorizedCategory())
+                    // TODO add support for forks
+            };
         }
 
         @Restricted(NoExternalUse.class)

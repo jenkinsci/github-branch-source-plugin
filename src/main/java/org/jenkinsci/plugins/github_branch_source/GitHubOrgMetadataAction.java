@@ -24,14 +24,18 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
-import hudson.model.InvisibleAction;
+import hudson.model.Hudson;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.net.URL;
+import jenkins.branch.MetadataAction;
 import jenkins.branch.OrganizationFolder;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.github.GHUser;
+import org.kohsuke.stapler.Stapler;
 
 /**
  * Invisible {@link OrganizationFolder} property that
@@ -39,42 +43,88 @@ import org.kohsuke.github.GHUser;
  *
  * @author Kohsuke Kawaguchi
  */
-public class GitHubOrgAction extends InvisibleAction {
+public class GitHubOrgMetadataAction extends MetadataAction {
+    @NonNull
     private final URL url;
+    @CheckForNull
     private final String name;
+    @CheckForNull
     private final String avatar;
 
-    public GitHubOrgAction(GHUser org) throws IOException {
+    public GitHubOrgMetadataAction(@NonNull GHUser org) throws IOException {
         this(org.getHtmlUrl(), org.getName(), org.getAvatarUrl());
     }
 
-    public GitHubOrgAction(URL url, String name, String avatar) {
+    public GitHubOrgMetadataAction(@NonNull URL url, @CheckForNull String name, @CheckForNull String avatar) {
         this.url = url;
         this.name = Util.fixEmpty(name);
         this.avatar = Util.fixEmpty(avatar);
     }
 
-    public GitHubOrgAction(GitHubOrgAction that) {
-        this(that.getUrl(), that.getName(), that.getAvatar());
+    public GitHubOrgMetadataAction(@NonNull GitHubOrgMetadataAction that) {
+        this(that.getUrl(), that.getObjectDisplayName(), that.getAvatar());
     }
 
     private Object readResolve() throws ObjectStreamException {
         if ((name != null && StringUtils.isBlank(name))
                 || (avatar != null && StringUtils.isBlank(avatar)))
-            return new GitHubOrgAction(this);
+            return new GitHubOrgMetadataAction(this);
         return this;
     }
 
+    @NonNull
     public URL getUrl() {
         return url;
     }
 
-    public String getName() {
+    /**
+     * {@inheritDoc}
+     */
+    @CheckForNull
+    @Override
+    public String getObjectDisplayName() {
         return Util.fixEmpty(name);
     }
 
+    @CheckForNull
     public String getAvatar() {
         return Util.fixEmpty(avatar);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getFolderIconImageOf(String size) {
+        if (avatar == null) {
+            // fall back to the generic github org icon
+            String image = folderIconClassNameImageOf(getFolderIconClassName(), size);
+            return image != null
+                    ? image
+                    : (Stapler.getCurrentRequest().getContextPath() + Hudson.RESOURCE_PATH
+                            + "/plugin/github-branch-source/images/" + size + "/github-logo.png");
+        } else {
+            String[] xy = size.split("x");
+            if (xy.length == 0) return avatar;
+            if (avatar.contains("?")) return avatar + "&s=" + xy[0];
+            else return avatar + "?s=" + xy[0];
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getFolderIconClassName() {
+        return avatar == null ? "icon-github-logo" : null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getFolderIconDescription() {
+        return Messages.GitHubOrgMetadataAction_IconDescription();
     }
 
     /**
@@ -89,9 +139,16 @@ public class GitHubOrgAction extends InvisibleAction {
             return false;
         }
 
-        GitHubOrgAction that = (GitHubOrgAction) o;
+        GitHubOrgMetadataAction that = (GitHubOrgMetadataAction) o;
 
-        return getUrl() != null ? getUrl().toExternalForm().equals(that.getUrl().toExternalForm()) : that.getUrl() == null;
+        if (!url.equals(that.url)) {
+            return false;
+        }
+        if (name != null ? !name.equals(that.name) : that.name != null) {
+            return false;
+        }
+        return avatar != null ? avatar.equals(that.avatar) : that.avatar == null;
+
     }
 
     /**
@@ -99,7 +156,10 @@ public class GitHubOrgAction extends InvisibleAction {
      */
     @Override
     public int hashCode() {
-        return getUrl() != null ? getUrl().toExternalForm().hashCode() : 0;
+        int result = url.hashCode();
+        result = 31 * result + (name != null ? name.hashCode() : 0);
+        result = 31 * result + (avatar != null ? avatar.hashCode() : 0);
+        return result;
     }
 
     /**
@@ -107,12 +167,11 @@ public class GitHubOrgAction extends InvisibleAction {
      */
     @Override
     public String toString() {
-        return "GitHubOrgAction{" +
+        return "GitHubOrgMetadataAction{" +
                 "url=" + url +
                 ", name='" + name + '\'' +
                 ", avatar='" + avatar + '\'' +
                 "}";
     }
-
 
 }

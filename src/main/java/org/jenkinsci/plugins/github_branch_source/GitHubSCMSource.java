@@ -31,6 +31,8 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
@@ -38,26 +40,65 @@ import hudson.Util;
 import hudson.console.HyperlinkNote;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
+import hudson.model.Action;
+import hudson.model.Actionable;
+import hudson.model.Run;
 import hudson.model.TaskListener;
+import hudson.plugins.git.GitException;
+import hudson.plugins.git.GitSCM;
+import hudson.plugins.git.Revision;
+import hudson.plugins.git.extensions.GitSCMExtension;
+import hudson.plugins.git.extensions.impl.PreBuildMerge;
+import hudson.plugins.git.util.MergeRecord;
+import hudson.scm.SCM;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.net.ssl.SSLHandshakeException;
 import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadObserver;
+import jenkins.scm.api.SCMProbe;
+import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.api.SCMSourceOwner;
+import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
+import jenkins.scm.impl.UncategorizedSCMHeadCategory;
+import org.apache.commons.lang.StringUtils;
+import org.eclipse.jgit.lib.Constants;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.transport.RefSpec;
+import org.jenkinsci.plugins.gitclient.CheckoutCommand;
+import org.jenkinsci.plugins.gitclient.GitClient;
+import org.jenkinsci.plugins.gitclient.MergeCommand;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHBranch;
+import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHPullRequest;
+import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
@@ -67,37 +108,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.net.ssl.SSLHandshakeException;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import static hudson.model.Items.XSTREAM2;
-import hudson.model.Run;
-import hudson.plugins.git.GitException;
-import hudson.plugins.git.GitSCM;
-import hudson.plugins.git.Revision;
-import hudson.plugins.git.extensions.GitSCMExtension;
-import hudson.plugins.git.extensions.impl.PreBuildMerge;
-import hudson.plugins.git.util.MergeRecord;
-import hudson.scm.SCM;
-import java.util.HashSet;
-import org.eclipse.jgit.lib.Constants;
-import org.eclipse.jgit.lib.ObjectId;
-import org.jenkinsci.plugins.gitclient.CheckoutCommand;
-import org.jenkinsci.plugins.gitclient.GitClient;
-import org.jenkinsci.plugins.gitclient.MergeCommand;
 import static org.jenkinsci.plugins.github.config.GitHubServerConfig.GITHUB_URL;
 
 public class GitHubSCMSource extends AbstractGitSCMSource {
@@ -116,22 +127,30 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     private final String repository;
 
-    private @Nonnull String includes = DescriptorImpl.defaultIncludes;
+    @NonNull
+    private String includes = DescriptorImpl.defaultIncludes;
 
-    private @Nonnull String excludes = DescriptorImpl.defaultExcludes;
+    @NonNull
+    private String excludes = DescriptorImpl.defaultExcludes;
 
     /** Whether to build regular origin branches. */
-    private @Nonnull Boolean buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
+    @NonNull
+    private Boolean buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
     /** Whether to build origin branches which happen to also have a PR filed from them (but here we are naming and building as a branch). */
-    private @Nonnull Boolean buildOriginBranchWithPR = DescriptorImpl.defaultBuildOriginBranchWithPR;
+    @NonNull
+    private Boolean buildOriginBranchWithPR = DescriptorImpl.defaultBuildOriginBranchWithPR;
     /** Whether to build PRs filed from the origin, where the build is of the merge with the base branch. */
-    private @Nonnull Boolean buildOriginPRMerge = DescriptorImpl.defaultBuildOriginPRMerge;
+    @NonNull
+    private Boolean buildOriginPRMerge = DescriptorImpl.defaultBuildOriginPRMerge;
     /** Whether to build PRs filed from the origin, where the build is of the branch head. */
-    private @Nonnull Boolean buildOriginPRHead = DescriptorImpl.defaultBuildOriginPRHead;
+    @NonNull
+    private Boolean buildOriginPRHead = DescriptorImpl.defaultBuildOriginPRHead;
     /** Whether to build PRs filed from a fork, where the build is of the merge with the base branch. */
-    private @Nonnull Boolean buildForkPRMerge = DescriptorImpl.defaultBuildForkPRMerge;
+    @NonNull
+    private Boolean buildForkPRMerge = DescriptorImpl.defaultBuildForkPRMerge;
     /** Whether to build PRs filed from a fork, where the build is of the branch head. */
-    private @Nonnull Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+    @NonNull
+    private Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
 
     @DataBoundConstructor
     public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
@@ -251,7 +270,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * @param credentialsId Identifier of credentials
      * @return The credentials or null if it does not exists
      */
-    private <T extends StandardCredentials> T getCredentials(@Nonnull Class<T> type, @Nonnull String credentialsId) {
+    private <T extends StandardCredentials> T getCredentials(@NonNull Class<T> type, @NonNull String credentialsId) {
         return CredentialsMatchers.firstOrNull(CredentialsProvider.lookupCredentials(
                 type, getOwner(), ACL.SYSTEM,
                 Collections.<DomainRequirement> emptyList()), CredentialsMatchers.allOf(
@@ -260,20 +279,22 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     @Override
-    public @Nonnull String getIncludes() {
+    @NonNull
+    public String getIncludes() {
         return includes;
     }
 
-    @DataBoundSetter public void setIncludes(@Nonnull String includes) {
+    @DataBoundSetter public void setIncludes(@NonNull String includes) {
         this.includes = includes;
     }
 
     @Override
-    public @Nonnull String getExcludes() {
+    @NonNull
+    public String getExcludes() {
         return excludes;
     }
 
-    @DataBoundSetter public void setExcludes(@Nonnull String excludes) {
+    @DataBoundSetter public void setExcludes(@NonNull String excludes) {
         this.excludes = excludes;
     }
 
@@ -336,7 +357,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         return getUriResolver().getRepositoryUri(apiUri, repoOwner, repository);
     }
 
-    @Override protected final void retrieve(SCMHeadObserver observer, final TaskListener listener) throws IOException, InterruptedException {
+    @Override
+    protected final void retrieve(@CheckForNull SCMSourceCriteria criteria,
+                                  @NonNull SCMHeadObserver observer,
+                                  @NonNull final TaskListener listener) throws IOException, InterruptedException {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
 
         // Github client and validation
@@ -368,15 +392,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
             listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
-            doRetrieve(observer, listener, repo);
+            doRetrieve(criteria, observer, listener, repo);
             listener.getLogger().format("%nDone examining %s%n%n", fullName);
         } catch (RateLimitExceededException rle) {
             throw new AbortException(rle.getMessage());
         }
     }
 
-    private void doRetrieve(SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
-        SCMSourceCriteria criteria = getCriteria();
+    private void doRetrieve(SCMSourceCriteria criteria, SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
 
         // To implement buildOriginBranch && !buildOriginBranchWithPR we need to first find the pull requests, so we can skip corresponding origin branches later. Awkward.
         Set<String> originBranchesWithPR = new HashSet<>();
@@ -516,6 +539,26 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
+    @edu.umd.cs.findbugs.annotations.CheckForNull
+    @Override
+    protected SCMProbe createProbe(@NonNull SCMHead head, @edu.umd.cs.findbugs.annotations.CheckForNull
+    final SCMRevision revision) throws IOException {
+        if (StringUtils.isBlank(repository)) return null;
+        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+
+        // Github client and validation
+        GitHub github = Connector.connect(apiUri, credentials);
+        String fullName = repoOwner + "/" + repository;
+        final GHRepository repo = github.getRepository(fullName);
+        if (head instanceof PullRequestSCMHead) {
+            PullRequestSCMHead pr = (PullRequestSCMHead) head;
+            return new GitHubSCMProbe(revision, repo,
+                    "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head"));
+        } else {
+            return new GitHubSCMProbe(revision, repo, "refs/heads/" + head.getName());
+        }
+    }
+
     /**
      * Returns a {@link jenkins.scm.api.SCMSourceCriteria.Probe} for use in {@link #doRetrieve}.
      *
@@ -531,13 +574,26 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             GHRepository repo, final TaskListener listener) {
         return new SCMSourceCriteria.Probe() {
             private static final long serialVersionUID = 5012552654534124387L;
-            @Override public String name() {
+            private Long lastModified;
+            @Override
+            public String name() {
                 return branch;
             }
-            @Override public long lastModified() {
-                return 0; // TODO
+            @Override
+            public long lastModified() {
+                if (lastModified == null) {
+                    try {
+                        GHRef ref1 = repo.getRef(ref);
+                        GHCommit commit = repo.getCommit(ref1.getObject().getSha());
+                        return lastModified = commit.getCommitDate().getTime();
+                    } catch (IOException e) {
+                        return lastModified = 0L;
+                    }
+                }
+                return lastModified;
             }
-            @Override public boolean exists(@Nonnull String path) throws IOException {
+            @Override
+            public boolean exists(@NonNull String path) throws IOException {
                 try {
                     int index = path.lastIndexOf('/') + 1;
                     List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), ref);
@@ -721,8 +777,67 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * @see <a href="https://developer.github.com/v3/pulls/#get-a-single-pull-request">PR metadata</a>
      * @see <a href="http://stackoverflow.com/questions/15096331/github-api-how-to-find-the-branches-of-a-pull-request#comment54931031_15096596">base revision oddity</a>
      */
-    private boolean isTrusted(@Nonnull GHRepository repo, @Nonnull GHPullRequest ghPullRequest) throws IOException {
+    private boolean isTrusted(@NonNull GHRepository repo, @NonNull GHPullRequest ghPullRequest) throws IOException {
         return repo.getCollaboratorNames().contains(ghPullRequest.getUser().getLogin());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected boolean isCategoryEnabled(@NonNull SCMHeadCategory category) {
+        if (category instanceof ChangeRequestSCMHeadCategory) {
+            // only display change requests if this source is enabled for change requests
+            return super.isCategoryEnabled(category) && (
+                    Boolean.TRUE.equals(buildForkPRHead)
+                            || Boolean.TRUE.equals(buildForkPRMerge)
+                            || Boolean.TRUE.equals(buildOriginBranchWithPR)
+                            || Boolean.TRUE.equals(buildOriginPRHead)
+                            || Boolean.TRUE.equals(buildOriginPRMerge)
+            );
+        }
+        return super.isCategoryEnabled(category);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
+    protected Map<Class<? extends Action>, Action> retrieveActions(@NonNull SCMHead head,
+                                                                   @NonNull TaskListener listener) throws IOException {
+        Map<Class<? extends Action>, Action> result = new HashMap<>();
+        if (getOwner() instanceof Actionable) {
+            GitHubRepoMetadataAction repoLink = ((Actionable) getOwner()).getAction(GitHubRepoMetadataAction.class);
+            if (repoLink != null) {
+                String url;
+                if (head instanceof PullRequestSCMHead) {
+                    // pull request to this repository
+                    url = repoLink.getUrl() + "/pull/" + ((PullRequestSCMHead) head).getNumber();
+                } else {
+                    // branch in this repository
+                    url = repoLink.getUrl() + "/tree/" + head.getName();
+                }
+                result.put(GitHubLink.class, new GitHubLink("icon-github-branch", url));
+            } else {
+                result.put(GitHubLink.class, null);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
+    protected Map<Class<? extends Action>, Action> retrieveActions(@NonNull TaskListener listener) throws IOException {
+        Map<Class<? extends Action>, Action> result = new HashMap<>();
+        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+        GitHub hub = Connector.connect(apiUri, credentials);
+        GHRepository repo = hub.getRepository(getRepoOwner() + '/' + repository);
+        result.put(GitHubRepoMetadataAction.class, new GitHubRepoMetadataAction(repo));
+        result.put(GitHubLink.class, new GitHubLink("icon-github-repo", repo.getHtmlUrl()));
+        return result;
     }
 
     @Extension public static class DescriptorImpl extends SCMSourceDescriptor {
@@ -934,6 +1049,78 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return model;
         }
 
+        @NonNull
+        @Override
+        protected SCMHeadCategory[] createCategories() {
+            return new SCMHeadCategory[]{
+                    new UncategorizedSCMHeadCategory(Messages._GitHubSCMSource_UncategorizedCategory()),
+                    new ChangeRequestSCMHeadCategory(Messages._GitHubSCMSource_ChangeRequestCategory())
+                    // TODO add support for tags and maybe feature branch identification
+            };
+        }
+
     }
 
+    private static class GitHubSCMProbe extends SCMProbe {
+        private final SCMRevision revision;
+        private final GHRepository repo;
+        private final String ref;
+
+        public GitHubSCMProbe(SCMRevision revision, GHRepository repo, String ref) {
+            this.revision = revision;
+            this.repo = repo;
+            this.ref = ref;
+        }
+
+        @Override
+        public void close() throws IOException {
+
+        }
+
+        @Override
+        public String name() {
+            return null;
+        }
+
+        @Override
+        public long lastModified() {
+            if (revision instanceof SCMRevisionImpl) {
+                try {
+                    GHCommit commit = repo.getCommit(((SCMRevisionImpl) revision).getHash());
+                    return commit.getCommitDate().getTime();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
+            return 0;
+        }
+
+        @NonNull
+        @Override
+        public SCMProbeStat stat(@NonNull String path) throws IOException {
+            try {
+                int index = path.lastIndexOf('/') + 1;
+                List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), ref);
+                for (GHContent content : directoryContent) {
+                    if (content.getPath().equals(path)) {
+                        if (content.isFile()) {
+                            return SCMProbeStat.fromType(SCMFile.Type.REGULAR_FILE);
+                        } else if (content.isDirectory()) {
+                            return SCMProbeStat.fromType(SCMFile.Type.DIRECTORY);
+                        } else {
+                            // TODO content.isLink()
+                            return SCMProbeStat.fromType(SCMFile.Type.OTHER);
+                        }
+                    }
+                    if (content.getPath().equalsIgnoreCase(path)) {
+                        return SCMProbeStat.fromAlternativePath(content.getPath());
+                    }
+                }
+            } catch (FileNotFoundException fnf) {
+                // means that does not exist and this is handled below this try/catch block.
+            }
+            return SCMProbeStat.fromType(SCMFile.Type.NONEXISTENT);
+        }
+
+    }
 }

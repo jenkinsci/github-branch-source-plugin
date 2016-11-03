@@ -24,17 +24,19 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Action;
 import java.util.LinkedList;
 import java.util.List;
-import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.ChangeRequestSCMHead;
+import jenkins.scm.api.actions.ChangeRequestAction;
 import org.kohsuke.github.GHPullRequest;
 
 /**
  * Head corresponding to a pull request.
  * Named like {@code PR-123} or {@code PR-123-merged} or {@code PR-123-unmerged}.
  */
-public final class PullRequestSCMHead extends SCMHead {
+public final class PullRequestSCMHead extends ChangeRequestSCMHead {
 
     private static final long serialVersionUID = 1;
 
@@ -90,11 +92,11 @@ public final class PullRequestSCMHead extends SCMHead {
         return trusted;
     }
 
+    /** {@inheritDoc} */
+    @NonNull
     @Override
-    public List<? extends Action> getAllActions() {
-        List<Action> actions = new LinkedList<Action>(super.getAllActions());
-        actions.add(metadata);
-        return actions;
+    public PullRequestAction getChangeRequestAction() {
+        return metadata;
     }
 
 }
