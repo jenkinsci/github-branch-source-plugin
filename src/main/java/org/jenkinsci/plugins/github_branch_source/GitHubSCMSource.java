@@ -466,7 +466,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     if (criteria != null) {
                         // Would be more precise to check whether the merge of the base branch head with the PR branch head contains a given file, etc.,
                         // but this would be a lot more work, and is unlikely to differ from using refs/pull/123/merge:
-                        SCMSourceCriteria.Probe probe = getProbe(branchName, "pull request", "refs/pull/" + number + (merge ? "/merge" : "/head"), repo, listener);
+
+                        SCMSourceCriteria.Probe probe = createProbe(head, null);
                         if (criteria.isHead(probe, listener)) {
                             // FYI https://developer.github.com/v3/pulls/#response-1
                             Boolean mergeable = ghPullRequest.getMergeable();
@@ -518,8 +519,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     continue;
                 }
                 listener.getLogger().format("%n    Checking branch %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString() + "/tree/" + branchName, branchName));
+                SCMHead head = new BranchSCMHead(branchName);
+                SCMRevision hash = new SCMRevisionImpl(head, entry.getValue().getSHA1());
                 if (criteria != null) {
-                    SCMSourceCriteria.Probe probe = getProbe(branchName, "branch", "refs/heads/" + branchName, repo, listener);
+                    SCMSourceCriteria.Probe probe = createProbe(head, hash);
                     if (criteria.isHead(probe, listener)) {
                         listener.getLogger().format("    Met criteria%n");
                     } else {
@@ -527,8 +530,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         continue;
                     }
                 }
-                SCMHead head = new BranchSCMHead(branchName);
-                SCMRevision hash = new SCMRevisionImpl(head, entry.getValue().getSHA1());
                 observer.observe(head, hash);
                 if (!observer.isObserving()) {
                     return;
@@ -550,73 +551,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         GitHub github = Connector.connect(apiUri, credentials);
         String fullName = repoOwner + "/" + repository;
         final GHRepository repo = github.getRepository(fullName);
-        if (head instanceof PullRequestSCMHead) {
-            PullRequestSCMHead pr = (PullRequestSCMHead) head;
-            return new GitHubSCMProbe(revision, repo,
-                    "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head"));
-        } else {
-            return new GitHubSCMProbe(revision, repo, "refs/heads/" + head.getName());
-        }
-    }
-
-    /**
-     * Returns a {@link jenkins.scm.api.SCMSourceCriteria.Probe} for use in {@link #doRetrieve}.
-     *
-     * @param branch branch name
-     * @param thing readable name of what this is, e.g. {@code branch}
-     * @param ref the refspec, e.g. {@code refs/heads/myproduct-stable}
-     * @param repo A repository on GitHub.
-     * @param listener A TaskListener to log useful information
-     *
-     * @return A {@link jenkins.scm.api.SCMSourceCriteria.Probe}
-     */
-    protected SCMSourceCriteria.Probe getProbe(final String branch, final String thing, final String ref, final
-            GHRepository repo, final TaskListener listener) {
-        return new SCMSourceCriteria.Probe() {
-            private static final long serialVersionUID = 5012552654534124387L;
-            private Long lastModified;
-            @Override
-            public String name() {
-                return branch;
-            }
-            @Override
-            public long lastModified() {
-                if (lastModified == null) {
-                    try {
-                        GHRef ref1 = repo.getRef(ref);
-                        GHCommit commit = repo.getCommit(ref1.getObject().getSha());
-                        return lastModified = commit.getCommitDate().getTime();
-                    } catch (IOException e) {
-                        return lastModified = 0L;
-                    }
-                }
-                return lastModified;
-            }
-            @Override
-            public boolean exists(@NonNull String path) throws IOException {
-                try {
-                    int index = path.lastIndexOf('/') + 1;
-                    List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), ref);
-                    for (GHContent content : directoryContent) {
-                        if (content.isFile()) {
-                            String filename = path.substring(index);
-                            if (content.getName().equals(filename)) {
-                                listener.getLogger().format("      ‘%s’ exists in this %s%n", path, thing);
-                                return true;
-                            }
-                            if (content.getName().equalsIgnoreCase(filename)) {
-                                listener.getLogger().format("      ‘%s’ not found (but found ‘%s’, search is case sensitive) in this %s, skipping%n", path, content.getName(), thing);
-                                return false;
-                            }
-                        }
-                    }
-                } catch (FileNotFoundException fnf) {
-                    // means that does not exist and this is handled below this try/catch block.
-                }
-                listener.getLogger().format("      ‘%s’ does not exist in this %s%n", path, thing);
-                return false;
-            }
-        };
+        return new GitHubSCMProbe(repo, head, revision);
     }
 
     @Override
@@ -1066,10 +1001,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         private final GHRepository repo;
         private final String ref;
 
-        public GitHubSCMProbe(SCMRevision revision, GHRepository repo, String ref) {
+        public GitHubSCMProbe(GHRepository repo, SCMHead head, SCMRevision revision) {
             this.revision = revision;
             this.repo = repo;
-            this.ref = ref;
+            if (head instanceof PullRequestSCMHead) {
+                PullRequestSCMHead pr = (PullRequestSCMHead) head;
+                this.ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
+            } else {
+                this.ref = "refs/heads/" + head.getName();
+            }
         }
 
         @Override
@@ -1087,6 +1027,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (revision instanceof SCMRevisionImpl) {
                 try {
                     GHCommit commit = repo.getCommit(((SCMRevisionImpl) revision).getHash());
+                    return commit.getCommitDate().getTime();
+                } catch (IOException e) {
+                    // ignore
+                }
+            } else if (revision == null) {
+                try {
+                    GHRef ref = repo.getRef(this.ref);
+                    GHCommit commit = repo.getCommit(ref.getObject().getSha());
                     return commit.getCommitDate().getTime();
                 } catch (IOException e) {
                     // ignore
