@@ -31,7 +31,6 @@ import java.io.ObjectStreamException;
 import java.net.URL;
 import jenkins.branch.MetadataAction;
 import jenkins.branch.MultiBranchProject;
-import jenkins.branch.MultiBranchProjectMetadataAction;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.github.GHRepository;
 
