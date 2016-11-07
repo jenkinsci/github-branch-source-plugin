@@ -86,7 +86,6 @@ public class GitHubBuildStatusNotification {
         repo.createCommitStatus(revision, state, url, message, context);
     }
 
-    @SuppressWarnings("deprecation") // Run.getAbsoluteUrl appropriate here
     private static void createBuildCommitStatus(Run<?,?> build, TaskListener listener) {
         try {
             GHRepository repo = lookUpRepo(build.getParent());
