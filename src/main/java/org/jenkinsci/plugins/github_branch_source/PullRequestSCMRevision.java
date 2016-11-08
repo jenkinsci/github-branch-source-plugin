@@ -31,7 +31,7 @@ import jenkins.scm.api.SCMRevision;
 /**
  * Revision of a pull request.
  */
-class PullRequestSCMRevision extends SCMRevision {
+public class PullRequestSCMRevision extends SCMRevision {
     
     private static final long serialVersionUID = 1L;
 
