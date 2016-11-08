@@ -38,7 +38,9 @@ public abstract class RepositoryUriResolver {
         if (apiUri != null) {
             try {
                 URL endpoint = new URL(apiUri);
-                return endpoint.getHost();
+                if (!java.util.Objects.equals(endpoint.getHost(),"api.github.com")) {
+                    return endpoint.getHost();
+                }
             } catch (MalformedURLException e) {
                 // ignore
             }
