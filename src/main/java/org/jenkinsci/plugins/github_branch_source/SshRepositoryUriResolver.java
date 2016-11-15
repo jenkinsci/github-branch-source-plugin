@@ -25,10 +25,13 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 /**
- * @author Stephen Connolly
+ * A {@link RepositoryUriResolver} that resolves SSH git URLs.
  */
 public class SshRepositoryUriResolver extends RepositoryUriResolver {
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getRepositoryUri(String apiUri, String owner, String repository) {
         return "git@" + hostnameFromApiUri(apiUri) + ":" + owner + "/" + repository + ".git";

@@ -24,21 +24,40 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.net.MalformedURLException;
 import java.net.URL;
 
 /**
- * @author Stephen Connolly
+ * Resolves the URI of a GitHub repositort from the API URI, owner and repository name.
  */
 public abstract class RepositoryUriResolver {
 
-    public abstract String getRepositoryUri(String apiUri, String owner, String repository);
+    /**
+     * Resolves the URI of a repository.
+     *
+     * @param apiUri     the API URL of the GitHub server.
+     * @param owner      the owner of the repository.
+     * @param repository the name of the repository.
+     * @return the GIT URL of the repository.
+     */
+    @NonNull
+    public abstract String getRepositoryUri(@NonNull String apiUri, @NonNull String owner, @NonNull String repository);
 
-    public static String hostnameFromApiUri(String apiUri) {
+    /**
+     * Helper method that returns the hostname of a GitHub server from its API URL.
+     *
+     * @param apiUri the API URL.
+     * @return the hostname of a GitHub server
+     */
+    @NonNull
+    public static String hostnameFromApiUri(@NonNull String apiUri) {
         if (apiUri != null) {
             try {
                 URL endpoint = new URL(apiUri);
-                return endpoint.getHost();
+                if (!"api.github.com".equals(endpoint.getHost())) {
+                    return endpoint.getHost();
+                }
             } catch (MalformedURLException e) {
                 // ignore
             }
