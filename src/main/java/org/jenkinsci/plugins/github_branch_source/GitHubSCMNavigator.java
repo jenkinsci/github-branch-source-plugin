@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -80,22 +81,31 @@ public class GitHubSCMNavigator extends SCMNavigator {
     private final String apiUri;
     private String pattern = ".*";
 
-    @CheckForNull private String includes;
-    @CheckForNull private String excludes;
+    @CheckForNull
+    private String includes;
+    @CheckForNull
+    private String excludes;
     /** Whether to build regular origin branches. */
-    private @Nonnull Boolean buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
+    @Nonnull
+    private Boolean buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
     /** Whether to build origin branches which happen to also have a PR filed from them (but here we are naming and building as a branch). */
-    private @Nonnull Boolean buildOriginBranchWithPR = DescriptorImpl.defaultBuildOriginBranchWithPR;
+    @Nonnull
+    private Boolean buildOriginBranchWithPR = DescriptorImpl.defaultBuildOriginBranchWithPR;
     /** Whether to build PRs filed from the origin, where the build is of the merge with the base branch. */
-    private @Nonnull Boolean buildOriginPRMerge = DescriptorImpl.defaultBuildOriginPRMerge;
+    @Nonnull
+    private Boolean buildOriginPRMerge = DescriptorImpl.defaultBuildOriginPRMerge;
     /** Whether to build PRs filed from the origin, where the build is of the branch head. */
-    private @Nonnull Boolean buildOriginPRHead = DescriptorImpl.defaultBuildOriginPRHead;
+    @Nonnull
+    private Boolean buildOriginPRHead = DescriptorImpl.defaultBuildOriginPRHead;
     /** Whether to build PRs filed from a fork, where the build is of the merge with the base branch. */
-    private @Nonnull Boolean buildForkPRMerge = DescriptorImpl.defaultBuildForkPRMerge;
+    @Nonnull
+    private Boolean buildForkPRMerge = DescriptorImpl.defaultBuildForkPRMerge;
     /** Whether to build PRs filed from a fork, where the build is of the branch head. */
-    private @Nonnull Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+    @Nonnull
+    private Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
 
-    @DataBoundConstructor public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
+    @DataBoundConstructor
+    public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
         this.repoOwner = repoOwner;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
         this.checkoutCredentialsId = checkoutCredentialsId;
@@ -126,19 +136,23 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return this;
     }
 
-    @Nonnull public String getIncludes() {
+    @Nonnull
+    public String getIncludes() {
         return includes != null ? includes : DescriptorImpl.defaultIncludes;
     }
 
-    @DataBoundSetter public void setIncludes(@Nonnull String includes) {
+    @DataBoundSetter
+    public void setIncludes(@Nonnull String includes) {
         this.includes = includes.equals(DescriptorImpl.defaultIncludes) ? null : includes;
     }
 
-    @Nonnull public String getExcludes() {
+    @Nonnull
+    public String getExcludes() {
         return excludes != null ? excludes : DescriptorImpl.defaultExcludes;
     }
 
-    @DataBoundSetter public void setExcludes(@Nonnull String excludes) {
+    @DataBoundSetter
+    public void setExcludes(@Nonnull String excludes) {
         this.excludes = excludes.equals(DescriptorImpl.defaultExcludes) ? null : excludes;
     }
     
@@ -219,12 +233,14 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return apiUri;
     }
 
-    @DataBoundSetter public void setPattern(String pattern) {
+    @DataBoundSetter
+    public void setPattern(String pattern) {
         Pattern.compile(pattern);
         this.pattern = pattern;
     }
 
-    @Override public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
+    @Override
+    public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
         TaskListener listener = observer.getListener();
 
         // Input data validation
@@ -310,6 +326,95 @@ public class GitHubSCMNavigator extends SCMNavigator {
         throw new AbortException(repoOwner + " does not correspond to a known GitHub User Account or Organization");
     }
 
+    @Override
+    public void visitSource(String sourceName, SCMSourceObserver observer)
+            throws IOException, InterruptedException {
+        TaskListener listener = observer.getListener();
+
+        // Input data validation
+        if (repoOwner.isEmpty()) {
+            throw new AbortException("Must specify user or organization");
+        }
+
+        StandardCredentials credentials =
+                Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
+
+        // Github client and validation
+        GitHub github = Connector.connect(apiUri, credentials);
+        try {
+            github.checkApiUrlValidity();
+        } catch (HttpException e) {
+            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
+            throw new AbortException(message);
+        }
+
+        // Input data validation
+        if (credentials != null && !github.isCredentialValid()) {
+            String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
+                    CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
+            throw new AbortException(message);
+        }
+
+        if (!github.isAnonymous()) {
+            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
+                    CredentialsNameProvider.name(credentials));
+            GHMyself myself = null;
+            try {
+                // Requires an authenticated access
+                myself = github.getMyself();
+            } catch (RateLimitExceededException rle) {
+                throw new AbortException(rle.getMessage());
+            }
+            if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
+                listener.getLogger().format("Looking up %s repository of myself %s%n%n", sourceName, repoOwner);
+                GHRepository repo = myself.getRepository(sourceName);
+                if (repo != null && repo.getOwnerName().equals(repoOwner)) {
+                    add(listener, observer, repo);
+                }
+                return;
+            }
+        } else {
+            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
+                    apiUri == null ? GITHUB_URL : apiUri);
+        }
+
+        GHOrganization org = null;
+        try {
+            org = github.getOrganization(repoOwner);
+        } catch (RateLimitExceededException rle) {
+            throw new AbortException(rle.getMessage());
+        } catch (FileNotFoundException fnf) {
+            // may be an user... ok to ignore
+        }
+        if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
+            listener.getLogger().format("Looking up %s repository of organization %s%n%n", sourceName, repoOwner);
+            GHRepository repo = org.getRepository(sourceName);
+            if (repo != null) {
+                add(listener, observer, repo);
+            }
+            return;
+        }
+
+        GHUser user = null;
+        try {
+            user = github.getUser(repoOwner);
+        } catch (RateLimitExceededException rle) {
+            throw new AbortException(rle.getMessage());
+        } catch (FileNotFoundException fnf) {
+            // the user may not exist... ok to ignore
+        }
+        if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
+            listener.getLogger().format("Looking up %s repository of user %s%n%n", sourceName, repoOwner);
+            GHRepository repo = user.getRepository(sourceName);
+            if (repo != null) {
+                add(listener, observer, repo);
+            }
+            return;
+        }
+
+        throw new AbortException(repoOwner + " does not correspond to a known GitHub User Account or Organization");
+    }
+
     private void add(TaskListener listener, SCMSourceObserver observer, GHRepository repo) throws InterruptedException {
         String name = repo.getName();
         if (!Pattern.compile(pattern).matcher(name).matches()) {
@@ -349,8 +454,24 @@ public class GitHubSCMNavigator extends SCMNavigator {
         result.put(GitHubOrgMetadataAction.class, new GitHubOrgMetadataAction(u));
         result.put(GitHubLink.class, new GitHubLink("icon-github-logo", u.getHtmlUrl()));
         listener.getLogger().printf("Organization URL: %s%n", HyperlinkNote.encodeTo(u.getHtmlUrl().toExternalForm(), u.getName()));
-        GitHubOrgWebHook.register(hub, repoOwner);
         return result;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void afterSave(@NonNull SCMNavigatorOwner owner) {
+        GitHubWebHook.get().registerHookFor(owner);
+        try {
+            // FIXME MINOR HACK ALERT
+            StandardCredentials credentials =
+                    Connector.lookupScanCredentials(owner, getApiUri(), getScanCredentialsId());
+            GitHub hub = Connector.connect(getApiUri(), credentials);
+            GitHubOrgWebHook.register(hub, repoOwner);
+        } catch (IOException e) {
+            DescriptorImpl.LOGGER.log(Level.WARNING, e.getMessage(), e);
+        }
     }
 
     @Extension
@@ -378,7 +499,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return Messages.GitHubSCMNavigator_Pronoun();
         }
 
-        @Override public String getDisplayName() {
+        @Override
+        public String getDisplayName() {
             return Messages.GitHubSCMNavigator_DisplayName();
         }
 

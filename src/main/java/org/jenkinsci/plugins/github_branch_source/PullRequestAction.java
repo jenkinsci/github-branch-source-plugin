@@ -52,6 +52,14 @@ final class PullRequestAction extends ChangeRequestAction {
         baseRef = pr.getBase().getRef();
     }
 
+    PullRequestAction(int number, URL url, String title, String userLogin, String baseRef) {
+        this.number = number;
+        this.url = url;
+        this.title = title;
+        this.userLogin = userLogin;
+        this.baseRef = baseRef;
+    }
+
     @NonNull
     @Override
     public String getId() {
@@ -84,4 +92,31 @@ final class PullRequestAction extends ChangeRequestAction {
         return new BranchSCMHead(baseRef);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        PullRequestAction that = (PullRequestAction) o;
+
+        if (number != that.number) {
+            return false;
+        }
+        if (url != null ? !url.toExternalForm().equals(that.url.toExternalForm()) : that.url != null) {
+            return false;
+        }
+        return userLogin != null ? userLogin.equals(that.userLogin) : that.userLogin == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = number;
+        result = 31 * result + (userLogin != null ? userLogin.hashCode() : 0);
+        return result;
+    }
 }

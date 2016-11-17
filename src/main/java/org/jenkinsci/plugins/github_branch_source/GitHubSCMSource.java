@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
@@ -113,6 +114,9 @@ import static org.jenkinsci.plugins.github.config.GitHubServerConfig.GITHUB_URL;
 
 public class GitHubSCMSource extends AbstractGitSCMSource {
 
+    public static final String VALID_GITHUB_REPO_NAME = "^[0-9A-Za-z._-]+$";
+    public static final String VALID_GITHUB_USER_NAME = "^[0-9A-Za-z]([0-9A-Za-z._-]+[0-9A-Za-z])$";
+    public static final String VALID_GIT_SHA1 = "^[a-fA-F0-9]{40}$";
     private static final Logger LOGGER = Logger.getLogger(GitHubSCMSource.class.getName());
 
     private final String apiUri;
@@ -400,28 +404,115 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     private void doRetrieve(SCMSourceCriteria criteria, SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
+        boolean wantPRs = true;
+        boolean wantBranches = true;
+        Set<Integer> wantPRNumbers = null;
+        int wantBranchCount = 0;
+        Set<SCMHead> includes = observer.getIncludes();
+        if (includes != null) {
+            wantPRs = false;
+            wantBranches = false;
+            wantPRNumbers = new HashSet<>();
+            for (SCMHead h : includes) {
+                if (h instanceof PullRequestSCMHead) {
+                    wantPRs = true;
+                    wantPRNumbers.add(((PullRequestSCMHead) h).getNumber());
+                } else if (h instanceof BranchSCMHead) {
+                    wantBranches = true;
+                    wantBranchCount++;
+                }
+            }
+        }
 
-        // To implement buildOriginBranch && !buildOriginBranchWithPR we need to first find the pull requests, so we can skip corresponding origin branches later. Awkward.
+        // To implement buildOriginBranch && !buildOriginBranchWithPR we need to first find the pull requests,
+        // so we can skip corresponding origin branches later. Awkward.
         Set<String> originBranchesWithPR = new HashSet<>();
 
-        if (buildOriginBranchWithPR || buildOriginPRMerge || buildOriginPRHead || buildForkPRMerge || buildForkPRHead) {
-            listener.getLogger().format("%n  Getting remote pull requests...%n");
+        if ((wantPRs || (wantBranches && (!buildOriginBranch || !buildOriginBranchWithPR)))
+                && (buildOriginBranchWithPR || buildOriginPRMerge || buildOriginPRHead || buildForkPRMerge
+                || buildForkPRHead)) {
             int pullrequests = 0;
-            for (GHPullRequest ghPullRequest : repo.getPullRequests(GHIssueState.OPEN)) {
+            boolean onlyWantPRBranch = false;
+            if (includes != null && wantBranches && wantBranchCount == 1 && wantPRNumbers.size() == 1) {
+                // there are some configuration options that let PullRequestGHEventSubscriber generate a collection
+                // of both pull requests and a single branch, e.g. we may have the merge pr head, the fork pr head and
+                // the origin branch head. This optimization here prevents iterating all the PRs just to trigger
+                // an update of the single branch as we only need to retrieve that single PR
+                PullRequestSCMHead prh = null;
+                BranchSCMHead brh = null;
+                for (SCMHead h : includes) {
+                    if (h instanceof PullRequestSCMHead) {
+                        prh = (PullRequestSCMHead) h;
+                        if (brh != null) {
+                            break;
+                        }
+                    }
+                    if (h instanceof BranchSCMHead) {
+                        brh = (BranchSCMHead) h;
+                        if (prh != null) {
+                            break;
+                        }
+                    }
+                }
+                if (brh != null && prh != null) {
+                    // this is a case where we do not need to iterate all the pull requests as the only
+                    // pull request we are interested in is the same as the branch we are interested in
+                    // thus we can reduce API calls and save iterating all PRs
+                    onlyWantPRBranch = repoOwner.equals(prh.getChangeRequestAction().getAuthor())
+                            && brh.equals(prh.getChangeRequestAction().getTarget());
+                }
+            }
+            Iterable<GHPullRequest> pullRequests;
+            if (includes != null && (!wantBranches || onlyWantPRBranch) && wantPRNumbers.size() == 1) {
+                // Special case optimization. We only want one PR number and we don't need to get any branches
+                //
+                // Here we can just get the only PR we are interested in and save API rate limit
+                // if we needed more than one PR, we would have to make multiple API calls, one for each PR
+                // and thus a single call to getPullRequests would be expected to be cheaper (note that if there
+                // are multiple pages of pull requests and we are only interested in two pull requests on the last
+                // page then this assumption would break down... but in general this will not be the expected case
+                // hence we only optimize for the single PR case as that is expected to be common when validating
+                // events
+                int number = wantPRNumbers.iterator().next();
+                listener.getLogger().format("%n  Getting remote pull request #%d...%n", number);
+                GHPullRequest pr = repo.getPullRequest(number);
+                if (pr == null || GHIssueState.CLOSED.equals(pr.getState())) {
+                    pullRequests = Collections.emptyList();
+                } else {
+                    pullRequests = Collections.singletonList(pr);
+                }
+            } else {
+                listener.getLogger().format("%n  Getting remote pull requests...%n");
+                // we use a paged iterable so that if the observer is finished observing we stop making API calls
+                pullRequests = repo.queryPullRequests().state(GHIssueState.OPEN).list();
+            }
+            for (GHPullRequest ghPullRequest : pullRequests) {
                 checkInterrupt();
                 int number = ghPullRequest.getNumber();
-                listener.getLogger().format("%n    Checking pull request %s%n", HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + number));
+                if (includes != null && !wantBranches && !wantPRNumbers.contains(number)) {
+                    continue;
+                }
                 boolean fork = !repo.getOwner().equals(ghPullRequest.getHead().getUser());
-                if (fork && !buildForkPRMerge && !buildForkPRHead) {
-                    listener.getLogger().format("    Submitted from fork, skipping%n%n");
+                if (wantPRs) {
+                    listener.getLogger().format("%n    Checking pull request %s%n",
+                            HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + number));
+                    if (fork && !buildForkPRMerge && !buildForkPRHead) {
+                        listener.getLogger().format("    Submitted from fork, skipping%n%n");
+                        continue;
+                    }
+                    if (!fork && !buildOriginPRMerge && !buildOriginPRHead && !buildOriginBranchWithPR) {
+                        listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
+                        continue;
+                    }
+                    if (!fork) {
+                        originBranchesWithPR.add(ghPullRequest.getHead().getRef());
+                    }
+                } else {
+                    // we just wanted the list of origin branches with PR for the withBranches
+                    if (!fork && (buildOriginPRMerge || buildOriginPRHead || buildOriginBranchWithPR)) {
+                        originBranchesWithPR.add(ghPullRequest.getHead().getRef());
+                    }
                     continue;
-                }
-                if (!fork && !buildOriginPRMerge && !buildOriginPRHead && !buildOriginBranchWithPR) {
-                    listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
-                    continue;
-                }
-                if (!fork) {
-                    originBranchesWithPR.add(ghPullRequest.getHead().getRef());
                 }
                 boolean trusted = isTrusted(repo, ghPullRequest);
                 if (!trusted) {
@@ -462,8 +553,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             branchName += "-head";
                         }
                     }
-                    listener.getLogger().format("    Job name: %s%n", branchName);
                     PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge, trusted);
+                    if (includes != null && !includes.contains(head)) {
+                        // don't waste rate limit testing a head we are not interested in
+                        continue;
+                    }
+                    listener.getLogger().format("    Job name: %s%n", branchName);
                     if (criteria != null) {
                         // Would be more precise to check whether the merge of the base branch head with the PR branch head contains a given file, etc.,
                         // but this would be a lot more work, and is unlikely to differ from using refs/pull/123/merge:
@@ -502,26 +597,58 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
         }
 
-        if (buildOriginBranch || buildOriginBranchWithPR) {
+        if (wantBranches && (buildOriginBranch || buildOriginBranchWithPR)) {
             listener.getLogger().format("%n  Getting remote branches...%n");
             int branches = 0;
-            for (Map.Entry<String,GHBranch> entry : repo.getBranches().entrySet()) {
+            Map<String, GHBranch> branchMap;
+            if (includes != null && wantBranchCount == 1) {
+                // Special case optimization. We only want one branch
+                //
+                // Here we can just get the only branch we are interested in and save API rate limit
+                // if we needed more than one branch, we would have to make multiple API calls, one for each branch
+                // and thus a single call to getBranch would be expected to be cheaper (note that if there
+                // are multiple pages of branches and we are only interested in two branches then this assumption
+                // would break down... but in general this will not be the expected case
+                // hence we only optimize for the single branch case as that is expected to be common when validating
+                // events
+                BranchSCMHead head = null;
+                for (SCMHead h : includes) {
+                    if (h instanceof BranchSCMHead) {
+                        head = (BranchSCMHead) h;
+                        break;
+                    }
+                }
+                GHBranch branch = head != null ? repo.getBranch(head.getName()) : null;
+                if (branch == null) {
+                    branchMap = Collections.emptyMap();
+                } else {
+                    branchMap = Collections.singletonMap(branch.getName(), branch);
+                }
+            } else {
+                branchMap = repo.getBranches();
+            }
+
+            for (Map.Entry<String, GHBranch> entry : branchMap.entrySet()) {
                 checkInterrupt();
                 final String branchName = entry.getKey();
                 if (isExcluded(branchName)) {
                     continue;
                 }
+                SCMHead head = new BranchSCMHead(branchName);
+                if (includes != null && !includes.contains(head)) {
+                    // don't waste rate limit testing a head we are not interested in
+                    continue;
+                }
                 boolean hasPR = originBranchesWithPR.contains(branchName);
-                if (!hasPR && !buildOriginBranch) {
+                if (!buildOriginBranch && !hasPR) {
                     listener.getLogger().format("%n    Skipping branch %s since there is no corresponding PR%n", branchName);
                     continue;
                 }
-                if (hasPR && !buildOriginBranchWithPR) {
+                if (!buildOriginBranchWithPR && hasPR) {
                     listener.getLogger().format("%n    Skipping branch %s since there is a corresponding PR%n", branchName);
                     continue;
                 }
                 listener.getLogger().format("%n    Checking branch %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString() + "/tree/" + branchName, branchName));
-                SCMHead head = new BranchSCMHead(branchName);
                 SCMRevision hash = new SCMRevisionImpl(head, entry.getValue().getSHA1());
                 if (criteria != null) {
                     SCMSourceCriteria.Probe probe = createProbe(head, hash);
@@ -540,6 +667,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             listener.getLogger().format("%n  %d branches were processed%n", branches);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean isExcluded(String branchName) {
+        return super.isExcluded(branchName); // override so that we can call this method from this SCMHeadEvent
     }
 
     @edu.umd.cs.findbugs.annotations.CheckForNull
@@ -714,7 +849,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * @see <a href="https://developer.github.com/v3/pulls/#get-a-single-pull-request">PR metadata</a>
      * @see <a href="http://stackoverflow.com/questions/15096331/github-api-how-to-find-the-branches-of-a-pull-request#comment54931031_15096596">base revision oddity</a>
      */
-    private boolean isTrusted(@NonNull GHRepository repo, @NonNull GHPullRequest ghPullRequest) throws IOException {
+    boolean isTrusted(@NonNull GHRepository repo, @NonNull GHPullRequest ghPullRequest) throws IOException {
         return repo.getCollaboratorNames().contains(ghPullRequest.getUser().getLogin());
     }
 
@@ -777,7 +912,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         return result;
     }
 
-    @Extension public static class DescriptorImpl extends SCMSourceDescriptor {
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void afterSave() {
+        SCMSourceOwner owner = getOwner();
+        if (owner != null) {
+            GitHubWebHook.get().registerHookFor(owner);
+        }
+    }
+
+    @Extension
+    public static class DescriptorImpl extends SCMSourceDescriptor {
 
         public static final String defaultIncludes = "*";
         public static final String defaultExcludes = "";

@@ -25,11 +25,8 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.model.Action;
-import java.util.LinkedList;
-import java.util.List;
 import jenkins.scm.api.ChangeRequestSCMHead;
-import jenkins.scm.api.actions.ChangeRequestAction;
+import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHPullRequest;
 
 /**
@@ -43,12 +40,14 @@ public final class PullRequestSCMHead extends ChangeRequestSCMHead {
     private final PullRequestAction metadata;
     private Boolean merge;
     private final boolean trusted;
+    private final boolean closed;
 
     PullRequestSCMHead(GHPullRequest pr, String name, boolean merge, boolean trusted) {
         super(name);
         metadata = new PullRequestAction(pr);
         this.merge = merge;
         this.trusted = trusted;
+        this.closed = GHIssueState.CLOSED.equals(pr.getState());
     }
 
     /**
