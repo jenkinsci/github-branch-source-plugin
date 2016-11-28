@@ -7,7 +7,7 @@
         <version>2.12</version>
     </parent>
     <artifactId>github-branch-source</artifactId>
-    <version>1.10</version>
+    <version>1.10.1-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <name>GitHub Branch Source Plugin</name>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/GitHub+Branch+Source+Plugin</url>
