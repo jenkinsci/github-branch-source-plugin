@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 CloudBees, Inc.
+ * Copyright 2016 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,27 +24,47 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+import hudson.Extension;
+import hudson.model.Descriptor;
+import hudson.views.ViewJobFilter;
+import jenkins.branch.Branch;
+import jenkins.branch.SimpleViewBranchFilter;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * @author Stephen Connolly
+ * A {@link ViewJobFilter} that matches {@link PullRequestSCMHead} based branches.
+ *
+ * @since FIXME
  */
-public abstract class RepositoryUriResolver {
-
-    public abstract String getRepositoryUri(String apiUri, String owner, String repository);
-
-    public static String hostnameFromApiUri(String apiUri) {
-        if (apiUri != null) {
-            try {
-                URL endpoint = new URL(apiUri);
-                if (!"api.github.com".equals(endpoint.getHost()))){
-                    return endpoint.getHost();
-                }
-            } catch (MalformedURLException e) {
-                // ignore
-            }
-        }
-        return "github.com";
+public class GitHubPullRequestFilter extends SimpleViewBranchFilter {
+    /**
+     * Our constructor.
+     */
+    @DataBoundConstructor
+    public GitHubPullRequestFilter() {
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isIncluded(Branch branch) {
+        return branch.getHead() instanceof PullRequestSCMHead;
+    }
+
+    /**
+     * Our descriptor.
+     */
+    @Extension(optional = true)
+    public static class DescriptorImpl extends Descriptor<ViewJobFilter> {
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public String getDisplayName() {
+            return Messages.GitHubPullRequestFilter_DisplayName();
+        }
+    }
+
 }

@@ -81,7 +81,7 @@ final class PullRequestAction extends ChangeRequestAction {
     @NonNull
     @Override
     public SCMHead getTarget() {
-        return new SCMHead(baseRef);
+        return new BranchSCMHead(baseRef);
     }
 
 }

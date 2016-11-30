@@ -90,7 +90,6 @@ public class GitHubBuildStatusNotification {
         repo.getPullRequest(pullRequestNumber).comment("Build failure\n[" + url + "](" + url + ")");
     }
 
-    @SuppressWarnings("deprecation") // Run.getAbsoluteUrl appropriate here
     private static void createBuildCommitStatus(Run<?,?> build, TaskListener listener) {
         try {
             GHRepository repo = lookUpRepo(build.getParent());
