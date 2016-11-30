@@ -41,5 +41,8 @@
         <f:entry title="${%buildForkPRHead.title}" field="buildForkPRHead">
             <f:checkbox default="${descriptor.defaultBuildForkPRHead}"/>
         </f:entry>
+        <f:entry title="${%commentOnPROnBuildFailure.title}" field="commentOnPROnBuildFailure">
+            <f:checkbox default="${descriptor.defaultCommentOnPROnBuildFailure}"/>
+        </f:entry>
     </f:advanced>
 </j:jelly>

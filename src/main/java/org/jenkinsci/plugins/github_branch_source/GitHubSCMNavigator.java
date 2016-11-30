@@ -84,6 +84,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     private @Nonnull Boolean buildForkPRMerge = DescriptorImpl.defaultBuildForkPRMerge;
     /** Whether to build PRs filed from a fork, where the build is of the branch head. */
     private @Nonnull Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+    /** Whether to comment on PRs on build failure. */
+    private @Nonnull Boolean commentOnPROnBuildFailure = DescriptorImpl.defaultCommentOnPROnBuildFailure;
 
     @DataBoundConstructor public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
         this.repoOwner = repoOwner;
@@ -112,6 +114,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
         if (buildForkPRHead == null) {
             buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+        }
+        if (commentOnPROnBuildFailure == null) {
+            commentOnPROnBuildFailure = DescriptorImpl.defaultCommentOnPROnBuildFailure;
         }
         return this;
     }
@@ -184,6 +189,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @DataBoundSetter
     public void setBuildForkPRHead(boolean buildForkPRHead) {
         this.buildForkPRHead = buildForkPRHead;
+    }
+
+
+    @DataBoundSetter
+    public void setCommentOnPROnBuildFailure(boolean commentOnPROnBuildFailure) {
+        this.commentOnPROnBuildFailure = commentOnPROnBuildFailure;
+    }
+
+    public boolean getCommentOnPROnBuildFailure() {
+        return commentOnPROnBuildFailure;
     }
 
     public String getRepoOwner() {
@@ -318,6 +333,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         ghSCMSource.setBuildOriginPRHead(getBuildOriginPRHead());
         ghSCMSource.setBuildForkPRMerge(getBuildForkPRMerge());
         ghSCMSource.setBuildForkPRHead(getBuildForkPRHead());
+        ghSCMSource.setCommentOnPROnBuildFailure(getCommentOnPROnBuildFailure());
 
         projectObserver.addSource(ghSCMSource);
         projectObserver.complete();
@@ -336,6 +352,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
         public static final boolean defaultBuildOriginPRHead = GitHubSCMSource.DescriptorImpl.defaultBuildOriginPRHead;
         public static final boolean defaultBuildForkPRMerge = GitHubSCMSource.DescriptorImpl.defaultBuildForkPRMerge;
         public static final boolean defaultBuildForkPRHead = GitHubSCMSource.DescriptorImpl.defaultBuildForkPRHead;
+        public static final boolean defaultCommentOnPROnBuildFailure = GitHubSCMSource.DescriptorImpl.defaultCommentOnPROnBuildFailure;
+
 
         @Inject private GitHubSCMSource.DescriptorImpl delegate;
         

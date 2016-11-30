@@ -132,6 +132,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     private @Nonnull Boolean buildForkPRMerge = DescriptorImpl.defaultBuildForkPRMerge;
     /** Whether to build PRs filed from a fork, where the build is of the branch head. */
     private @Nonnull Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+    /** Whether to comment on PRs on build failure. */
+    private @Nonnull Boolean commentOnPROnBuildFailure = DescriptorImpl.defaultCommentOnPROnBuildFailure;
 
     @DataBoundConstructor
     public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
@@ -163,6 +165,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         if (buildForkPRHead == null) {
             buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+        }
+        if (commentOnPROnBuildFailure == null) {
+            commentOnPROnBuildFailure = DescriptorImpl.defaultCommentOnPROnBuildFailure;
         }
         return this;
     }
@@ -325,6 +330,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         this.buildForkPRHead = buildForkPRHead;
     }
 
+    public boolean getCommentOnPROnBuildFailure() { return commentOnPROnBuildFailure; }
+
+    @DataBoundSetter
+    public void setCommentOnPROnBuildFailure(boolean commentOnPROnBuildFailure) {
+        this.commentOnPROnBuildFailure = commentOnPROnBuildFailure;
+    }
+
     @Override
     public String getRemote() {
         return getUriResolver().getRepositoryUri(apiUri, repoOwner, repository);
@@ -433,7 +445,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         }
                     }
                     listener.getLogger().format("    Job name: %s%n", branchName);
-                    PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge, trusted);
+                    PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge, trusted, commentOnPROnBuildFailure);
                     if (criteria != null) {
                         // Would be more precise to check whether the merge of the base branch head with the PR branch head contains a given file, etc.,
                         // but this would be a lot more work, and is unlikely to differ from using refs/pull/123/merge:
@@ -732,6 +744,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         public static final boolean defaultBuildOriginPRHead = false;
         public static final boolean defaultBuildForkPRMerge = true;
         public static final boolean defaultBuildForkPRHead = false;
+        public static final boolean defaultCommentOnPROnBuildFailure = false;
 
         @Initializer(before = InitMilestone.PLUGINS_STARTED)
         public static void addAliases() {

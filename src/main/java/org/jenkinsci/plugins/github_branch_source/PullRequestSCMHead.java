@@ -41,12 +41,19 @@ public final class PullRequestSCMHead extends SCMHead {
     private final PullRequestAction metadata;
     private Boolean merge;
     private final boolean trusted;
+    private final boolean commentOnBuildFailure;
 
-    PullRequestSCMHead(GHPullRequest pr, String name, boolean merge, boolean trusted) {
+
+    PullRequestSCMHead(GHPullRequest pr, String name, boolean merge, boolean trusted, boolean commentOnBuildFailure) {
         super(name);
         metadata = new PullRequestAction(pr);
         this.merge = merge;
         this.trusted = trusted;
+        this.commentOnBuildFailure = commentOnBuildFailure;
+    }
+
+    PullRequestSCMHead(GHPullRequest pr, String name, boolean merge, boolean trusted) {
+        this(pr, name, merge, trusted, false);
     }
 
     public int getNumber() {
@@ -81,6 +88,11 @@ public final class PullRequestSCMHead extends SCMHead {
     public boolean isTrusted() {
         return trusted;
     }
+
+    /**
+     * Whether this PR needs notification comment on build failure
+     */
+    public boolean needsCommentOnBuildFailure() { return commentOnBuildFailure; }
 
     @Override
     public List<? extends Action> getAllActions() {
