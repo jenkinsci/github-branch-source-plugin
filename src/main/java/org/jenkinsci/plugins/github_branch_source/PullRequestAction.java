@@ -29,14 +29,17 @@ import hudson.model.InvisibleAction;
 import java.net.URL;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.actions.ChangeRequestAction;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.github.GHPullRequest;
 
 /**
- * Metadata about a {@link PullRequestSCMHead}.
+ * Retained for binary compatibility only
+ * @deprecated Retained for binary compatibility only
  */
-final class PullRequestAction extends ChangeRequestAction {
-
-    private static final long serialVersionUID = 1L;
+@Deprecated
+@Restricted(DoNotUse.class)
+final class PullRequestAction extends InvisibleAction {
 
     private final int number;
     private final URL url;
@@ -61,62 +64,27 @@ final class PullRequestAction extends ChangeRequestAction {
     }
 
     @NonNull
-    @Override
     public String getId() {
         return Integer.toString(number);
     }
 
     @NonNull
-    @Override
     public URL getURL() {
         return url;
     }
 
     @NonNull
-    @Override
     public String getTitle() {
         return title;
     }
 
     @NonNull
-    @Override
     public String getAuthor() {
         return userLogin;
     }
 
-    // not currently implementing authorDisplayName or authorEmail since these are another round-trip in current GH API
-
     @NonNull
-    @Override
     public SCMHead getTarget() {
         return new BranchSCMHead(baseRef);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        PullRequestAction that = (PullRequestAction) o;
-
-        if (number != that.number) {
-            return false;
-        }
-        if (url != null ? !url.toExternalForm().equals(that.url.toExternalForm()) : that.url != null) {
-            return false;
-        }
-        return userLogin != null ? userLogin.equals(that.userLogin) : that.userLogin == null;
-
-    }
-
-    @Override
-    public int hashCode() {
-        int result = number;
-        result = 31 * result + (userLogin != null ? userLogin.hashCode() : 0);
-        return result;
     }
 }

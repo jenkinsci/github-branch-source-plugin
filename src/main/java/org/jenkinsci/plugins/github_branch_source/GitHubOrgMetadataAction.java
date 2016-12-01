@@ -30,60 +30,36 @@ import hudson.Util;
 import hudson.model.Hudson;
 import java.io.IOException;
 import java.io.ObjectStreamException;
-import java.net.URL;
-import jenkins.branch.MetadataAction;
-import jenkins.branch.OrganizationFolder;
+import jenkins.scm.api.metadata.AvatarMetadataAction;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.stapler.Stapler;
 
 /**
- * Invisible {@link OrganizationFolder} property that
- * retains information about GitHub organization.
+ * Invisible {@link AvatarMetadataAction} property that retains information about GitHub organization.
  *
  * @author Kohsuke Kawaguchi
  */
-public class GitHubOrgMetadataAction extends MetadataAction {
-    @NonNull
-    private final URL url;
-    @CheckForNull
-    private final String name;
+public class GitHubOrgMetadataAction extends AvatarMetadataAction {
     @CheckForNull
     private final String avatar;
 
     public GitHubOrgMetadataAction(@NonNull GHUser org) throws IOException {
-        this(org.getHtmlUrl(), org.getName(), org.getAvatarUrl());
+        this(org.getAvatarUrl());
     }
 
-    public GitHubOrgMetadataAction(@NonNull URL url, @CheckForNull String name, @CheckForNull String avatar) {
-        this.url = url;
-        this.name = Util.fixEmpty(name);
+    public GitHubOrgMetadataAction(@CheckForNull String avatar) {
         this.avatar = Util.fixEmpty(avatar);
     }
 
     public GitHubOrgMetadataAction(@NonNull GitHubOrgMetadataAction that) {
-        this(that.getUrl(), that.getObjectDisplayName(), that.getAvatar());
+        this(that.getAvatar());
     }
 
     private Object readResolve() throws ObjectStreamException {
-        if ((name != null && StringUtils.isBlank(name))
-                || (avatar != null && StringUtils.isBlank(avatar)))
+        if (avatar != null && StringUtils.isBlank(avatar))
             return new GitHubOrgMetadataAction(this);
         return this;
-    }
-
-    @NonNull
-    public URL getUrl() {
-        return url;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @CheckForNull
-    @Override
-    public String getObjectDisplayName() {
-        return Util.fixEmpty(name);
     }
 
     @CheckForNull
@@ -95,10 +71,10 @@ public class GitHubOrgMetadataAction extends MetadataAction {
      * {@inheritDoc}
      */
     @Override
-    public String getFolderIconImageOf(String size) {
+    public String getAvatarImageOf(String size) {
         if (avatar == null) {
             // fall back to the generic github org icon
-            String image = folderIconClassNameImageOf(getFolderIconClassName(), size);
+            String image = avatarIconClassNameImageOf(getAvatarIconClassName(), size);
             return image != null
                     ? image
                     : (Stapler.getCurrentRequest().getContextPath() + Hudson.RESOURCE_PATH
@@ -115,7 +91,7 @@ public class GitHubOrgMetadataAction extends MetadataAction {
      * {@inheritDoc}
      */
     @Override
-    public String getFolderIconClassName() {
+    public String getAvatarIconClassName() {
         return avatar == null ? "icon-github-logo" : null;
     }
 
@@ -123,7 +99,7 @@ public class GitHubOrgMetadataAction extends MetadataAction {
      * {@inheritDoc}
      */
     @Override
-    public String getFolderIconDescription() {
+    public String getAvatarDescription() {
         return Messages.GitHubOrgMetadataAction_IconDescription();
     }
 
@@ -141,12 +117,6 @@ public class GitHubOrgMetadataAction extends MetadataAction {
 
         GitHubOrgMetadataAction that = (GitHubOrgMetadataAction) o;
 
-        if (!url.equals(that.url)) {
-            return false;
-        }
-        if (name != null ? !name.equals(that.name) : that.name != null) {
-            return false;
-        }
         return avatar != null ? avatar.equals(that.avatar) : that.avatar == null;
 
     }
@@ -156,10 +126,7 @@ public class GitHubOrgMetadataAction extends MetadataAction {
      */
     @Override
     public int hashCode() {
-        int result = url.hashCode();
-        result = 31 * result + (name != null ? name.hashCode() : 0);
-        result = 31 * result + (avatar != null ? avatar.hashCode() : 0);
-        return result;
+        return (avatar != null ? avatar.hashCode() : 0);
     }
 
     /**
@@ -168,8 +135,6 @@ public class GitHubOrgMetadataAction extends MetadataAction {
     @Override
     public String toString() {
         return "GitHubOrgMetadataAction{" +
-                "url=" + url +
-                ", name='" + name + '\'' +
                 ", avatar='" + avatar + '\'' +
                 "}";
     }

@@ -40,8 +40,8 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -50,10 +50,12 @@ import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
+import jenkins.scm.api.SCMNavigatorEvent;
 import jenkins.scm.api.SCMNavigatorOwner;
 import jenkins.scm.api.SCMSourceCategory;
 import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.SCMSourceOwner;
+import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.impl.UncategorizedSCMSourceCategory;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
@@ -70,8 +72,6 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
-
-import static org.jenkinsci.plugins.github.config.GitHubServerConfig.GITHUB_URL;
 
 public class GitHubSCMNavigator extends SCMNavigator {
 
@@ -255,18 +255,18 @@ public class GitHubSCMNavigator extends SCMNavigator {
         try {
             github.checkApiUrlValidity();
         } catch (HttpException e) {
-            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
+            String message = String.format("It seems %s is unreachable", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
 
         // Input data validation
         if (credentials != null && !github.isCredentialValid()) {
-            String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
+            String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
 
         if (!github.isAnonymous()) {
-            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
+            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
             GHMyself myself = null;
             try {
                 // Requires an authenticated access
@@ -277,6 +277,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
             if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
                 listener.getLogger().format("Looking up repositories of myself %s%n%n", repoOwner);
                 for (GHRepository repo : myself.listRepositories(100)) {
+                    if (!observer.isObserving()) {
+                        return;
+                    }
                     checkInterrupt();
                     if (!repo.getOwnerName().equals(repoOwner)) {
                         continue; // ignore repos in other orgs when using GHMyself
@@ -286,7 +289,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 return;
             }
         } else {
-            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
+            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
         }
 
         GHOrganization org = null;
@@ -300,6 +303,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
             listener.getLogger().format("Looking up repositories of organization %s%n%n", repoOwner);
             for (GHRepository repo : org.listRepositories(100)) {
+                if (!observer.isObserving()) {
+                    return;
+                }
                 checkInterrupt();
                 add(listener, observer, repo);
             }
@@ -317,6 +323,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
             listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
             for (GHRepository repo : user.listRepositories(100)) {
+                if (!observer.isObserving()) {
+                    return;
+                }
                 checkInterrupt();
                 add(listener, observer, repo);
             }
@@ -344,19 +353,19 @@ public class GitHubSCMNavigator extends SCMNavigator {
         try {
             github.checkApiUrlValidity();
         } catch (HttpException e) {
-            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
+            String message = String.format("It seems %s is unreachable", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
 
         // Input data validation
         if (credentials != null && !github.isCredentialValid()) {
             String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
-                    CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
+                    CredentialsNameProvider.name(credentials), apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
 
         if (!github.isAnonymous()) {
-            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
+            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri,
                     CredentialsNameProvider.name(credentials));
             GHMyself myself = null;
             try {
@@ -375,7 +384,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
         } else {
             listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
-                    apiUri == null ? GITHUB_URL : apiUri);
+                    apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
         }
 
         GHOrganization org = null;
@@ -444,15 +453,22 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @NonNull
     @Override
-    public Map<Class<? extends Action>, Action> retrieveActions(@NonNull SCMNavigatorOwner owner,
-                                                                @NonNull TaskListener listener) throws IOException {
+    public List<Action> retrieveActions(@NonNull SCMNavigatorOwner owner,
+                                        @CheckForNull SCMNavigatorEvent event,
+                                        @NonNull TaskListener listener) throws IOException {
+        // TODO when we have support for trusted events, use the details from event if event was from trusted source
         listener.getLogger().printf("Looking up details of %s...%n", getRepoOwner());
-        Map<Class<? extends Action>, Action> result = new HashMap<>();
+        List<Action> result = new ArrayList<>();
         StandardCredentials credentials = Connector.lookupScanCredentials(owner, getApiUri(), getScanCredentialsId());
         GitHub hub = Connector.connect(getApiUri(), credentials);
         GHUser u = hub.getUser(getRepoOwner());
-        result.put(GitHubOrgMetadataAction.class, new GitHubOrgMetadataAction(u));
-        result.put(GitHubLink.class, new GitHubLink("icon-github-logo", u.getHtmlUrl()));
+        result.add(new ObjectMetadataAction(
+                Util.fixEmpty(u.getName()),
+                null,
+                u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm())
+        );
+        result.add(new GitHubOrgMetadataAction(u));
+        result.add(new GitHubLink("icon-github-logo", u.getHtmlUrl()));
         listener.getLogger().printf("Organization URL: %s%n", HyperlinkNote.encodeTo(u.getHtmlUrl().toExternalForm(), u.getName()));
         return result;
     }

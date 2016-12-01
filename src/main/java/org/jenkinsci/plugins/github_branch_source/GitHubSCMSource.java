@@ -61,7 +61,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -71,16 +70,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLHandshakeException;
 import jenkins.plugins.git.AbstractGitSCMSource;
-import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
+import jenkins.scm.api.SCMHeadEvent;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMProbe;
-import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.SCMSourceDescriptor;
+import jenkins.scm.api.SCMSourceEvent;
 import jenkins.scm.api.SCMSourceOwner;
+import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import org.apache.commons.lang.StringUtils;
@@ -90,16 +90,14 @@ import org.eclipse.jgit.transport.RefSpec;
 import org.jenkinsci.plugins.gitclient.CheckoutCommand;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.gitclient.MergeCommand;
+import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHBranch;
-import org.kohsuke.github.GHCommit;
-import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHPullRequest;
-import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
@@ -110,13 +108,13 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
 import static hudson.model.Items.XSTREAM2;
-import static org.jenkinsci.plugins.github.config.GitHubServerConfig.GITHUB_URL;
 
 public class GitHubSCMSource extends AbstractGitSCMSource {
 
     public static final String VALID_GITHUB_REPO_NAME = "^[0-9A-Za-z._-]+$";
     public static final String VALID_GITHUB_USER_NAME = "^[0-9A-Za-z]([0-9A-Za-z._-]+[0-9A-Za-z])$";
     public static final String VALID_GIT_SHA1 = "^[a-fA-F0-9]{40}$";
+    public static final String GITHUB_URL = GitHubServerConfig.GITHUB_URL;
     private static final Logger LOGGER = Logger.getLogger(GitHubSCMSource.class.getName());
 
     private final String apiUri;
@@ -458,8 +456,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     // this is a case where we do not need to iterate all the pull requests as the only
                     // pull request we are interested in is the same as the branch we are interested in
                     // thus we can reduce API calls and save iterating all PRs
-                    onlyWantPRBranch = repoOwner.equals(prh.getChangeRequestAction().getAuthor())
-                            && brh.equals(prh.getChangeRequestAction().getTarget());
+                    onlyWantPRBranch = repoOwner.equals(prh.getSourceOwner())
+                            && brh.equals(prh.getTarget());
                 }
             }
             Iterable<GHPullRequest> pullRequests;
@@ -730,11 +728,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             GHPullRequest pr = repo.getPullRequest(number);
             String baseHash;
             if (prhead.isMerge()) {
-                PullRequestAction metadata = prhead.getAction(PullRequestAction.class);
-                if (metadata == null) {
-                    throw new IOException("Cannot find base branch metadata from " + prhead);
-                }
-                baseHash = repo.getRef("heads/" + metadata.getTarget().getName()).getObject().getSha();
+                baseHash = repo.getRef("heads/" + prhead.getTarget().getName()).getObject().getSha();
             } else {
                 baseHash = pr.getBase().getSha();
             }
@@ -758,14 +752,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             PullRequestSCMRevision prRev = (PullRequestSCMRevision) revision;
             GitSCM scm = (GitSCM) super.build(/* does this matter? */head, new SCMRevisionImpl(/* again probably irrelevant */head, prRev.getPullHash()));
             if (((PullRequestSCMHead) head).isMerge()) {
-                PullRequestAction action = head.getAction(PullRequestAction.class);
-                String baseName;
-                if (action != null) {
-                    baseName = action.getTarget().getName();
-                } else {
-                    baseName = "master?"; // OK if not found, just informational anyway
-                }
-                scm.getExtensions().add(new MergeWith(baseName, prRev.getBaseHash()));
+                scm.getExtensions().add(new MergeWith(
+                        StringUtils.defaultIfBlank(
+                                ((PullRequestSCMHead) head).getTarget().getName(),
+                                "master?" // OK if not found, just informational anyway
+                        ),
+                        prRev.getBaseHash()));
             }
             return scm;
         } else {
@@ -821,16 +813,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     @Override
-    public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener) throws IOException, InterruptedException {
+    public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener)
+            throws IOException, InterruptedException {
         if (revision instanceof PullRequestSCMRevision && !((PullRequestSCMHead) revision.getHead()).isTrusted()) {
-            PullRequestAction metadata = revision.getHead().getAction(PullRequestAction.class);
-            if (metadata != null) {
-                PullRequestSCMRevision rev = (PullRequestSCMRevision) revision;
-                listener.getLogger().println("Loading trusted files from base branch " + metadata.getTarget().getName() + " at " + rev.getBaseHash() + " rather than " + rev.getPullHash());
-                return new SCMRevisionImpl(metadata.getTarget(), rev.getBaseHash());
-            } else {
-                throw new IOException("Cannot find base branch metadata from " + revision.getHead());
-            }
+            PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
+            PullRequestSCMRevision rev = (PullRequestSCMRevision) revision;
+            listener.getLogger().println(
+                    "Loading trusted files from base branch " + head.getTarget().getName() + " at " + rev.getBaseHash()
+                            + " rather than " + rev.getPullHash());
+            return new SCMRevisionImpl(head.getTarget(), rev.getBaseHash());
         }
         return revision;
     }
@@ -875,11 +866,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @NonNull
     @Override
-    protected Map<Class<? extends Action>, Action> retrieveActions(@NonNull SCMHead head,
-                                                                   @NonNull TaskListener listener) throws IOException {
-        Map<Class<? extends Action>, Action> result = new HashMap<>();
+    protected List<Action> retrieveActions(@NonNull SCMHead head,
+                                           @CheckForNull SCMHeadEvent event,
+                                           @NonNull TaskListener listener) throws IOException {
+        // TODO when we have support for trusted events, use the details from event if event was from trusted source
+        List<Action> result = new ArrayList<>();
         if (getOwner() instanceof Actionable) {
-            GitHubRepoMetadataAction repoLink = ((Actionable) getOwner()).getAction(GitHubRepoMetadataAction.class);
+            GitHubLink repoLink = ((Actionable) getOwner()).getAction(GitHubLink.class);
             if (repoLink != null) {
                 String url;
                 if (head instanceof PullRequestSCMHead) {
@@ -889,9 +882,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     // branch in this repository
                     url = repoLink.getUrl() + "/tree/" + head.getName();
                 }
-                result.put(GitHubLink.class, new GitHubLink("icon-github-branch", url));
-            } else {
-                result.put(GitHubLink.class, null);
+                result.add(new GitHubLink("icon-github-branch", url));
             }
         }
         return result;
@@ -902,13 +893,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @NonNull
     @Override
-    protected Map<Class<? extends Action>, Action> retrieveActions(@NonNull TaskListener listener) throws IOException {
-        Map<Class<? extends Action>, Action> result = new HashMap<>();
+    protected List<Action> retrieveActions(@CheckForNull SCMSourceEvent event,
+                                           @NonNull TaskListener listener) throws IOException {
+        // TODO when we have support for trusted events, use the details from event if event was from trusted source
+        List<Action> result = new ArrayList<>();
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
         GitHub hub = Connector.connect(apiUri, credentials);
         GHRepository repo = hub.getRepository(getRepoOwner() + '/' + repository);
-        result.put(GitHubRepoMetadataAction.class, new GitHubRepoMetadataAction(repo));
-        result.put(GitHubLink.class, new GitHubLink("icon-github-repo", repo.getHtmlUrl()));
+        result.add(new ObjectMetadataAction(null, repo.getDescription(), Util.fixEmpty(repo.getHomepage())));
+        result.add(new GitHubRepoMetadataAction());
+        result.add(new GitHubLink("icon-github-repo", repo.getHtmlUrl()));
         return result;
     }
 
@@ -1145,79 +1139,4 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     }
 
-    private static class GitHubSCMProbe extends SCMProbe {
-        private final SCMRevision revision;
-        private final GHRepository repo;
-        private final String ref;
-
-        public GitHubSCMProbe(GHRepository repo, SCMHead head, SCMRevision revision) {
-            this.revision = revision;
-            this.repo = repo;
-            if (head instanceof PullRequestSCMHead) {
-                PullRequestSCMHead pr = (PullRequestSCMHead) head;
-                this.ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
-            } else {
-                this.ref = "refs/heads/" + head.getName();
-            }
-        }
-
-        @Override
-        public void close() throws IOException {
-
-        }
-
-        @Override
-        public String name() {
-            return null;
-        }
-
-        @Override
-        public long lastModified() {
-            if (revision instanceof SCMRevisionImpl) {
-                try {
-                    GHCommit commit = repo.getCommit(((SCMRevisionImpl) revision).getHash());
-                    return commit.getCommitDate().getTime();
-                } catch (IOException e) {
-                    // ignore
-                }
-            } else if (revision == null) {
-                try {
-                    GHRef ref = repo.getRef(this.ref);
-                    GHCommit commit = repo.getCommit(ref.getObject().getSha());
-                    return commit.getCommitDate().getTime();
-                } catch (IOException e) {
-                    // ignore
-                }
-            }
-            return 0;
-        }
-
-        @NonNull
-        @Override
-        public SCMProbeStat stat(@NonNull String path) throws IOException {
-            try {
-                int index = path.lastIndexOf('/') + 1;
-                List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), ref);
-                for (GHContent content : directoryContent) {
-                    if (content.getPath().equals(path)) {
-                        if (content.isFile()) {
-                            return SCMProbeStat.fromType(SCMFile.Type.REGULAR_FILE);
-                        } else if (content.isDirectory()) {
-                            return SCMProbeStat.fromType(SCMFile.Type.DIRECTORY);
-                        } else {
-                            // TODO content.isLink()
-                            return SCMProbeStat.fromType(SCMFile.Type.OTHER);
-                        }
-                    }
-                    if (content.getPath().equalsIgnoreCase(path)) {
-                        return SCMProbeStat.fromAlternativePath(content.getPath());
-                    }
-                }
-            } catch (FileNotFoundException fnf) {
-                // means that does not exist and this is handled below this try/catch block.
-            }
-            return SCMProbeStat.fromType(SCMFile.Type.NONEXISTENT);
-        }
-
-    }
 }

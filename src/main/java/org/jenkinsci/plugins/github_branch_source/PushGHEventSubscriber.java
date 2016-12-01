@@ -28,6 +28,7 @@ import com.cloudbees.jenkins.GitHubRepositoryName;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Item;
+import hudson.scm.SCM;
 import java.io.StringReader;
 import java.util.Collections;
 import java.util.Map;
@@ -146,11 +147,11 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
     }
 
     private static class SCMHeadEventImpl extends SCMHeadEvent<GHEventPayload.Push> {
-        @Untrusted
+        @EventData
         private final String repoHost;
-        @Untrusted
+        @EventData
         private final String repoOwner;
-        @Untrusted
+        @EventData
         private final String repository;
 
         public SCMHeadEventImpl(Type type, GHEventPayload.Push pullRequest, GitHubRepositoryName repo) {
@@ -172,7 +173,7 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
 
         @NonNull
         @Override
-        @Untrusted
+        @EventData
         public String getSourceName() {
             return repository;
         }
@@ -187,17 +188,17 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                 return Collections.emptyMap();
             }
             GitHubSCMSource src = (GitHubSCMSource) source;
-            @Untrusted
+            @EventData
             GHEventPayload.Push push = getPayload();
-            @Untrusted
+            @EventData
             GHRepository repo = push.getRepository();
-            @Untrusted
+            @EventData
             String repoName = repo.getName();
             if (!repoName.matches(GitHubSCMSource.VALID_GITHUB_REPO_NAME)) {
                 // fake repository name
                 return Collections.emptyMap();
             }
-            @Untrusted
+            @EventData
             String repoOwner = push.getRepository().getOwnerName();
             if (!repoOwner.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME)) {
                 // fake owner name
@@ -232,6 +233,11 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                         new AbstractGitSCMSource.SCMRevisionImpl(head, push.getHead()));
             }
             return Collections.emptyMap();
+        }
+
+        @Override
+        public boolean isMatch(@NonNull SCM scm) {
+            return false;
         }
     }
 }

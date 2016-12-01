@@ -25,7 +25,8 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import jenkins.scm.api.ChangeRequestSCMHead;
+import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.mixin.ChangeRequestSCMHead;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHPullRequest;
 
@@ -33,21 +34,25 @@ import org.kohsuke.github.GHPullRequest;
  * Head corresponding to a pull request.
  * Named like {@code PR-123} or {@code PR-123-merged} or {@code PR-123-unmerged}.
  */
-public final class PullRequestSCMHead extends ChangeRequestSCMHead {
+public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead {
 
     private static final long serialVersionUID = 1;
 
-    private final PullRequestAction metadata;
     private Boolean merge;
     private final boolean trusted;
-    private final boolean closed;
+    private final int number;
+    private final BranchSCMHead target;
+    private final String sourceOwner;
+    private final String sourceBranch;
 
     PullRequestSCMHead(GHPullRequest pr, String name, boolean merge, boolean trusted) {
         super(name);
-        metadata = new PullRequestAction(pr);
         this.merge = merge;
         this.trusted = trusted;
-        this.closed = GHIssueState.CLOSED.equals(pr.getState());
+        this.number = pr.getNumber();
+        this.target = new BranchSCMHead(pr.getBase().getRef());
+        this.sourceOwner = pr.getHead().getRepository().getOwnerName();
+        this.sourceBranch = pr.getHead().getRef();
     }
 
     /**
@@ -59,12 +64,7 @@ public final class PullRequestSCMHead extends ChangeRequestSCMHead {
     }
 
     public int getNumber() {
-        if (metadata != null) {
-            return Integer.parseInt(metadata.getId());
-        } else { // settings compatibility
-            // if predating PullRequestAction, then also predate -merged/-unmerged suffices
-            return Integer.parseInt(getName().substring("PR-".length()));
-        }
+        return number;
     }
 
     /** Default for old settings. */
@@ -91,11 +91,29 @@ public final class PullRequestSCMHead extends ChangeRequestSCMHead {
         return trusted;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @NonNull
     @Override
-    public PullRequestAction getChangeRequestAction() {
-        return metadata;
+    public String getId() {
+        return Integer.toString(number);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
+    public SCMHead getTarget() {
+        return target;
+    }
+
+    public String getSourceOwner() {
+        return sourceOwner;
+    }
+
+    public String getSourceBranch() {
+        return sourceBranch;
+    }
 }

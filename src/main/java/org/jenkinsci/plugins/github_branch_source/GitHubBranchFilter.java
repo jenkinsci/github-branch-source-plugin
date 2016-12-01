@@ -26,17 +26,19 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
+import hudson.model.TopLevelItem;
+import hudson.model.View;
 import hudson.views.ViewJobFilter;
-import jenkins.branch.Branch;
-import jenkins.branch.SimpleViewBranchFilter;
+import java.util.List;
+import jenkins.scm.api.SCMHead;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * A {@link ViewJobFilter} that matches {@link PullRequestSCMHead} based branches.
+ * A {@link ViewJobFilter} that matches {@link BranchSCMHead} based branches.
  *
  * @since FIXME
  */
-public class GitHubBranchFilter extends SimpleViewBranchFilter {
+public class GitHubBranchFilter extends ViewJobFilter {
     /**
      * Our constructor.
      */
@@ -48,8 +50,16 @@ public class GitHubBranchFilter extends SimpleViewBranchFilter {
      * {@inheritDoc}
      */
     @Override
-    public boolean isIncluded(Branch branch) {
-        return branch.getHead() instanceof BranchSCMHead;
+    public List<TopLevelItem> filter(List<TopLevelItem> added, List<TopLevelItem> all, View filteringView) {
+        for (TopLevelItem item:all) {
+            if (added.contains(item)) {
+                continue;
+            }
+            if (SCMHead.HeadByItem.findHead(item) instanceof BranchSCMHead) {
+                added.add(item);
+            }
+        }
+        return added;
     }
 
     /**

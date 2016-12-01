@@ -28,6 +28,7 @@ import com.cloudbees.jenkins.GitHubRepositoryName;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Item;
+import hudson.scm.SCM;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.Collections;
@@ -154,11 +155,11 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
     }
 
     private static class SCMHeadEventImpl extends SCMHeadEvent<GHEventPayload.PullRequest> {
-        @Untrusted
+        @EventData
         private final String repoHost;
-        @Untrusted
+        @EventData
         private final String repoOwner;
-        @Untrusted
+        @EventData
         private final String repository;
 
         public SCMHeadEventImpl(Type type, GHEventPayload.PullRequest pullRequest, GitHubRepositoryName repo) {
@@ -180,7 +181,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
 
         @NonNull
         @Override
-        @Untrusted
+        @EventData
         public String getSourceName() {
             return repository;
         }
@@ -195,19 +196,19 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                 return Collections.emptyMap();
             }
             GitHubSCMSource src = (GitHubSCMSource) source;
-            @Untrusted
+            @EventData
             GHEventPayload.PullRequest pullRequest = getPayload();
-            @Untrusted
+            @EventData
             GHPullRequest ghPullRequest = pullRequest.getPullRequest();
-            @Untrusted
+            @EventData
             GHRepository repo = pullRequest.getRepository();
-            @Untrusted
+            @EventData
             String prRepoName = repo.getName();
             if (!prRepoName.matches(GitHubSCMSource.VALID_GITHUB_REPO_NAME)) {
                 // fake repository name
                 return Collections.emptyMap();
             }
-            @Untrusted
+            @EventData
             String prOwnerName = ghPullRequest.getHead().getUser().getLogin();
             if (!prOwnerName.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME)) {
                 // fake owner name
@@ -223,7 +224,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
             }
             boolean hasPR = false;
 
-            @Untrusted
+            @EventData
             boolean fork = !src.getRepoOwner().equals(prOwnerName);
 
             Map<SCMHead, SCMRevision> result = new HashMap<>();
@@ -233,7 +234,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                     || src.getBuildOriginPRHead()
                     || src.getBuildForkPRMerge()
                     || src.getBuildForkPRHead()) {
-                @Untrusted
+                @EventData
                 int number = pullRequest.getNumber();
                 if (fork && !src.getBuildForkPRMerge() && !src.getBuildForkPRHead()) {
                     // Submitted from fork, skipping
@@ -296,7 +297,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                 }
             }
             if (!fork && (hasPR ? src.getBuildOriginBranchWithPR() : src.getBuildOriginBranch())) {
-                @Untrusted
+                @EventData
                 final String branchName = ghPullRequest.getHead().getRef();
                 if (!src.isExcluded(branchName)) {
                     SCMHead head = new BranchSCMHead(branchName);
@@ -307,6 +308,11 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
             }
 
             return result;
+        }
+
+        @Override
+        public boolean isMatch(@NonNull SCM scm) {
+            return false;
         }
     }
 }
