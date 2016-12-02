@@ -86,6 +86,10 @@ public class GitHubBuildStatusNotification {
         repo.createCommitStatus(revision, state, url, message, context);
     }
 
+    private static void createBuildFailurePullRequestComment(@Nonnull GHRepository repo, int pullRequestNumber, @Nonnull String url) throws IOException {
+        repo.getPullRequest(pullRequestNumber).comment("Build failure\n[" + url + "](" + url + ")");
+    }
+
     private static void createBuildCommitStatus(Run<?,?> build, TaskListener listener) {
         try {
             GHRepository repo = lookUpRepo(build.getParent());
@@ -99,12 +103,22 @@ public class GitHubBuildStatusNotification {
                         Result result = build.getResult();
                         String revisionToNotify = resolveHeadCommit(repo, revision);
                         SCMHead head = revision.getHead();
+                        int pullRequestNumber = -1;
+                        if (head instanceof PullRequestSCMHead && ((PullRequestSCMHead)head).needsCommentOnBuildFailure()) {
+                            pullRequestNumber = ((PullRequestSCMHead)head).getNumber();
+                        }
                         if (Result.SUCCESS.equals(result)) {
                             createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good(), head);
                         } else if (Result.UNSTABLE.equals(result)) {
                             createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable(), head);
+                            if (pullRequestNumber !=  -1) {
+                                createBuildFailurePullRequestComment(repo, pullRequestNumber, url);
+                            }
                         } else if (Result.FAILURE.equals(result)) {
                             createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure(), head);
+                            if (pullRequestNumber !=  -1) {
+                                createBuildFailurePullRequestComment(repo, pullRequestNumber, url);
+                            }
                         } else if (result != null) { // ABORTED etc.
                             createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other(), head);
                         } else {
@@ -220,7 +234,6 @@ public class GitHubBuildStatusNotification {
         @Override public void onCheckout(Run<?, ?> build, SCM scm, FilePath workspace, TaskListener listener, File changelogFile, SCMRevisionState pollingBaseline) throws Exception {
             createBuildCommitStatus(build, listener);
         }
-
     }
 
     /**
