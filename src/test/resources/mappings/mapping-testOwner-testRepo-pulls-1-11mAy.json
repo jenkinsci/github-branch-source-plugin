@@ -1,0 +1,34 @@
+{
+  "request" : {
+    "url" : "/repos/testOwner/testRepo/pulls/1",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "body-testOwner-testRepo-pulls-1-11mAy.json",
+    "headers" : {
+      "Server" : "GitHub.com",
+      "Date" : "Wed, 04 May 2016 02:36:54 GMT",
+      "Content-Type" : "application/json; charset=utf-8",
+      "Content-Length" : "14662",
+      "Status" : "200 OK",
+      "X-RateLimit-Limit" : "60",
+      "X-RateLimit-Remaining" : "59",
+      "X-RateLimit-Reset" : "1462333014",
+      "Cache-Control" : "public, max-age=60, s-maxage=60",
+      "Vary" : [ "Accept", "Accept-Encoding" ],
+      "ETag" : "\"21d0c739da1ebd148bf23c0227892ca3\"",
+      "Last-Modified" : "Mon, 21 Mar 2016 03:39:34 GMT",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "Access-Control-Expose-Headers" : "ETag, Link, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval",
+      "Access-Control-Allow-Origin" : "*",
+      "Content-Security-Policy" : "default-src 'none'",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "X-Content-Type-Options" : "nosniff",
+      "X-Frame-Options" : "deny",
+      "X-XSS-Protection" : "1; mode=block",
+      "X-Served-By" : "593010132f82159af0ded24b4932e109",
+      "X-GitHub-Request-Id" : "AE634EED:CA12:49D3EA:57296046"
+    }
+  }
+}
