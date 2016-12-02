@@ -281,7 +281,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                             }
                         }
                         // don't care about trusted as SCMHead equality is based on the branch name anyway and
-                        PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge, false);
+                        PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge);
                         if (merge) {
                             // it will take a call to GitHub to get the merge commit, so let the event receiver poll
                             result.put(head, null);

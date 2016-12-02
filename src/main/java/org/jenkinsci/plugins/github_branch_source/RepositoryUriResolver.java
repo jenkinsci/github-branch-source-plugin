@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -51,7 +52,7 @@ public abstract class RepositoryUriResolver {
      * @return the hostname of a GitHub server
      */
     @NonNull
-    public static String hostnameFromApiUri(@NonNull String apiUri) {
+    public static String hostnameFromApiUri(@CheckForNull String apiUri) {
         if (apiUri != null) {
             try {
                 URL endpoint = new URL(apiUri);

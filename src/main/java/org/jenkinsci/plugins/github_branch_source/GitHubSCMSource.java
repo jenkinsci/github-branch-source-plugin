@@ -154,6 +154,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @NonNull
     private Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
 
+    /**
+     * The collaborator names used to determine if pull requests are from trusted authors
+     */
+    @CheckForNull
+    private transient Set<String> collaboratorNames;
+
     @DataBoundConstructor
     public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
         super(id);
@@ -377,13 +383,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         try {
             // Input data validation
             if (credentials != null && !github.isCredentialValid()) {
-                String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
+                String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
+                        CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
                 throw new AbortException(message);
             }
             if (!github.isAnonymous()) {
-                listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
+                listener.getLogger().format("Connecting to %s using %s%n",
+                        apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
             } else {
-                listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
+                listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
+                        apiUri == null ? GITHUB_URL : apiUri);
             }
 
             // Input data validation
@@ -394,6 +403,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
             listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
+            collaboratorNames = new HashSet<>(repo.getCollaboratorNames());
             doRetrieve(criteria, observer, listener, repo);
             listener.getLogger().format("%nDone examining %s%n%n", fullName);
         } catch (RateLimitExceededException rle) {
@@ -512,7 +522,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     }
                     continue;
                 }
-                boolean trusted = isTrusted(repo, ghPullRequest);
+                boolean trusted = collaboratorNames.contains(ghPullRequest.getHead().getRepository().getOwnerName());
                 if (!trusted) {
                     listener.getLogger().format("    (not from a trusted source)%n");
                 }
@@ -551,7 +561,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             branchName += "-head";
                         }
                     }
-                    PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge, trusted);
+                    PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge);
                     if (includes != null && !includes.contains(head)) {
                         // don't waste rate limit testing a head we are not interested in
                         continue;
@@ -675,13 +685,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         return super.isExcluded(branchName); // override so that we can call this method from this SCMHeadEvent
     }
 
-    @edu.umd.cs.findbugs.annotations.CheckForNull
+    @NonNull
     @Override
-    protected SCMProbe createProbe(@NonNull SCMHead head, @edu.umd.cs.findbugs.annotations.CheckForNull
-    final SCMRevision revision) throws IOException {
-        if (StringUtils.isBlank(repository)) return null;
+    protected SCMProbe createProbe(@NonNull SCMHead head, @CheckForNull final SCMRevision revision) throws IOException {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
-
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         String fullName = repoOwner + "/" + repository;
@@ -744,22 +751,30 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             // TODO will this work sanely for PRs? Branch.scm seems to be used only as a fallback for SCMBinder/SCMVar where they would perhaps better just report an error.
             return super.build(head, null);
         } else if (head instanceof PullRequestSCMHead) {
-            if (!(revision instanceof PullRequestSCMRevision)) {
-                // TODO this seems to happen for PR-6-unmerged in cloudbeers/PR-demo; why?
-                LOGGER.log(Level.WARNING, "Unexpected revision class {0} for {1}", new Object[] {revision.getClass().getName(), head});
+            if (revision instanceof PullRequestSCMRevision) {
+                PullRequestSCMRevision prRev = (PullRequestSCMRevision) revision;
+                // we rely on GitHub exposing the pull request revision on the target repository
+                // TODO determine how we should name the checked out PR branch, as that affects the BRANCH_NAME env var
+                SCMHead checkoutHead = head; // should probably have been head.getTarget() but historical
+                GitSCM scm = (GitSCM) super.build(checkoutHead, new SCMRevisionImpl(checkoutHead, prRev.getPullHash()));
+                if (((PullRequestSCMHead) head).isMerge()) {
+                    scm.getExtensions().add(new MergeWith(
+                            StringUtils.defaultIfBlank(
+                                    ((PullRequestSCMHead) head).getTarget().getName(),
+                                    "master?" // OK if not found, just informational anyway
+                            ),
+                            prRev.getBaseHash()));
+                }
+                return scm;
+            } else if (revision instanceof SCMRevisionImpl) {
+                // this is a pull request from an untrusted collaborator
+                return super.build(revision.getHead(), revision);
+            } else {
+                LOGGER.log(Level.WARNING, "Unexpected revision class {0} for {1}", new Object[] {
+                        revision.getClass().getName(), head
+                });
                 return super.build(head, revision);
             }
-            PullRequestSCMRevision prRev = (PullRequestSCMRevision) revision;
-            GitSCM scm = (GitSCM) super.build(/* does this matter? */head, new SCMRevisionImpl(/* again probably irrelevant */head, prRev.getPullHash()));
-            if (((PullRequestSCMHead) head).isMerge()) {
-                scm.getExtensions().add(new MergeWith(
-                        StringUtils.defaultIfBlank(
-                                ((PullRequestSCMHead) head).getTarget().getName(),
-                                "master?" // OK if not found, just informational anyway
-                        ),
-                        prRev.getBaseHash()));
-            }
-            return scm;
         } else {
             return super.build(head, /* casting just as an assertion */(SCMRevisionImpl) revision);
         }
@@ -815,33 +830,70 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Override
     public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener)
             throws IOException, InterruptedException {
-        if (revision instanceof PullRequestSCMRevision && !((PullRequestSCMHead) revision.getHead()).isTrusted()) {
+        if (revision instanceof PullRequestSCMRevision) {
+            /*
+             * Evaluates whether this pull request is coming from a trusted source.
+             * Quickest is to check whether the author of the PR
+             * <a href="https://developer.github.com/v3/repos/collaborators/#check-if-a-user-is-a-collaborator">is a
+             * collaborator of the repository</a>.
+             * By checking <a href="https://developer.github.com/v3/repos/collaborators/#list-collaborators">all
+             * collaborators</a>
+             * it is possible to further ascertain if they are in a team which was specifically granted push permission,
+             * but this is potentially expensive as there might be multiple pages of collaborators to retrieve.
+             * TODO since the GitHub API wrapper currently supports neither, we list all collaborator names and check
+             * for membership, paying the performance penalty without the benefit of the accuracy.
+             */
+
+            if (collaboratorNames == null) {
+                listener.getLogger().format("Connecting to %s to obtain list of collaborators for %s/%s%n",
+                        apiUri == null ? GITHUB_URL : apiUri, repoOwner, repository);
+                StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+                // Github client and validation
+                GitHub github = Connector.connect(apiUri, credentials);
+                try {
+                    github.checkApiUrlValidity();
+                } catch (HttpException e) {
+                    listener.getLogger().format("It seems %s is unreachable, assuming no trusted collaborators%n",
+                            apiUri == null ? GITHUB_URL : apiUri);
+                    collaboratorNames = Collections.singleton(repoOwner);
+                }
+                if (collaboratorNames == null) {
+                    // Input data validation
+                    if (credentials != null && !github.isCredentialValid()) {
+                        listener.getLogger().format("Invalid scan credentials %s to connect to %s, "
+                                        + "assuming no trusted collaborators%n",
+                                CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
+                        collaboratorNames = Collections.singleton(repoOwner);
+                    } else {
+                        if (!github.isAnonymous()) {
+                            listener.getLogger()
+                                    .format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
+                                            CredentialsNameProvider.name(credentials));
+                        } else {
+                            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
+                                    apiUri == null ? GITHUB_URL : apiUri);
+                        }
+
+                        // Input data validation
+                        if (repository == null || repository.isEmpty()) {
+                            collaboratorNames = Collections.singleton(repoOwner);
+                        } else {
+                            String fullName = repoOwner + "/" + repository;
+                            final GHRepository repo = github.getRepository(fullName);
+                            collaboratorNames = new HashSet<>(repo.getCollaboratorNames());
+                        }
+                    }
+                }
+            }
             PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
-            PullRequestSCMRevision rev = (PullRequestSCMRevision) revision;
-            listener.getLogger().println(
-                    "Loading trusted files from base branch " + head.getTarget().getName() + " at " + rev.getBaseHash()
-                            + " rather than " + rev.getPullHash());
-            return new SCMRevisionImpl(head.getTarget(), rev.getBaseHash());
+            if (!collaboratorNames.contains(head.getSourceOwner())) {
+                PullRequestSCMRevision rev = (PullRequestSCMRevision) revision;
+                listener.getLogger().format("Loading trusted files from base branch %s at %s rather than %s%n",
+                        head.getTarget().getName(), rev.getBaseHash(), rev.getPullHash());
+                return new SCMRevisionImpl(head.getTarget(), rev.getBaseHash());
+            }
         }
         return revision;
-    }
-
-    /**
-     * Evaluates whether this pull request is coming from a trusted source.
-     * Quickest is to check whether the author of the PR
-     * <a href="https://developer.github.com/v3/repos/collaborators/#check-if-a-user-is-a-collaborator">is a collaborator of the repository</a>.
-     * By checking <a href="https://developer.github.com/v3/repos/collaborators/#list-collaborators">all collaborators</a>
-     * it is possible to further ascertain if they are in a team which was specifically granted push permission,
-     * but this is potentially expensive as there might be multiple pages of collaborators to retrieve.
-     * TODO since the GitHub API wrapper currently supports neither, we list all collaborator names and check for membership,
-     * paying the performance penalty without the benefit of the accuracy.
-     * @param ghPullRequest a PR
-     * @return true if this is a trusted PR
-     * @see <a href="https://developer.github.com/v3/pulls/#get-a-single-pull-request">PR metadata</a>
-     * @see <a href="http://stackoverflow.com/questions/15096331/github-api-how-to-find-the-branches-of-a-pull-request#comment54931031_15096596">base revision oddity</a>
-     */
-    boolean isTrusted(@NonNull GHRepository repo, @NonNull GHPullRequest ghPullRequest) throws IOException {
-        return repo.getCollaboratorNames().contains(ghPullRequest.getUser().getLogin());
     }
 
     /**
@@ -871,8 +923,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                            @NonNull TaskListener listener) throws IOException {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         List<Action> result = new ArrayList<>();
-        if (getOwner() instanceof Actionable) {
-            GitHubLink repoLink = ((Actionable) getOwner()).getAction(GitHubLink.class);
+        SCMSourceOwner owner = getOwner();
+        if (owner instanceof Actionable) {
+            GitHubLink repoLink = ((Actionable) owner).getAction(GitHubLink.class);
             if (repoLink != null) {
                 String url;
                 if (head instanceof PullRequestSCMHead) {

@@ -27,7 +27,6 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead;
-import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHPullRequest;
 
 /**
@@ -39,19 +38,21 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
     private static final long serialVersionUID = 1;
 
     private Boolean merge;
-    private final boolean trusted;
     private final int number;
     private final BranchSCMHead target;
     private final String sourceOwner;
+    private final String sourceRepo;
     private final String sourceBranch;
 
-    PullRequestSCMHead(GHPullRequest pr, String name, boolean merge, boolean trusted) {
+    PullRequestSCMHead(GHPullRequest pr, String name, boolean merge) {
         super(name);
+        // the merge flag is encoded into the name, so safe to store here
         this.merge = merge;
-        this.trusted = trusted;
         this.number = pr.getNumber();
         this.target = new BranchSCMHead(pr.getBase().getRef());
+        // the source stuff is immutable for a pull request on github, so safe to store here
         this.sourceOwner = pr.getHead().getRepository().getOwnerName();
+        this.sourceRepo = pr.getHead().getRepository().getName();
         this.sourceBranch = pr.getHead().getRef();
     }
 
@@ -85,13 +86,6 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
     }
 
     /**
-     * Whether this PR was observed to have come from a trusted author.
-     */
-    public boolean isTrusted() {
-        return trusted;
-    }
-
-    /**
      * {@inheritDoc}
      */
     @NonNull
@@ -115,5 +109,9 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
 
     public String getSourceBranch() {
         return sourceBranch;
+    }
+
+    public String getSourceRepo() {
+        return sourceRepo;
     }
 }
