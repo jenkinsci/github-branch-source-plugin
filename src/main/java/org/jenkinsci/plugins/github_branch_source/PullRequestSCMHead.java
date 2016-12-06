@@ -62,7 +62,7 @@ public final class PullRequestSCMHead extends SCMHead {
             return Integer.parseInt(metadata.getId());
         } else { // settings compatibility
             // if predating PullRequestAction, then also predate -merged/-unmerged suffices
-            return Integer.parseInt(getName().substring("PR-".length()));
+            return Integer.parseInt(getName().substring("PR/".length()));
         }
     }
 
