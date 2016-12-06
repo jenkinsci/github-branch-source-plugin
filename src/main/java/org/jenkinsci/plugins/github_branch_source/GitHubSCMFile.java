@@ -25,6 +25,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import com.fasterxml.jackson.databind.JsonMappingException;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -95,10 +96,15 @@ class GitHubSCMFile extends SCMFile {
                             metadata = repo.getFileContent(getPath(), ref);
                             info = TypeInfo.NON_DIRECTORY_CONFIRMED;
                             resolved = true;
-                        } catch (ClassCastException e) {
-                            metadata = repo.getDirectoryContent(getPath(), ref);
-                            info = TypeInfo.DIRECTORY_CONFIRMED;
-                            resolved = true;
+                        } catch (IOException e) {
+                            if (e.getCause() instanceof IOException
+                                    && e.getCause().getCause() instanceof JsonMappingException) {
+                                metadata = repo.getDirectoryContent(getPath(), ref);
+                                info = TypeInfo.DIRECTORY_CONFIRMED;
+                                resolved = true;
+                            } else {
+                                throw e;
+                            }
                         }
                         break;
                 }

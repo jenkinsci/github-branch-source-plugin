@@ -37,6 +37,7 @@ import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
+import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
@@ -45,7 +46,7 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
     private final GHRepository repo;
     private final String ref;
 
-    protected GitHubSCMFileSystem(GHRepository repo, String ref, @CheckForNull SCMRevision rev) {
+    protected GitHubSCMFileSystem(GHRepository repo, String ref, @CheckForNull SCMRevision rev) throws IOException {
         super(rev);
         this.repo = repo;
         if (rev != null) {
@@ -111,7 +112,9 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
                 throw new IOException(message);
             }
             String ref;
-            if (head instanceof PullRequestSCMHead) {
+            if (head instanceof BranchSCMHead) {
+                ref = head.getName();
+            } else if (head instanceof PullRequestSCMHead) {
                 // TODO, we need to dit out the PR author I suspect
                 PullRequestSCMHead pr = (PullRequestSCMHead) head;
                 if (!pr.isMerge()) {
@@ -121,12 +124,19 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
                 }
                 ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
             } else {
-                ref = head.getName();
+                return null;
             }
 
-            return new GitHubSCMFileSystem(github.getUser(src.getRepoOwner()).getRepository(src.getRepository()),
-                    ref, rev
-            );
+            GHRepository repo = github.getUser(src.getRepoOwner()).getRepository(src.getRepository());
+            if (rev == null) {
+                if (head instanceof BranchSCMHead) {
+                    rev = new AbstractGitSCMSource.SCMRevisionImpl(head, repo.getBranch(ref).getSHA1());
+                } else { // if (head instanceof PullRequestSCMHead)
+                    GHPullRequest pr = repo.getPullRequest(((PullRequestSCMHead) head).getNumber());
+                    rev = new PullRequestSCMRevision((PullRequestSCMHead) head, pr.getBase().getSha(), pr.getHead().getSha());
+                }
+            }
+            return new GitHubSCMFileSystem(repo, ref, rev);
         }
     }
 }
