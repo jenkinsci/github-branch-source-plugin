@@ -155,11 +155,8 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
     }
 
     private static class SCMHeadEventImpl extends SCMHeadEvent<GHEventPayload.PullRequest> {
-        @EventData
         private final String repoHost;
-        @EventData
         private final String repoOwner;
-        @EventData
         private final String repository;
 
         public SCMHeadEventImpl(Type type, GHEventPayload.PullRequest pullRequest, GitHubRepositoryName repo) {
@@ -181,7 +178,6 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
 
         @NonNull
         @Override
-        @EventData
         public String getSourceName() {
             return repository;
         }
@@ -196,19 +192,14 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                 return Collections.emptyMap();
             }
             GitHubSCMSource src = (GitHubSCMSource) source;
-            @EventData
             GHEventPayload.PullRequest pullRequest = getPayload();
-            @EventData
             GHPullRequest ghPullRequest = pullRequest.getPullRequest();
-            @EventData
             GHRepository repo = pullRequest.getRepository();
-            @EventData
             String prRepoName = repo.getName();
             if (!prRepoName.matches(GitHubSCMSource.VALID_GITHUB_REPO_NAME)) {
                 // fake repository name
                 return Collections.emptyMap();
             }
-            @EventData
             String prOwnerName = ghPullRequest.getHead().getUser().getLogin();
             if (!prOwnerName.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME)) {
                 // fake owner name
@@ -224,7 +215,6 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
             }
             boolean hasPR = false;
 
-            @EventData
             boolean fork = !src.getRepoOwner().equals(prOwnerName);
 
             Map<SCMHead, SCMRevision> result = new HashMap<>();
@@ -234,7 +224,6 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                     || src.getBuildOriginPRHead()
                     || src.getBuildForkPRMerge()
                     || src.getBuildForkPRHead()) {
-                @EventData
                 int number = pullRequest.getNumber();
                 if (fork && !src.getBuildForkPRMerge() && !src.getBuildForkPRHead()) {
                     // Submitted from fork, skipping
@@ -297,7 +286,6 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                 }
             }
             if (!fork && (hasPR ? src.getBuildOriginBranchWithPR() : src.getBuildOriginBranch())) {
-                @EventData
                 final String branchName = ghPullRequest.getHead().getRef();
                 if (!src.isExcluded(branchName)) {
                     SCMHead head = new BranchSCMHead(branchName);

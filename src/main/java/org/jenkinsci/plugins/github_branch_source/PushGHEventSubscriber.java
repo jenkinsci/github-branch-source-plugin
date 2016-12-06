@@ -147,11 +147,8 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
     }
 
     private static class SCMHeadEventImpl extends SCMHeadEvent<GHEventPayload.Push> {
-        @EventData
         private final String repoHost;
-        @EventData
         private final String repoOwner;
-        @EventData
         private final String repository;
 
         public SCMHeadEventImpl(Type type, GHEventPayload.Push pullRequest, GitHubRepositoryName repo) {
@@ -173,7 +170,6 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
 
         @NonNull
         @Override
-        @EventData
         public String getSourceName() {
             return repository;
         }
@@ -188,17 +184,13 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                 return Collections.emptyMap();
             }
             GitHubSCMSource src = (GitHubSCMSource) source;
-            @EventData
             GHEventPayload.Push push = getPayload();
-            @EventData
             GHRepository repo = push.getRepository();
-            @EventData
             String repoName = repo.getName();
             if (!repoName.matches(GitHubSCMSource.VALID_GITHUB_REPO_NAME)) {
                 // fake repository name
                 return Collections.emptyMap();
             }
-            @EventData
             String repoOwner = push.getRepository().getOwnerName();
             if (!repoOwner.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME)) {
                 // fake owner name

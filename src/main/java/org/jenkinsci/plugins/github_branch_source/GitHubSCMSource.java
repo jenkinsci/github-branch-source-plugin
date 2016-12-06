@@ -368,9 +368,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Override
     protected final void retrieve(@CheckForNull SCMSourceCriteria criteria,
                                   @NonNull SCMHeadObserver observer,
+                                  @CheckForNull SCMHeadEvent<?> event,
                                   @NonNull final TaskListener listener) throws IOException, InterruptedException {
+        if (event != null) {
+            // we rely on Observer#getIncludes() for filtering the retrieve to an event
+            observer = event.filter(this, observer);
+        }
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
-
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         try {
