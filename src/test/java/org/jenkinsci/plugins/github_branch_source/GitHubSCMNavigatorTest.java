@@ -23,6 +23,31 @@
  *
  */
 
+/*
+ * The MIT License
+ *
+ * Copyright (c) 2016 CloudBees, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ *
+ */
+
 package org.jenkinsci.plugins.github_branch_source;
 
 import com.github.tomakehurst.wiremock.common.FileSource;
@@ -33,36 +58,36 @@ import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
+import hudson.model.TaskListener;
+import hudson.util.LogTaskListener;
 import java.io.File;
 import java.io.IOException;
-import jenkins.plugins.git.AbstractGitSCMSource;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.scm.api.SCMFile;
-import jenkins.scm.api.SCMFileSystem;
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMRevision;
-import org.apache.commons.lang.StringUtils;
+import jenkins.scm.api.SCMHeadObserver;
+import jenkins.scm.api.SCMSourceCriteria;
+import jenkins.scm.api.SCMSourceObserver;
+import jenkins.scm.api.SCMSourceOwner;
+import jenkins.scm.impl.NoOpProjectObserver;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.mockito.Mockito;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeThat;
 
-@RunWith(Parameterized.class)
-public class GitHubSCMFileSystemTest {
+public class GitHubSCMNavigatorTest {
     /**
      * All tests in this class only use Jenkins for the extensions
      */
@@ -70,8 +95,7 @@ public class GitHubSCMFileSystemTest {
     public static JenkinsRule r = new JenkinsRule();
 
     public static WireMockRuleFactory factory = new WireMockRuleFactory();
-    public static SCMHead master = new BranchSCMHead("master");
-    private final SCMRevision revision;
+
     @Rule
     public WireMockRule githubRaw = factory.getRule(WireMockConfiguration.options()
             .dynamicPort()
@@ -108,20 +132,7 @@ public class GitHubSCMFileSystemTest {
 
                     })
     );
-    private GitHubSCMSource source;
-
-    public GitHubSCMFileSystemTest(String revision) {
-        this.revision = revision == null ? null : new AbstractGitSCMSource.SCMRevisionImpl(master, revision);
-    }
-
-    @Parameterized.Parameters(name = "{index}: revision={0}")
-    public static String[] revisions() {
-        return new String[]{
-                "c0e024f89969b976da165eecaa71e09dc60c3da1", // Pull Request #2, unmerged but exposed on target repo
-                "e301dc6d5bb7e6e18d80e85f19caa92c74e15e96",
-                null
-        };
-    }
+    private GitHubSCMNavigator navigator;
 
     @Before
     public void prepareMockGitHub() throws Exception {
@@ -137,65 +148,42 @@ public class GitHubSCMFileSystemTest {
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
-        source = new GitHubSCMSource(null, "http://localhost:" + githubApi.port(), null, null, "cloudbeers", "yolo");
+        navigator = new GitHubSCMNavigator("http://localhost:" + githubApi.port(), "cloudbeers", null, null);
     }
 
     @Test
-    public void haveFilesystem() throws Exception {
-        assertThat(SCMFileSystem.of(source, master, revision), notNullValue());
-    }
+    public void fetchSmokes() throws Exception {
+        final LogTaskListener listener = new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO);
+        final Set<String> names = new HashSet<>();
+        final SCMSourceOwner owner = Mockito.mock(SCMSourceOwner.class);
+        SCMSourceObserver observer = new SCMSourceObserver() {
+            @NonNull
+            @Override
+            public SCMSourceOwner getContext() {
+                return owner;
+            }
 
-    @Test
-    public void rootIsADirectory() throws Exception {
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
-        assertThat(fs.getRoot().getType(), is(SCMFile.Type.DIRECTORY));
+            @NonNull
+            @Override
+            public TaskListener getListener() {
+                return listener;
+            }
 
-    }
+            @NonNull
+            @Override
+            public ProjectObserver observe(@NonNull String projectName) throws IllegalArgumentException {
+                names.add(projectName);
+                return new NoOpProjectObserver();
+            }
 
-    @Test
-    public void listFilesInRoot() throws Exception {
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
-        assertThat(fs.getRoot().children(), hasItem(Matchers.<SCMFile>hasProperty("name", is("README.md"))));
-    }
+            @Override
+            public void addAttribute(@NonNull String key, @Nullable Object value)
+                    throws IllegalArgumentException, ClassCastException {
 
-    @Test
-    public void readmeIsAFile() throws Exception {
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
-        assertThat(fs.getRoot().child("README.md").getType(), is(SCMFile.Type.REGULAR_FILE));
-    }
-
-    @Test
-    public void readmeContents() throws Exception {
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
-        assertThat(fs.getRoot().child("README.md").contentAsString(), containsString("yolo"));
-    }
-
-    @Test
-    public void readFileFromDir() throws Exception {
-        assumeThat(revision, instanceOf(AbstractGitSCMSource.SCMRevisionImpl.class));
-        assumeThat(((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash(),
-                is("c0e024f89969b976da165eecaa71e09dc60c3da1"));
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
-        assertThat(fs.getRoot().child("fu/bar.txt").contentAsString(), is("Some text\n"));
-    }
-
-    @Test
-    public void resolveDir() throws Exception {
-        assumeThat(revision, instanceOf(AbstractGitSCMSource.SCMRevisionImpl.class));
-        assumeThat(((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash(),
-                is("c0e024f89969b976da165eecaa71e09dc60c3da1"));
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
-        assertThat(fs.getRoot().child("fu").getType(), is(SCMFile.Type.DIRECTORY));
-    }
-
-    @Test
-    public void listDir() throws Exception {
-        assumeThat(revision, instanceOf(AbstractGitSCMSource.SCMRevisionImpl.class));
-        assumeThat(((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash(),
-                is("c0e024f89969b976da165eecaa71e09dc60c3da1"));
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
-        assertThat(fs.getRoot().child("fu").children(),
-                hasItem(Matchers.<SCMFile>hasProperty("name", is("manchu.txt"))));
+            }
+        };
+        navigator.visitSources(SCMSourceObserver.filter(observer, "yolo"));
+        assertThat(names, Matchers.contains("yolo"));
     }
 
 }
