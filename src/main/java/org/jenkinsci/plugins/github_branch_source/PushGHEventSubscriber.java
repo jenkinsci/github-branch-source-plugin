@@ -28,6 +28,7 @@ import com.cloudbees.jenkins.GitHubRepositoryName;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Item;
+import hudson.model.Job;
 import hudson.scm.SCM;
 import java.io.StringReader;
 import java.util.Collections;
@@ -67,7 +68,7 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
     private static final Logger LOGGER = Logger.getLogger(PushGHEventSubscriber.class.getName());
     private static final Pattern REPOSITORY_NAME_PATTERN = Pattern.compile("https?://([^/]+)/([^/]+)/([^/]+)");
 
-    @Override
+    //TODO Post JENKINS-39533 @Override
     protected boolean isApplicable(@Nullable Item project) {
         if (project != null) {
             if (project instanceof SCMSourceOwner) {
@@ -88,6 +89,12 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             }
         }
         return false;
+    }
+
+    // TODO Post JENKINS-39533 delete
+    @Override
+    protected boolean isApplicable(@Nullable Job<?, ?> job) {
+        return isApplicable((Item)job);
     }
 
     /**

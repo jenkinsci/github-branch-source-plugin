@@ -370,10 +370,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                   @NonNull SCMHeadObserver observer,
                                   @CheckForNull SCMHeadEvent<?> event,
                                   @NonNull final TaskListener listener) throws IOException, InterruptedException {
-        if (event != null) {
-            // we rely on Observer#getIncludes() for filtering the retrieve to an event
-            observer = event.filter(this, observer);
-        }
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
@@ -976,7 +972,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public void afterSave() {
         SCMSourceOwner owner = getOwner();
         if (owner != null) {
-            GitHubWebHook.get().registerHookFor(owner);
+            // TODO Post JENKINS-39533 GitHubWebHook.get().registerHookFor(owner);
         }
     }
 

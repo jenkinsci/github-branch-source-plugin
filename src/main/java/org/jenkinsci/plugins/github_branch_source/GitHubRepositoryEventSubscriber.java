@@ -27,6 +27,7 @@ import com.cloudbees.jenkins.GitHubRepositoryName;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Item;
+import hudson.model.Job;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.Set;
@@ -62,7 +63,7 @@ public class GitHubRepositoryEventSubscriber extends GHEventsSubscriber {
     private static final Pattern REPOSITORY_NAME_PATTERN = Pattern.compile("https?://([^/]+)/([^/]+)/([^/]+)");
 
 
-    @Override
+    // TODO Post JENKINS-39533 @Override
     protected boolean isApplicable(@Nullable Item item) {
         if (item instanceof SCMNavigatorOwner) {
             for (SCMNavigator navigator : ((SCMNavigatorOwner) item).getSCMNavigators()) {
@@ -72,6 +73,12 @@ public class GitHubRepositoryEventSubscriber extends GHEventsSubscriber {
             }
         }
         return false;
+    }
+
+    // TODO Post JENKINS-39533 delete
+    @Override
+    protected boolean isApplicable(@Nullable Job<?, ?> job) {
+        return isApplicable((Item)job);
     }
 
     /**

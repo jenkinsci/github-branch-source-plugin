@@ -478,7 +478,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @Override
     public void afterSave(@NonNull SCMNavigatorOwner owner) {
-        GitHubWebHook.get().registerHookFor(owner);
+        // TODO Post JENKINS-39533 GitHubWebHook.get().registerHookFor(owner);
         try {
             // FIXME MINOR HACK ALERT
             StandardCredentials credentials =
