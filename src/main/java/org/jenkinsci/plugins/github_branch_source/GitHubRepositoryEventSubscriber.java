@@ -63,7 +63,7 @@ public class GitHubRepositoryEventSubscriber extends GHEventsSubscriber {
     private static final Pattern REPOSITORY_NAME_PATTERN = Pattern.compile("https?://([^/]+)/([^/]+)/([^/]+)");
 
 
-    // TODO Post JENKINS-39533 @Override
+    @Override
     protected boolean isApplicable(@Nullable Item item) {
         if (item instanceof SCMNavigatorOwner) {
             for (SCMNavigator navigator : ((SCMNavigatorOwner) item).getSCMNavigators()) {
@@ -73,12 +73,6 @@ public class GitHubRepositoryEventSubscriber extends GHEventsSubscriber {
             }
         }
         return false;
-    }
-
-    // TODO Post JENKINS-39533 delete
-    @Override
-    protected boolean isApplicable(@Nullable Job<?, ?> job) {
-        return isApplicable((Item)job);
     }
 
     /**

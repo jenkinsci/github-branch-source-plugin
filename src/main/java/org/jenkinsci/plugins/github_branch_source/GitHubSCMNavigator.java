@@ -469,7 +469,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         );
         result.add(new GitHubOrgMetadataAction(u));
         result.add(new GitHubLink("icon-github-logo", u.getHtmlUrl()));
-        listener.getLogger().printf("Organization URL: %s%n", HyperlinkNote.encodeTo(u.getHtmlUrl().toExternalForm(), u.getName()));
+        if (u.getHtmlUrl() == null) {
+            listener.getLogger().println("Organization URL: unspecified");
+        } else {
+            listener.getLogger().printf("Organization URL: %s%n",
+                    HyperlinkNote.encodeTo(u.getHtmlUrl().toExternalForm(), u.getName()));
+        }
         return result;
     }
 
@@ -478,7 +483,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @Override
     public void afterSave(@NonNull SCMNavigatorOwner owner) {
-        // TODO Post JENKINS-39533 GitHubWebHook.get().registerHookFor(owner);
+        GitHubWebHook.get().registerHookFor(owner);
         try {
             // FIXME MINOR HACK ALERT
             StandardCredentials credentials =

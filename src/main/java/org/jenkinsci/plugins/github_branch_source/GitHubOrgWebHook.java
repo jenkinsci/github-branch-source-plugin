@@ -76,7 +76,7 @@ public class GitHubOrgWebHook {
                     }
                 }
                 if (!found) {
-                    org.createWebHook(new URL(url), Arrays.asList(GHEvent.REPOSITORY, GHEvent.PUSH));
+                    org.createWebHook(new URL(url), Arrays.asList(GHEvent.REPOSITORY, GHEvent.PUSH, GHEvent.PULL_REQUEST));
                     LOGGER.log(Level.INFO, "A webhook was registered for the organization {0}", org.getHtmlUrl());
                     // keep trying until the hook gets successfully installed
                     // if the user doesn't have the proper permission, this will cause

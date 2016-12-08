@@ -973,7 +973,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public void afterSave() {
         SCMSourceOwner owner = getOwner();
         if (owner != null) {
-            // TODO Post JENKINS-39533 GitHubWebHook.get().registerHookFor(owner);
+            GitHubWebHook.get().registerHookFor(owner);
         }
     }
 

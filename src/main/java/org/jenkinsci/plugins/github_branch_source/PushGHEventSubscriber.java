@@ -68,7 +68,7 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
     private static final Logger LOGGER = Logger.getLogger(PushGHEventSubscriber.class.getName());
     private static final Pattern REPOSITORY_NAME_PATTERN = Pattern.compile("https?://([^/]+)/([^/]+)/([^/]+)");
 
-    //TODO Post JENKINS-39533 @Override
+    @Override
     protected boolean isApplicable(@Nullable Item project) {
         if (project != null) {
             if (project instanceof SCMSourceOwner) {
@@ -89,12 +89,6 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             }
         }
         return false;
-    }
-
-    // TODO Post JENKINS-39533 delete
-    @Override
-    protected boolean isApplicable(@Nullable Job<?, ?> job) {
-        return isApplicable((Item)job);
     }
 
     /**
