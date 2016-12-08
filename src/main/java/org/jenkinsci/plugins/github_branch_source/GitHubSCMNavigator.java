@@ -57,6 +57,7 @@ import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.impl.UncategorizedSCMSourceCategory;
+import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
@@ -462,18 +463,19 @@ public class GitHubSCMNavigator extends SCMNavigator {
         StandardCredentials credentials = Connector.lookupScanCredentials(owner, getApiUri(), getScanCredentialsId());
         GitHub hub = Connector.connect(getApiUri(), credentials);
         GHUser u = hub.getUser(getRepoOwner());
+        String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
         result.add(new ObjectMetadataAction(
                 Util.fixEmpty(u.getName()),
                 null,
-                u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm())
+                objectUrl)
         );
         result.add(new GitHubOrgMetadataAction(u));
         result.add(new GitHubLink("icon-github-logo", u.getHtmlUrl()));
-        if (u.getHtmlUrl() == null) {
+        if (objectUrl == null) {
             listener.getLogger().println("Organization URL: unspecified");
         } else {
             listener.getLogger().printf("Organization URL: %s%n",
-                    HyperlinkNote.encodeTo(u.getHtmlUrl().toExternalForm(), u.getName()));
+                    HyperlinkNote.encodeTo(objectUrl, StringUtils.defaultIfBlank(u.getName(), objectUrl)));
         }
         return result;
     }
