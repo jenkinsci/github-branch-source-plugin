@@ -59,12 +59,20 @@ import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.model.Action;
 import hudson.model.TaskListener;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMFile;
+import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
+import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSourceCriteria;
+import jenkins.scm.api.metadata.ObjectMetadataAction;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -74,6 +82,11 @@ import org.jvnet.hudson.test.JenkinsRule;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
 
 public class GitHubSCMSourceTest {
     /**
@@ -148,7 +161,73 @@ public class GitHubSCMSourceTest {
                 return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
             }
         }, collector, null, null);
+        Map<String,SCMHead> byName = new HashMap<>();
+        Map<String,SCMRevision> revByName = new HashMap<>();
+        for (Map.Entry<SCMHead, SCMRevision> h: collector.result().entrySet())  {
+            byName.put(h.getKey().getName(), h.getKey());
+            revByName.put(h.getKey().getName(), h.getValue());
+        }
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "master", "stephenc-patch-1"));
+        assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
+        assertThat(revByName.get("PR-2"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-2")),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c0e024f89969b976da165eecaa71e09dc60c3da1"
+        )));
 
+        assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
+        assertThat(revByName.get("master"),
+                hasProperty("hash", is("8f1314fc3c8284d8c6d5886d473db98f2126071c")
+                ));
+        assertThat(byName.get("stephenc-patch-1"), instanceOf(BranchSCMHead.class));
+        assertThat(revByName.get("stephenc-patch-1"),
+                hasProperty("hash", is("095e69602bb95a278505e937e41d505ac3cdd263")
+                ));
+    }
+
+    @Test
+    public void fetchAltConfig() throws Exception {
+        source.setBuildForkPRMerge(false);
+        source.setBuildForkPRHead(true);
+        source.setBuildOriginPRMerge(false);
+        source.setBuildOriginPRHead(false);
+        SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
+        source.fetch(new SCMSourceCriteria() {
+            @Override
+            public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
+                return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
+            }
+        }, collector, null, null);
+        Map<String,SCMHead> byName = new HashMap<>();
+        Map<String,SCMRevision> revByName = new HashMap<>();
+        for (Map.Entry<SCMHead, SCMRevision> h: collector.result().entrySet())  {
+            byName.put(h.getKey().getName(), h.getKey());
+            revByName.put(h.getKey().getName(), h.getValue());
+        }
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "master", "stephenc-patch-1"));
+        assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
+        assertThat(revByName.get("PR-2"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-2")),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c0e024f89969b976da165eecaa71e09dc60c3da1"
+        )));
+
+        assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
+        assertThat(revByName.get("master"),
+                hasProperty("hash", is("8f1314fc3c8284d8c6d5886d473db98f2126071c")
+                ));
+        assertThat(byName.get("stephenc-patch-1"), instanceOf(BranchSCMHead.class));
+        assertThat(revByName.get("stephenc-patch-1"),
+                hasProperty("hash", is("095e69602bb95a278505e937e41d505ac3cdd263")
+                ));
+    }
+
+    @Test
+    public void fetchActions() throws Exception {
+        assertThat(source.fetchActions(null, null), Matchers.<Action>containsInAnyOrder(
+                Matchers.<Action>is(
+                        new ObjectMetadataAction(null, "You only live once", "http://yolo.example.com")
+                ),
+                instanceOf(GitHubRepoMetadataAction.class),
+                Matchers.<Action>is(new GitHubLink("icon-github-repo", "https://github.com/cloudbeers/yolo"))));
     }
 
 }

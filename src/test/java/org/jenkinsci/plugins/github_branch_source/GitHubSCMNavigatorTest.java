@@ -60,6 +60,7 @@ import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import hudson.model.Action;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
 import java.io.File;
@@ -70,9 +71,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMHeadObserver;
+import jenkins.scm.api.SCMNavigatorOwner;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.SCMSourceOwner;
+import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.impl.NoOpProjectObserver;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -85,6 +88,7 @@ import org.mockito.Mockito;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
 public class GitHubSCMNavigatorTest {
@@ -186,4 +190,13 @@ public class GitHubSCMNavigatorTest {
         assertThat(names, Matchers.contains("yolo"));
     }
 
+    @Test
+    public void fetchActions() throws Exception {
+        assertThat(navigator.fetchActions(Mockito.mock(SCMNavigatorOwner.class), null, null), Matchers.<Action>containsInAnyOrder(
+                Matchers.<Action>is(
+                        new ObjectMetadataAction("CloudBeers, Inc.", null, "https://github.com/cloudbeers")
+                ),
+                Matchers.<Action>is(new GitHubOrgMetadataAction("https://avatars.githubusercontent.com/u/4181899?v=3")),
+                Matchers.<Action>is(new GitHubLink("icon-github-logo", "https://github.com/cloudbeers"))));
+    }
 }
