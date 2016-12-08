@@ -633,7 +633,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         break;
                     }
                 }
-                GHBranch branch = head != null ? repo.getBranch(head.getName()) : null;
+                GHBranch branch = null;
+                try {
+                    branch = head != null ? repo.getBranch(head.getName()) : null;
+                } catch (FileNotFoundException ignore) {
+                    // this exception implies that the head has been deleted
+                    // a more generic exception would indicate an IO error
+                }
                 if (branch == null) {
                     branchMap = Collections.emptyMap();
                 } else {
