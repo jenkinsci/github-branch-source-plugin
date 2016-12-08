@@ -125,7 +125,8 @@ class GitHubSCMFile extends SCMFile {
                 return this;
             }
             if ("..".equals(path)) {
-                return isRoot() ? this : parent();
+                SCMFile parent = parent();
+                return parent == null ? this : parent;
             }
             return new GitHubSCMFile(this, path, TypeInfo.UNRESOLVED);
         }
@@ -134,7 +135,8 @@ class GitHubSCMFile extends SCMFile {
         if (".".equals(name)) {
             next = this;
         } else if ("..".equals(name)) {
-            next = isRoot() ? this : parent();
+            SCMFile parent = parent();
+            next = parent == null ? this : parent;
         } else {
             next = new GitHubSCMFile(this, name, TypeInfo.DIRECTORY_ASSUMED);
         }
