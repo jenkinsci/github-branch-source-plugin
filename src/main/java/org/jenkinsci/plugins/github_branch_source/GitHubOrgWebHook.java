@@ -29,6 +29,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -45,6 +46,8 @@ import org.kohsuke.github.GitHub;
 public class GitHubOrgWebHook {
 
     private static final Logger LOGGER = Logger.getLogger(GitHubOrgWebHook.class.getName());
+    private static final List<GHEvent> EVENTS = Arrays.asList(GHEvent.REPOSITORY, GHEvent.PUSH, GHEvent.PULL_REQUEST);
+
     /**
      * Verify if exists a webhook by its URL.
      */
@@ -71,18 +74,18 @@ public class GitHubOrgWebHook {
                 boolean found = false;
                 for (GHHook hook : org.getHooks()) {
                     if (hook.getConfig().get("url").equals(url)) {
-                        found = true;
+                        found = !hook.getEvents().containsAll(EVENTS);
                         break;
                     }
                 }
                 if (!found) {
-                    org.createWebHook(new URL(url), Arrays.asList(GHEvent.REPOSITORY, GHEvent.PUSH, GHEvent.PULL_REQUEST));
+                    org.createWebHook(new URL(url), EVENTS);
                     LOGGER.log(Level.INFO, "A webhook was registered for the organization {0}", org.getHtmlUrl());
                     // keep trying until the hook gets successfully installed
                     // if the user doesn't have the proper permission, this will cause
                     // a repeated failure, but this code doesn't execute too often.
                 }
-                orghook.off();
+                orghook.on();
             } catch (FileNotFoundException e) {
                 LOGGER.log(Level.WARNING, "Failed to register GitHub Org hook to {0} (missing permissions?): {1}",
                         new Object[]{u.getHtmlUrl(), e.getMessage()});
@@ -121,20 +124,17 @@ public class GitHubOrgWebHook {
                         // a repeated failure, but this code doesn't execute too often.
                     }
                 }
-                if (existsHook(org, url)) {
-                    org.createWebHook(new URL(url), Arrays.asList(GHEvent.REPOSITORY, GHEvent.PUSH));
-                }
-                orghook.on();
+                orghook.off();
             } catch (FileNotFoundException e) {
-                LOGGER.log(Level.WARNING, "Failed to register GitHub Org hook to {0} (missing permissions?): {1}",
+                LOGGER.log(Level.WARNING, "Failed to deregister GitHub Org hook to {0} (missing permissions?): {1}",
                         new Object[]{u.getHtmlUrl(), e.getMessage()});
                 LOGGER.log(Level.FINE, null, e);
             } catch (RateLimitExceededException e) {
-                LOGGER.log(Level.WARNING, "Failed to register GitHub Org hook to {0}: {1}",
+                LOGGER.log(Level.WARNING, "Failed to deregister GitHub Org hook to {0}: {1}",
                         new Object[]{u.getHtmlUrl(), e.getMessage()});
                 LOGGER.log(Level.FINE, null, e);
             } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Failed to register GitHub Org hook to " + u.getHtmlUrl(), e);
+                LOGGER.log(Level.WARNING, "Failed to deregister GitHub Org hook to " + u.getHtmlUrl(), e);
             }
         }
     }
