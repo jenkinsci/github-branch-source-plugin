@@ -1,0 +1,33 @@
+{
+  "request" : {
+    "url" : "/repos/testOwner/testRepo/pulls?state=open",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "body-testRepo-pulls-IMfdZ.json",
+    "headers" : {
+      "Server" : "GitHub.com",
+      "Date" : "Wed, 04 May 2016 02:41:45 GMT",
+      "Content-Type" : "application/json; charset=utf-8",
+      "Content-Length" : "13783",
+      "Status" : "200 OK",
+      "X-RateLimit-Limit" : "60",
+      "X-RateLimit-Remaining" : "55",
+      "X-RateLimit-Reset" : "1462333014",
+      "Cache-Control" : "public, max-age=60, s-maxage=60",
+      "Vary" : [ "Accept", "Accept-Encoding" ],
+      "ETag" : "\"c31a311c9ecb89d97242dd77389b11f6\"",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "Access-Control-Expose-Headers" : "ETag, Link, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval",
+      "Access-Control-Allow-Origin" : "*",
+      "Content-Security-Policy" : "default-src 'none'",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "X-Content-Type-Options" : "nosniff",
+      "X-Frame-Options" : "deny",
+      "X-XSS-Protection" : "1; mode=block",
+      "X-Served-By" : "e724c57ebb9961c772a91e2dd7421c8d",
+      "X-GitHub-Request-Id" : "AE634EED:FD16:201A1A:57296169"
+    }
+  }
+}
