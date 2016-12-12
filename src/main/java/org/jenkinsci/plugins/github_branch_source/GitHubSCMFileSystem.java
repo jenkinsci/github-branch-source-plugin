@@ -29,6 +29,7 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.model.Item;
 import hudson.scm.SCM;
 import java.io.IOException;
 import jenkins.plugins.git.AbstractGitSCMSource;
@@ -90,7 +91,7 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
         }
 
         @Override
-        public SCMFileSystem build(@NonNull SCM scm, @CheckForNull SCMRevision rev) {
+        public SCMFileSystem build(@NonNull Item owner, @NonNull SCM scm, @CheckForNull SCMRevision rev) {
             return null;
         }
 
