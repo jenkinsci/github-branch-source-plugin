@@ -116,11 +116,11 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
             if (head instanceof BranchSCMHead) {
                 ref = head.getName();
             } else if (head instanceof PullRequestSCMHead) {
-                // TODO, we need to dit out the PR author I suspect
                 PullRequestSCMHead pr = (PullRequestSCMHead) head;
                 if (!pr.isMerge()) {
                     return new GitHubSCMFileSystem(
-                            github.getUser(pr.getSourceOwner()).getRepository(pr.getSourceRepo()), pr.getSourceBranch(),
+                            github.getUser(pr.getSourceOwner()).getRepository(pr.getSourceRepo()),
+                            pr.getSourceBranch(),
                             rev);
                 }
                 ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
