@@ -26,9 +26,11 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import hudson.Extension;
 import hudson.model.Descriptor;
+import hudson.model.TopLevelItem;
+import hudson.model.View;
 import hudson.views.ViewJobFilter;
-import jenkins.branch.Branch;
-import jenkins.branch.SimpleViewBranchFilter;
+import java.util.List;
+import jenkins.scm.api.SCMHead;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -36,7 +38,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
  *
  * @since FIXME
  */
-public class GitHubPullRequestFilter extends SimpleViewBranchFilter {
+public class GitHubPullRequestFilter extends ViewJobFilter {
     /**
      * Our constructor.
      */
@@ -48,8 +50,16 @@ public class GitHubPullRequestFilter extends SimpleViewBranchFilter {
      * {@inheritDoc}
      */
     @Override
-    public boolean isIncluded(Branch branch) {
-        return branch.getHead() instanceof PullRequestSCMHead;
+    public List<TopLevelItem> filter(List<TopLevelItem> added, List<TopLevelItem> all, View filteringView) {
+        for (TopLevelItem item:all) {
+            if (added.contains(item)) {
+                continue;
+            }
+            if (SCMHead.HeadByItem.findHead(item) instanceof PullRequestSCMHead) {
+                added.add(item);
+            }
+        }
+        return added;
     }
 
     /**

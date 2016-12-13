@@ -29,14 +29,17 @@ import hudson.model.InvisibleAction;
 import java.net.URL;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.actions.ChangeRequestAction;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.github.GHPullRequest;
 
 /**
- * Metadata about a {@link PullRequestSCMHead}.
+ * Retained for binary compatibility only
+ * @deprecated Retained for binary compatibility only
  */
-final class PullRequestAction extends ChangeRequestAction {
-
-    private static final long serialVersionUID = 1L;
+@Deprecated
+@Restricted(DoNotUse.class)
+final class PullRequestAction extends InvisibleAction {
 
     private final int number;
     private final URL url;
@@ -52,36 +55,36 @@ final class PullRequestAction extends ChangeRequestAction {
         baseRef = pr.getBase().getRef();
     }
 
+    PullRequestAction(int number, URL url, String title, String userLogin, String baseRef) {
+        this.number = number;
+        this.url = url;
+        this.title = title;
+        this.userLogin = userLogin;
+        this.baseRef = baseRef;
+    }
+
     @NonNull
-    @Override
     public String getId() {
         return Integer.toString(number);
     }
 
     @NonNull
-    @Override
     public URL getURL() {
         return url;
     }
 
     @NonNull
-    @Override
     public String getTitle() {
         return title;
     }
 
     @NonNull
-    @Override
     public String getAuthor() {
         return userLogin;
     }
 
-    // not currently implementing authorDisplayName or authorEmail since these are another round-trip in current GH API
-
     @NonNull
-    @Override
     public SCMHead getTarget() {
         return new BranchSCMHead(baseRef);
     }
-
 }

@@ -24,29 +24,36 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import hudson.model.Action;
-import java.util.LinkedList;
-import java.util.List;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.mixin.ChangeRequestSCMHead;
 import org.kohsuke.github.GHPullRequest;
 
 /**
  * Head corresponding to a pull request.
  * Named like {@code PR-123} or {@code PR-123-merged} or {@code PR-123-unmerged}.
  */
-public final class PullRequestSCMHead extends SCMHead {
+public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead {
 
     private static final long serialVersionUID = 1;
 
-    private final PullRequestAction metadata;
     private Boolean merge;
-    private final boolean trusted;
+    private final int number;
+    private final BranchSCMHead target;
+    private final String sourceOwner;
+    private final String sourceRepo;
+    private final String sourceBranch;
 
-    PullRequestSCMHead(GHPullRequest pr, String name, boolean merge, boolean trusted) {
+    PullRequestSCMHead(GHPullRequest pr, String name, boolean merge) {
         super(name);
-        metadata = new PullRequestAction(pr);
+        // the merge flag is encoded into the name, so safe to store here
         this.merge = merge;
-        this.trusted = trusted;
+        this.number = pr.getNumber();
+        this.target = new BranchSCMHead(pr.getBase().getRef());
+        // the source stuff is immutable for a pull request on github, so safe to store here
+        this.sourceOwner = pr.getHead().getRepository().getOwnerName();
+        this.sourceRepo = pr.getHead().getRepository().getName();
+        this.sourceBranch = pr.getHead().getRef();
     }
 
     /**
@@ -58,12 +65,7 @@ public final class PullRequestSCMHead extends SCMHead {
     }
 
     public int getNumber() {
-        if (metadata != null) {
-            return Integer.parseInt(metadata.getId());
-        } else { // settings compatibility
-            // if predating PullRequestAction, then also predate -merged/-unmerged suffices
-            return Integer.parseInt(getName().substring("PR-".length()));
-        }
+        return number;
     }
 
     /** Default for old settings. */
@@ -84,17 +86,32 @@ public final class PullRequestSCMHead extends SCMHead {
     }
 
     /**
-     * Whether this PR was observed to have come from a trusted author.
+     * {@inheritDoc}
      */
-    public boolean isTrusted() {
-        return trusted;
-    }
-
+    @NonNull
     @Override
-    public List<? extends Action> getAllActions() {
-        List<Action> actions = new LinkedList<Action>(super.getAllActions());
-        actions.add(metadata);
-        return actions;
+    public String getId() {
+        return Integer.toString(number);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
+    public SCMHead getTarget() {
+        return target;
+    }
+
+    public String getSourceOwner() {
+        return sourceOwner;
+    }
+
+    public String getSourceBranch() {
+        return sourceBranch;
+    }
+
+    public String getSourceRepo() {
+        return sourceRepo;
+    }
 }

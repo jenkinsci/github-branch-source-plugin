@@ -24,46 +24,59 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import com.cloudbees.hudson.plugins.folder.Folder;
-import hudson.Extension;
-import hudson.model.Actionable;
-import hudson.model.Item;
-import hudson.model.Job;
-import hudson.views.ListViewColumn;
-import hudson.views.ListViewColumnDescriptor;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.stapler.DataBoundConstructor;
+import jenkins.scm.api.metadata.AvatarMetadataAction;
 
 /**
- * {@link ListViewColumn} that shows the description text of repository.
+ * Invisible property that retains information about GitHub repository.
  *
  * @author Kohsuke Kawaguchi
  */
-public class GitHubRepositoryDescriptionColumn extends ListViewColumn {
-    @DataBoundConstructor
-    public GitHubRepositoryDescriptionColumn() {
+public class GitHubRepoMetadataAction extends AvatarMetadataAction {
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getAvatarIconClassName() {
+        return "icon-github-repo";
     }
 
-    @Restricted(NoExternalUse.class)
-    @SuppressWarnings("unused") // used via Jelly EL binding
-    public GitHubRepoAction getRepositoryOf(Item item) {
-        if (item instanceof Actionable) {
-            return ((Actionable) item).getAction(GitHubRepoAction.class);
-        }
-        return null;
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getAvatarDescription() {
+        return Messages.GitHubRepoMetadataAction_IconDescription();
     }
 
-    @Extension
-    public static class DescriptorImpl extends ListViewColumnDescriptor {
-        @Override
-        public String getDisplayName() {
-            return Messages.GitHubRepositoryDescriptionColumn_DisplayName();
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
         }
-
-        @Override
-        public boolean shownByDefault() {
+        if (o == null || getClass() != o.getClass()) {
             return false;
         }
+        return true;
+
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int hashCode() {
+        return 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String toString() {
+        return "GitHubRepoMetadataAction{}";
     }
 }
