@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
+    <j:if test="${descriptor.apiUriSelectable}">
+        <f:entry title="${%API endpoint}" field="apiUri">
+            <f:select/>
+        </f:entry>
+    </j:if>
     <f:entry title="${%Owner}" field="repoOwner">
         <f:textbox/>
     </f:entry>
@@ -11,9 +16,11 @@
         <f:textbox default=".*"/>
     </f:entry>
     <f:advanced>
-        <f:entry title="${%API endpoint}" field="apiUri">
-            <f:select/>
-        </f:entry>
+        <j:if test="${!descriptor.apiUriSelectable}">
+            <f:entry title="${%API endpoint}" field="apiUri">
+                <f:select/>
+            </f:entry>
+        </j:if>
         <f:entry title="${%Checkout credentials}" field="checkoutCredentialsId">
             <c:select default="${descriptor.SAME}"/>
         </f:entry>

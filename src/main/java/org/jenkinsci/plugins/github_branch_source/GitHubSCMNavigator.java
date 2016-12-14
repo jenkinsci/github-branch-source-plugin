@@ -27,7 +27,6 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
@@ -558,42 +557,17 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         @Restricted(NoExternalUse.class)
         public FormValidation doCheckScanCredentialsId(@AncestorInPath SCMSourceOwner context,
-                @QueryParameter String scanCredentialsId, @QueryParameter String apiUri) {
-            if (!scanCredentialsId.isEmpty()) {
-                StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
-                if (credentials == null) {
-                    return FormValidation.error("Credentials not found");
-                } else {
-                    try {
-                        GitHub connector = Connector.connect(apiUri, credentials);
-                        if (connector.isCredentialValid()) {
-                            return FormValidation.ok();
-                        } else {
-                            return FormValidation.error("Invalid credentials");
-                        }
-                    } catch (IOException e) {
-                        LOGGER.log(Level.WARNING, "Exception validating credentials " + CredentialsNameProvider.name(credentials) + " on " + apiUri);
-                        return FormValidation.error("Exception validating credentials");
-                    }
-                }
-            } else {
-                return FormValidation.warning("Credentials are recommended");
-            }
+                                                       @QueryParameter String apiUri,
+                                                       @QueryParameter String scanCredentialsId) {
+            return Connector.checkScanCredentials(context, apiUri, scanCredentialsId);
         }
 
-        public ListBoxModel doFillScanCredentialsIdItems(@AncestorInPath SCMSourceOwner context/* TODO , @QueryParameter String apiUri*/) {
-            StandardListBoxModel result = new StandardListBoxModel();
-            result.withEmptySelection();
-            Connector.fillScanCredentialsIdItems(result, context, null);
-            return result;
+        public ListBoxModel doFillScanCredentialsIdItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri) {
+            return Connector.listScanCredentials(context, apiUri);
         }
 
-        public ListBoxModel doFillCheckoutCredentialsIdItems(@AncestorInPath SCMSourceOwner context/* TODO , @QueryParameter String apiUri*/) {
-            StandardListBoxModel result = new StandardListBoxModel();
-            result.add("- same as scan credentials -", GitHubSCMSource.DescriptorImpl.SAME);
-            result.add("- anonymous -", GitHubSCMSource.DescriptorImpl.ANONYMOUS);
-            Connector.fillCheckoutCredentialsIdItems(result, context, null);
-            return result;
+        public ListBoxModel doFillCheckoutCredentialsIdItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri) {
+            return Connector.listCheckoutCredentials(context, apiUri);
         }
 
         public ListBoxModel doFillApiUriItems() {
@@ -603,6 +577,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 result.add(e.getName() == null ? e.getApiUri() : e.getName(), e.getApiUri());
             }
             return result;
+        }
+
+        public boolean isApiUriSelectable() {
+            return !GitHubConfiguration.get().getEndpoints().isEmpty();
         }
 
         // TODO repeating configuration blocks like this is clumsy; better to factor shared config into a Describable and use f:property
