@@ -60,6 +60,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
+import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHMyself;
@@ -237,6 +238,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
     public void setPattern(String pattern) {
         Pattern.compile(pattern);
         this.pattern = pattern;
+    }
+
+    @NonNull
+    @Override
+    protected String id() {
+        return StringUtils.defaultIfBlank(apiUri, GitHubSCMSource.GITHUB_URL) + "::" + repoOwner;
     }
 
     @Override
@@ -433,8 +440,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
         listener.getLogger().format("Proposing %s%n", name);
         checkInterrupt();
         SCMSourceObserver.ProjectObserver projectObserver = observer.observe(name);
-        
-        GitHubSCMSource ghSCMSource = new GitHubSCMSource(null, apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name);
+
+        GitHubSCMSource ghSCMSource = new GitHubSCMSource(getId()+ "::" + name,
+                apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name
+        );
         ghSCMSource.setExcludes(getExcludes());
         ghSCMSource.setIncludes(getIncludes());
         ghSCMSource.setBuildOriginBranch(getBuildOriginBranch());
