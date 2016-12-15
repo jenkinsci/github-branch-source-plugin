@@ -241,6 +241,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         this.pattern = pattern;
     }
 
+    @NonNull
+    @Override
+    protected String id() {
+        return StringUtils.defaultIfBlank(apiUri, GitHubSCMSource.GITHUB_URL) + "::" + repoOwner;
+    }
+
     @Override
     public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
         TaskListener listener = observer.getListener();
@@ -436,8 +442,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         checkInterrupt();
         SCMSourceObserver.ProjectObserver projectObserver = observer.observe(name);
 
-        GitHubSCMSource ghSCMSource = new GitHubSCMSource(
-                StringUtils.defaultIfBlank(apiUri, GitHubServerConfig.GITHUB_URL) + "::" + repoOwner + "::" + name,
+        GitHubSCMSource ghSCMSource = new GitHubSCMSource(getId()+ "::" + name,
                 apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name
         );
         ghSCMSource.setExcludes(getExcludes());
