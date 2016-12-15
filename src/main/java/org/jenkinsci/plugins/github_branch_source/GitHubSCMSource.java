@@ -30,7 +30,6 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -1018,28 +1017,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         @Restricted(NoExternalUse.class)
         public FormValidation doCheckScanCredentialsId(@AncestorInPath SCMSourceOwner context,
-                @QueryParameter String scanCredentialsId, @QueryParameter String apiUri) {
-            if (!scanCredentialsId.isEmpty()) {
-                StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
-                if (credentials == null) {
-                    return FormValidation.error("Credentials not found");
-                } else {
-                    try {
-                        GitHub connector = Connector.connect(apiUri, credentials);
-                        if (connector.isCredentialValid()) {
-                            return FormValidation.ok();
-                        } else {
-                            return FormValidation.error("Invalid credentials");
-                        }
-                    } catch (IOException e) {
-                        // ignore, never thrown
-                        LOGGER.log(Level.WARNING, "Exception validating credentials {0} on {1}", new Object[] {CredentialsNameProvider.name(credentials), apiUri});
-                        return FormValidation.error("Exception validating credentials");
-                    }
-                }
-            } else {
-                return FormValidation.warning("Credentials are recommended");
-            }
+                                                       @QueryParameter String apiUri,
+                                                       @QueryParameter String scanCredentialsId) {
+            return Connector.checkScanCredentials(context, apiUri, scanCredentialsId);
         }
 
         @Restricted(NoExternalUse.class)
@@ -1096,19 +1076,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return result;
         }
 
+        public boolean isApiUriSelectable() {
+            return !GitHubConfiguration.get().getEndpoints().isEmpty();
+        }
+
         public ListBoxModel doFillCheckoutCredentialsIdItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri) {
-            StandardListBoxModel result = new StandardListBoxModel();
-            result.add("- same as scan credentials -", SAME);
-            result.add("- anonymous -", ANONYMOUS);
-            Connector.fillCheckoutCredentialsIdItems(result, context, apiUri);
-            return result;
+            return Connector.listCheckoutCredentials(context, apiUri);
         }
 
         public ListBoxModel doFillScanCredentialsIdItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri) {
-            StandardListBoxModel result = new StandardListBoxModel();
-            result.withEmptySelection();
-            Connector.fillScanCredentialsIdItems(result, context, apiUri);
-            return result;
+            return Connector.listScanCredentials(context, apiUri);
         }
 
         public ListBoxModel doFillRepositoryItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri,

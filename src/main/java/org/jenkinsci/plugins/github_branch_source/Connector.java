@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsMatcher;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
+import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -38,13 +39,20 @@ import com.google.common.hash.Hashing;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
 import hudson.Util;
+import hudson.model.Item;
+import hudson.model.Queue;
+import hudson.model.queue.Tasks;
 import hudson.security.ACL;
+import hudson.util.FormValidation;
+import hudson.util.ListBoxModel;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 
@@ -59,14 +67,81 @@ import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.OkHttpConnector;
 
 import static org.apache.commons.lang3.StringUtils.trimToEmpty;
-import static org.jenkinsci.plugins.github.config.GitHubServerConfig.GITHUB_URL;
 
 /**
  * Utilities that could perhaps be moved into {@code github-api}.
  */
 public class Connector {
+    private static final Logger LOGGER = Logger.getLogger(Connector.class.getName());
 
-    public static @CheckForNull StandardCredentials lookupScanCredentials(@CheckForNull SCMSourceOwner context, @CheckForNull String apiUri, @CheckForNull String scanCredentialsId) {
+    private Connector() {
+        throw new IllegalAccessError("Utility class");
+    }
+
+    public static ListBoxModel listScanCredentials(SCMSourceOwner context, String apiUri) {
+        return new StandardListBoxModel()
+                .includeEmptyValue()
+                .includeMatchingAs(
+                        context instanceof Queue.Task
+                                ? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
+                                : ACL.SYSTEM,
+                        context,
+                        StandardUsernameCredentials.class,
+                        githubDomainRequirements(apiUri),
+                        githubScanCredentialsMatcher()
+                );
+    }
+
+    public static FormValidation checkScanCredentials(SCMSourceOwner context, String apiUri, String scanCredentialsId) {
+        if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                context != null && !context.hasPermission(Item.EXTENDED_READ)) {
+            return FormValidation.ok();
+        }
+        if (!scanCredentialsId.isEmpty()) {
+            ListBoxModel options = listScanCredentials(context, apiUri);
+            boolean found = false;
+            for (ListBoxModel.Option b: options) {
+                if (scanCredentialsId.equals(b.value)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return FormValidation.error("Credentials not found");
+            }
+            if (!(context.hasPermission(Item.CONFIGURE)
+                    || context.hasPermission(Item.BUILD)
+                    || context.hasPermission(CredentialsProvider.USE_ITEM))) {
+                return FormValidation.ok("Credentials found");
+            }
+            StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
+            if (credentials == null) {
+                return FormValidation.error("Credentials not found");
+            } else {
+                try {
+                    GitHub connector = Connector.connect(apiUri, credentials);
+                    if (connector.isCredentialValid()) {
+                        return FormValidation.ok();
+                    } else {
+                        return FormValidation.error("Invalid credentials");
+                    }
+                } catch (IOException e) {
+                    // ignore, never thrown
+                    LOGGER.log(Level.WARNING, "Exception validating credentials {0} on {1}", new Object[]{
+                            CredentialsNameProvider.name(credentials), apiUri
+                    });
+                    return FormValidation.error("Exception validating credentials");
+                }
+            }
+        } else {
+            return FormValidation.warning("Credentials are recommended");
+        }
+    }
+
+    @CheckForNull
+    public static StandardCredentials lookupScanCredentials(@CheckForNull SCMSourceOwner context,
+                                                                          @CheckForNull String apiUri,
+                                                                          @CheckForNull String scanCredentialsId) {
         if (Util.fixEmpty(scanCredentialsId) == null) {
             return null;
         } else {
@@ -74,7 +149,9 @@ public class Connector {
                 CredentialsProvider.lookupCredentials(
                     StandardUsernameCredentials.class,
                     context,
-                    ACL.SYSTEM,
+                    context instanceof Queue.Task
+                            ? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
+                            : ACL.SYSTEM,
                     githubDomainRequirements(apiUri)
                 ),
                 CredentialsMatchers.allOf(CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher())
@@ -82,11 +159,27 @@ public class Connector {
         }
     }
 
+    public static ListBoxModel listCheckoutCredentials(SCMSourceOwner context, String apiUri) {
+        StandardListBoxModel result = new StandardListBoxModel();
+        result.includeEmptyValue();
+        result.add("- same as scan credentials -", GitHubSCMSource.DescriptorImpl.SAME);
+        result.add("- anonymous -", GitHubSCMSource.DescriptorImpl.ANONYMOUS);
+        return result.includeMatchingAs(
+                context instanceof Queue.Task
+                        ? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
+                        : ACL.SYSTEM,
+                context,
+                StandardUsernameCredentials.class,
+                githubDomainRequirements(apiUri),
+                GitClient.CREDENTIALS_MATCHER
+        );
+    }
+
     public static @Nonnull GitHub connect(@CheckForNull String apiUri, @CheckForNull StandardCredentials credentials) throws IOException {
         String apiUrl = Util.fixEmptyAndTrim(apiUri);
         String host;
         try {
-            apiUrl = apiUrl != null ? apiUrl : GITHUB_URL;
+            apiUrl = apiUrl != null ? apiUrl : GitHubServerConfig.GITHUB_URL;
             host = new URL(apiUrl).getHost();
         } catch (MalformedURLException e) {
             throw new IOException("Invalid GitHub API URL: " + apiUrl, e);
@@ -111,14 +204,6 @@ public class Connector {
         }
 
         return gb.build();
-    }
-
-    public static void fillScanCredentialsIdItems(StandardListBoxModel result, @CheckForNull SCMSourceOwner context, @CheckForNull String apiUri) {
-        result.withMatching(githubScanCredentialsMatcher(), CredentialsProvider.lookupCredentials(StandardUsernameCredentials.class, context, ACL.SYSTEM, githubDomainRequirements(apiUri)));
-    }
-
-    public static void fillCheckoutCredentialsIdItems(StandardListBoxModel result, @CheckForNull SCMSourceOwner context, @CheckForNull String apiUri) {
-        result.withMatching(GitClient.CREDENTIALS_MATCHER, CredentialsProvider.lookupCredentials(StandardUsernameCredentials.class, context, ACL.SYSTEM, githubDomainRequirements(apiUri)));
     }
 
     private static CredentialsMatcher githubScanCredentialsMatcher() {
@@ -158,9 +243,6 @@ public class Connector {
                 .putString(trimToEmpty(config.getApiUrl()))
                 .putString(trimToEmpty(config.getCredentialsId())).hash().toString();
     }
-
-
-    private Connector() {}
 
     /**
      * Fail immediately and throw a customized exception.
