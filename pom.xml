@@ -23,6 +23,7 @@
     <properties>
         <jenkins.version>1.609.3</jenkins.version>
         <workflow.version>1.14</workflow.version>
+        <hpi-plugin.version>1.121</hpi-plugin.version>
     </properties>
 
     <scm>
@@ -50,9 +51,9 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>github-api</artifactId>
-            <version>1.80</version>
+            <groupId>com.github.jglick</groupId> <!-- TODO https://github.com/jenkinsci/github-api-plugin/pull/11 -->
+            <artifactId>github-api-plugin</artifactId>
+            <version>3d6e6e6</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -109,6 +110,10 @@
         <repository>
             <id>repo.jenkins-ci.org</id>
             <url>http://repo.jenkins-ci.org/public/</url>
+        </repository>
+        <repository> <!-- TODO as above -->
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
         </repository>
     </repositories>
     <pluginRepositories>

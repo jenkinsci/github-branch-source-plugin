@@ -36,6 +36,7 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Action;
 import hudson.model.TaskListener;
+import hudson.util.StreamTaskListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -50,14 +51,17 @@ import jenkins.scm.api.metadata.ObjectMetadataAction;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -203,6 +207,45 @@ public class GitHubSCMSourceTest {
                 ),
                 instanceOf(GitHubRepoMetadataAction.class),
                 Matchers.<Action>is(new GitHubLink("icon-github-repo", "https://github.com/cloudbeers/yolo"))));
+    }
+
+    @Ignore("TODO cannot figure out how to get -Dwiremock.record=https://api.github.com/ to work; get a 500 `ZipException: Not in GZIP format` from Jetty. Anyway the scanCredentialsId would need to be set to someone with authority on @cloudbeers.")
+    @Issue("JENKINS-36240")
+    @Test
+    public void getTrustedRevision() throws Exception {
+        SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
+        source.fetch(new SCMSourceCriteria() {
+            @Override
+            public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
+                return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
+            }
+        }, collector, null, null);
+        Map<String, SCMRevision> revByName = new HashMap<>();
+        for (Map.Entry<SCMHead, SCMRevision> h : collector.result().entrySet()) {
+            revByName.put(h.getKey().getName(), h.getValue());
+        }
+        assertThat(revByName.keySet(), hasItems("PR-2", "PR-3", "PR-4", "master"));
+        StreamTaskListener listener = StreamTaskListener.fromStdout();
+        // branches: always trusted
+        assertThat(source.getTrustedRevision(revByName.get("master"), listener),
+                is((SCMRevision) new AbstractGitSCMSource.SCMRevisionImpl(revByName.get("master").getHead(), "8f1314fc3c8284d8c6d5886d473db98f2126071c")));
+        // PR-4: not a fork
+        assertThat(source.getTrustedRevision(revByName.get("PR-4"), listener), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead) revByName.get("PR-4").getHead(),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c71007490b065a84377a23d8ec0e43a001afd202"
+        )));
+        // PR-2: fork from a user with admin permission
+        assertThat(source.getTrustedRevision(revByName.get("PR-2"), listener), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead) revByName.get("PR-2").getHead(),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c0e024f89969b976da165eecaa71e09dc60c3da1"
+        )));
+        // PR-3: fork from a user with read permission (so untrusted)
+        assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead) revByName.get("PR-3").getHead(),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "6ef61f938112fb00f64c3445c06c80fdbbd6d414"
+        )));
+        assertThat(source.getTrustedRevision(revByName.get("PR-3"), listener),
+                is((SCMRevision) new AbstractGitSCMSource.SCMRevisionImpl(revByName.get("master").getHead(), "8f1314fc3c8284d8c6d5886d473db98f2126071c")));
     }
 
 }
