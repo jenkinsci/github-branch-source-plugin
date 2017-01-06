@@ -80,6 +80,7 @@ import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.api.SCMSourceEvent;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
+import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import org.apache.commons.lang.StringUtils;
@@ -932,7 +933,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Override
     protected List<Action> retrieveActions(@NonNull SCMHead head,
                                            @CheckForNull SCMHeadEvent event,
-                                           @NonNull TaskListener listener) throws IOException {
+                                           @NonNull TaskListener listener) throws IOException, InterruptedException {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         List<Action> result = new ArrayList<>();
         SCMSourceOwner owner = getOwner();
@@ -948,6 +949,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     url = repoLink.getUrl() + "/tree/" + head.getName();
                 }
                 result.add(new GitHubLink("icon-github-branch", url));
+            }
+            if (head instanceof BranchSCMHead) {
+                for (GitHubDefaultBranch p : ((Actionable) owner).getActions(GitHubDefaultBranch.class)) {
+                    if (StringUtils.equals(getRepoOwner(), p.getRepoOwner())
+                            && StringUtils.equals(repository, p.getRepository())
+                            && StringUtils.equals(p.getDefaultBranch(), head.getName())) {
+                        result.add(new PrimaryInstanceMetadataAction());
+                        break;
+                    }
+                }
             }
         }
         return result;
@@ -968,6 +979,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         result.add(new ObjectMetadataAction(null, repo.getDescription(), Util.fixEmpty(repo.getHomepage())));
         result.add(new GitHubRepoMetadataAction());
         result.add(new GitHubLink("icon-github-repo", repo.getHtmlUrl()));
+        if (StringUtils.isNotBlank(repo.getDefaultBranch())) {
+            result.add(new GitHubDefaultBranch(getRepoOwner(), repository, repo.getDefaultBranch()));
+        }
         return result;
     }
 
