@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import hudson.Extension;
 import hudson.FilePath;
+import hudson.model.Computer;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
@@ -38,6 +39,7 @@ import hudson.model.listeners.SCMListener;
 import hudson.model.queue.QueueListener;
 import hudson.scm.SCM;
 import hudson.scm.SCMRevisionState;
+import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource.SCMRevisionImpl;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
@@ -176,18 +178,28 @@ public class GitHubBuildStatusNotification {
      * With this listener one notifies to GitHub when a Job (associated to a PR) has been scheduled.
      * Sends: GHCommitState.PENDING
      */
-    @Extension public static class PRJobScheduledListener extends QueueListener {
+    @Extension
+    public static class PRJobScheduledListener extends QueueListener {
 
         /**
          * Manages the GitHub Commit Pending Status.
          */
-        @Override public void onEnterWaiting(Queue.WaitingItem wi) {
-            if (wi.task instanceof Job) {
-                Job<?,?> job = (Job) wi.task;
-                // TODO would actually be better to use GitHubSCMSource.retrieve(SCMHead, TaskListener) (when properly implemented).
-                // That would allow us to find the current head commit even for non-PR jobs.
-                SCMHead head = SCMHead.HeadByItem.findHead(job);
-                if (head instanceof PullRequestSCMHead) {
+        @Override
+        public void onEnterWaiting(Queue.WaitingItem wi) {
+            if (!(wi.task instanceof Job)) {
+                return;
+            }
+            final long taskId = wi.getId();
+            final Job<?,?> job = (Job) wi.task;
+            // TODO would actually be better to use GitHubSCMSource.retrieve(SCMHead, TaskListener) (when properly implemented).
+            // That would allow us to find the current head commit even for non-PR jobs.
+            final SCMHead head = SCMHead.HeadByItem.findHead(job);
+            if (!(head instanceof PullRequestSCMHead)) {
+                return;
+            }
+            Computer.threadPoolForRemoting.submit(new Runnable() {
+                @Override
+                public void run() {
                     try {
                         GHRepository repo = lookUpRepo(job);
                         if (repo != null) {
@@ -196,17 +208,25 @@ public class GitHubBuildStatusNotification {
                             String url = DisplayURLProvider.get().getJobURL(job);
                             // Has not been built yet, so we can only guess that the current PR head is what will be built.
                             // In fact the submitter might push another commit before this build even starts.
-                            createCommitStatus(repo, pr.getHead().getSha(), GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Queued(), head);
+                            if (Jenkins.getActiveInstance().getQueue().getItem(taskId) instanceof Queue.LeftItem) {
+                                // we took too long and the item has left the queue, no longer valid to apply pending
+                                // status. JobCheckOutListener is now responsible for setting the pending status.
+                                return;
+                            }
+                            createCommitStatus(repo, pr.getHead().getSha(), GHCommitState.PENDING, url,
+                                    Messages.GitHubBuildStatusNotification_CommitStatus_Queued(), head);
                         }
                     } catch (FileNotFoundException fnfe) {
-                        LOGGER.log(Level.WARNING, "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?");
+                        LOGGER.log(Level.WARNING,
+                                "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?");
                         LOGGER.log(Level.FINE, null, fnfe);
                     } catch (IOException ioe) {
-                        LOGGER.log(Level.WARNING, "Could not update commit status to PENDING. Message: " + ioe.getMessage());
+                        LOGGER.log(Level.WARNING,
+                                "Could not update commit status to PENDING. Message: " + ioe.getMessage());
                         LOGGER.log(Level.FINE, null, ioe);
                     }
                 }
-            }
+            });
         }
 
     }
@@ -215,9 +235,11 @@ public class GitHubBuildStatusNotification {
      * With this listener one notifies to GitHub when the SCM checkout process has started.
      * Possible option: GHCommitState.PENDING
      */
-    @Extension public static class JobCheckOutListener extends SCMListener {
+    @Extension
+    public static class JobCheckOutListener extends SCMListener {
 
-        @Override public void onCheckout(Run<?, ?> build, SCM scm, FilePath workspace, TaskListener listener, File changelogFile, SCMRevisionState pollingBaseline) throws Exception {
+        @Override
+        public void onCheckout(Run<?, ?> build, SCM scm, FilePath workspace, TaskListener listener, File changelogFile, SCMRevisionState pollingBaseline) throws Exception {
             createBuildCommitStatus(build, listener);
         }
 
@@ -227,9 +249,11 @@ public class GitHubBuildStatusNotification {
      * With this listener one notifies to GitHub the build result.
      * Possible options: GHCommitState.SUCCESS, GHCommitState.ERROR or GHCommitState.FAILURE
      */
-    @Extension public static class JobCompletedListener extends RunListener<Run<?,?>> {
+    @Extension
+    public static class JobCompletedListener extends RunListener<Run<?,?>> {
 
-        @Override public void onCompleted(Run<?, ?> build, TaskListener listener) {
+        @Override
+        public void onCompleted(Run<?, ?> build, TaskListener listener) {
             createBuildCommitStatus(build, listener);
         }
 
