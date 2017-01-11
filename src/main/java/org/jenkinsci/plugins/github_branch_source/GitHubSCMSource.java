@@ -705,7 +705,23 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         String fullName = repoOwner + "/" + repository;
-        final GHRepository repo = github.getRepository(fullName);
+        try {
+            github.checkApiUrlValidity();
+        } catch (HttpException e) {
+            throw new IOException(String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri), e);
+        }
+        String credentialsName = credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials);
+        if (credentials != null && !github.isCredentialValid()) {
+            throw new AbortException(String.format("Invalid scan credentials %s to connect to %s, skipping",
+                    credentialsName, apiUri == null ? GITHUB_URL : apiUri));
+        }
+        GHRepository repo;
+        try {
+            repo = github.getRepository(fullName);
+        } catch (FileNotFoundException e) {
+            throw new AbortException(String.format("Invalid scan credentials when using %s to connect to %s on %s",
+                    credentialsName, fullName, apiUri == null ? GITHUB_URL : apiUri));
+        }
         return new GitHubSCMProbe(repo, head, revision);
     }
 
@@ -872,16 +888,18 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 }
                 if (collaboratorNames == null) {
                     // Input data validation
+                    String credentialsName =
+                            credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials);
                     if (credentials != null && !github.isCredentialValid()) {
                         listener.getLogger().format("Invalid scan credentials %s to connect to %s, "
                                         + "assuming no trusted collaborators%n",
-                                CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
+                                credentialsName, apiUri == null ? GITHUB_URL : apiUri);
                         collaboratorNames = Collections.singleton(repoOwner);
                     } else {
                         if (!github.isAnonymous()) {
                             listener.getLogger()
                                     .format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
-                                            CredentialsNameProvider.name(credentials));
+                                            credentialsName);
                         } else {
                             listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
                                     apiUri == null ? GITHUB_URL : apiUri);
@@ -892,8 +910,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             collaboratorNames = Collections.singleton(repoOwner);
                         } else {
                             String fullName = repoOwner + "/" + repository;
-                            final GHRepository repo = github.getRepository(fullName);
-                            collaboratorNames = new HashSet<>(repo.getCollaboratorNames());
+                            final GHRepository repo;
+                            try {
+                                repo = github.getRepository(fullName);
+                                collaboratorNames = new HashSet<>(repo.getCollaboratorNames());
+                            } catch (FileNotFoundException e) {
+                                listener.getLogger().format("Invalid scan credentials %s to connect to %s, "
+                                                + "assuming no trusted collaborators%n",
+                                        credentialsName,
+                                        apiUri == null ? GITHUB_URL : apiUri);
+                                collaboratorNames = Collections.singleton(repoOwner);
+                            }
                         }
                     }
                 }
@@ -973,11 +1000,36 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                            @NonNull TaskListener listener) throws IOException {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         List<Action> result = new ArrayList<>();
+        result.add(new GitHubRepoMetadataAction());
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
         GitHub hub = Connector.connect(apiUri, credentials);
-        GHRepository repo = hub.getRepository(getRepoOwner() + '/' + repository);
+        try {
+            hub.checkApiUrlValidity();
+        } catch (HttpException e) {
+            listener.getLogger().format("It seems %s is unreachable%n",
+                    apiUri == null ? GITHUB_URL : apiUri);
+            return result;
+        }
+        String credentialsName = credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials);
+        if (credentials != null && !hub.isCredentialValid()) {
+            throw new AbortException(String.format("Invalid scan credentials %s to connect to %s, skipping",
+                    credentialsName, apiUri == null ? GITHUB_URL : apiUri));
+        }
+        if (!hub.isAnonymous()) {
+            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
+                    credentialsName);
+        } else {
+            listener.getLogger()
+                    .format("Connecting to %s using anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
+        }
+        GHRepository repo;
+        try {
+            repo = hub.getRepository(getRepoOwner() + '/' + repository);
+        } catch (FileNotFoundException e) {
+            throw new AbortException(String.format("Invalid scan credentials when using %s to connect to %s/%s on %s",
+                    credentialsName, repoOwner, repository, apiUri == null ? GITHUB_URL : apiUri));
+        }
         result.add(new ObjectMetadataAction(null, repo.getDescription(), Util.fixEmpty(repo.getHomepage())));
-        result.add(new GitHubRepoMetadataAction());
         result.add(new GitHubLink("icon-github-repo", repo.getHtmlUrl()));
         if (StringUtils.isNotBlank(repo.getDefaultBranch())) {
             result.add(new GitHubDefaultBranch(getRepoOwner(), repository, repo.getDefaultBranch()));
