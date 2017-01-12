@@ -201,6 +201,9 @@ public class GitHubSCMSourceTest {
                 Matchers.<Action>is(
                         new ObjectMetadataAction(null, "You only live once", "http://yolo.example.com")
                 ),
+                Matchers.<Action>is(
+                        new GitHubDefaultBranch("cloudbeers", "yolo", "master")
+                ),
                 instanceOf(GitHubRepoMetadataAction.class),
                 Matchers.<Action>is(new GitHubLink("icon-github-repo", "https://github.com/cloudbeers/yolo"))));
     }
