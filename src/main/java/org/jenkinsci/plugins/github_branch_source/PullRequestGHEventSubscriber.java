@@ -168,13 +168,13 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
         }
 
         private boolean isApiMatch(String apiUri) {
-            return repoHost.equals(RepositoryUriResolver.hostnameFromApiUri(apiUri));
+            return repoHost.equalsIgnoreCase(RepositoryUriResolver.hostnameFromApiUri(apiUri));
         }
 
         @Override
         public boolean isMatch(@NonNull SCMNavigator navigator) {
             return navigator instanceof GitHubSCMNavigator
-                    && repoOwner.equals(((GitHubSCMNavigator) navigator).getRepoOwner());
+                    && repoOwner.equalsIgnoreCase(((GitHubSCMNavigator) navigator).getRepoOwner());
         }
 
         @NonNull
@@ -188,8 +188,8 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
         public Map<SCMHead, SCMRevision> heads(@NonNull SCMSource source) {
             if (!(source instanceof GitHubSCMSource
                     && isApiMatch(((GitHubSCMSource) source).getApiUri())
-                    && repoOwner.equals(((GitHubSCMSource) source).getRepoOwner())
-                    && repository.equals(((GitHubSCMSource) source).getRepository()))) {
+                    && repoOwner.equalsIgnoreCase(((GitHubSCMSource) source).getRepoOwner())
+                    && repository.equalsIgnoreCase(((GitHubSCMSource) source).getRepository()))) {
                 return Collections.emptyMap();
             }
             GitHubSCMSource src = (GitHubSCMSource) source;
