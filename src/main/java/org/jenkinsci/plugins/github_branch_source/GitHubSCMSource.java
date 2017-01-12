@@ -47,6 +47,8 @@ import hudson.model.TaskListener;
 import hudson.plugins.git.GitException;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.Revision;
+import hudson.plugins.git.browser.GitRepositoryBrowser;
+import hudson.plugins.git.browser.GithubWeb;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.PreBuildMerge;
 import hudson.plugins.git.util.MergeRecord;
@@ -56,6 +58,7 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -154,6 +157,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @NonNull
     private Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
 
+    /**
+     * Cache of the official repository HTML URL as reported by {@link GitHub#getRepository(String)}.
+     */
+    private transient URL repositoryUrl;
     /**
      * The collaborator names used to determine if pull requests are from trusted authors
      */
@@ -404,6 +411,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             final GHRepository repo = github.getRepository(fullName);
             listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
             try {
+                repositoryUrl = repo.getHtmlUrl();
                 collaboratorNames = new HashSet<>(repo.getCollaboratorNames());
             } catch (FileNotFoundException e) {
                 // not permitted
@@ -735,6 +743,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             String fullName = repoOwner + "/" + repository;
             GHRepository repo = github.getRepository(fullName);
+            repositoryUrl = repo.getHtmlUrl();
             return doRetrieve(head, listener, repo);
         } catch (RateLimitExceededException rle) {
             throw new AbortException(rle.getMessage());
@@ -762,7 +771,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public SCM build(SCMHead head, SCMRevision revision) {
         if (revision == null) {
             // TODO will this work sanely for PRs? Branch.scm seems to be used only as a fallback for SCMBinder/SCMVar where they would perhaps better just report an error.
-            return super.build(head, null);
+            GitSCM scm = (GitSCM) super.build(head, null);
+            String repoUrl = repositoryUrl(getRepoOwner(), getRepository());
+            if (repoUrl != null) {
+                scm.setBrowser(new GithubWeb(repoUrl));
+            }
+            return scm;
         } else if (head instanceof PullRequestSCMHead) {
             if (revision instanceof PullRequestSCMRevision) {
                 PullRequestSCMRevision prRev = (PullRequestSCMRevision) revision;
@@ -778,20 +792,57 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             ),
                             prRev.getBaseHash()));
                 }
+                String repoUrl = repositoryUrl(((PullRequestSCMHead) head).getSourceOwner(),
+                        ((PullRequestSCMHead) head).getSourceRepo());
+                if (repoUrl != null) {
+                    scm.setBrowser(new GithubWeb(repoUrl));
+                }
                 return scm;
-            } else if (revision instanceof SCMRevisionImpl) {
-                // this is a pull request from an untrusted collaborator
-                return super.build(revision.getHead(), revision);
             } else {
-                LOGGER.log(Level.WARNING, "Unexpected revision class {0} for {1}", new Object[] {
+                LOGGER.log(Level.WARNING, "Unexpected revision class {0} for {1}", new Object[]{
                         revision.getClass().getName(), head
                 });
-                return super.build(head, revision);
+                GitSCM scm = (GitSCM) super.build(head, revision);
+                String repoUrl = repositoryUrl(getRepoOwner(), getRepository());
+                if (repoUrl != null) {
+                    scm.setBrowser(new GithubWeb(repoUrl));
+                }
+                return scm;
             }
         } else {
-            return super.build(head, /* casting just as an assertion */(SCMRevisionImpl) revision);
+            GitSCM scm = (GitSCM) super.build(head, /* casting just as an assertion */(SCMRevisionImpl) revision);
+            String repoUrl = repositoryUrl(getRepoOwner(), getRepository());
+            if (repoUrl != null) {
+                scm.setBrowser(new GithubWeb(repoUrl));
+            }
+            return scm;
         }
     }
+
+    /**
+     * Tries as best as possible to guess the repository HTML url to use with {@link GithubWeb}.
+     * @param owner the owner.
+     * @param repo the repository.
+     * @return the HTML url of the repository or {@code null} if we could not determine the answer.
+     */
+    @CheckForNull
+    private String repositoryUrl(String owner, String repo) {
+        if (repositoryUrl != null) {
+            if (repoOwner.equals(owner) && repository.equals(repo)) {
+                return repositoryUrl.toExternalForm();
+            }
+            // hack!
+            return repositoryUrl.toExternalForm().replace(repoOwner+"/"+repository, owner+"/"+repo);
+        }
+        if (StringUtils.isBlank(apiUri)) {
+            return "https://github.com/"+ owner+"/"+repo;
+        }
+        if (StringUtils.endsWith(StringUtils.removeEnd(apiUri, "/"), "/api/v3")) {
+            return StringUtils.removeEnd(StringUtils.removeEnd(apiUri, "/"), "api/v3") + owner + "/" + repo;
+        }
+        return null;
+    }
+
     /**
      * Similar to {@link PreBuildMerge}, but we cannot use that unmodified: we need to specify the exact base branch hash.
      * It is possible to just ask Git to check out {@code refs/pull/123/merge}, but this has two problems:
@@ -893,6 +944,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         } else {
                             String fullName = repoOwner + "/" + repository;
                             final GHRepository repo = github.getRepository(fullName);
+                            repositoryUrl = repo.getHtmlUrl();
                             collaboratorNames = new HashSet<>(repo.getCollaboratorNames());
                         }
                     }
@@ -976,6 +1028,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
         GitHub hub = Connector.connect(apiUri, credentials);
         GHRepository repo = hub.getRepository(getRepoOwner() + '/' + repository);
+        repositoryUrl = repo.getHtmlUrl();
         result.add(new ObjectMetadataAction(null, repo.getDescription(), Util.fixEmpty(repo.getHomepage())));
         result.add(new GitHubRepoMetadataAction());
         result.add(new GitHubLink("icon-github-repo", repo.getHtmlUrl()));
