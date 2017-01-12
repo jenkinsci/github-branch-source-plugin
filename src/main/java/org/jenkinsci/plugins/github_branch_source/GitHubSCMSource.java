@@ -67,7 +67,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLHandshakeException;
@@ -167,6 +169,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @CheckForNull
     private transient Set<String> collaboratorNames;
 
+    /**
+     * The cache of {@link ObjectMetadataAction} instances for each open PR.
+     */
+    @NonNull
+    private transient /*effectively final*/ Map<Integer,ObjectMetadataAction> pullRequestMetadataCache;
+
     @DataBoundConstructor
     public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
         super(id);
@@ -175,6 +183,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         this.repository = repository;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
         this.checkoutCredentialsId = checkoutCredentialsId;
+        pullRequestMetadataCache = new ConcurrentHashMap<>();
     }
 
     /** Use defaults for old settings. */
@@ -197,6 +206,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         if (buildForkPRHead == null) {
             buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+        }
+        if (pullRequestMetadataCache == null) {
+            pullRequestMetadataCache = new ConcurrentHashMap<>();
         }
         return this;
     }
@@ -508,6 +520,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 // we use a paged iterable so that if the observer is finished observing we stop making API calls
                 pullRequests = repo.queryPullRequests().state(GHIssueState.OPEN).list();
             }
+            Set<Integer> pullRequestMetadataKeys = new HashSet<>();
             for (GHPullRequest ghPullRequest : pullRequests) {
                 checkInterrupt();
                 int number = ghPullRequest.getNumber();
@@ -576,6 +589,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             branchName += "-head";
                         }
                     }
+                    pullRequestMetadataCache.put(number,
+                            new ObjectMetadataAction(
+                                    ghPullRequest.getTitle(),
+                                    ghPullRequest.getBody(),
+                                    ghPullRequest.getHtmlUrl().toExternalForm()
+                            )
+                    );
+                    pullRequestMetadataKeys.add(number);
                     PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge);
                     if (includes != null && !includes.contains(head)) {
                         // don't waste rate limit testing a head we are not interested in
@@ -618,6 +639,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 pullrequests++;
             }
             listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
+            if (includes == null) {
+                // we did a full scan, so trim the cache entries
+                this.pullRequestMetadataCache.keySet().retainAll(pullRequestMetadataKeys);
+            }
         }
 
         if (wantBranches && (buildOriginBranch || buildOriginBranchWithPR)) {
@@ -993,14 +1018,22 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             GitHubLink repoLink = ((Actionable) owner).getAction(GitHubLink.class);
             if (repoLink != null) {
                 String url;
+                ObjectMetadataAction metadataAction = null;
                 if (head instanceof PullRequestSCMHead) {
                     // pull request to this repository
                     url = repoLink.getUrl() + "/pull/" + ((PullRequestSCMHead) head).getNumber();
+                    metadataAction = pullRequestMetadataCache.get(((PullRequestSCMHead) head).getNumber());
+                    if (metadataAction == null) {
+                        // best effort
+                        metadataAction = new ObjectMetadataAction(null, null, url);
+                    }
                 } else {
                     // branch in this repository
                     url = repoLink.getUrl() + "/tree/" + head.getName();
+                    metadataAction = new ObjectMetadataAction(head.getName(), null, url);
                 }
                 result.add(new GitHubLink("icon-github-branch", url));
+                result.add(metadataAction);
             }
             if (head instanceof BranchSCMHead) {
                 for (GitHubDefaultBranch p : ((Actionable) owner).getActions(GitHubDefaultBranch.class)) {
