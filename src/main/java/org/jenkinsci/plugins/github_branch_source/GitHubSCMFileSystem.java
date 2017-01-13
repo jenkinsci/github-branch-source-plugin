@@ -53,7 +53,8 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
         if (rev != null) {
             if (rev.getHead() instanceof PullRequestSCMHead) {
                 PullRequestSCMHead pr = (PullRequestSCMHead) rev.getHead();
-                this.ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
+                assert !pr.isMerge(); // TODO see below
+                this.ref = ((PullRequestSCMRevision) rev).getPullHash();
             } else if (rev instanceof AbstractGitSCMSource.SCMRevisionImpl) {
                 this.ref = ((AbstractGitSCMSource.SCMRevisionImpl) rev).getHash();
             } else {
@@ -123,7 +124,7 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
                             pr.getSourceBranch(),
                             rev);
                 }
-                ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
+                return null; // TODO support merge revisions somehow
             } else {
                 return null;
             }
