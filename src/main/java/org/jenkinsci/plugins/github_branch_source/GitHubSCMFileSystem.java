@@ -38,7 +38,6 @@ import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
-import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
@@ -131,12 +130,7 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
 
             GHRepository repo = github.getUser(src.getRepoOwner()).getRepository(src.getRepository());
             if (rev == null) {
-                if (head instanceof BranchSCMHead) {
-                    rev = new AbstractGitSCMSource.SCMRevisionImpl(head, repo.getBranch(ref).getSHA1());
-                } else { // if (head instanceof PullRequestSCMHead)
-                    GHPullRequest pr = repo.getPullRequest(((PullRequestSCMHead) head).getNumber());
-                    rev = new PullRequestSCMRevision((PullRequestSCMHead) head, pr.getBase().getSha(), pr.getHead().getSha());
-                }
+                rev = new AbstractGitSCMSource.SCMRevisionImpl((BranchSCMHead) head, repo.getBranch(ref).getSHA1());
             }
             return new GitHubSCMFileSystem(repo, ref, rev);
         }
