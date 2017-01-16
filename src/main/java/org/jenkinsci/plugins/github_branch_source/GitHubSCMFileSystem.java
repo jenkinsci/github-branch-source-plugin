@@ -38,7 +38,6 @@ import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
-import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
@@ -53,7 +52,8 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
         if (rev != null) {
             if (rev.getHead() instanceof PullRequestSCMHead) {
                 PullRequestSCMHead pr = (PullRequestSCMHead) rev.getHead();
-                this.ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
+                assert !pr.isMerge(); // TODO see below
+                this.ref = ((PullRequestSCMRevision) rev).getPullHash();
             } else if (rev instanceof AbstractGitSCMSource.SCMRevisionImpl) {
                 this.ref = ((AbstractGitSCMSource.SCMRevisionImpl) rev).getHash();
             } else {
@@ -123,19 +123,14 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
                             pr.getSourceBranch(),
                             rev);
                 }
-                ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
+                return null; // TODO support merge revisions somehow
             } else {
                 return null;
             }
 
             GHRepository repo = github.getUser(src.getRepoOwner()).getRepository(src.getRepository());
             if (rev == null) {
-                if (head instanceof BranchSCMHead) {
-                    rev = new AbstractGitSCMSource.SCMRevisionImpl(head, repo.getBranch(ref).getSHA1());
-                } else { // if (head instanceof PullRequestSCMHead)
-                    GHPullRequest pr = repo.getPullRequest(((PullRequestSCMHead) head).getNumber());
-                    rev = new PullRequestSCMRevision((PullRequestSCMHead) head, pr.getBase().getSha(), pr.getHead().getSha());
-                }
+                rev = new AbstractGitSCMSource.SCMRevisionImpl((BranchSCMHead) head, repo.getBranch(ref).getSHA1());
             }
             return new GitHubSCMFileSystem(repo, ref, rev);
         }
