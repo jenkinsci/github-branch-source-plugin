@@ -47,6 +47,7 @@ import hudson.model.TaskListener;
 import hudson.plugins.git.GitException;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.Revision;
+import hudson.plugins.git.browser.GithubWeb;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.PreBuildMerge;
 import hudson.plugins.git.util.MergeRecord;
@@ -56,6 +57,7 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -65,6 +67,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLHandshakeException;
@@ -80,6 +83,7 @@ import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.api.SCMSourceEvent;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
+import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
 import org.apache.commons.lang.StringUtils;
@@ -96,6 +100,7 @@ import org.kohsuke.github.GHBranch;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
@@ -153,6 +158,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @NonNull
     private Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
 
+    /**
+     * Cache of the official repository HTML URL as reported by {@link GitHub#getRepository(String)}.
+     */
+    private transient URL repositoryUrl;
+
+    /**
+     * The cache of {@link ObjectMetadataAction} instances for each open PR.
+     */
+    @NonNull
+    private transient /*effectively final*/ Map<Integer,ObjectMetadataAction> pullRequestMetadataCache;
+
     @DataBoundConstructor
     public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
         super(id);
@@ -161,6 +177,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         this.repository = repository;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
         this.checkoutCredentialsId = checkoutCredentialsId;
+        pullRequestMetadataCache = new ConcurrentHashMap<>();
     }
 
     /** Use defaults for old settings. */
@@ -183,6 +200,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         if (buildForkPRHead == null) {
             buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+        }
+        if (pullRequestMetadataCache == null) {
+            pullRequestMetadataCache = new ConcurrentHashMap<>();
         }
         return this;
     }
@@ -396,6 +416,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
             listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
+            repositoryUrl = repo.getHtmlUrl();
             doRetrieve(criteria, observer, listener, repo);
             listener.getLogger().format("%nDone examining %s%n%n", fullName);
         } catch (RateLimitExceededException rle) {
@@ -486,6 +507,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 // we use a paged iterable so that if the observer is finished observing we stop making API calls
                 pullRequests = repo.queryPullRequests().state(GHIssueState.OPEN).list();
             }
+            Set<Integer> pullRequestMetadataKeys = new HashSet<>();
             for (GHPullRequest ghPullRequest : pullRequests) {
                 checkInterrupt();
                 int number = ghPullRequest.getNumber();
@@ -549,6 +571,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             branchName += "-head";
                         }
                     }
+                    pullRequestMetadataCache.put(number,
+                            new ObjectMetadataAction(
+                                    ghPullRequest.getTitle(),
+                                    ghPullRequest.getBody(),
+                                    ghPullRequest.getHtmlUrl().toExternalForm()
+                            )
+                    );
+                    pullRequestMetadataKeys.add(number);
                     PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge);
                     if (includes != null && !includes.contains(head)) {
                         // don't waste rate limit testing a head we are not interested in
@@ -591,6 +621,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 pullrequests++;
             }
             listener.getLogger().format("%n  %d pull requests were processed%n", pullrequests);
+            if (includes == null) {
+                // we did a full scan, so trim the cache entries
+                this.pullRequestMetadataCache.keySet().retainAll(pullRequestMetadataKeys);
+            }
         }
 
         if (wantBranches && (buildOriginBranch || buildOriginBranchWithPR)) {
@@ -686,7 +720,23 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         String fullName = repoOwner + "/" + repository;
-        final GHRepository repo = github.getRepository(fullName);
+        try {
+            github.checkApiUrlValidity();
+        } catch (HttpException e) {
+            throw new IOException(String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri), e);
+        }
+        String credentialsName = credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials);
+        if (credentials != null && !github.isCredentialValid()) {
+            throw new AbortException(String.format("Invalid scan credentials %s to connect to %s, skipping",
+                    credentialsName, apiUri == null ? GITHUB_URL : apiUri));
+        }
+        GHRepository repo;
+        try {
+            repo = github.getRepository(fullName);
+        } catch (FileNotFoundException e) {
+            throw new AbortException(String.format("Invalid scan credentials when using %s to connect to %s on %s",
+                    credentialsName, fullName, apiUri == null ? GITHUB_URL : apiUri));
+        }
         return new GitHubSCMProbe(repo, head, revision);
     }
 
@@ -716,6 +766,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             String fullName = repoOwner + "/" + repository;
             GHRepository repo = github.getRepository(fullName);
+            repositoryUrl = repo.getHtmlUrl();
             return doRetrieve(head, listener, repo);
         } catch (RateLimitExceededException rle) {
             throw new AbortException(rle.getMessage());
@@ -743,7 +794,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public SCM build(SCMHead head, SCMRevision revision) {
         if (revision == null) {
             // TODO will this work sanely for PRs? Branch.scm seems to be used only as a fallback for SCMBinder/SCMVar where they would perhaps better just report an error.
-            return super.build(head, null);
+            GitSCM scm = (GitSCM) super.build(head, null);
+            String repoUrl = repositoryUrl(getRepoOwner(), getRepository());
+            if (repoUrl != null) {
+                scm.setBrowser(new GithubWeb(repoUrl));
+            }
+            return scm;
         } else if (head instanceof PullRequestSCMHead) {
             if (revision instanceof PullRequestSCMRevision) {
                 PullRequestSCMRevision prRev = (PullRequestSCMRevision) revision;
@@ -759,20 +815,57 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             ),
                             prRev.getBaseHash()));
                 }
+                String repoUrl = repositoryUrl(((PullRequestSCMHead) head).getSourceOwner(),
+                        ((PullRequestSCMHead) head).getSourceRepo());
+                if (repoUrl != null) {
+                    scm.setBrowser(new GithubWeb(repoUrl));
+                }
                 return scm;
-            } else if (revision instanceof SCMRevisionImpl) {
-                // this is a pull request from an untrusted collaborator
-                return super.build(revision.getHead(), revision);
             } else {
-                LOGGER.log(Level.WARNING, "Unexpected revision class {0} for {1}", new Object[] {
+                LOGGER.log(Level.WARNING, "Unexpected revision class {0} for {1}", new Object[]{
                         revision.getClass().getName(), head
                 });
-                return super.build(head, revision);
+                GitSCM scm = (GitSCM) super.build(head, revision);
+                String repoUrl = repositoryUrl(getRepoOwner(), getRepository());
+                if (repoUrl != null) {
+                    scm.setBrowser(new GithubWeb(repoUrl));
+                }
+                return scm;
             }
         } else {
-            return super.build(head, /* casting just as an assertion */(SCMRevisionImpl) revision);
+            GitSCM scm = (GitSCM) super.build(head, /* casting just as an assertion */(SCMRevisionImpl) revision);
+            String repoUrl = repositoryUrl(getRepoOwner(), getRepository());
+            if (repoUrl != null) {
+                scm.setBrowser(new GithubWeb(repoUrl));
+            }
+            return scm;
         }
     }
+
+    /**
+     * Tries as best as possible to guess the repository HTML url to use with {@link GithubWeb}.
+     * @param owner the owner.
+     * @param repo the repository.
+     * @return the HTML url of the repository or {@code null} if we could not determine the answer.
+     */
+    @CheckForNull
+    private String repositoryUrl(String owner, String repo) {
+        if (repositoryUrl != null) {
+            if (repoOwner.equals(owner) && repository.equals(repo)) {
+                return repositoryUrl.toExternalForm();
+            }
+            // hack!
+            return repositoryUrl.toExternalForm().replace(repoOwner+"/"+repository, owner+"/"+repo);
+        }
+        if (StringUtils.isBlank(apiUri)) {
+            return "https://github.com/"+ owner+"/"+repo;
+        }
+        if (StringUtils.endsWith(StringUtils.removeEnd(apiUri, "/"), "/api/v3")) {
+            return StringUtils.removeEnd(StringUtils.removeEnd(apiUri, "/"), "api/v3") + owner + "/" + repo;
+        }
+        return null;
+    }
+
     /**
      * Similar to {@link PreBuildMerge}, but we cannot use that unmodified: we need to specify the exact base branch hash.
      * It is possible to just ask Git to check out {@code refs/pull/123/merge}, but this has two problems:
@@ -837,9 +930,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 String fullName = repoOwner + "/" + repository;
                 final GHRepository repo = github.getRepository(fullName);
                 try {
-                    String permission = repo.getPermission(sourceOwner).getPermission();
+                    GHPermissionType permission = repo.getPermission(sourceOwner);
                     listener.getLogger().format("Permission check of %s on %s/%s says: %s%n", sourceOwner, repoOwner, repository, permission);
-                    trusted = permission.equals("admin") || permission.equals("write");
+                    trusted = permission == GHPermissionType.ADMIN || permission == GHPermissionType.WRITE;
                 } catch (FileNotFoundException x) {
                     listener.getLogger().format("Failed to do a direct permission check of %s on %s/%s; scan token has no access to this repository, or endpoint removed%n", sourceOwner, repoOwner, repository);
                     trusted = false; // TODO JENKINS-37608: make this configurable
@@ -892,7 +985,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Override
     protected List<Action> retrieveActions(@NonNull SCMHead head,
                                            @CheckForNull SCMHeadEvent event,
-                                           @NonNull TaskListener listener) throws IOException {
+                                           @NonNull TaskListener listener) throws IOException, InterruptedException {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         List<Action> result = new ArrayList<>();
         SCMSourceOwner owner = getOwner();
@@ -900,14 +993,32 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             GitHubLink repoLink = ((Actionable) owner).getAction(GitHubLink.class);
             if (repoLink != null) {
                 String url;
+                ObjectMetadataAction metadataAction = null;
                 if (head instanceof PullRequestSCMHead) {
                     // pull request to this repository
                     url = repoLink.getUrl() + "/pull/" + ((PullRequestSCMHead) head).getNumber();
+                    metadataAction = pullRequestMetadataCache.get(((PullRequestSCMHead) head).getNumber());
+                    if (metadataAction == null) {
+                        // best effort
+                        metadataAction = new ObjectMetadataAction(null, null, url);
+                    }
                 } else {
                     // branch in this repository
                     url = repoLink.getUrl() + "/tree/" + head.getName();
+                    metadataAction = new ObjectMetadataAction(head.getName(), null, url);
                 }
                 result.add(new GitHubLink("icon-github-branch", url));
+                result.add(metadataAction);
+            }
+            if (head instanceof BranchSCMHead) {
+                for (GitHubDefaultBranch p : ((Actionable) owner).getActions(GitHubDefaultBranch.class)) {
+                    if (StringUtils.equals(getRepoOwner(), p.getRepoOwner())
+                            && StringUtils.equals(repository, p.getRepository())
+                            && StringUtils.equals(p.getDefaultBranch(), head.getName())) {
+                        result.add(new PrimaryInstanceMetadataAction());
+                        break;
+                    }
+                }
             }
         }
         return result;
@@ -922,12 +1033,41 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                            @NonNull TaskListener listener) throws IOException {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         List<Action> result = new ArrayList<>();
+        result.add(new GitHubRepoMetadataAction());
         StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
         GitHub hub = Connector.connect(apiUri, credentials);
-        GHRepository repo = hub.getRepository(getRepoOwner() + '/' + repository);
+        try {
+            hub.checkApiUrlValidity();
+        } catch (HttpException e) {
+            listener.getLogger().format("It seems %s is unreachable%n",
+                    apiUri == null ? GITHUB_URL : apiUri);
+            return result;
+        }
+        String credentialsName = credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials);
+        if (credentials != null && !hub.isCredentialValid()) {
+            throw new AbortException(String.format("Invalid scan credentials %s to connect to %s, skipping",
+                    credentialsName, apiUri == null ? GITHUB_URL : apiUri));
+        }
+        if (!hub.isAnonymous()) {
+            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
+                    credentialsName);
+        } else {
+            listener.getLogger()
+                    .format("Connecting to %s using anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
+        }
+        GHRepository repo;
+        try {
+            repo = hub.getRepository(getRepoOwner() + '/' + repository);
+        repositoryUrl = repo.getHtmlUrl();
+        } catch (FileNotFoundException e) {
+            throw new AbortException(String.format("Invalid scan credentials when using %s to connect to %s/%s on %s",
+                    credentialsName, repoOwner, repository, apiUri == null ? GITHUB_URL : apiUri));
+        }
         result.add(new ObjectMetadataAction(null, repo.getDescription(), Util.fixEmpty(repo.getHomepage())));
-        result.add(new GitHubRepoMetadataAction());
         result.add(new GitHubLink("icon-github-repo", repo.getHtmlUrl()));
+        if (StringUtils.isNotBlank(repo.getDefaultBranch())) {
+            result.add(new GitHubDefaultBranch(getRepoOwner(), repository, repo.getDefaultBranch()));
+        }
         return result;
     }
 

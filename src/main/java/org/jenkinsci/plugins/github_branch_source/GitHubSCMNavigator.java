@@ -74,6 +74,8 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
+import static org.jenkinsci.plugins.github_branch_source.GitHubSCMSource.GITHUB_URL;
+
 public class GitHubSCMNavigator extends SCMNavigator {
 
     private final String repoOwner;
@@ -243,7 +245,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @NonNull
     @Override
     protected String id() {
-        return StringUtils.defaultIfBlank(apiUri, GitHubSCMSource.GITHUB_URL) + "::" + repoOwner;
+        return StringUtils.defaultIfBlank(apiUri, GITHUB_URL) + "::" + repoOwner;
     }
 
     @Override
@@ -262,18 +264,18 @@ public class GitHubSCMNavigator extends SCMNavigator {
         try {
             github.checkApiUrlValidity();
         } catch (HttpException e) {
-            String message = String.format("It seems %s is unreachable", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
+            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
 
         // Input data validation
         if (credentials != null && !github.isCredentialValid()) {
-            String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
+            String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
 
         if (!github.isAnonymous()) {
-            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
+            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
             GHMyself myself = null;
             try {
                 // Requires an authenticated access
@@ -296,7 +298,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 return;
             }
         } else {
-            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
+            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
         }
 
         GHOrganization org = null;
@@ -360,19 +362,19 @@ public class GitHubSCMNavigator extends SCMNavigator {
         try {
             github.checkApiUrlValidity();
         } catch (HttpException e) {
-            String message = String.format("It seems %s is unreachable", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
+            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
 
         // Input data validation
         if (credentials != null && !github.isCredentialValid()) {
             String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
-                    CredentialsNameProvider.name(credentials), apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
+                    CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
 
         if (!github.isAnonymous()) {
-            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri,
+            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
                     CredentialsNameProvider.name(credentials));
             GHMyself myself = null;
             try {
@@ -391,7 +393,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
         } else {
             listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
-                    apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
+                    apiUri == null ? GITHUB_URL : apiUri);
         }
 
         GHOrganization org = null;
@@ -469,8 +471,33 @@ public class GitHubSCMNavigator extends SCMNavigator {
         listener.getLogger().printf("Looking up details of %s...%n", getRepoOwner());
         List<Action> result = new ArrayList<>();
         StandardCredentials credentials = Connector.lookupScanCredentials(owner, getApiUri(), getScanCredentialsId());
-        GitHub hub = Connector.connect(getApiUri(), credentials);
-        GHUser u = hub.getUser(getRepoOwner());
+        GitHub hub = Connector.connect(apiUri, credentials);
+        try {
+            hub.checkApiUrlValidity();
+        } catch (HttpException e) {
+            listener.getLogger().format("It seems %s is unreachable%n",
+                    apiUri == null ? GITHUB_URL : apiUri);
+            return result;
+        }
+        String credentialsName = credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials);
+        if (credentials != null && !hub.isCredentialValid()) {
+            throw new AbortException(String.format("Invalid scan credentials %s to connect to %s, skipping",
+                    credentialsName, apiUri == null ? GITHUB_URL : apiUri));
+        }
+        if (!hub.isAnonymous()) {
+            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
+                    credentialsName);
+        } else {
+            listener.getLogger()
+                    .format("Connecting to %s using anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
+        }
+        GHUser u = null;
+        try {
+            u = hub.getUser(getRepoOwner());
+        } catch (FileNotFoundException e) {
+            throw new AbortException(String.format("Invalid scan credentials when using %s to connect to %s on %s",
+                    credentialsName, getRepoOwner(), apiUri == null ? GITHUB_URL : apiUri));
+        }
         String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
         result.add(new ObjectMetadataAction(
                 Util.fixEmpty(u.getName()),
