@@ -122,11 +122,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public static final String VALID_GITHUB_USER_NAME = "^[0-9A-Za-z]([0-9A-Za-z._-]+[0-9A-Za-z])$";
     public static final String VALID_GIT_SHA1 = "^[a-fA-F0-9]{40}$";
     public static final String GITHUB_URL = GitHubServerConfig.GITHUB_URL;
+    private static final Logger LOGGER = Logger.getLogger(GitHubSCMSource.class.getName());
     /**
      * Log spam protection, only log at most once every 5 minutes.
      */
+    // TODO remove once baseline Git plugin 3.0.2+
     private static final AtomicLong jenkins41244Warning = new AtomicLong();
-    private static final Logger LOGGER = Logger.getLogger(GitHubSCMSource.class.getName());
 
     private final String apiUri;
 
@@ -866,6 +867,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
+    // TODO remove and replace with scm.setBrowser(repoUrl) directly once baseline Git plugin 3.0.2+
     private void setBrowser(GitSCM scm, String repoUrl) {
         try {
             scm.setBrowser(new GithubWeb(repoUrl));
