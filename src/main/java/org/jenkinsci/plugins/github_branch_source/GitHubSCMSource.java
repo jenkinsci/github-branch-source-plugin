@@ -875,7 +875,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             Level level;
             long now = System.currentTimeMillis();
             long next = jenkins41244Warning.get();
-            if (now <= next) {
+            if (now >= next) {
                 long newNext = now + TimeUnit.MINUTES.toMillis(5);
                 if (jenkins41244Warning.compareAndSet(next, newNext)) {
                     level = Level.WARNING;
