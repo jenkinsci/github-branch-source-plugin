@@ -70,6 +70,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLHandshakeException;
@@ -121,6 +123,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public static final String VALID_GIT_SHA1 = "^[a-fA-F0-9]{40}$";
     public static final String GITHUB_URL = GitHubServerConfig.GITHUB_URL;
     private static final Logger LOGGER = Logger.getLogger(GitHubSCMSource.class.getName());
+    /**
+     * Log spam protection, only log at most once every 5 minutes.
+     */
+    // TODO remove once baseline Git plugin 3.0.2+
+    private static final AtomicLong jenkins41244Warning = new AtomicLong();
 
     private final String apiUri;
 
@@ -815,7 +822,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             GitSCM scm = (GitSCM) super.build(head, null);
             String repoUrl = repositoryUrl(getRepoOwner(), getRepository());
             if (repoUrl != null) {
-                scm.setBrowser(new GithubWeb(repoUrl));
+                setBrowser(scm, repoUrl);
             }
             return scm;
         } else if (head instanceof PullRequestSCMHead) {
@@ -836,7 +843,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 String repoUrl = repositoryUrl(((PullRequestSCMHead) head).getSourceOwner(),
                         ((PullRequestSCMHead) head).getSourceRepo());
                 if (repoUrl != null) {
-                    scm.setBrowser(new GithubWeb(repoUrl));
+                    setBrowser(scm, repoUrl);
                 }
                 return scm;
             } else {
@@ -846,7 +853,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 GitSCM scm = (GitSCM) super.build(head, revision);
                 String repoUrl = repositoryUrl(getRepoOwner(), getRepository());
                 if (repoUrl != null) {
-                    scm.setBrowser(new GithubWeb(repoUrl));
+                    setBrowser(scm, repoUrl);
                 }
                 return scm;
             }
@@ -854,9 +861,32 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             GitSCM scm = (GitSCM) super.build(head, /* casting just as an assertion */(SCMRevisionImpl) revision);
             String repoUrl = repositoryUrl(getRepoOwner(), getRepository());
             if (repoUrl != null) {
-                scm.setBrowser(new GithubWeb(repoUrl));
+                setBrowser(scm, repoUrl);
             }
             return scm;
+        }
+    }
+
+    // TODO remove and replace with scm.setBrowser(repoUrl) directly once baseline Git plugin 3.0.2+
+    private void setBrowser(GitSCM scm, String repoUrl) {
+        try {
+            scm.setBrowser(new GithubWeb(repoUrl));
+        } catch (NoSuchMethodError e) {
+            Level level;
+            long now = System.currentTimeMillis();
+            long next = jenkins41244Warning.get();
+            if (now >= next) {
+                long newNext = now + TimeUnit.MINUTES.toMillis(5);
+                if (jenkins41244Warning.compareAndSet(next, newNext)) {
+                    level = Level.WARNING;
+                } else {
+                    level = Level.FINE;
+                }
+            } else  {
+                level = Level.FINE;
+            }
+            LOGGER.log(level, "JENKINS-41244: GitHub Branch Source cannot set browser url with currently "
+                    + "installed version of Git plugin", e);
         }
     }
 
