@@ -47,7 +47,6 @@ import hudson.model.TaskListener;
 import hudson.plugins.git.GitException;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.Revision;
-import hudson.plugins.git.browser.GitRepositoryBrowser;
 import hudson.plugins.git.browser.GithubWeb;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.PreBuildMerge;
@@ -67,7 +66,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -104,6 +102,7 @@ import org.kohsuke.github.GHBranch;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
@@ -170,11 +169,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * Cache of the official repository HTML URL as reported by {@link GitHub#getRepository(String)}.
      */
     private transient URL repositoryUrl;
-    /**
-     * The collaborator names used to determine if pull requests are from trusted authors
-     */
-    @CheckForNull
-    private transient Set<String> collaboratorNames;
 
     /**
      * The cache of {@link ObjectMetadataAction} instances for each open PR.
@@ -429,14 +423,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
             listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
-            try {
-                repositoryUrl = repo.getHtmlUrl();
-                collaboratorNames = new HashSet<>(repo.getCollaboratorNames());
-            } catch (FileNotFoundException e) {
-                // not permitted
-                listener.getLogger().println("Not permitted to query list of collaborators, assuming none");
-                collaboratorNames = Collections.emptySet();
-            }
+            repositoryUrl = repo.getHtmlUrl();
             doRetrieve(criteria, observer, listener, repo);
             listener.getLogger().format("%nDone examining %s%n%n", fullName);
         } catch (RateLimitExceededException rle) {
@@ -555,11 +542,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         originBranchesWithPR.add(ghPullRequest.getHead().getRef());
                     }
                     continue;
-                }
-                boolean trusted = collaboratorNames != null
-                        && collaboratorNames.contains(ghPullRequest.getHead().getRepository().getOwnerName());
-                if (!trusted) {
-                    listener.getLogger().format("    (not from a trusted source)%n");
                 }
                 for (boolean merge : new boolean[] {false, true}) {
                     String branchName = "PR-" + number;
@@ -966,81 +948,47 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener)
             throws IOException, InterruptedException {
         if (revision instanceof PullRequestSCMRevision) {
-            /*
-             * Evaluates whether this pull request is coming from a trusted source.
-             * Quickest is to check whether the author of the PR
-             * <a href="https://developer.github.com/v3/repos/collaborators/#check-if-a-user-is-a-collaborator">is a
-             * collaborator of the repository</a>.
-             * By checking <a href="https://developer.github.com/v3/repos/collaborators/#list-collaborators">all
-             * collaborators</a>
-             * it is possible to further ascertain if they are in a team which was specifically granted push permission,
-             * but this is potentially expensive as there might be multiple pages of collaborators to retrieve.
-             * TODO since the GitHub API wrapper currently supports neither, we list all collaborator names and check
-             * for membership, paying the performance penalty without the benefit of the accuracy.
-             */
-
-            if (collaboratorNames == null) {
-                listener.getLogger().format("Connecting to %s to obtain list of collaborators for %s/%s%n",
-                        apiUri == null ? GITHUB_URL : apiUri, repoOwner, repository);
+            boolean trusted;
+            PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
+            String sourceOwner = head.getSourceOwner();
+            if (repoOwner.equals(sourceOwner)) {
+                // Not a fork, so definitely trusted.
+                trusted = true;
+            } else {
                 StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
-                // Github client and validation
                 GitHub github = Connector.connect(apiUri, credentials);
+                String fullName = repoOwner + "/" + repository;
+                final GHRepository repo = github.getRepository(fullName);
                 try {
-                    github.checkApiUrlValidity();
-                } catch (HttpException e) {
-                    listener.getLogger().format("It seems %s is unreachable, assuming no trusted collaborators%n",
-                            apiUri == null ? GITHUB_URL : apiUri);
-                    collaboratorNames = Collections.singleton(repoOwner);
-                }
-                if (collaboratorNames == null) {
-                    // Input data validation
-                    String credentialsName =
-                            credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials);
-                    if (credentials != null && !github.isCredentialValid()) {
-                        listener.getLogger().format("Invalid scan credentials %s to connect to %s, "
-                                        + "assuming no trusted collaborators%n",
-                                credentialsName, apiUri == null ? GITHUB_URL : apiUri);
-                        collaboratorNames = Collections.singleton(repoOwner);
+                    GHPermissionType permission = repo.getPermission(sourceOwner);
+                    listener.getLogger().format("Permission check of %s on %s/%s says: %s%n", sourceOwner, repoOwner, repository, permission);
+                    trusted = permission == GHPermissionType.ADMIN || permission == GHPermissionType.WRITE;
+                } catch (FileNotFoundException x) {
+                    listener.getLogger().format("Failed to do a direct permission check of %s on %s/%s; scan token has no access to this repository, or endpoint removed%n", sourceOwner, repoOwner, repository);
+                    trusted = false; // TODO JENKINS-37608: make this configurable
+                } catch (HttpException x) {
+                    if (x.getResponseCode() == 403) {
+                        listener.getLogger().format("Not authorized to do a direct permission check of %s on %s/%s; scan token has no access to this repository%n", sourceOwner, repoOwner, repository);
                     } else {
-                        if (!github.isAnonymous()) {
-                            listener.getLogger()
-                                    .format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
-                                            credentialsName);
-                        } else {
-                            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
-                                    apiUri == null ? GITHUB_URL : apiUri);
-                        }
-
-                        // Input data validation
-                        if (repository == null || repository.isEmpty()) {
-                            collaboratorNames = Collections.singleton(repoOwner);
-                        } else {
-                            String fullName = repoOwner + "/" + repository;
-                            final GHRepository repo;
-                            try {
-                                repo = github.getRepository(fullName);
-                                repositoryUrl = repo.getHtmlUrl();
-                                collaboratorNames = new HashSet<>(repo.getCollaboratorNames());
-                            } catch (FileNotFoundException e) {
-                                listener.getLogger().format("Invalid scan credentials %s to connect to %s, "
-                                                + "assuming no trusted collaborators%n",
-                                        credentialsName,
-                                        apiUri == null ? GITHUB_URL : apiUri);
-                                collaboratorNames = Collections.singleton(repoOwner);
-                            }
-                        }
+                        listener.getLogger().format("Failed to do a direct permission check of %s on %s/%s: %s%n", sourceOwner, repoOwner, repository, x.getMessage());
                     }
+                    trusted = false; // TODO ditto
+                } catch (IOException x) {
+                    listener.getLogger().format("Failed to do a direct permission check of %s on %s/%s: %s%n", sourceOwner, repoOwner, repository, x.getMessage());
+                    trusted = false; // TODO ditto
                 }
             }
-            PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
-            if (!collaboratorNames.contains(head.getSourceOwner())) {
+            if (trusted) {
+                return revision;
+            } else {
                 PullRequestSCMRevision rev = (PullRequestSCMRevision) revision;
                 listener.getLogger().format("Loading trusted files from base branch %s at %s rather than %s%n",
                         head.getTarget().getName(), rev.getBaseHash(), rev.getPullHash());
                 return new SCMRevisionImpl(head.getTarget(), rev.getBaseHash());
             }
+        } else {
+            return revision;
         }
-        return revision;
     }
 
     /**

@@ -73,7 +73,6 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
         if (merge == null) {
             merge = true;
         }
-        // leave trusted at false to be on the safe side
         return this;
     }
 
