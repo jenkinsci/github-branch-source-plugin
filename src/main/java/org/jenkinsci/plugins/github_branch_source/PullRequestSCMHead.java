@@ -43,6 +43,7 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
     private final String sourceOwner;
     private final String sourceRepo;
     private final String sourceBranch;
+    private final String targetOwner;
 
     PullRequestSCMHead(GHPullRequest pr, String name, boolean merge) {
         super(name);
@@ -50,6 +51,7 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
         this.merge = merge;
         this.number = pr.getNumber();
         this.target = new BranchSCMHead(pr.getBase().getRef());
+        this.targetOwner = pr.getBase().getRepository().getOwnerName();
         // the source stuff is immutable for a pull request on github, so safe to store here
         this.sourceOwner = pr.getHead().getRepository().getOwnerName();
         this.sourceRepo = pr.getHead().getRepository().getName();
@@ -101,6 +103,10 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
     @Override
     public SCMHead getTarget() {
         return target;
+    }
+
+    public String getTargetOwner() {
+        return targetOwner;
     }
 
     public String getSourceOwner() {

@@ -534,7 +534,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 if (includes != null && !wantBranches && !wantPRNumbers.contains(number)) {
                     continue;
                 }
-                boolean fork = !repo.getOwner().equals(ghPullRequest.getHead().getUser());
+                boolean fork = !repo.getOwner().getName().equalsIgnoreCase(ghPullRequest.getRepository().getOwnerName());
                 if (wantPRs) {
                     listener.getLogger().format("%n    Checking pull request %s%n",
                             HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + number));
@@ -556,8 +556,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     }
                     continue;
                 }
-                boolean trusted = collaboratorNames != null
-                        && collaboratorNames.contains(ghPullRequest.getHead().getRepository().getOwnerName());
+                boolean trusted = fork ? (collaboratorNames != null
+                        && collaboratorNames.contains(ghPullRequest.getHead().getRepository().getOwnerName()))
+                        : true;
                 if (!trusted) {
                     listener.getLogger().format("    (not from a trusted source)%n");
                 }
@@ -968,7 +969,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (revision instanceof PullRequestSCMRevision) {
             /*
              * Evaluates whether this pull request is coming from a trusted source.
-             * Quickest is to check whether the author of the PR
+             * Quickest is to check whether the author of the PR is requesting from a fork.
+             * If it's not a fork, we can trust it as it means the user has permission to the
+             * repository as a whole. If not we can check if the author
              * <a href="https://developer.github.com/v3/repos/collaborators/#check-if-a-user-is-a-collaborator">is a
              * collaborator of the repository</a>.
              * By checking <a href="https://developer.github.com/v3/repos/collaborators/#list-collaborators">all
@@ -978,8 +981,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
              * TODO since the GitHub API wrapper currently supports neither, we list all collaborator names and check
              * for membership, paying the performance penalty without the benefit of the accuracy.
              */
+            PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
 
-            if (collaboratorNames == null) {
+            boolean fork = !(head.getSourceOwner().equalsIgnoreCase(head.getTargetOwner()));
+
+            if (!fork) {
+                return revision;
+            } else {
                 listener.getLogger().format("Connecting to %s to obtain list of collaborators for %s/%s%n",
                         apiUri == null ? GITHUB_URL : apiUri, repoOwner, repository);
                 StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
@@ -1032,7 +1040,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     }
                 }
             }
-            PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
             if (!collaboratorNames.contains(head.getSourceOwner())) {
                 PullRequestSCMRevision rev = (PullRequestSCMRevision) revision;
                 listener.getLogger().format("Loading trusted files from base branch %s at %s rather than %s%n",
