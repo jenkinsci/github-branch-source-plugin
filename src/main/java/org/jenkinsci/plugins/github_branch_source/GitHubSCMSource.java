@@ -1003,7 +1003,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 }
             }
             PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
-            if (!collaboratorNames.contains(head.getSourceOwner())) {
+            /**
+             * removed because it looks like this check is broken and so is not using Jenkinsfile changes
+             * if (!collaboratorNames.contains(head.getSourceOwner())) {
+            */
+            if (false) {
                 PullRequestSCMRevision rev = (PullRequestSCMRevision) revision;
                 listener.getLogger().format("Loading trusted files from base branch %s at %s rather than %s%n",
                         head.getTarget().getName(), rev.getBaseHash(), rev.getPullHash());
