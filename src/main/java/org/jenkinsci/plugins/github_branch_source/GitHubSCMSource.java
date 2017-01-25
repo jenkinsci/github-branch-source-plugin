@@ -826,7 +826,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 setBrowser(scm, repoUrl);
             }
             return scm;
-        } else if (head instanceof PullRequestSCMHead) {
+        } else if (head instanceof PullRequestSCMHead && ((PullRequestSCMHead) head).getSourceRepo() != null) {
             if (revision instanceof PullRequestSCMRevision) {
                 PullRequestSCMRevision prRev = (PullRequestSCMRevision) revision;
                 // we rely on GitHub exposing the pull request revision on the target repository
