@@ -49,6 +49,9 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
     private final String sourceOwner;
     private final String sourceRepo;
     private final String sourceBranch;
+    /**
+     * Only populated if de-serializing instances.
+     */
     private transient Metadata metadata;
 
     PullRequestSCMHead(GHPullRequest pr, String name, boolean merge) {
@@ -148,8 +151,10 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
         return sourceRepo;
     }
 
-    @Restricted(NoExternalUse.class)
-    public static class Metadata {
+    /**
+     * Holds legacy data so we can recover the details.
+     */
+    private static class Metadata {
         private final int number;
         private final String url;
         private final String userLogin;
