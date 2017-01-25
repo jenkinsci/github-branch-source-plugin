@@ -38,6 +38,7 @@ import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
@@ -117,7 +118,7 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
                 ref = head.getName();
             } else if (head instanceof PullRequestSCMHead) {
                 PullRequestSCMHead pr = (PullRequestSCMHead) head;
-                if (!pr.isMerge()) {
+                if (!pr.isMerge() && pr.getSourceRepo() != null) {
                     return new GitHubSCMFileSystem(
                             github.getUser(pr.getSourceOwner()).getRepository(pr.getSourceRepo()),
                             pr.getSourceBranch(),
