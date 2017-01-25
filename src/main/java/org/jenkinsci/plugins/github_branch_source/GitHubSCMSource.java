@@ -167,6 +167,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /** Whether to build PRs filed from a fork, where the build is of the branch head. */
     @NonNull
     private Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+    /** Whether to disable GH notifications */
+    @NonNull
+    private Boolean disableNotifications = DescriptorImpl.defaultDisableNotifications;
 
     /**
      * Cache of the official repository HTML URL as reported by {@link GitHub#getRepository(String)}.
@@ -227,6 +230,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         if (pullRequestContributorCache == null) {
             pullRequestContributorCache = new ConcurrentHashMap<>();
+        }
+        if (disableNotifications == null) {
+            disableNotifications = DescriptorImpl.defaultDisableNotifications;
         }
         return this;
     }
@@ -395,6 +401,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @DataBoundSetter
     public void setBuildForkPRHead(boolean buildForkPRHead) {
         this.buildForkPRHead = buildForkPRHead;
+    }
+
+    public boolean getDisableNotifications() {
+        return disableNotifications;
+    }
+
+    @DataBoundSetter
+    public void setDisableNotifications(boolean disableNotifications) {
+        this.disableNotifications = disableNotifications;
     }
 
     @Override
@@ -1201,6 +1216,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         public static final boolean defaultBuildOriginPRHead = false;
         public static final boolean defaultBuildForkPRMerge = true;
         public static final boolean defaultBuildForkPRHead = false;
+        public static final boolean defaultDisableNotifications = false;
 
         @Initializer(before = InitMilestone.PLUGINS_STARTED)
         public static void addAliases() {
