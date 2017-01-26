@@ -198,6 +198,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
         this.checkoutCredentialsId = checkoutCredentialsId;
         pullRequestMetadataCache = new ConcurrentHashMap<>();
+        pullRequestContributorCache = new ConcurrentHashMap<>();
     }
 
     /** Use defaults for old settings. */
