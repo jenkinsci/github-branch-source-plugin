@@ -106,7 +106,7 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
                     merge,
                     metadata.getNumber(),
                     new BranchSCMHead(metadata.getBaseRef()),
-                    metadata.getUserLogin(),
+                    null,
                     null,
                     null
             );
