@@ -69,12 +69,13 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
     }
 
     PullRequestSCMHead(@NonNull String name, boolean merge, int number,
-                       BranchSCMHead target, String sourceOwner, String sourceRepo, String sourceBranch) {
+                       BranchSCMHead target, String sourceOwner, String targetOwner, String sourceRepo, String sourceBranch) {
         super(name);
         this.merge = merge;
         this.number = number;
         this.target = target;
         this.sourceOwner = sourceOwner;
+        this.targetOwner = targetOwner;
         this.sourceRepo = sourceRepo;
         this.sourceBranch = sourceBranch;
     }
@@ -110,9 +111,11 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
                     new BranchSCMHead(metadata.getBaseRef()),
                     metadata.getUserLogin(),
                     null,
+                    null,
                     null
             );
         }
+
         return this;
     }
 
