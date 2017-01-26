@@ -75,6 +75,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLHandshakeException;
+import jenkins.management.ConfigureLink;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
@@ -86,6 +87,7 @@ import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.SCMSourceDescriptor;
 import jenkins.scm.api.SCMSourceEvent;
 import jenkins.scm.api.SCMSourceOwner;
+import jenkins.scm.api.metadata.ContributorMetadataAction;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
@@ -181,6 +183,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @NonNull
     private transient /*effectively final*/ Map<Integer,ObjectMetadataAction> pullRequestMetadataCache;
+    /**
+     * The cache of {@link ObjectMetadataAction} instances for each open PR.
+     */
+    @NonNull
+    private transient /*effectively final*/ Map<Integer,ContributorMetadataAction> pullRequestContributorCache;
 
     @DataBoundConstructor
     public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
@@ -216,6 +223,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         if (pullRequestMetadataCache == null) {
             pullRequestMetadataCache = new ConcurrentHashMap<>();
+        }
+        if (pullRequestContributorCache == null) {
+            pullRequestContributorCache = new ConcurrentHashMap<>();
         }
         return this;
     }
@@ -603,6 +613,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                     ghPullRequest.getHtmlUrl().toExternalForm()
                             )
                     );
+                    GHUser user = ghPullRequest.getUser();
+                    pullRequestContributorCache.put(number, new ContributorMetadataAction(
+                            user.getLogin(),
+                            user.getName(),
+                            user.getEmail()
+                            ));
                     pullRequestMetadataKeys.add(number);
                     PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge);
                     if (includes != null && !includes.contains(head)) {
@@ -649,6 +665,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (includes == null) {
                 // we did a full scan, so trim the cache entries
                 this.pullRequestMetadataCache.keySet().retainAll(pullRequestMetadataKeys);
+                this.pullRequestContributorCache.keySet().retainAll(pullRequestMetadataKeys);
             }
         }
 
@@ -1078,11 +1095,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 ObjectMetadataAction metadataAction = null;
                 if (head instanceof PullRequestSCMHead) {
                     // pull request to this repository
-                    url = repoLink.getUrl() + "/pull/" + ((PullRequestSCMHead) head).getNumber();
-                    metadataAction = pullRequestMetadataCache.get(((PullRequestSCMHead) head).getNumber());
+                    int number = ((PullRequestSCMHead) head).getNumber();
+                    url = repoLink.getUrl() + "/pull/" + number;
+                    metadataAction = pullRequestMetadataCache.get(number);
                     if (metadataAction == null) {
                         // best effort
                         metadataAction = new ObjectMetadataAction(null, null, url);
+                    }
+                    ContributorMetadataAction contributor = pullRequestContributorCache.get(number);
+                    if (contributor != null) {
+                        result.add(contributor);
                     }
                 } else {
                     // branch in this repository
