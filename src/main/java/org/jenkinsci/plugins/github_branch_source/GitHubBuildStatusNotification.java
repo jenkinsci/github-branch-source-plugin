@@ -137,7 +137,7 @@ public class GitHubBuildStatusNotification {
      * Returns the GitHub Repository associated to a Job.
      *
      * @param job A {@link Job}
-     * @return A {@link GHRepository} or null, either if a scan credentials was not provided, or a GitHubSCMSource was not defined or if notifications are disabled.
+     * @return A {@link GHRepository}. Will return null if either a scan credentials was not provided, or if a GitHubSCMSource was not defined or if notifications are disabled.
      * @throws IOException
      */
     private static @CheckForNull
