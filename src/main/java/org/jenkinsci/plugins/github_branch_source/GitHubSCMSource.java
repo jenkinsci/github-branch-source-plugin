@@ -984,6 +984,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener)
             throws IOException, InterruptedException {
         if (revision instanceof PullRequestSCMRevision) {
+            PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
+            if (repoOwner.equals(head.getSourceRepo()) && repository.equals(head.getSourceRepo())) {
+                // origin PR
+                return revision;
+            }
             /*
              * Evaluates whether this pull request is coming from a trusted source.
              * Quickest is to check whether the author of the PR
@@ -1050,7 +1055,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     }
                 }
             }
-            PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
             if (!collaboratorNames.contains(head.getSourceOwner())) {
                 PullRequestSCMRevision rev = (PullRequestSCMRevision) revision;
                 listener.getLogger().format("Loading trusted files from base branch %s at %s rather than %s%n",
