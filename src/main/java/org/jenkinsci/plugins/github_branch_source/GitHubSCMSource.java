@@ -985,7 +985,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             throws IOException, InterruptedException {
         if (revision instanceof PullRequestSCMRevision) {
             PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
-            if (repoOwner.equals(head.getSourceRepo()) && repository.equals(head.getSourceRepo())) {
+            if (repoOwner.equals(head.getSourceOwner())) {
                 // origin PR
                 return revision;
             }
