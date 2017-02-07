@@ -44,6 +44,7 @@ import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceEvent;
 import jenkins.util.Timer;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
+import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
 import org.kohsuke.github.GHEvent;
 import org.kohsuke.github.GHEventPayload;
 import org.kohsuke.github.GitHub;
@@ -83,18 +84,16 @@ public class GitHubRepositoryEventSubscriber extends GHEventsSubscriber {
         return immutableEnumSet(REPOSITORY);
     }
 
-    /**
-     * @param event only REPOSITORY event
-     * @param payload payload of gh-event. Never blank
-     */
     @Override
-    protected void onEvent(GHEvent event, String payload) {
+    protected void onEvent(GHSubscriberEvent event) {
         try {
             final GHEventPayload.Repository p = GitHub.offline()
-                    .parseEventPayload(new StringReader(payload), GHEventPayload.Repository.class);
+                    .parseEventPayload(new StringReader(event.getPayload()), GHEventPayload.Repository.class);
             String action = p.getAction();
             String repoUrl = p.getRepository().getHtmlUrl().toExternalForm();
-            LOGGER.log(Level.FINE, "Received {0} for {1}", new Object[]{event, repoUrl});
+            LOGGER.log(Level.FINE, "Received {0} for {1} from {2}",
+                    new Object[]{event.getGHEvent(), repoUrl, event.getOrigin()}
+            );
             boolean fork = p.getRepository().isFork();
             Matcher matcher = REPOSITORY_NAME_PATTERN.matcher(repoUrl);
             if (matcher.matches()) {
@@ -113,7 +112,7 @@ public class GitHubRepositoryEventSubscriber extends GHEventsSubscriber {
                             repo.getRepositoryName());
                     return;
                 }
-                final NewSCMSourceEvent e = new NewSCMSourceEvent(p, repo);
+                final NewSCMSourceEvent e = new NewSCMSourceEvent(event.getTimestamp(), event.getOrigin(), p, repo);
                 // Delaying the indexing for some seconds to avoid GitHub cache
                 Timer.get().schedule(new Runnable() {
                     @Override
@@ -125,8 +124,8 @@ public class GitHubRepositoryEventSubscriber extends GHEventsSubscriber {
                 LOGGER.log(WARNING, "Malformed repository URL {0}", repoUrl);
             }
         } catch (IOException e) {
-            LogRecord lr = new LogRecord(Level.WARNING, "Could not parse {0} event with payload: {1}");
-            lr.setParameters(new Object[]{event, payload});
+            LogRecord lr = new LogRecord(Level.WARNING, "Could not parse {0} event from {1} with payload: {2}");
+            lr.setParameters(new Object[]{event.getGHEvent(), event.getOrigin(), event.getPayload()});
             lr.setThrown(e);
             LOGGER.log(lr);
         }
@@ -137,8 +136,9 @@ public class GitHubRepositoryEventSubscriber extends GHEventsSubscriber {
         private final String repoOwner;
         private final String repository;
 
-        public NewSCMSourceEvent(GHEventPayload.Repository event, GitHubRepositoryName repo) {
-            super(Type.CREATED, event);
+        public NewSCMSourceEvent(long timestamp, String origin, GHEventPayload.Repository event,
+                                 GitHubRepositoryName repo) {
+            super(Type.CREATED, timestamp, event, origin);
             this.repoHost = repo.getHost();
             this.repoOwner = event.getRepository().getOwnerName();
             this.repository = event.getRepository().getName();
