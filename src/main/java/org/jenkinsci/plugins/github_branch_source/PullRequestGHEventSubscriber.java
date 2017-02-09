@@ -216,7 +216,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
             }
             boolean hasPR = false;
 
-            boolean fork = !src.getRepoOwner().equals(prOwnerName);
+            boolean fork = !src.getRepoOwner().equalsIgnoreCase(prOwnerName);
 
             Map<SCMHead, SCMRevision> result = new HashMap<>();
 
