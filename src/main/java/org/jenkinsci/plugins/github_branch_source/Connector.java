@@ -36,6 +36,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.google.common.hash.Hashing;
+import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
 import hudson.Util;
@@ -189,7 +190,10 @@ public class Connector {
         gb.withEndpoint(apiUrl);
         gb.withRateLimitHandler(CUSTOMIZED);
 
-        OkHttpClient client = new OkHttpClient().setProxy(getProxy(host));
+        Cache cache = new Cache(Jenkins.getInstance().root, 10 * 1024 * 1024);
+        OkHttpClient client = new OkHttpClient();
+        client.setProxy(getProxy(host));
+        client.setCache(cache);
 
         gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
 
