@@ -440,13 +440,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
             listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
-            try {
-                repositoryUrl = repo.getHtmlUrl();
-                collaboratorNames = new HashSet<>(repo.getCollaboratorNames());
-            } catch (FileNotFoundException e) {
-                // not permitted
-                listener.getLogger().println("Not permitted to query list of collaborators, assuming none");
-                collaboratorNames = Collections.emptySet();
+            if (!repo.isPrivate()) { // random people cannot create pull requests to private repositories
+                try {
+                    repositoryUrl = repo.getHtmlUrl();
+                    collaboratorNames = new HashSet<>(repo.getCollaboratorNames());
+                } catch (FileNotFoundException e) {
+                    // not permitted
+                    listener.getLogger().println("Not permitted to query list of collaborators, assuming none");
+                    collaboratorNames = Collections.emptySet();
+                }
             }
             doRetrieve(criteria, observer, listener, repo);
             listener.getLogger().format("%nDone examining %s%n%n", fullName);
