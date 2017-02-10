@@ -106,6 +106,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /** Whether to build PRs filed from a fork, where the build is of the branch head. */
     @Nonnull
     private Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+    /** Whether to disable GH notifications */
+    @NonNull
+    private Boolean disableNotifications = DescriptorImpl.defaultDisableNotifications;
 
     @DataBoundConstructor
     public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
@@ -135,6 +138,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
         if (buildForkPRHead == null) {
             buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+        }
+        if (disableNotifications == null) {
+            disableNotifications = DescriptorImpl.defaultDisableNotifications;
         }
         return this;
     }
@@ -211,6 +217,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @DataBoundSetter
     public void setBuildForkPRHead(boolean buildForkPRHead) {
         this.buildForkPRHead = buildForkPRHead;
+    }
+
+    public boolean getDisableNotifications() {
+        return disableNotifications;
+    }
+
+    @DataBoundSetter
+    public void setDisableNotifications(boolean disableNotifications) {
+        this.disableNotifications = disableNotifications;
     }
 
     public String getRepoOwner() {
@@ -454,6 +469,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         ghSCMSource.setBuildOriginPRHead(getBuildOriginPRHead());
         ghSCMSource.setBuildForkPRMerge(getBuildForkPRMerge());
         ghSCMSource.setBuildForkPRHead(getBuildForkPRHead());
+        ghSCMSource.setDisableNotifications(getDisableNotifications());
 
         projectObserver.addSource(ghSCMSource);
         projectObserver.complete();
@@ -546,6 +562,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         public static final boolean defaultBuildOriginPRHead = GitHubSCMSource.DescriptorImpl.defaultBuildOriginPRHead;
         public static final boolean defaultBuildForkPRMerge = GitHubSCMSource.DescriptorImpl.defaultBuildForkPRMerge;
         public static final boolean defaultBuildForkPRHead = GitHubSCMSource.DescriptorImpl.defaultBuildForkPRHead;
+        public static final boolean defaultDisableNotifications = GitHubSCMSource.DescriptorImpl.defaultDisableNotifications;
 
         @Inject private GitHubSCMSource.DescriptorImpl delegate;
 
