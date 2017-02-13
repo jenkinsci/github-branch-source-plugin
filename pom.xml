@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <jenkins.version>1.609.3</jenkins.version>
+        <jenkins.version>1.622</jenkins.version>
         <workflow.version>1.14</workflow.version>
     </properties>
 
