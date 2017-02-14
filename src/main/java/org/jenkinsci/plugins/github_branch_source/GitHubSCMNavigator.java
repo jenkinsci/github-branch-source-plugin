@@ -433,7 +433,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
         throw new AbortException(repoOwner + " does not correspond to a known GitHub User Account or Organization");
     }
 
-    private void add(TaskListener listener, SCMSourceObserver observer, GHRepository repo) throws InterruptedException {
+    private void add(TaskListener listener, SCMSourceObserver observer, GHRepository repo)
+            throws InterruptedException, IOException {
         String name = repo.getName();
         if (!Pattern.compile(pattern).matcher(name).matches()) {
             listener.getLogger().format("Ignoring %s%n", name);
