@@ -106,8 +106,10 @@ public class GitHubBuildStatusNotification {
                         } else if (Result.UNSTABLE.equals(result)) {
                             createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable(), head);
                         } else if (Result.FAILURE.equals(result)) {
-                            createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure(), head);
-                        } else if (result != null) { // ABORTED etc.
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure(), head);
+                        } else if (Result.ABORTED.equals(result)) {
+                            createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Aborted(), head);
+                        } else if (result != null) { // NOT_BUILT etc.
                             createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other(), head);
                         } else {
                             ignoreError = true;
