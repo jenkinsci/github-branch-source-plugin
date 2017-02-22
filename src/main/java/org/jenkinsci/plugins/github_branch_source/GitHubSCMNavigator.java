@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
@@ -581,7 +582,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @Override
     public void afterSave(@NonNull SCMNavigatorOwner owner) {
-        GitHubWebHook.get().registerHookFor(owner);
+        getHook().registerHookFor(owner);
         try {
             // FIXME MINOR HACK ALERT
             StandardCredentials credentials =
