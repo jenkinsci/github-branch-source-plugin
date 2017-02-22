@@ -181,7 +181,7 @@ public class EventsTest {
         long watermark = SCMEvents.getWatermark();
         // event will be fired by subscriber at some point
         SCMEvents.awaitOne(watermark, 5100, TimeUnit.MILLISECONDS);
-        
+
         assertEquals("Event should have " + ((!received) ? "not " : "") + "been received", received, TestSCMEventListener.didReceive());
     }
 
