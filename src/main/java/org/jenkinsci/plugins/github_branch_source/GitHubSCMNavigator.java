@@ -27,7 +27,6 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
@@ -63,7 +62,10 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
+<<<<<<< HEAD
 import org.jenkinsci.Symbol;
+=======
+>>>>>>> ffa338a... [JENKINS-42243] Apply PR comments.
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHMyself;
@@ -582,7 +584,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @Override
     public void afterSave(@NonNull SCMNavigatorOwner owner) {
-        getHook().registerHookFor(owner);
+        GitHubWebHook.get().registerHookFor(owner);
         try {
             // FIXME MINOR HACK ALERT
             StandardCredentials credentials =

@@ -31,7 +31,6 @@ import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
-import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -75,7 +74,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+<<<<<<< HEAD
 import javax.servlet.http.HttpServletResponse;
+=======
+import javax.net.ssl.SSLHandshakeException;
+>>>>>>> ffa338a... [JENKINS-42243] Apply PR comments.
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
@@ -1212,9 +1215,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @Override
     public void afterSave() {
-        SCMSourceOwner owner = getOwnerNotSynchronized();
+        SCMSourceOwner owner = getOwner();
         if (owner != null) {
-            getHook().registerHookFor(owner);
+            GitHubWebHook.get().registerHookFor(owner);
         }
     }
 

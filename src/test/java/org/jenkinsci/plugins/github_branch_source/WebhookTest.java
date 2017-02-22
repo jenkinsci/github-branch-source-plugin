@@ -46,15 +46,10 @@ public class WebhookTest {
     private static String EXCEPTION_MESSAGE = "custom exception message";
 
     @Test
-    public void registerHook() throws Exception {
-        checkNavigator();
-        checkSource();
-    }
-
-    private void checkNavigator() {
+    public void given_navigatorSaved_then_webookRegistered() throws Exception {
         GitHubSCMNavigator navigator = mock(GitHubSCMNavigator.class, Mockito.CALLS_REAL_METHODS);
-        SCMNavigatorOwner owner = mock(SCMNavigatorOwner.class);
 
+        SCMNavigatorOwner owner = mock(SCMNavigatorOwner.class);
         GitHubWebHook hook = mock(GitHubWebHook.class);
         doThrow(new RuntimeException(EXCEPTION_MESSAGE)).when(hook).registerHookFor(owner);
         when(navigator.getHook()).thenReturn(hook);
@@ -67,13 +62,13 @@ public class WebhookTest {
         }
     }
 
-    private void checkSource() {
+    @Test
+    public void given_sourceSaved_then_webhookRegistered() throws Exception {
         GitHubSCMSource source = mock(GitHubSCMSource.class, Mockito.CALLS_REAL_METHODS);
 
         SCMNavigatorOwner owner = mock(SCMNavigatorOwner.class);
         GitHubWebHook hook = mock(GitHubWebHook.class);
         doThrow(new RuntimeException(EXCEPTION_MESSAGE)).when(hook).registerHookFor(owner);
-
         when(source.getHook()).thenReturn(hook);
         when(source.getOwnerNotSynchronized()).thenReturn(owner);
 

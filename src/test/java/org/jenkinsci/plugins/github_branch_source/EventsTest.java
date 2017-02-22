@@ -31,9 +31,13 @@ import jenkins.scm.api.SCMHeadEvent;
 import jenkins.scm.api.SCMSourceEvent;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
+<<<<<<< HEAD
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+=======
+import org.junit.Before;
+>>>>>>> ffa338a... [JENKINS-42243] Apply PR comments.
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -57,11 +61,14 @@ public class EventsTest {
     private static SCMEvent.Type firedEventType;
     private static GHSubscriberEvent ghEvent;
 
+<<<<<<< HEAD
     @BeforeClass
     public static void setupDelay() {
         GitHubSCMSource.setEventDelaySeconds(1);
     }
 
+=======
+>>>>>>> ffa338a... [JENKINS-42243] Apply PR comments.
     @Before
     public void resetFiredEvent() {
         firedEventType = null;
@@ -69,11 +76,14 @@ public class EventsTest {
         TestSCMEventListener.setReceived(false);
     }
 
+<<<<<<< HEAD
     @AfterClass
     public static void resetDelay() {
         GitHubSCMSource.setEventDelaySeconds(defaultFireDelayInSeconds);
     }
 
+=======
+>>>>>>> ffa338a... [JENKINS-42243] Apply PR comments.
     @Test
     public void given_ghPushEventCreated_then_createdHeadEventFired() throws Exception {
         PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
@@ -127,11 +137,19 @@ public class EventsTest {
         ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventUpdated.json");
         waitAndAssertReceived(true);
     }
+<<<<<<< HEAD
 
     @Test
     public void given_ghPullRequestEventSync_then_updatedHeadEventFired() throws Exception {
         PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
+=======
+
+    @Test
+    public void given_ghPullRequestEventSync_then_updatedHeadEventFired() throws Exception {
+        PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
+
+>>>>>>> ffa338a... [JENKINS-42243] Apply PR comments.
         firedEventType = SCMEvent.Type.UPDATED;
         ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventUpdatedSync.json");
         waitAndAssertReceived(true);
