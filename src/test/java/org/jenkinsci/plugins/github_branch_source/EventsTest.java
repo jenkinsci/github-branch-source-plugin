@@ -26,16 +26,19 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import jenkins.scm.api.SCMEvent;
+import jenkins.scm.api.SCMEvents;
 import jenkins.scm.api.SCMHeadEvent;
 import jenkins.scm.api.SCMSourceEvent;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -51,17 +54,34 @@ public class EventsTest {
     private static SCMEvent.Type firedEventType;
     private static GHSubscriberEvent ghEvent;
 
+    @Before
+    public void resetFiredEvent() {
+        firedEventType = null;
+        ghEvent = null;
+        TestSCMEventListener.setReceived(false);
+    }
+
     @Test
-    public void pushEvents() throws Exception {
+    public void given_ghPushEventCreated_then_createdHeadEventFired() throws Exception {
         PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.CREATED;
         ghEvent = callOnEvent(subscriber, "EventsTest/pushEventCreated.json");
         waitAndAssertReceived(true);
+    }
+
+    @Test
+    public void given_ghPushEventDeleted_then_removedHeadEventFired() throws Exception {
+        PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.REMOVED;
         ghEvent = callOnEvent(subscriber, "EventsTest/pushEventRemoved.json");
         waitAndAssertReceived(true);
+    }
+
+    @Test
+    public void given_ghPushEventUpdated_then_updatedHeadEventFired() throws Exception {
+        PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.UPDATED;
         ghEvent = callOnEvent(subscriber, "EventsTest/pushEventUpdated.json");
@@ -69,35 +89,61 @@ public class EventsTest {
     }
 
     @Test
-    public void pullRequestEvents() throws Exception {
+    public void given_ghPullRequestEventOpened_then_createdHeadEventFired() throws Exception {
         PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.CREATED;
         ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventCreated.json");
         waitAndAssertReceived(true);
+    }
+
+    @Test
+    public void given_ghPullRequestEventClosed_then_removedHeadEventFired() throws Exception {
+        PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.REMOVED;
         ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventRemoved.json");
         waitAndAssertReceived(true);
+    }
+
+    @Test
+    public void given_ghPullRequestEventReopened_then_updatedHeadEventFired() throws Exception {
+        PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.UPDATED;
         ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventUpdated.json");
         waitAndAssertReceived(true);
+    }
 
+    @Test
+    public void given_ghPullRequestEventSync_then_updatedHeadEventFired() throws Exception {
+        PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
+
+        firedEventType = SCMEvent.Type.UPDATED;
         ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventUpdatedSync.json");
         waitAndAssertReceived(true);
     }
 
     @Test
-    public void repositoryEvents() throws Exception {
+    public void given_ghRepositoryEventCreatedFromFork_then_createdSourceEventFired() throws Exception {
         GitHubRepositoryEventSubscriber subscriber = new GitHubRepositoryEventSubscriber();
 
         firedEventType = SCMEvent.Type.CREATED;
         ghEvent = callOnEvent(subscriber, "EventsTest/repositoryEventCreated.json");
         waitAndAssertReceived(true);
+    }
+
+    @Test
+    public void given_ghRepositoryEventCreatedNotFork_then_noSourceEventFired() throws Exception {
+        GitHubRepositoryEventSubscriber subscriber = new GitHubRepositoryEventSubscriber();
 
         ghEvent = callOnEvent(subscriber, "EventsTest/repositoryEventNotFiredNotFork.json");
         waitAndAssertReceived(false);
+    }
+
+    @Test
+    public void given_ghRepositoryEventWrongAction_then_noSourceEventFired() throws Exception {
+        GitHubRepositoryEventSubscriber subscriber = new GitHubRepositoryEventSubscriber();
 
         ghEvent = callOnEvent(subscriber, "EventsTest/repositoryEventNotFiredWrongAction.json");
         waitAndAssertReceived(false);
@@ -132,12 +178,11 @@ public class EventsTest {
     }
 
     private void waitAndAssertReceived(boolean received) throws InterruptedException {
-        Thread.sleep(5100);
+        long watermark = SCMEvents.getWatermark();
+        // event will be fired by subscriber at some point
+        SCMEvents.awaitOne(watermark, 5100, TimeUnit.MILLISECONDS);
+        
         assertEquals("Event should have " + ((!received) ? "not " : "") + "been received", received, TestSCMEventListener.didReceive());
-
-        if (received) {
-            TestSCMEventListener.setReceived(false);
-        }
     }
 
     @TestExtension

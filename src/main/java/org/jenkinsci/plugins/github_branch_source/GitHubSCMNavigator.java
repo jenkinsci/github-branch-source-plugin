@@ -27,7 +27,6 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
@@ -61,7 +60,6 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
-import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHMyself;
@@ -534,7 +532,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
-    @VisibleForTesting
+    @Restricted(NoExternalUse.class)
     GitHubWebHook getHook() {
         return GitHubWebHook.get();
     }
