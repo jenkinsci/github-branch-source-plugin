@@ -31,6 +31,7 @@ import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
+import com.google.common.annotations.VisibleForTesting;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -1185,10 +1186,20 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @Override
     public void afterSave() {
-        SCMSourceOwner owner = getOwner();
+        SCMSourceOwner owner = getOwnerNotSynchronized();
         if (owner != null) {
-            GitHubWebHook.get().registerHookFor(owner);
+            getHook().registerHookFor(owner);
         }
+    }
+
+    @VisibleForTesting
+    SCMSourceOwner getOwnerNotSynchronized() {
+        return getOwner();
+    }
+
+    @VisibleForTesting
+    GitHubWebHook getHook() {
+        return GitHubWebHook.get();
     }
 
     @Extension
