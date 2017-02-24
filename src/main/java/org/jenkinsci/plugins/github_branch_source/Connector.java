@@ -35,7 +35,6 @@ import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.google.common.hash.Hashing;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
 import hudson.Util;
@@ -66,8 +65,6 @@ import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.OkHttpConnector;
 
-import static org.apache.commons.lang3.StringUtils.trimToEmpty;
-
 /**
  * Utilities that could perhaps be moved into {@code github-api}.
  */
@@ -78,7 +75,12 @@ public class Connector {
         throw new IllegalAccessError("Utility class");
     }
 
-    public static ListBoxModel listScanCredentials(SCMSourceOwner context, String apiUri) {
+    /** Binary compatibility. */
+    public static ListBoxModel listScanCredentials(@CheckForNull SCMSourceOwner context, String apiUri) {
+        return listScanCredentials((Item) context, apiUri);
+    }
+
+    public static ListBoxModel listScanCredentials(@CheckForNull Item context, String apiUri) {
         return new StandardListBoxModel()
                 .includeEmptyValue()
                 .includeMatchingAs(
@@ -92,7 +94,12 @@ public class Connector {
                 );
     }
 
-    public static FormValidation checkScanCredentials(SCMSourceOwner context, String apiUri, String scanCredentialsId) {
+    /** Binary compatibility. */
+    public static FormValidation checkScanCredentials(@CheckForNull SCMSourceOwner context, String apiUri, String scanCredentialsId) {
+        return checkScanCredentials((Item) context, apiUri, scanCredentialsId);
+    }
+
+    public static FormValidation checkScanCredentials(@CheckForNull Item context, String apiUri, String scanCredentialsId) {
         if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
                 context != null && !context.hasPermission(Item.EXTENDED_READ)) {
             return FormValidation.ok();
@@ -109,7 +116,8 @@ public class Connector {
             if (!found) {
                 return FormValidation.error("Credentials not found");
             }
-            if (!(context.hasPermission(Item.CONFIGURE)
+            if (context != null && !(
+                       context.hasPermission(Item.CONFIGURE)
                     || context.hasPermission(Item.BUILD)
                     || context.hasPermission(CredentialsProvider.USE_ITEM))) {
                 return FormValidation.ok("Credentials found");
@@ -138,8 +146,16 @@ public class Connector {
         }
     }
 
+    /** Binary compatibility. */
     @CheckForNull
     public static StandardCredentials lookupScanCredentials(@CheckForNull SCMSourceOwner context,
+                                                                          @CheckForNull String apiUri,
+                                                                          @CheckForNull String scanCredentialsId) {
+        return lookupScanCredentials((Item) context, apiUri, scanCredentialsId);
+    }
+
+    @CheckForNull
+    public static StandardCredentials lookupScanCredentials(@CheckForNull Item context,
                                                                           @CheckForNull String apiUri,
                                                                           @CheckForNull String scanCredentialsId) {
         if (Util.fixEmpty(scanCredentialsId) == null) {
@@ -159,7 +175,12 @@ public class Connector {
         }
     }
 
-    public static ListBoxModel listCheckoutCredentials(SCMSourceOwner context, String apiUri) {
+    /** Binary compatibility. */
+    public static ListBoxModel listCheckoutCredentials(@CheckForNull SCMSourceOwner context, String apiUri) {
+        return listCheckoutCredentials((Item) context, apiUri);
+    }
+
+    public static ListBoxModel listCheckoutCredentials(@CheckForNull Item context, String apiUri) {
         StandardListBoxModel result = new StandardListBoxModel();
         result.includeEmptyValue();
         result.add("- same as scan credentials -", GitHubSCMSource.DescriptorImpl.SAME);
@@ -231,17 +252,6 @@ public class Connector {
         } else {
             return jenkins.proxy.createProxy(host);
         }
-    }
-
-    /**
-     * @param config url and creds id to be hashed
-     *
-     * @return unique id for folder name to create cache inside of base cache dir
-     */
-    private static String hashed(GitHubServerConfig config) {
-        return Hashing.murmur3_32().newHasher()
-                .putString(trimToEmpty(config.getApiUrl()))
-                .putString(trimToEmpty(config.getCredentialsId())).hash().toString();
     }
 
     /**

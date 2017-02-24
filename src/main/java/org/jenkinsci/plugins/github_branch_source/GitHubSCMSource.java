@@ -42,12 +42,12 @@ import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Action;
 import hudson.model.Actionable;
+import hudson.model.Item;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitException;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.Revision;
-import hudson.plugins.git.browser.GitRepositoryBrowser;
 import hudson.plugins.git.browser.GithubWeb;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.PreBuildMerge;
@@ -67,7 +67,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -75,7 +74,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLHandshakeException;
-import jenkins.management.ConfigureLink;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
@@ -1225,7 +1223,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
 
         @Restricted(NoExternalUse.class)
-        public FormValidation doCheckScanCredentialsId(@AncestorInPath SCMSourceOwner context,
+        public FormValidation doCheckScanCredentialsId(@CheckForNull @AncestorInPath Item context,
                                                        @QueryParameter String apiUri,
                                                        @QueryParameter String scanCredentialsId) {
             return Connector.checkScanCredentials(context, apiUri, scanCredentialsId);
@@ -1289,15 +1287,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return !GitHubConfiguration.get().getEndpoints().isEmpty();
         }
 
-        public ListBoxModel doFillCheckoutCredentialsIdItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri) {
+        public ListBoxModel doFillCheckoutCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
             return Connector.listCheckoutCredentials(context, apiUri);
         }
 
-        public ListBoxModel doFillScanCredentialsIdItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri) {
+        public ListBoxModel doFillScanCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
             return Connector.listScanCredentials(context, apiUri);
         }
 
-        public ListBoxModel doFillRepositoryItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri,
+        public ListBoxModel doFillRepositoryItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri,
                 @QueryParameter String scanCredentialsId, @QueryParameter String repoOwner) {
             Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 
