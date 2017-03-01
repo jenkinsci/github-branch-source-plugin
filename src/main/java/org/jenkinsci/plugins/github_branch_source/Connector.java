@@ -388,18 +388,16 @@ public class Connector {
                 if (rateLimit.remaining < buffer) {
                     // nothing we can do, we have burned into our buffer, wait for reset
                     // we add a little bit of random to prevent CPU overload when the limit is due to reset but GitHub
-                    // hasn't
+                    // hasn't actually reset yet (clock synchronization is a hard problem)
                     if (rateLimitResetMillis < 0) {
-                        expiration = System.currentTimeMillis()
-                                + (ENTROPY.nextInt() & 0xffff);
+                        expiration = System.currentTimeMillis() + ENTROPY.nextInt(65536);
                         listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                 "GitHub API Usage: Current quota has %d remaining (%d over budget). Next quota of %d due now. Sleeping for %s.",
                                 rateLimit.remaining, ideal - rateLimit.remaining, rateLimit.limit,
                                 Util.getTimeSpanString(expiration - System.currentTimeMillis())
                         )));
                     } else {
-                        expiration = rateLimit.getResetDate().getTime()
-                                + (ENTROPY.nextInt() & 0xffff);
+                        expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(65536);
                         listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                 "GitHub API Usage: Current quota has %d remaining (%d over budget). Next quota of %d in %s. Sleeping until reset.",
                                 rateLimit.remaining, ideal - rateLimit.remaining, rateLimit.limit,
@@ -421,13 +419,15 @@ public class Connector {
                 }
                 long nextNotify = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(180);
                 while (expiration > System.currentTimeMillis()) {
-                    long wake = Math.min(expiration, nextNotify);
-                    while (wake > System.currentTimeMillis()) {
-                        if (Thread.interrupted()) {
-                            throw new InterruptedException();
-                        }
-                        Thread.sleep(Math.max(1,System.currentTimeMillis() - wake));
+                    if (Thread.interrupted()) {
+                        throw new InterruptedException();
                     }
+                    long sleep = Math.min(expiration, nextNotify) - System.currentTimeMillis();
+                    if (sleep > 0) {
+                        Thread.sleep(sleep);
+                    }
+                    // A random straw poll of users concluded that 3 minutes without any visible progress in the logs
+                    // is the point after which people believe that the process is dead.
                     nextNotify += TimeUnit.SECONDS.toMillis(180);
                     long now = System.currentTimeMillis();
                     if (now < expiration) {
