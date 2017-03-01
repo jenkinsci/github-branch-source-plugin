@@ -41,6 +41,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -270,6 +271,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 throw new AbortException(message);
             }
 
+            Set<String> includes = observer.getIncludes();
             int repoCount = 0;
             if (!github.isAnonymous()) {
                 GHMyself myself = null;
@@ -283,6 +285,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     listener.getLogger().format("[%tc] Looking up repositories of myself %s%n%n",
                             System.currentTimeMillis(), repoOwner);
                     for (GHRepository repo : myself.listRepositories(100)) {
+                        if (includes != null && !includes.contains(repo.getName())) {
+                            // skip as early as possible when the observer doesn't want it
+                            continue;
+                        }
                         if (!observer.isObserving()) {
                             listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                     "%d repositories were processed (query completed)", repoCount
@@ -313,6 +319,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         "Looking up repositories of organization %s", repoOwner
                 )));
                 for (GHRepository repo : org.listRepositories(100)) {
+                    if (includes != null && !includes.contains(repo.getName())) {
+                        // skip as early as possible when the observer doesn't want it
+                        continue;
+                    }
                     if (!observer.isObserving()) {
                         listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                 "%d repositories were processed (query completed)", repoCount
@@ -342,6 +352,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
             if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
                 listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
                 for (GHRepository repo : user.listRepositories(100)) {
+                    if (includes != null && !includes.contains(repo.getName())) {
+                        // skip as early as possible when the observer doesn't want it
+                        continue;
+                    }
                     if (!observer.isObserving()) {
                         listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                 "%d repositories were processed (query completed)", repoCount
