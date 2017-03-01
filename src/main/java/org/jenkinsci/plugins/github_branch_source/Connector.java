@@ -390,14 +390,14 @@ public class Connector {
                     // we add a little bit of random to prevent CPU overload when the limit is due to reset but GitHub
                     // hasn't actually reset yet (clock synchronization is a hard problem)
                     if (rateLimitResetMillis < 0) {
-                        expiration = System.currentTimeMillis() + ENTROPY.nextInt(65536);
+                        expiration = System.currentTimeMillis() + ENTROPY.nextInt(65536); // approx 1 min
                         listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                 "GitHub API Usage: Current quota has %d remaining (%d over budget). Next quota of %d due now. Sleeping for %s.",
                                 rateLimit.remaining, ideal - rateLimit.remaining, rateLimit.limit,
                                 Util.getTimeSpanString(expiration - System.currentTimeMillis())
                         )));
                     } else {
-                        expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(65536);
+                        expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(65536); // approx 1 min
                         listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                 "GitHub API Usage: Current quota has %d remaining (%d over budget). Next quota of %d in %s. Sleeping until reset.",
                                 rateLimit.remaining, ideal - rateLimit.remaining, rateLimit.limit,
@@ -417,7 +417,7 @@ public class Connector {
                             Util.getTimeSpanString(expiration - System.currentTimeMillis())
                     )));
                 }
-                long nextNotify = System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(180);
+                long nextNotify = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(3);
                 while (expiration > System.currentTimeMillis()) {
                     if (Thread.interrupted()) {
                         throw new InterruptedException();
