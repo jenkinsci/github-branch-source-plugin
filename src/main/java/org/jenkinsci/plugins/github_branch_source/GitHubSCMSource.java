@@ -587,7 +587,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         if (!buildOriginPRMerge) {
                             continue;
                         }
-                        if (buildForkPRHead) {
+                        if (buildOriginPRHead) {
                             branchName += "-merge";
                         }
                     }
