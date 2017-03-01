@@ -36,7 +36,7 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
- * A timestampped console note from the GitHub brach source.
+ * A timestamped console note from the GitHub branch source.
  */
 @Restricted(NoExternalUse.class)
 public class GitHubConsoleNote extends ConsoleNote {
