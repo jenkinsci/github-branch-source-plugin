@@ -40,6 +40,7 @@ import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
@@ -69,6 +70,7 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
+import org.kohsuke.github.PagedIterable;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -282,9 +284,21 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     throw new AbortException(rle.getMessage());
                 }
                 if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
-                    listener.getLogger().format("[%tc] Looking up repositories of myself %s%n%n",
-                            System.currentTimeMillis(), repoOwner);
-                    for (GHRepository repo : myself.listRepositories(100)) {
+                    Iterable<GHRepository> repositories;
+                    if (includes != null && includes.size() == 1) {
+                        String repoName = includes.iterator().next();
+                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                "Looking up repository %s of myself %s", repoName, repoOwner
+                        )));
+                        GHRepository repo = myself.getRepository(repoName);
+                        repositories = repo == null ? Collections.<GHRepository>emptyList() : Collections.singletonList(repo);
+                    } else {
+                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                "Looking up repositories of myself %s", repoOwner
+                        )));
+                        repositories = myself.listRepositories(100);
+                    }
+                    for (GHRepository repo : repositories) {
                         if (includes != null && !includes.contains(repo.getName())) {
                             // skip as early as possible when the observer doesn't want it
                             continue;
@@ -315,10 +329,23 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 // may be an user... ok to ignore
             }
             if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
-                listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                        "Looking up repositories of organization %s", repoOwner
-                )));
-                for (GHRepository repo : org.listRepositories(100)) {
+                Iterable<GHRepository> repositories;
+                if (includes != null && includes.size() == 1) {
+                    String repoName = includes.iterator().next();
+                    listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                            "Looking up repository %s of organization %s", repoName, repoOwner
+                    )));
+                    GHRepository repo = org.getRepository(repoName);
+                    repositories = repo == null
+                            ? Collections.<GHRepository>emptyList()
+                            : Collections.singletonList(repo);
+                } else {
+                    listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                            "Looking up repositories of organization %s", repoOwner
+                    )));
+                    repositories = org.listRepositories(100);
+                }
+                for (GHRepository repo : repositories) {
                     if (includes != null && !includes.contains(repo.getName())) {
                         // skip as early as possible when the observer doesn't want it
                         continue;
@@ -350,8 +377,19 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 // the user may not exist... ok to ignore
             }
             if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
-                listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
-                for (GHRepository repo : user.listRepositories(100)) {
+                Iterable<GHRepository> repositories;
+                if (includes != null && includes.size() == 1) {
+                    String repoName = includes.iterator().next();
+                    listener.getLogger().format("Looking up repository %s of user %s%n%n", repoName, repoOwner);
+                    GHRepository repo = user.getRepository(repoName);
+                    repositories = repo == null
+                            ? Collections.<GHRepository>emptyList()
+                            : Collections.singletonList(repo);
+                } else {
+                    listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
+                    repositories = user.listRepositories(100);
+                }
+                for (GHRepository repo : repositories) {
                     if (includes != null && !includes.contains(repo.getName())) {
                         // skip as early as possible when the observer doesn't want it
                         continue;
