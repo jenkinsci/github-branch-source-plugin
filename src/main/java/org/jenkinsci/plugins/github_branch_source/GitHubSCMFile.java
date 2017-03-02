@@ -33,20 +33,21 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import jenkins.scm.api.SCMFile;
-import org.apache.commons.lang.StringUtils;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHRepository;
 
 class GitHubSCMFile extends SCMFile {
 
     private TypeInfo info;
+    private final GitHubClosable closable;
     private final GHRepository repo;
     private final String ref;
     private transient Object metadata;
     private transient boolean resolved;
 
-    GitHubSCMFile(GHRepository repo, String ref) {
+    GitHubSCMFile(GitHubClosable closable, GHRepository repo, String ref) {
         super();
+        this.closable = closable;
         type(Type.DIRECTORY);
         info = TypeInfo.DIRECTORY_ASSUMED; // we have not resolved the metadata yet
         this.repo = repo;
@@ -55,6 +56,7 @@ class GitHubSCMFile extends SCMFile {
 
     private GitHubSCMFile(@NonNull GitHubSCMFile parent, String name, TypeInfo info) {
         super(parent, name);
+        this.closable = parent.closable;
         this.info = info;
         this.repo = parent.repo;
         this.ref = parent.ref;
@@ -62,6 +64,7 @@ class GitHubSCMFile extends SCMFile {
 
     private GitHubSCMFile(@NonNull GitHubSCMFile parent, String name, GHContent metadata) {
         super(parent, name);
+        this.closable = parent.closable;
         this.repo = parent.repo;
         this.ref = parent.ref;
         if (metadata.isDirectory()) {
@@ -71,6 +74,12 @@ class GitHubSCMFile extends SCMFile {
             info = TypeInfo.NON_DIRECTORY_CONFIRMED;
             this.metadata = metadata;
             resolved = true;
+        }
+    }
+
+    private void checkOpen() throws IOException {
+        if (!closable.isOpen()) {
+            throw new IOException("Closed");
         }
     }
 
@@ -92,6 +101,7 @@ class GitHubSCMFile extends SCMFile {
                         resolved = true;
                         break;
                     case UNRESOLVED:
+                        checkOpen();
                         try {
                             metadata = repo.getFileContent(getPath(), ref);
                             info = TypeInfo.NON_DIRECTORY_CONFIRMED;
@@ -125,6 +135,7 @@ class GitHubSCMFile extends SCMFile {
     @NonNull
     @Override
     public Iterable<SCMFile> children() throws IOException {
+        checkOpen();
         List<GHContent> content = repo.getDirectoryContent(getPath(), ref);
         List<SCMFile> result = new ArrayList<>(content.size());
         for (GHContent c : content) {

@@ -91,6 +91,8 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
 
     /**
      * Default for old settings.
+     *
+     * @return the deserialized object.
      */
     @SuppressFBWarnings("SE_PRIVATE_READ_RESOLVE_NOT_INHERITED") // because JENKINS-41453
     private Object readResolve() {
@@ -116,6 +118,8 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
 
     /**
      * Whether we intend to build the merge of the PR head with the base branch.
+     *
+     * @return {@code true} if this is a merge PR head.
      */
     public boolean isMerge() {
         return merge;
