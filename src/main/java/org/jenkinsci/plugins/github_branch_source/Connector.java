@@ -91,7 +91,30 @@ public class Connector {
         throw new IllegalAccessError("Utility class");
     }
 
-    public static ListBoxModel listScanCredentials(SCMSourceOwner context, String apiUri) {
+    /**
+     * Retained for binary compatibility only.
+     *
+     * @param context the context.
+     * @param apiUri  the api endpoint.
+     * @return a {@link ListBoxModel}.
+     * @deprecated use {@link #listCheckoutCredentials(Item, String)}.
+     */
+    @NonNull
+    @Deprecated
+    public static ListBoxModel listScanCredentials(@CheckForNull SCMSourceOwner context, String apiUri) {
+        return listScanCredentials((Item) context, apiUri);
+    }
+
+    /**
+     * Populates a {@link ListBoxModel} with the credentials appropriate for the supplied context against the supplied
+     * API endpoint.
+     *
+     * @param context the context.
+     * @param apiUri  the api endpoint.
+     * @return a {@link ListBoxModel}.
+     */
+    @NonNull
+    public static ListBoxModel listScanCredentials(@CheckForNull Item context, String apiUri) {
         return new StandardListBoxModel()
                 .includeEmptyValue()
                 .includeMatchingAs(
@@ -105,7 +128,29 @@ public class Connector {
                 );
     }
 
-    public static FormValidation checkScanCredentials(SCMSourceOwner context, String apiUri, String scanCredentialsId) {
+    /**
+     * Retained for binary compatibility only.
+     *
+     * @param context           the context.
+     * @param apiUri            the api endpoint.
+     * @param scanCredentialsId the credentials ID.
+     * @return the {@link FormValidation} results.
+     * @deprecated use {@link #checkScanCredentials(Item, String, String)}
+     */
+    @Deprecated
+    public static FormValidation checkScanCredentials(@CheckForNull SCMSourceOwner context, String apiUri, String scanCredentialsId) {
+        return checkScanCredentials((Item) context, apiUri, scanCredentialsId);
+    }
+
+    /**
+     * Checks the credential ID for use as scan credentials in the supplied context against the supplied API endpoint.
+     *
+     * @param context           the context.
+     * @param apiUri            the api endpoint.
+     * @param scanCredentialsId the credentials ID.
+     * @return the {@link FormValidation} results.
+     */
+    public static FormValidation checkScanCredentials(@CheckForNull Item context, String apiUri, String scanCredentialsId) {
         if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
                 context != null && !context.hasPermission(Item.EXTENDED_READ)) {
             return FormValidation.ok();
@@ -122,7 +167,8 @@ public class Connector {
             if (!found) {
                 return FormValidation.error("Credentials not found");
             }
-            if (!(context.hasPermission(Item.CONFIGURE)
+            if (context != null && !(
+                       context.hasPermission(Item.CONFIGURE)
                     || context.hasPermission(Item.BUILD)
                     || context.hasPermission(CredentialsProvider.USE_ITEM))) {
                 return FormValidation.ok("Credentials found");
@@ -155,6 +201,31 @@ public class Connector {
         }
     }
 
+    /**
+     * Retained for binary compatibility only.
+     *
+     * @param context           the context.
+     * @param apiUri            the API endpoint.
+     * @param scanCredentialsId the credentials to resolve.
+     * @return the {@link StandardCredentials} or {@code null}
+     * @deprecated use {@link #lookupScanCredentials(Item, String, String)}
+     */
+    @Deprecated
+    @CheckForNull
+    public static StandardCredentials lookupScanCredentials(@CheckForNull SCMSourceOwner context,
+                                                            @CheckForNull String apiUri,
+                                                            @CheckForNull String scanCredentialsId) {
+        return lookupScanCredentials((Item) context, apiUri, scanCredentialsId);
+    }
+
+    /**
+     * Resolves the specified scan credentials in the specified context for use against the specified API endpoint.
+     *
+     * @param context           the context.
+     * @param apiUri            the API endpoint.
+     * @param scanCredentialsId the credentials to resolve.
+     * @return the {@link StandardCredentials} or {@code null}
+     */
     @CheckForNull
     public static StandardCredentials lookupScanCredentials(@CheckForNull Item context,
                                                             @CheckForNull String apiUri,
@@ -176,7 +247,12 @@ public class Connector {
         }
     }
 
-    public static ListBoxModel listCheckoutCredentials(SCMSourceOwner context, String apiUri) {
+    /** Binary compatibility. */
+    public static ListBoxModel listCheckoutCredentials(@CheckForNull SCMSourceOwner context, String apiUri) {
+        return listCheckoutCredentials((Item) context, apiUri);
+    }
+
+    public static ListBoxModel listCheckoutCredentials(@CheckForNull Item context, String apiUri) {
         StandardListBoxModel result = new StandardListBoxModel();
         result.includeEmptyValue();
         result.add("- same as scan credentials -", GitHubSCMSource.DescriptorImpl.SAME);
