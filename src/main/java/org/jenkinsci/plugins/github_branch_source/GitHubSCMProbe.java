@@ -26,6 +26,7 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
@@ -39,15 +40,20 @@ import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
 
-class GitHubSCMProbe extends SCMProbe {
+@SuppressFBWarnings("SE_TRANSIENT_FIELD_NOT_RESTORED")
+class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
     private static final long serialVersionUID = 1L;
     private final SCMRevision revision;
+    private final transient GitHub gitHub;
     private final transient GHRepository repo;
     private final String ref;
     private final String name;
+    private transient boolean open = true;
 
-    public GitHubSCMProbe(GHRepository repo, SCMHead head, SCMRevision revision) {
+    public GitHubSCMProbe(GitHub github, GHRepository repo, SCMHead head, SCMRevision revision) {
+        this.gitHub = github;
         this.revision = revision;
         this.repo = repo;
         this.name = head.getName();
@@ -61,7 +67,25 @@ class GitHubSCMProbe extends SCMProbe {
 
     @Override
     public void close() throws IOException {
-        // no-op as the GHRepository does not keep a persistent connection
+        if (gitHub == null || repo == null) {
+            return;
+        }
+        synchronized (this) {
+            if (!open) {
+                return;
+            }
+            open = false;
+        }
+        Connector.release(gitHub);
+    }
+
+    private synchronized void checkOpen() throws IOException {
+        if (!open) {
+            throw new IOException("Closed");
+        }
+        if (repo == null) {
+            throw new IOException("No connection available");
+        }
     }
 
     @Override
@@ -73,6 +97,11 @@ class GitHubSCMProbe extends SCMProbe {
     public long lastModified() {
         if (repo == null) {
             return 0L;
+        }
+        synchronized (this) {
+            if (!open) {
+                return 0L;
+            }
         }
         if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl) {
             try {
@@ -96,9 +125,7 @@ class GitHubSCMProbe extends SCMProbe {
     @NonNull
     @Override
     public SCMProbeStat stat(@NonNull String path) throws IOException {
-        if (repo == null) {
-            throw new IOException("No connection available");
-        }
+        checkOpen();
         try {
             int index = path.lastIndexOf('/') + 1;
             List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), ref);
@@ -129,6 +156,11 @@ class GitHubSCMProbe extends SCMProbe {
         if (repo == null) {
             return null;
         }
+        synchronized (this) {
+            if (!open) {
+                return null;
+            }
+        }
         String ref;
         if (revision != null) {
             if (revision.getHead() instanceof PullRequestSCMHead) {
@@ -141,7 +173,11 @@ class GitHubSCMProbe extends SCMProbe {
         } else {
             ref = this.ref;
         }
-        return new GitHubSCMFile(repo, ref);
+        return new GitHubSCMFile(this, repo, ref);
     }
 
+    @Override
+    public synchronized boolean isOpen() {
+        return open;
+    }
 }
