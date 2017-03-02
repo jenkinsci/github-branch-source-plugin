@@ -106,8 +106,8 @@ public class Connector {
     }
 
     /**
-     * Populates a {@link ListBoxModel} with the credentials appropriate for the supplied context against the supplied
-     * API endpoint.
+     * Populates a {@link ListBoxModel} with the scan credentials appropriate for the supplied context against the
+     * supplied API endpoint.
      *
      * @param context the context.
      * @param apiUri  the api endpoint.
@@ -247,11 +247,28 @@ public class Connector {
         }
     }
 
-    /** Binary compatibility. */
+    /**
+     * Retained for binary compatibility only.
+     *
+     * @param context           the context.
+     * @param apiUri            the API endpoint.
+     * @return the {@link StandardCredentials} or {@code null}
+     * @deprecated use {@link #listCheckoutCredentials(Item, String)}
+     */
+    @NonNull
     public static ListBoxModel listCheckoutCredentials(@CheckForNull SCMSourceOwner context, String apiUri) {
         return listCheckoutCredentials((Item) context, apiUri);
     }
 
+    /**
+     * Populates a {@link ListBoxModel} with the checkout credentials appropriate for the supplied context against the
+     * supplied API endpoint.
+     *
+     * @param context the context.
+     * @param apiUri  the api endpoint.
+     * @return a {@link ListBoxModel}.
+     */
+    @NonNull
     public static ListBoxModel listCheckoutCredentials(@CheckForNull Item context, String apiUri) {
         StandardListBoxModel result = new StandardListBoxModel();
         result.includeEmptyValue();

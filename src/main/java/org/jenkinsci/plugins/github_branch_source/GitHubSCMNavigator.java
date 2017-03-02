@@ -257,7 +257,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             throw new AbortException("Must specify user or organization");
         }
 
-        StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item)observer.getContext(), apiUri, scanCredentialsId);
 
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
@@ -427,7 +427,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         StandardCredentials credentials =
-                Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
+                Connector.lookupScanCredentials((Item)observer.getContext(), apiUri, scanCredentialsId);
 
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
@@ -551,7 +551,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         listener.getLogger().printf("Looking up details of %s...%n", getRepoOwner());
         List<Action> result = new ArrayList<>();
-        StandardCredentials credentials = Connector.lookupScanCredentials(owner, getApiUri(), getScanCredentialsId());
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item)owner, getApiUri(), getScanCredentialsId());
         GitHub hub = Connector.connect(getApiUri(), credentials);
         try {
             Connector.checkApiRateLimit(listener, hub);
@@ -585,7 +585,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         try {
             // FIXME MINOR HACK ALERT
             StandardCredentials credentials =
-                    Connector.lookupScanCredentials(owner, getApiUri(), getScanCredentialsId());
+                    Connector.lookupScanCredentials((Item)owner, getApiUri(), getScanCredentialsId());
             GitHub hub = Connector.connect(getApiUri(), credentials);
             try {
                 GitHubOrgWebHook.register(hub, repoOwner);

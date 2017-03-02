@@ -410,7 +410,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                   @NonNull SCMHeadObserver observer,
                                   @CheckForNull SCMHeadEvent<?> event,
                                   @NonNull final TaskListener listener) throws IOException, InterruptedException {
-        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item)getOwner(), apiUri, scanCredentialsId);
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         try {
@@ -791,7 +791,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @NonNull
     @Override
     protected SCMProbe createProbe(@NonNull SCMHead head, @CheckForNull final SCMRevision revision) throws IOException {
-        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), apiUri, scanCredentialsId);
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         try {
@@ -810,7 +810,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Override
     @CheckForNull
     protected SCMRevision retrieve(SCMHead head, TaskListener listener) throws IOException, InterruptedException {
-        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), apiUri, scanCredentialsId);
 
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
@@ -1020,7 +1020,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (collaboratorNames == null) {
                 listener.getLogger().format("Connecting to %s to obtain list of collaborators for %s/%s%n",
                         apiUri == null ? GITHUB_URL : apiUri, repoOwner, repository);
-                StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+                StandardCredentials credentials = Connector.lookupScanCredentials(
+                        (Item) getOwner(), apiUri, scanCredentialsId
+                );
                 // Github client and validation
                 GitHub github = Connector.connect(apiUri, credentials);
                 try {
@@ -1154,7 +1156,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         List<Action> result = new ArrayList<>();
         result.add(new GitHubRepoMetadataAction());
-        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), apiUri, scanCredentialsId);
         GitHub hub = Connector.connect(apiUri, credentials);
         try {
             Connector.checkConnectionValidity(apiUri, listener, credentials, hub);

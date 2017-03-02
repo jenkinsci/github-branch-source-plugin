@@ -121,7 +121,7 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
             GitHubSCMSource src = (GitHubSCMSource) source;
             String apiUri = src.getApiUri();
             StandardCredentials credentials =
-                    Connector.lookupScanCredentials(src.getOwner(), apiUri, src.getScanCredentialsId());
+                    Connector.lookupScanCredentials((Item)src.getOwner(), apiUri, src.getScanCredentialsId());
 
             // Github client and validation
             GitHub github = Connector.connect(apiUri, credentials);
