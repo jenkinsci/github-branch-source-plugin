@@ -72,6 +72,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import javax.servlet.http.HttpServletResponse;
 import jenkins.plugins.git.AbstractGitSCMSource;
@@ -1297,12 +1298,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
 
         public ListBoxModel doFillRepositoryItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri,
-                @QueryParameter String scanCredentialsId, @QueryParameter String repoOwner) {
-            Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+                @QueryParameter String scanCredentialsId, @QueryParameter String repoOwner) throws IOException {
 
             repoOwner = Util.fixEmptyAndTrim(repoOwner);
             if (repoOwner == null) {
-                return nameAndValueModel(result);
+                return new ListBoxModel();
             }
             try {
                 StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
@@ -1314,14 +1314,22 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         try {
                             myself = github.getMyself();
                         } catch (IllegalStateException e) {
-                            LOGGER.log(Level.WARNING, e.getMessage());
+                            LOGGER.log(Level.WARNING, e.getMessage(), e);
+                            throw new FillErrorResponse(e.getMessage(), false);
                         } catch (IOException e) {
-                            LOGGER.log(Level.WARNING,
-                                    "Exception retrieving the repositories of the owner {0} on {1} with credentials {2}",
-
-                                    new Object[]{repoOwner, apiUri, CredentialsNameProvider.name(credentials)});
+                            LogRecord lr = new LogRecord(Level.WARNING,
+                                    "Exception retrieving the repositories of the owner {0} on {1} with credentials {2}");
+                            lr.setThrown(e);
+                            lr.setParameters(new Object[]{
+                                    repoOwner, apiUri,
+                                    credentials == null
+                                            ? "anonymous access"
+                                            : CredentialsNameProvider.name(credentials)
+                            });
+                            throw new FillErrorResponse(e.getMessage(), false);
                         }
                         if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
+                            Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
                             for (String name : myself.getAllRepositories().keySet()) {
                                 result.add(name);
                             }
@@ -1335,9 +1343,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     } catch (FileNotFoundException fnf) {
                         LOGGER.log(Level.FINE, "There is not any GH Organization named {0}", repoOwner);
                     } catch (IOException e) {
-                        LOGGER.log(Level.WARNING, e.getMessage());
+                        LogRecord lr = new LogRecord(Level.WARNING,
+                                "Exception retrieving the repositories of the organization {0} on {1} with credentials {2}");
+                        lr.setThrown(e);
+                        lr.setParameters(new Object[]{
+                                repoOwner, apiUri,
+                                credentials == null
+                                        ? "anonymous access"
+                                        : CredentialsNameProvider.name(credentials)
+                        });
+                        throw new FillErrorResponse(e.getMessage(), false);
                     }
                     if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
+                        Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
                         LOGGER.log(Level.FINE, "as {0} looking for repositories in {1}",
                                 new Object[]{scanCredentialsId, repoOwner});
                         for (GHRepository repo : org.listRepositories(100)) {
@@ -1356,9 +1374,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     } catch (FileNotFoundException fnf) {
                         LOGGER.log(Level.FINE, "There is not any GH User named {0}", repoOwner);
                     } catch (IOException e) {
-                        LOGGER.log(Level.WARNING, e.getMessage());
+                        LogRecord lr = new LogRecord(Level.WARNING,
+                                "Exception retrieving the repositories of the user {0} on {1} with credentials {2}");
+                        lr.setThrown(e);
+                        lr.setParameters(new Object[]{
+                                repoOwner, apiUri,
+                                credentials == null
+                                        ? "anonymous access"
+                                        : CredentialsNameProvider.name(credentials)
+                        });
+                        throw new FillErrorResponse(e.getMessage(), false);
                     }
                     if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
+                        Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
                         for (GHRepository repo : user.listRepositories(100)) {
                             result.add(repo.getName());
                         }
@@ -1367,10 +1395,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 } finally {
                     Connector.release(github);
                 }
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, e.getMessage());
+            } catch (FillErrorResponse e) {
+                throw e;
+            } catch (Throwable e) {
+                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                throw new FillErrorResponse(e.getMessage(), false);
             }
-            return nameAndValueModel(result);
+            throw new FillErrorResponse(Messages.GitHubSCMSource_NoMatchingOwner(repoOwner), true);
         }
         /**
          * Creates a list box model from a list of values.
