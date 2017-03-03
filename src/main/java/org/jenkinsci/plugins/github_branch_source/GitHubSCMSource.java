@@ -1326,6 +1326,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                             ? "anonymous access"
                                             : CredentialsNameProvider.name(credentials)
                             });
+                            LOGGER.log(lr);
                             throw new FillErrorResponse(e.getMessage(), false);
                         }
                         if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
@@ -1352,6 +1353,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                         ? "anonymous access"
                                         : CredentialsNameProvider.name(credentials)
                         });
+                        LOGGER.log(lr);
                         throw new FillErrorResponse(e.getMessage(), false);
                     }
                     if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
@@ -1383,6 +1385,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                         ? "anonymous access"
                                         : CredentialsNameProvider.name(credentials)
                         });
+                        LOGGER.log(lr);
                         throw new FillErrorResponse(e.getMessage(), false);
                     }
                     if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
