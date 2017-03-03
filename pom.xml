@@ -137,6 +137,13 @@
             <plugin>
                 <groupId>org.jenkins-ci.tools</groupId>
                 <artifactId>maven-hpi-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate-taglib-interface</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
                     <compatibleSinceVersion>2.0.0</compatibleSinceVersion>
                 </configuration>
