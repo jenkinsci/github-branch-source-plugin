@@ -620,7 +620,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     continue;
                 }
                 boolean trusted = collaboratorNames != null
-                        && collaboratorNames.contains(ghPullRequest.getHead().getRepository().getOwnerName());
+                        && collaboratorNames.contains(ghPullRequest.getHead().getUser().getLogin());
                 if (!trusted) {
                     listener.getLogger().format("    (not from a trusted source)%n");
                 }
