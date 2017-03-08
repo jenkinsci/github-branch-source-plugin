@@ -129,6 +129,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     // TODO remove once baseline Git plugin 3.0.2+
     private static final AtomicLong jenkins41244Warning = new AtomicLong();
+    /**
+     * How long to delay events received from GitHub in order to allow the API caches to sync.
+     */
+    private static /*mostly final*/ int eventDelaySeconds =
+            Math.min(300, Math.max(0, Integer.getInteger(GitHubSCMSource.class.getName() + ".eventDelaySeconds", 5)));
 
     private final String apiUri;
 
@@ -233,6 +238,26 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             pullRequestContributorCache = new ConcurrentHashMap<>();
         }
         return this;
+    }
+
+    /**
+     * Returns how long to delay events received from GitHub in order to allow the API caches to sync.
+     *
+     * @return how long to delay events received from GitHub in order to allow the API caches to sync.
+     */
+    public static int getEventDelaySeconds() {
+        return eventDelaySeconds;
+    }
+
+    /**
+     * Sets how long to delay events received from GitHub in order to allow the API caches to sync.
+     *
+     * @param eventDelaySeconds number of seconds to delay, will be restricted into a value within the range
+     *                          {@code [0,300]} inclusive
+     */
+    @Restricted(NoExternalUse.class) // to allow configuration from system groovy console
+    public static void setEventDelaySeconds(int eventDelaySeconds) {
+        GitHubSCMSource.eventDelaySeconds = Math.min(300, Math.max(0, eventDelaySeconds));
     }
 
     @CheckForNull

@@ -156,12 +156,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
     }
 
     private void fireAfterDelay(final SCMHeadEventImpl e) {
-        Timer.get().schedule(new Runnable() {
-            @Override
-            public void run() {
-                SCMHeadEvent.fireNow(e);
-            }
-        }, 5, TimeUnit.SECONDS);
+        SCMHeadEvent.fireLater(e, GitHubSCMSource.getEventDelaySeconds(), TimeUnit.SECONDS);
     }
 
     private static class SCMHeadEventImpl extends SCMHeadEvent<GHEventPayload.PullRequest> {
