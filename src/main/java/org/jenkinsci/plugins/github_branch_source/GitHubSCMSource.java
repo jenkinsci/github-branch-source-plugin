@@ -95,6 +95,7 @@ import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.transport.RefSpec;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.gitclient.CheckoutCommand;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.gitclient.MergeCommand;
@@ -1216,6 +1217,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
+    @Symbol("github")
     @Extension
     public static class DescriptorImpl extends SCMSourceDescriptor {
 

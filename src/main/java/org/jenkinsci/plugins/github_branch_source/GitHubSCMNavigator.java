@@ -62,6 +62,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
+import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHMyself;
@@ -597,6 +598,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
+    @Symbol("github")
     @Extension
     public static class DescriptorImpl extends SCMNavigatorDescriptor implements IconSpec {
 
