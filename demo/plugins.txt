@@ -36,7 +36,7 @@ org.jenkins-ci.plugins:structs:1.6
 org.jenkins-ci.plugins:token-macro:2.0
 org.jenkins-ci.plugins.workflow:workflow-api:2.11
 org.jenkins-ci.plugins.workflow:workflow-basic-steps:2.4
-org.jenkins-ci.plugins.workflow:workflow-cps-global-lib:2.6
+org.jenkins-ci.plugins.workflow:workflow-cps-global-lib:2.7
 org.jenkins-ci.plugins.workflow:workflow-cps:2.29
 org.jenkins-ci.plugins.workflow:workflow-durable-task-step:2.9
 org.jenkins-ci.plugins.workflow:workflow-job:2.10
