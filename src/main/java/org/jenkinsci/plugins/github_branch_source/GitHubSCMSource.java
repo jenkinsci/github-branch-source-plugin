@@ -684,7 +684,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         // but this would be a lot more work, and is unlikely to differ from using refs/pull/123/merge:
 
                         Connector.checkApiRateLimit(listener, github);
-                        try (SCMProbe probe = createProbe(head, null)) {
+                        try (SCMProbe probe = createProbe(trusted ? head : head.getTarget(), null)) {
                             if (criteria.isHead(probe, listener)) {
                                 // FYI https://developer.github.com/v3/pulls/#response-1
                                 Boolean mergeable = ghPullRequest.getMergeable();
