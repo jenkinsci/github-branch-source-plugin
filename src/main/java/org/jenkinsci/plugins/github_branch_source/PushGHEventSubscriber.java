@@ -180,6 +180,33 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                     && repoOwner.equalsIgnoreCase(((GitHubSCMNavigator) navigator).getRepoOwner());
         }
 
+        @Override
+        public String descriptionFor(@NonNull SCMNavigator navigator) {
+            String ref = getPayload().getRef();
+            if (ref.startsWith("refs/heads/")) {
+                ref = ref.substring("refs/heads/".length());
+            }
+            return "Push event to branch " + ref + " in repository " + repository;
+        }
+
+        @Override
+        public String descriptionFor(SCMSource source) {
+            String ref = getPayload().getRef();
+            if (ref.startsWith("refs/heads/")) {
+                ref = ref.substring("refs/heads/".length());
+            }
+            return "Push event to branch " + ref;
+        }
+
+        @Override
+        public String description() {
+            String ref = getPayload().getRef();
+            if (ref.startsWith("refs/heads/")) {
+                ref = ref.substring("refs/heads/".length());
+            }
+            return "Push event to branch " + ref + " in repository " + repoOwner + "/" + repository;
+        }
+
         @NonNull
         @Override
         public String getSourceName() {
