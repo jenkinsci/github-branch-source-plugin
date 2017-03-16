@@ -182,6 +182,63 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                     && repoOwner.equalsIgnoreCase(((GitHubSCMNavigator) navigator).getRepoOwner());
         }
 
+        @Override
+        public String descriptionFor(@NonNull SCMNavigator navigator) {
+            String action = getPayload().getAction();
+            if (action != null) {
+                switch (action) {
+                    case "opened":
+                        return "Pull request #" + getPayload().getNumber() + " opened in repository " + repository;
+                    case "reopened":
+                        return "Pull request #" + getPayload().getNumber() + " reopened in repository " + repository;
+                    case "synchronize":
+                        return "Pull request #" + getPayload().getNumber() + " updated in repository " + repository;
+                    case "closed":
+                        return "Pull request #" + getPayload().getNumber() + " closed in repository " + repository;
+                }
+            }
+            return "Pull request #" + getPayload().getNumber() + " event in repository " + repository;
+        }
+
+        @Override
+        public String descriptionFor(SCMSource source) {
+            String action = getPayload().getAction();
+            if (action != null) {
+                switch (action) {
+                    case "opened":
+                        return "Pull request #" + getPayload().getNumber() + " opened";
+                    case "reopened":
+                        return "Pull request #" + getPayload().getNumber() + " reopened";
+                    case "synchronize":
+                        return "Pull request #" + getPayload().getNumber() + " updated";
+                    case "closed":
+                        return "Pull request #" + getPayload().getNumber() + " closed";
+                }
+            }
+            return "Pull request #" + getPayload().getNumber() + " event";
+        }
+
+        @Override
+        public String description() {
+            String action = getPayload().getAction();
+            if (action != null) {
+                switch (action) {
+                    case "opened":
+                        return "Pull request #" + getPayload().getNumber() + " opened in repository " + repoOwner + "/" + repository;
+                    case "reopened":
+                        return "Pull request #" + getPayload().getNumber() + " reopened in repository " + repoOwner
+                                + "/" + repository;
+                    case "synchronize":
+                        return "Pull request #" + getPayload().getNumber() + " updated in repository " + repoOwner + "/"
+                                + repository;
+                    case "closed":
+                        return "Pull request #" + getPayload().getNumber() + " closed in repository " + repoOwner + "/"
+                                + repository;
+                }
+            }
+            return "Pull request #" + getPayload().getNumber() + " event in repository " + repoOwner + "/" + repository;
+        }
+
         @NonNull
         @Override
         public String getSourceName() {
