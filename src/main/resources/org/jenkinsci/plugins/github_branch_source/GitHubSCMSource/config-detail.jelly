@@ -1,5 +1,6 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:c="/lib/credentials" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form"
+  xmlns:f2="/org/jenkinsci/plugins/github_branch_source/form">
   <j:if test="${descriptor.apiUriSelectable}">
     <f:entry title="${%API endpoint}" field="apiUri">
       <f:select/>
@@ -9,10 +10,11 @@
     <f:textbox/>
   </f:entry>
   <f:entry title="${%Scan credentials}" field="scanCredentialsId">
-    <f:select/>
+    <c:select/>
   </f:entry>
   <f:entry title="${%Repository}" field="repository">
-    <f:select/>
+    <!-- TODO switch back to f:select once Jenkins core has JENKINS-42443 -->
+    <f2:select/>
   </f:entry>
   <f:advanced>
     <j:if test="${!descriptor.apiUriSelectable}">
@@ -21,7 +23,7 @@
       </f:entry>
     </j:if>
     <f:entry title="${%Checkout credentials}" field="checkoutCredentialsId">
-      <f:select default="${descriptor.SAME}"/>
+      <c:select default="${descriptor.SAME}"/>
     </f:entry>
     <f:entry title="${%Include branches}" field="includes">
       <f:textbox default="${descriptor.defaultIncludes}"/>

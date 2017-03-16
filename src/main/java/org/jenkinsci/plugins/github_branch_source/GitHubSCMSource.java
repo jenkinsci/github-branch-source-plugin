@@ -42,12 +42,12 @@ import hudson.init.InitMilestone;
 import hudson.init.Initializer;
 import hudson.model.Action;
 import hudson.model.Actionable;
+import hudson.model.Item;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import hudson.plugins.git.GitException;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.Revision;
-import hudson.plugins.git.browser.GitRepositoryBrowser;
 import hudson.plugins.git.browser.GithubWeb;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.PreBuildMerge;
@@ -67,15 +67,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-import javax.net.ssl.SSLHandshakeException;
-import jenkins.management.ConfigureLink;
+import javax.servlet.http.HttpServletResponse;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
@@ -96,6 +95,7 @@ import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.transport.RefSpec;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.gitclient.CheckoutCommand;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.gitclient.MergeCommand;
@@ -130,6 +130,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     // TODO remove once baseline Git plugin 3.0.2+
     private static final AtomicLong jenkins41244Warning = new AtomicLong();
+    /**
+     * How long to delay events received from GitHub in order to allow the API caches to sync.
+     */
+    private static /*mostly final*/ int eventDelaySeconds =
+            Math.min(300, Math.max(0, Integer.getInteger(GitHubSCMSource.class.getName() + ".eventDelaySeconds", 5)));
 
     private final String apiUri;
 
@@ -180,6 +185,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @CheckForNull
     private transient Set<String> collaboratorNames;
+    /**
+     * Cache of details of the repository.
+     */
+    @CheckForNull
+    private transient GHRepository ghRepository;
 
     /**
      * The cache of {@link ObjectMetadataAction} instances for each open PR.
@@ -235,6 +245,26 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             disableNotifications = DescriptorImpl.defaultDisableNotifications;
         }
         return this;
+    }
+
+    /**
+     * Returns how long to delay events received from GitHub in order to allow the API caches to sync.
+     *
+     * @return how long to delay events received from GitHub in order to allow the API caches to sync.
+     */
+    public static int getEventDelaySeconds() {
+        return eventDelaySeconds;
+    }
+
+    /**
+     * Sets how long to delay events received from GitHub in order to allow the API caches to sync.
+     *
+     * @param eventDelaySeconds number of seconds to delay, will be restricted into a value within the range
+     *                          {@code [0,300]} inclusive
+     */
+    @Restricted(NoExternalUse.class) // to allow configuration from system groovy console
+    public static void setEventDelaySeconds(int eventDelaySeconds) {
+        GitHubSCMSource.eventDelaySeconds = Math.min(300, Math.max(0, eventDelaySeconds));
     }
 
     @CheckForNull
@@ -422,55 +452,76 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                   @NonNull SCMHeadObserver observer,
                                   @CheckForNull SCMHeadEvent<?> event,
                                   @NonNull final TaskListener listener) throws IOException, InterruptedException {
-        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item)getOwner(), apiUri, scanCredentialsId);
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
+        try {
+            checkApiUrlValidity(github);
+            Connector.checkApiRateLimit(listener, github);
+
+            try {
+                // Input data validation
+                Connector.checkConnectionValidity(apiUri, listener, credentials, github);
+
+                // Input data validation
+                if (repository == null || repository.isEmpty()) {
+                    throw new AbortException("No repository selected, skipping");
+                }
+
+                String fullName = repoOwner + "/" + repository;
+                ghRepository = github.getRepository(fullName);
+                listener.getLogger().format("Looking up %s%n",
+                        HyperlinkNote.encodeTo(ghRepository.getHtmlUrl().toString(), fullName));
+                repositoryUrl = ghRepository.getHtmlUrl();
+                updateCollaboratorNames(listener, credentials, ghRepository);
+                doRetrieve(criteria, observer, listener, github, ghRepository);
+                listener.getLogger().format("%nDone examining %s%n%n", fullName);
+            } catch (RateLimitExceededException rle) {
+                throw new AbortException(rle.getMessage());
+            }
+        } finally {
+            Connector.release(github);
+        }
+    }
+
+    private void updateCollaboratorNames(@NonNull TaskListener listener, @CheckForNull StandardCredentials credentials,
+                                         @NonNull GHRepository ghRepository)
+            throws IOException {
+        if (credentials == null && (apiUri == null || GITHUB_URL.equals(apiUri))) {
+            // anonymous access to GitHub will never get list of collaborators and will
+            // burn an API call, so no point in even trying
+            listener.getLogger().println("Anonymous cannot query list of collaborators, assuming none");
+            collaboratorNames = Collections.emptySet();
+        } else {
+            try {
+                collaboratorNames = new HashSet<>(ghRepository.getCollaboratorNames());
+            } catch (FileNotFoundException e) {
+                // not permitted
+                listener.getLogger().println("Not permitted to query list of collaborators, assuming none");
+                collaboratorNames = Collections.emptySet();
+            } catch (HttpException e) {
+                if (e.getResponseCode() == HttpServletResponse.SC_UNAUTHORIZED
+                        || e.getResponseCode() == HttpServletResponse.SC_NOT_FOUND) {
+                    listener.getLogger().println("Not permitted to query list of collaborators, assuming none");
+                    collaboratorNames = Collections.emptySet();
+                } else {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    private void checkApiUrlValidity(GitHub github) throws IOException {
         try {
             github.checkApiUrlValidity();
         } catch (HttpException e) {
             String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
-
-        try {
-            // Input data validation
-            if (credentials != null && !github.isCredentialValid()) {
-                String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
-                        CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
-                throw new AbortException(message);
-            }
-            if (!github.isAnonymous()) {
-                listener.getLogger().format("Connecting to %s using %s%n",
-                        apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
-            } else {
-                listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
-                        apiUri == null ? GITHUB_URL : apiUri);
-            }
-
-            // Input data validation
-            if (repository == null || repository.isEmpty()) {
-                throw new AbortException("No repository selected, skipping");
-            }
-
-            String fullName = repoOwner + "/" + repository;
-            final GHRepository repo = github.getRepository(fullName);
-            listener.getLogger().format("Looking up %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString(), fullName));
-            try {
-                repositoryUrl = repo.getHtmlUrl();
-                collaboratorNames = new HashSet<>(repo.getCollaboratorNames());
-            } catch (FileNotFoundException e) {
-                // not permitted
-                listener.getLogger().println("Not permitted to query list of collaborators, assuming none");
-                collaboratorNames = Collections.emptySet();
-            }
-            doRetrieve(criteria, observer, listener, repo);
-            listener.getLogger().format("%nDone examining %s%n%n", fullName);
-        } catch (RateLimitExceededException rle) {
-            throw new AbortException(rle.getMessage());
-        }
     }
 
-    private void doRetrieve(SCMSourceCriteria criteria, SCMHeadObserver observer, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
+    private void doRetrieve(SCMSourceCriteria criteria, SCMHeadObserver observer, TaskListener listener, GitHub github,
+                            GHRepository repo) throws IOException, InterruptedException {
         boolean wantPRs = true;
         boolean wantBranches = true;
         Set<Integer> wantPRNumbers = null;
@@ -556,6 +607,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             Set<Integer> pullRequestMetadataKeys = new HashSet<>();
             for (GHPullRequest ghPullRequest : pullRequests) {
                 checkInterrupt();
+                Connector.checkApiRateLimit(listener, github);
                 int number = ghPullRequest.getNumber();
                 if (includes != null && !wantBranches && !wantPRNumbers.contains(number)) {
                     continue;
@@ -602,7 +654,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         if (!buildOriginPRMerge) {
                             continue;
                         }
-                        if (buildForkPRHead) {
+                        if (buildOriginPRHead) {
                             branchName += "-merge";
                         }
                     }
@@ -646,21 +698,23 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         // Would be more precise to check whether the merge of the base branch head with the PR branch head contains a given file, etc.,
                         // but this would be a lot more work, and is unlikely to differ from using refs/pull/123/merge:
 
-                        SCMSourceCriteria.Probe probe = createProbe(head, null);
-                        if (criteria.isHead(probe, listener)) {
-                            // FYI https://developer.github.com/v3/pulls/#response-1
-                            Boolean mergeable = ghPullRequest.getMergeable();
-                            if (Boolean.FALSE.equals(mergeable)) {
-                                if (merge)  {
-                                    listener.getLogger().format("      Not mergeable, build likely to fail%n");
-                                } else {
-                                    listener.getLogger().format("      Not mergeable, but will be built anyway%n");
+                        Connector.checkApiRateLimit(listener, github);
+                        try (SCMProbe probe = createProbe(head, null)) {
+                            if (criteria.isHead(probe, listener)) {
+                                // FYI https://developer.github.com/v3/pulls/#response-1
+                                Boolean mergeable = ghPullRequest.getMergeable();
+                                if (Boolean.FALSE.equals(mergeable)) {
+                                    if (merge) {
+                                        listener.getLogger().format("      Not mergeable, build likely to fail%n");
+                                    } else {
+                                        listener.getLogger().format("      Not mergeable, but will be built anyway%n");
+                                    }
                                 }
+                                listener.getLogger().format("    Met criteria%n");
+                            } else {
+                                listener.getLogger().format("    Does not meet criteria%n");
+                                continue;
                             }
-                            listener.getLogger().format("    Met criteria%n");
-                        } else {
-                            listener.getLogger().format("    Does not meet criteria%n");
-                            continue;
                         }
                     }
                     String baseHash;
@@ -672,6 +726,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     PullRequestSCMRevision rev = new PullRequestSCMRevision(head, baseHash, ghPullRequest.getHead().getSha());
                     observer.observe(head, rev);
                     if (!observer.isObserving()) {
+                        listener.getLogger().format("%n  %d pull requests were processed (query completed)%n", pullrequests);
                         return;
                     }
                 }
@@ -724,6 +779,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
             for (Map.Entry<String, GHBranch> entry : branchMap.entrySet()) {
                 checkInterrupt();
+                Connector.checkApiRateLimit(listener, github);
                 final String branchName = entry.getKey();
                 if (isExcluded(branchName)) {
                     continue;
@@ -745,16 +801,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 listener.getLogger().format("%n    Checking branch %s%n", HyperlinkNote.encodeTo(repo.getHtmlUrl().toString() + "/tree/" + branchName, branchName));
                 SCMRevision hash = new SCMRevisionImpl(head, entry.getValue().getSHA1());
                 if (criteria != null) {
-                    SCMSourceCriteria.Probe probe = createProbe(head, hash);
-                    if (criteria.isHead(probe, listener)) {
-                        listener.getLogger().format("    Met criteria%n");
-                    } else {
-                        listener.getLogger().format("    Does not meet criteria%n");
-                        continue;
+                    Connector.checkApiRateLimit(listener, github);
+                    try (SCMProbe probe = createProbe(head, hash)) {
+                        if (criteria.isHead(probe, listener)) {
+                            listener.getLogger().format("    Met criteria%n");
+                        } else {
+                            listener.getLogger().format("    Does not meet criteria%n");
+                            continue;
+                        }
                     }
                 }
                 observer.observe(head, hash);
                 if (!observer.isObserving()) {
+                    listener.getLogger().format("%n  %d branches were processed (query completed)%n", branches);
                     return;
                 }
                 branches++;
@@ -774,64 +833,47 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @NonNull
     @Override
     protected SCMProbe createProbe(@NonNull SCMHead head, @CheckForNull final SCMRevision revision) throws IOException {
-        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), apiUri, scanCredentialsId);
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
-        String fullName = repoOwner + "/" + repository;
         try {
-            github.checkApiUrlValidity();
-        } catch (HttpException e) {
-            throw new IOException(String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri), e);
+            String fullName = repoOwner + "/" + repository;
+            final GHRepository repo = github.getRepository(fullName);
+            return new GitHubSCMProbe(github, repo, head, revision);
+        } catch (IOException e) {
+            Connector.release(github);
+            throw e;
+        } catch (RuntimeException e) { // TODO collapse once Java 8 with it's better inference of thrown exception types
+            Connector.release(github);
+            throw e;
         }
-        String credentialsName = credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials);
-        if (credentials != null && !github.isCredentialValid()) {
-            throw new AbortException(String.format("Invalid scan credentials %s to connect to %s, skipping",
-                    credentialsName, apiUri == null ? GITHUB_URL : apiUri));
-        }
-        GHRepository repo;
-        try {
-            repo = github.getRepository(fullName);
-        } catch (FileNotFoundException e) {
-            throw new AbortException(String.format("Invalid scan credentials when using %s to connect to %s on %s",
-                    credentialsName, fullName, apiUri == null ? GITHUB_URL : apiUri));
-        }
-        return new GitHubSCMProbe(repo, head, revision);
     }
 
     @Override
     @CheckForNull
     protected SCMRevision retrieve(SCMHead head, TaskListener listener) throws IOException, InterruptedException {
-        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), apiUri, scanCredentialsId);
 
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         try {
-            github.checkApiUrlValidity();
-        } catch (HttpException e) {
-            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
-            throw new AbortException(message);
-        }
+            checkApiUrlValidity(github);
 
-        try {
-            if (credentials != null && !github.isCredentialValid()) {
-                String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
-                throw new AbortException(message);
+            try {
+                Connector.checkConnectionValidity(apiUri, listener, credentials, github);
+                String fullName = repoOwner + "/" + repository;
+                ghRepository = github.getRepository(fullName);
+                repositoryUrl = ghRepository.getHtmlUrl();
+                return doRetrieve(head, ghRepository);
+            } catch (RateLimitExceededException rle) {
+                throw new AbortException(rle.getMessage());
             }
-            if (!github.isAnonymous()) {
-                listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
-            } else {
-                listener.getLogger().format("Connecting to %s using anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
-            }
-            String fullName = repoOwner + "/" + repository;
-            GHRepository repo = github.getRepository(fullName);
-            repositoryUrl = repo.getHtmlUrl();
-            return doRetrieve(head, listener, repo);
-        } catch (RateLimitExceededException rle) {
-            throw new AbortException(rle.getMessage());
+        } finally {
+            Connector.release(github);
         }
     }
 
-    protected SCMRevision doRetrieve(SCMHead head, TaskListener listener, GHRepository repo) throws IOException, InterruptedException {
+    protected SCMRevision doRetrieve(SCMHead head, GHRepository repo) throws IOException, InterruptedException {
         if (head instanceof PullRequestSCMHead) {
             PullRequestSCMHead prhead = (PullRequestSCMHead) head;
             int number = prhead.getNumber();
@@ -999,6 +1041,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public SCMRevision getTrustedRevision(SCMRevision revision, TaskListener listener)
             throws IOException, InterruptedException {
         if (revision instanceof PullRequestSCMRevision) {
+            PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
+            if (repoOwner.equals(head.getSourceOwner())) {
+                // origin PR
+                return revision;
+            }
             /*
              * Evaluates whether this pull request is coming from a trusted source.
              * Quickest is to check whether the author of the PR
@@ -1015,57 +1062,54 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (collaboratorNames == null) {
                 listener.getLogger().format("Connecting to %s to obtain list of collaborators for %s/%s%n",
                         apiUri == null ? GITHUB_URL : apiUri, repoOwner, repository);
-                StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+                StandardCredentials credentials = Connector.lookupScanCredentials(
+                        (Item) getOwner(), apiUri, scanCredentialsId
+                );
                 // Github client and validation
                 GitHub github = Connector.connect(apiUri, credentials);
                 try {
-                    github.checkApiUrlValidity();
-                } catch (HttpException e) {
-                    listener.getLogger().format("It seems %s is unreachable, assuming no trusted collaborators%n",
-                            apiUri == null ? GITHUB_URL : apiUri);
-                    collaboratorNames = Collections.singleton(repoOwner);
-                }
-                if (collaboratorNames == null) {
-                    // Input data validation
-                    String credentialsName =
-                            credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials);
-                    if (credentials != null && !github.isCredentialValid()) {
-                        listener.getLogger().format("Invalid scan credentials %s to connect to %s, "
-                                        + "assuming no trusted collaborators%n",
-                                credentialsName, apiUri == null ? GITHUB_URL : apiUri);
+                    try {
+                        github.checkApiUrlValidity();
+                    } catch (HttpException e) {
+                        listener.getLogger().format("It seems %s is unreachable, assuming no trusted collaborators%n",
+                                apiUri == null ? GITHUB_URL : apiUri);
                         collaboratorNames = Collections.singleton(repoOwner);
-                    } else {
-                        if (!github.isAnonymous()) {
-                            listener.getLogger()
-                                    .format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
-                                            credentialsName);
-                        } else {
-                            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
-                                    apiUri == null ? GITHUB_URL : apiUri);
-                        }
-
+                    }
+                    if (collaboratorNames == null) {
                         // Input data validation
-                        if (repository == null || repository.isEmpty()) {
+                        String credentialsName =
+                                credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials);
+                        if (credentials != null && !github.isCredentialValid()) {
+                            listener.getLogger().format("Invalid scan credentials %s to connect to %s, "
+                                            + "assuming no trusted collaborators%n",
+                                    credentialsName, apiUri == null ? GITHUB_URL : apiUri);
                             collaboratorNames = Collections.singleton(repoOwner);
                         } else {
-                            String fullName = repoOwner + "/" + repository;
-                            final GHRepository repo;
-                            try {
-                                repo = github.getRepository(fullName);
-                                repositoryUrl = repo.getHtmlUrl();
-                                collaboratorNames = new HashSet<>(repo.getCollaboratorNames());
-                            } catch (FileNotFoundException e) {
-                                listener.getLogger().format("Invalid scan credentials %s to connect to %s, "
-                                                + "assuming no trusted collaborators%n",
-                                        credentialsName,
+                            if (!github.isAnonymous()) {
+                                listener.getLogger()
+                                        .format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
+                                                credentialsName);
+                            } else {
+                                listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
                                         apiUri == null ? GITHUB_URL : apiUri);
+                            }
+
+                            // Input data validation
+                            if (repository == null || repository.isEmpty()) {
                                 collaboratorNames = Collections.singleton(repoOwner);
+                            } else {
+                                String fullName = repoOwner + "/" + repository;
+                                ghRepository = github.getRepository(fullName);
+                                repositoryUrl = ghRepository.getHtmlUrl();
+                                updateCollaboratorNames(listener, credentials, ghRepository);
+                                assert collaboratorNames != null;
                             }
                         }
                     }
+                } finally {
+                    Connector.release(github);
                 }
             }
-            PullRequestSCMHead head = (PullRequestSCMHead) revision.getHead();
             if (!collaboratorNames.contains(head.getSourceOwner())) {
                 PullRequestSCMRevision rev = (PullRequestSCMRevision) revision;
                 listener.getLogger().format("Loading trusted files from base branch %s at %s rather than %s%n",
@@ -1154,41 +1198,27 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         List<Action> result = new ArrayList<>();
         result.add(new GitHubRepoMetadataAction());
-        StandardCredentials credentials = Connector.lookupScanCredentials(getOwner(), apiUri, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), apiUri, scanCredentialsId);
         GitHub hub = Connector.connect(apiUri, credentials);
         try {
-            hub.checkApiUrlValidity();
-        } catch (HttpException e) {
-            listener.getLogger().format("It seems %s is unreachable%n",
-                    apiUri == null ? GITHUB_URL : apiUri);
+            Connector.checkConnectionValidity(apiUri, listener, credentials, hub);
+            try {
+                ghRepository = hub.getRepository(getRepoOwner() + '/' + repository);
+                repositoryUrl = ghRepository.getHtmlUrl();
+            } catch (FileNotFoundException e) {
+                throw new AbortException(
+                        String.format("Invalid scan credentials when using %s to connect to %s/%s on %s",
+                                credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials), repoOwner, repository, apiUri == null ? GITHUB_URL : apiUri));
+            }
+            result.add(new ObjectMetadataAction(null, ghRepository.getDescription(), Util.fixEmpty(ghRepository.getHomepage())));
+            result.add(new GitHubLink("icon-github-repo", ghRepository.getHtmlUrl()));
+            if (StringUtils.isNotBlank(ghRepository.getDefaultBranch())) {
+                result.add(new GitHubDefaultBranch(getRepoOwner(), repository, ghRepository.getDefaultBranch()));
+            }
             return result;
+        } finally {
+            Connector.release(hub);
         }
-        String credentialsName = credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials);
-        if (credentials != null && !hub.isCredentialValid()) {
-            throw new AbortException(String.format("Invalid scan credentials %s to connect to %s, skipping",
-                    credentialsName, apiUri == null ? GITHUB_URL : apiUri));
-        }
-        if (!hub.isAnonymous()) {
-            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
-                    credentialsName);
-        } else {
-            listener.getLogger()
-                    .format("Connecting to %s using anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
-        }
-        GHRepository repo;
-        try {
-            repo = hub.getRepository(getRepoOwner() + '/' + repository);
-        repositoryUrl = repo.getHtmlUrl();
-        } catch (FileNotFoundException e) {
-            throw new AbortException(String.format("Invalid scan credentials when using %s to connect to %s/%s on %s",
-                    credentialsName, repoOwner, repository, apiUri == null ? GITHUB_URL : apiUri));
-        }
-        result.add(new ObjectMetadataAction(null, repo.getDescription(), Util.fixEmpty(repo.getHomepage())));
-        result.add(new GitHubLink("icon-github-repo", repo.getHtmlUrl()));
-        if (StringUtils.isNotBlank(repo.getDefaultBranch())) {
-            result.add(new GitHubDefaultBranch(getRepoOwner(), repository, repo.getDefaultBranch()));
-        }
-        return result;
     }
 
     /**
@@ -1202,6 +1232,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
+    @Symbol("github")
     @Extension
     public static class DescriptorImpl extends SCMSourceDescriptor {
 
@@ -1237,7 +1268,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
 
         @Restricted(NoExternalUse.class)
-        public FormValidation doCheckScanCredentialsId(@AncestorInPath SCMSourceOwner context,
+        public FormValidation doCheckScanCredentialsId(@CheckForNull @AncestorInPath Item context,
                                                        @QueryParameter String apiUri,
                                                        @QueryParameter String scanCredentialsId) {
             return Connector.checkScanCredentials(context, apiUri, scanCredentialsId);
@@ -1301,82 +1332,122 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return !GitHubConfiguration.get().getEndpoints().isEmpty();
         }
 
-        public ListBoxModel doFillCheckoutCredentialsIdItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri) {
+        public ListBoxModel doFillCheckoutCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
             return Connector.listCheckoutCredentials(context, apiUri);
         }
 
-        public ListBoxModel doFillScanCredentialsIdItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri) {
+        public ListBoxModel doFillScanCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
             return Connector.listScanCredentials(context, apiUri);
         }
 
-        public ListBoxModel doFillRepositoryItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri,
-                @QueryParameter String scanCredentialsId, @QueryParameter String repoOwner) {
-            Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        public ListBoxModel doFillRepositoryItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri,
+                @QueryParameter String scanCredentialsId, @QueryParameter String repoOwner) throws IOException {
 
             repoOwner = Util.fixEmptyAndTrim(repoOwner);
             if (repoOwner == null) {
-                return nameAndValueModel(result);
+                return new ListBoxModel();
             }
             try {
                 StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
                 GitHub github = Connector.connect(apiUri, credentials);
+                try {
 
-                if (!github.isAnonymous()) {
-                    GHMyself myself = null;
-                    try {
-                        myself = github.getMyself();
-                    } catch (IllegalStateException e) {
-                        LOGGER.log(Level.WARNING, e.getMessage());
-                    } catch (IOException e) {
-                        LOGGER.log(Level.WARNING, "Exception retrieving the repositories of the owner {0} on {1} with credentials {2}",
-                            new Object[] {repoOwner, apiUri, CredentialsNameProvider.name(credentials)});
+                    if (!github.isAnonymous()) {
+                        GHMyself myself = null;
+                        try {
+                            myself = github.getMyself();
+                        } catch (IllegalStateException e) {
+                            LOGGER.log(Level.WARNING, e.getMessage(), e);
+                            throw new FillErrorResponse(e.getMessage(), false);
+                        } catch (IOException e) {
+                            LogRecord lr = new LogRecord(Level.WARNING,
+                                    "Exception retrieving the repositories of the owner {0} on {1} with credentials {2}");
+                            lr.setThrown(e);
+                            lr.setParameters(new Object[]{
+                                    repoOwner, apiUri,
+                                    credentials == null
+                                            ? "anonymous access"
+                                            : CredentialsNameProvider.name(credentials)
+                            });
+                            LOGGER.log(lr);
+                            throw new FillErrorResponse(e.getMessage(), false);
+                        }
+                        if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
+                            Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+                            for (String name : myself.getAllRepositories().keySet()) {
+                                result.add(name);
+                            }
+                            return nameAndValueModel(result);
+                        }
                     }
-                    if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
-                        for (String name : myself.getAllRepositories().keySet()) {
-                            result.add(name);
+
+                    GHOrganization org = null;
+                    try {
+                        org = github.getOrganization(repoOwner);
+                    } catch (FileNotFoundException fnf) {
+                        LOGGER.log(Level.FINE, "There is not any GH Organization named {0}", repoOwner);
+                    } catch (IOException e) {
+                        LogRecord lr = new LogRecord(Level.WARNING,
+                                "Exception retrieving the repositories of the organization {0} on {1} with credentials {2}");
+                        lr.setThrown(e);
+                        lr.setParameters(new Object[]{
+                                repoOwner, apiUri,
+                                credentials == null
+                                        ? "anonymous access"
+                                        : CredentialsNameProvider.name(credentials)
+                        });
+                        LOGGER.log(lr);
+                        throw new FillErrorResponse(e.getMessage(), false);
+                    }
+                    if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
+                        Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+                        LOGGER.log(Level.FINE, "as {0} looking for repositories in {1}",
+                                new Object[]{scanCredentialsId, repoOwner});
+                        for (GHRepository repo : org.listRepositories(100)) {
+                            LOGGER.log(Level.FINE, "as {0} found {1}/{2}",
+                                    new Object[]{scanCredentialsId, repoOwner, repo.getName()});
+                            result.add(repo.getName());
+                        }
+                        LOGGER.log(Level.FINE, "as {0} result of {1} is {2}",
+                                new Object[]{scanCredentialsId, repoOwner, result});
+                        return nameAndValueModel(result);
+                    }
+
+                    GHUser user = null;
+                    try {
+                        user = github.getUser(repoOwner);
+                    } catch (FileNotFoundException fnf) {
+                        LOGGER.log(Level.FINE, "There is not any GH User named {0}", repoOwner);
+                    } catch (IOException e) {
+                        LogRecord lr = new LogRecord(Level.WARNING,
+                                "Exception retrieving the repositories of the user {0} on {1} with credentials {2}");
+                        lr.setThrown(e);
+                        lr.setParameters(new Object[]{
+                                repoOwner, apiUri,
+                                credentials == null
+                                        ? "anonymous access"
+                                        : CredentialsNameProvider.name(credentials)
+                        });
+                        LOGGER.log(lr);
+                        throw new FillErrorResponse(e.getMessage(), false);
+                    }
+                    if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
+                        Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+                        for (GHRepository repo : user.listRepositories(100)) {
+                            result.add(repo.getName());
                         }
                         return nameAndValueModel(result);
                     }
+                } finally {
+                    Connector.release(github);
                 }
-
-                GHOrganization org = null;
-                try {
-                    org = github.getOrganization(repoOwner);
-                } catch (FileNotFoundException fnf) {
-                    LOGGER.log(Level.FINE, "There is not any GH Organization named {0}", repoOwner);
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, e.getMessage());
-                }
-                if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
-                    LOGGER.log(Level.FINE, "as {0} looking for repositories in {1}", new Object[] {scanCredentialsId, repoOwner});
-                    for (GHRepository repo : org.listRepositories(100)) {
-                        LOGGER.log(Level.FINE, "as {0} found {1}/{2}", new Object[] {scanCredentialsId, repoOwner, repo.getName()});
-                        result.add(repo.getName());
-                    }
-                    LOGGER.log(Level.FINE, "as {0} result of {1} is {2}", new Object[] {scanCredentialsId, repoOwner, result});
-                    return nameAndValueModel(result);
-                }
-
-                GHUser user = null;
-                try {
-                    user = github.getUser(repoOwner);
-                } catch (FileNotFoundException fnf) {
-                    LOGGER.log(Level.FINE, "There is not any GH User named {0}", repoOwner);
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, e.getMessage());
-                }
-                if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
-                    for (GHRepository repo : user.listRepositories(100)) {
-                        result.add(repo.getName());
-                    }
-                    return nameAndValueModel(result);
-                }
-            } catch (SSLHandshakeException he) {
-                LOGGER.log(Level.SEVERE, he.getMessage());
-            } catch (IOException e) {
-                LOGGER.log(Level.SEVERE, e.getMessage());
+            } catch (FillErrorResponse e) {
+                throw e;
+            } catch (Throwable e) {
+                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                throw new FillErrorResponse(e.getMessage(), false);
             }
-            return nameAndValueModel(result);
+            throw new FillErrorResponse(Messages.GitHubSCMSource_NoMatchingOwner(repoOwner), true);
         }
         /**
          * Creates a list box model from a list of values.

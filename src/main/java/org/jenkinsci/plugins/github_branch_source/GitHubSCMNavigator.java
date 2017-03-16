@@ -34,13 +34,16 @@ import hudson.Extension;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
 import hudson.model.Action;
+import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -53,14 +56,13 @@ import jenkins.scm.api.SCMNavigatorEvent;
 import jenkins.scm.api.SCMNavigatorOwner;
 import jenkins.scm.api.SCMSourceCategory;
 import jenkins.scm.api.SCMSourceObserver;
-import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.impl.UncategorizedSCMSourceCategory;
 import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
-import org.jenkinsci.plugins.github.config.GitHubServerConfig;
+import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHMyself;
@@ -69,12 +71,11 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
+import org.kohsuke.github.PagedIterable;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
-
-import static org.jenkinsci.plugins.github_branch_source.GitHubSCMSource.GITHUB_URL;
 
 public class GitHubSCMNavigator extends SCMNavigator {
 
@@ -260,7 +261,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @NonNull
     @Override
     protected String id() {
-        return StringUtils.defaultIfBlank(apiUri, GITHUB_URL) + "::" + repoOwner;
+        return StringUtils.defaultIfBlank(apiUri, GitHubSCMSource.GITHUB_URL) + "::" + repoOwner;
     }
 
     @Override
@@ -272,91 +273,163 @@ public class GitHubSCMNavigator extends SCMNavigator {
             throw new AbortException("Must specify user or organization");
         }
 
-        StandardCredentials credentials = Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item)observer.getContext(), apiUri, scanCredentialsId);
 
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         try {
-            github.checkApiUrlValidity();
-        } catch (HttpException e) {
-            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
-            throw new AbortException(message);
-        }
+            Connector.checkConnectionValidity(apiUri, listener, credentials, github);
+            Connector.checkApiRateLimit(listener, github);
 
-        // Input data validation
-        if (credentials != null && !github.isCredentialValid()) {
-            String message = String.format("Invalid scan credentials %s to connect to %s, skipping", CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
-            throw new AbortException(message);
-        }
+            // Input data validation
+            if (credentials != null && !github.isCredentialValid()) {
+                String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
+                        CredentialsNameProvider.name(credentials),
+                        apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
+                throw new AbortException(message);
+            }
 
-        if (!github.isAnonymous()) {
-            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri, CredentialsNameProvider.name(credentials));
-            GHMyself myself = null;
+            Set<String> includes = observer.getIncludes();
+            int repoCount = 0;
+            if (!github.isAnonymous()) {
+                GHMyself myself = null;
+                try {
+                    // Requires an authenticated access
+                    myself = github.getMyself();
+                } catch (RateLimitExceededException rle) {
+                    throw new AbortException(rle.getMessage());
+                }
+                if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
+                    Iterable<GHRepository> repositories;
+                    if (includes != null && includes.size() == 1) {
+                        String repoName = includes.iterator().next();
+                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                "Looking up repository %s of myself %s", repoName, repoOwner
+                        )));
+                        GHRepository repo = myself.getRepository(repoName);
+                        repositories = repo == null ? Collections.<GHRepository>emptyList() : Collections.singletonList(repo);
+                    } else {
+                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                "Looking up repositories of myself %s", repoOwner
+                        )));
+                        repositories = myself.listRepositories(100);
+                    }
+                    for (GHRepository repo : repositories) {
+                        if (includes != null && !includes.contains(repo.getName())) {
+                            // skip as early as possible when the observer doesn't want it
+                            continue;
+                        }
+                        if (!observer.isObserving()) {
+                            listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                    "%d repositories were processed (query completed)", repoCount
+                            )));
+                            return;
+                        }
+                        checkInterrupt();
+                        Connector.checkApiRateLimit(listener, github);
+                        if (!repo.getOwnerName().equals(repoOwner)) {
+                            continue; // ignore repos in other orgs when using GHMyself
+                        }
+                        add(listener, observer, repo);
+                    }
+                    return;
+                }
+            }
+
+            GHOrganization org = null;
             try {
-                // Requires an authenticated access
-                myself = github.getMyself();
+                org = github.getOrganization(repoOwner);
             } catch (RateLimitExceededException rle) {
                 throw new AbortException(rle.getMessage());
+            } catch (FileNotFoundException fnf) {
+                // may be an user... ok to ignore
             }
-            if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
-                listener.getLogger().format("Looking up repositories of myself %s%n%n", repoOwner);
-                for (GHRepository repo : myself.listRepositories(100)) {
+            if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
+                Iterable<GHRepository> repositories;
+                if (includes != null && includes.size() == 1) {
+                    String repoName = includes.iterator().next();
+                    listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                            "Looking up repository %s of organization %s", repoName, repoOwner
+                    )));
+                    GHRepository repo = org.getRepository(repoName);
+                    repositories = repo == null
+                            ? Collections.<GHRepository>emptyList()
+                            : Collections.singletonList(repo);
+                } else {
+                    listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                            "Looking up repositories of organization %s", repoOwner
+                    )));
+                    repositories = org.listRepositories(100);
+                }
+                for (GHRepository repo : repositories) {
+                    if (includes != null && !includes.contains(repo.getName())) {
+                        // skip as early as possible when the observer doesn't want it
+                        continue;
+                    }
                     if (!observer.isObserving()) {
+                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                "%d repositories were processed (query completed)", repoCount
+                        )));
                         return;
                     }
                     checkInterrupt();
-                    if (!repo.getOwnerName().equals(repoOwner)) {
-                        continue; // ignore repos in other orgs when using GHMyself
+                    Connector.checkApiRateLimit(listener, github);
+                    if (add(listener, observer, repo)) {
+                        repoCount++;
                     }
-                    add(listener, observer, repo);
                 }
+                listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                        "%d repositories were processed", repoCount
+                )));
                 return;
             }
-        } else {
-            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
-        }
 
-        GHOrganization org = null;
-        try {
-            org = github.getOrganization(repoOwner);
-        } catch (RateLimitExceededException rle) {
-            throw new AbortException(rle.getMessage());
-        } catch (FileNotFoundException fnf) {
-            // may be an user... ok to ignore
-        }
-        if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
-            listener.getLogger().format("Looking up repositories of organization %s%n%n", repoOwner);
-            for (GHRepository repo : org.listRepositories(100)) {
-                if (!observer.isObserving()) {
-                    return;
-                }
-                checkInterrupt();
-                add(listener, observer, repo);
+            GHUser user = null;
+            try {
+                user = github.getUser(repoOwner);
+            } catch (RateLimitExceededException rle) {
+                throw new AbortException(rle.getMessage());
+            } catch (FileNotFoundException fnf) {
+                // the user may not exist... ok to ignore
             }
-            return;
-        }
-
-        GHUser user = null;
-        try {
-            user = github.getUser(repoOwner);
-        } catch (RateLimitExceededException rle) {
-            throw new AbortException(rle.getMessage());
-        } catch (FileNotFoundException fnf) {
-            // the user may not exist... ok to ignore
-        }
-        if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
-            listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
-            for (GHRepository repo : user.listRepositories(100)) {
-                if (!observer.isObserving()) {
-                    return;
+            if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
+                Iterable<GHRepository> repositories;
+                if (includes != null && includes.size() == 1) {
+                    String repoName = includes.iterator().next();
+                    listener.getLogger().format("Looking up repository %s of user %s%n%n", repoName, repoOwner);
+                    GHRepository repo = user.getRepository(repoName);
+                    repositories = repo == null
+                            ? Collections.<GHRepository>emptyList()
+                            : Collections.singletonList(repo);
+                } else {
+                    listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
+                    repositories = user.listRepositories(100);
                 }
-                checkInterrupt();
-                add(listener, observer, repo);
+                for (GHRepository repo : repositories) {
+                    if (includes != null && !includes.contains(repo.getName())) {
+                        // skip as early as possible when the observer doesn't want it
+                        continue;
+                    }
+                    if (!observer.isObserving()) {
+                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                "%d repositories were processed (query completed)", repoCount
+                        )));
+                        return;
+                    }
+                    checkInterrupt();
+                    Connector.checkApiRateLimit(listener, github);
+                    add(listener, observer, repo);
+                }
+                listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                        "%d repositories were processed", repoCount
+                )));
+                return;
             }
-            return;
-        }
 
-        throw new AbortException(repoOwner + " does not correspond to a known GitHub User Account or Organization");
+            throw new AbortException(repoOwner + " does not correspond to a known GitHub User Account or Organization");
+        } finally {
+            Connector.release(github);
+        }
     }
 
     @Override
@@ -370,89 +443,97 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         StandardCredentials credentials =
-                Connector.lookupScanCredentials(observer.getContext(), apiUri, scanCredentialsId);
+                Connector.lookupScanCredentials((Item)observer.getContext(), apiUri, scanCredentialsId);
 
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         try {
-            github.checkApiUrlValidity();
-        } catch (HttpException e) {
-            String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
-            throw new AbortException(message);
-        }
-
-        // Input data validation
-        if (credentials != null && !github.isCredentialValid()) {
-            String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
-                    CredentialsNameProvider.name(credentials), apiUri == null ? GITHUB_URL : apiUri);
-            throw new AbortException(message);
-        }
-
-        if (!github.isAnonymous()) {
-            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
-                    CredentialsNameProvider.name(credentials));
-            GHMyself myself = null;
             try {
-                // Requires an authenticated access
-                myself = github.getMyself();
+                github.checkApiUrlValidity();
+            } catch (HttpException e) {
+                String message = String.format("It seems %s is unreachable",
+                        apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
+                throw new AbortException(message);
+            }
+
+            // Input data validation
+            if (credentials != null && !github.isCredentialValid()) {
+                String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
+                        CredentialsNameProvider.name(credentials),
+                        apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
+                throw new AbortException(message);
+            }
+
+            if (!github.isAnonymous()) {
+                listener.getLogger()
+                        .format("Connecting to %s using %s%n", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri,
+                                CredentialsNameProvider.name(credentials));
+                GHMyself myself = null;
+                try {
+                    // Requires an authenticated access
+                    myself = github.getMyself();
+                } catch (RateLimitExceededException rle) {
+                    throw new AbortException(rle.getMessage());
+                }
+                if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
+                    listener.getLogger().format("Looking up %s repository of myself %s%n%n", sourceName, repoOwner);
+                    GHRepository repo = myself.getRepository(sourceName);
+                    if (repo != null && repo.getOwnerName().equals(repoOwner)) {
+                        add(listener, observer, repo);
+                    }
+                    return;
+                }
+            } else {
+                listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
+                        apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
+            }
+
+            GHOrganization org = null;
+            try {
+                org = github.getOrganization(repoOwner);
             } catch (RateLimitExceededException rle) {
                 throw new AbortException(rle.getMessage());
+            } catch (FileNotFoundException fnf) {
+                // may be an user... ok to ignore
             }
-            if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
-                listener.getLogger().format("Looking up %s repository of myself %s%n%n", sourceName, repoOwner);
-                GHRepository repo = myself.getRepository(sourceName);
-                if (repo != null && repo.getOwnerName().equals(repoOwner)) {
+            if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
+                listener.getLogger().format("Looking up %s repository of organization %s%n%n", sourceName, repoOwner);
+                GHRepository repo = org.getRepository(sourceName);
+                if (repo != null) {
                     add(listener, observer, repo);
                 }
                 return;
             }
-        } else {
-            listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
-                    apiUri == null ? GITHUB_URL : apiUri);
-        }
 
-        GHOrganization org = null;
-        try {
-            org = github.getOrganization(repoOwner);
-        } catch (RateLimitExceededException rle) {
-            throw new AbortException(rle.getMessage());
-        } catch (FileNotFoundException fnf) {
-            // may be an user... ok to ignore
-        }
-        if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
-            listener.getLogger().format("Looking up %s repository of organization %s%n%n", sourceName, repoOwner);
-            GHRepository repo = org.getRepository(sourceName);
-            if (repo != null) {
-                add(listener, observer, repo);
+            GHUser user = null;
+            try {
+                user = github.getUser(repoOwner);
+            } catch (RateLimitExceededException rle) {
+                throw new AbortException(rle.getMessage());
+            } catch (FileNotFoundException fnf) {
+                // the user may not exist... ok to ignore
             }
-            return;
-        }
-
-        GHUser user = null;
-        try {
-            user = github.getUser(repoOwner);
-        } catch (RateLimitExceededException rle) {
-            throw new AbortException(rle.getMessage());
-        } catch (FileNotFoundException fnf) {
-            // the user may not exist... ok to ignore
-        }
-        if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
-            listener.getLogger().format("Looking up %s repository of user %s%n%n", sourceName, repoOwner);
-            GHRepository repo = user.getRepository(sourceName);
-            if (repo != null) {
-                add(listener, observer, repo);
+            if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
+                listener.getLogger().format("Looking up %s repository of user %s%n%n", sourceName, repoOwner);
+                GHRepository repo = user.getRepository(sourceName);
+                if (repo != null) {
+                    add(listener, observer, repo);
+                }
+                return;
             }
-            return;
-        }
 
-        throw new AbortException(repoOwner + " does not correspond to a known GitHub User Account or Organization");
+            throw new AbortException(repoOwner + " does not correspond to a known GitHub User Account or Organization");
+        } finally {
+            Connector.release(github);
+        }
     }
 
-    private void add(TaskListener listener, SCMSourceObserver observer, GHRepository repo) throws InterruptedException {
+    private boolean add(TaskListener listener, SCMSourceObserver observer, GHRepository repo)
+            throws InterruptedException, IOException {
         String name = repo.getName();
         if (!Pattern.compile(pattern).matcher(name).matches()) {
             listener.getLogger().format("Ignoring %s%n", name);
-            return;
+            return false;
         }
         listener.getLogger().format("Proposing %s%n", name);
         checkInterrupt();
@@ -473,6 +554,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         projectObserver.addSource(ghSCMSource);
         projectObserver.complete();
+        return true;
     }
 
     /**
@@ -482,53 +564,33 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @Override
     public List<Action> retrieveActions(@NonNull SCMNavigatorOwner owner,
                                         @CheckForNull SCMNavigatorEvent event,
-                                        @NonNull TaskListener listener) throws IOException {
+                                        @NonNull TaskListener listener) throws IOException, InterruptedException {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         listener.getLogger().printf("Looking up details of %s...%n", getRepoOwner());
         List<Action> result = new ArrayList<>();
-        StandardCredentials credentials = Connector.lookupScanCredentials(owner, getApiUri(), getScanCredentialsId());
-        GitHub hub = Connector.connect(apiUri, credentials);
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item)owner, getApiUri(), getScanCredentialsId());
+        GitHub hub = Connector.connect(getApiUri(), credentials);
         try {
-            hub.checkApiUrlValidity();
-        } catch (HttpException e) {
-            listener.getLogger().format("It seems %s is unreachable%n",
-                    apiUri == null ? GITHUB_URL : apiUri);
+            Connector.checkApiRateLimit(listener, hub);
+            GHUser u = hub.getUser(getRepoOwner());
+            String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
+            result.add(new ObjectMetadataAction(
+                    Util.fixEmpty(u.getName()),
+                    null,
+                    objectUrl)
+            );
+            result.add(new GitHubOrgMetadataAction(u));
+            result.add(new GitHubLink("icon-github-logo", u.getHtmlUrl()));
+            if (objectUrl == null) {
+                listener.getLogger().println("Organization URL: unspecified");
+            } else {
+                listener.getLogger().printf("Organization URL: %s%n",
+                        HyperlinkNote.encodeTo(objectUrl, StringUtils.defaultIfBlank(u.getName(), objectUrl)));
+            }
             return result;
+        } finally {
+            Connector.release(hub);
         }
-        String credentialsName = credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials);
-        if (credentials != null && !hub.isCredentialValid()) {
-            throw new AbortException(String.format("Invalid scan credentials %s to connect to %s, skipping",
-                    credentialsName, apiUri == null ? GITHUB_URL : apiUri));
-        }
-        if (!hub.isAnonymous()) {
-            listener.getLogger().format("Connecting to %s using %s%n", apiUri == null ? GITHUB_URL : apiUri,
-                    credentialsName);
-        } else {
-            listener.getLogger()
-                    .format("Connecting to %s using anonymous access%n", apiUri == null ? GITHUB_URL : apiUri);
-        }
-        GHUser u = null;
-        try {
-            u = hub.getUser(getRepoOwner());
-        } catch (FileNotFoundException e) {
-            throw new AbortException(String.format("Invalid scan credentials when using %s to connect to %s on %s",
-                    credentialsName, getRepoOwner(), apiUri == null ? GITHUB_URL : apiUri));
-        }
-        String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
-        result.add(new ObjectMetadataAction(
-                Util.fixEmpty(u.getName()),
-                null,
-                objectUrl)
-        );
-        result.add(new GitHubOrgMetadataAction(u));
-        result.add(new GitHubLink("icon-github-logo", u.getHtmlUrl()));
-        if (objectUrl == null) {
-            listener.getLogger().println("Organization URL: unspecified");
-        } else {
-            listener.getLogger().printf("Organization URL: %s%n",
-                    HyperlinkNote.encodeTo(objectUrl, StringUtils.defaultIfBlank(u.getName(), objectUrl)));
-        }
-        return result;
     }
 
     /**
@@ -540,14 +602,19 @@ public class GitHubSCMNavigator extends SCMNavigator {
         try {
             // FIXME MINOR HACK ALERT
             StandardCredentials credentials =
-                    Connector.lookupScanCredentials(owner, getApiUri(), getScanCredentialsId());
+                    Connector.lookupScanCredentials((Item)owner, getApiUri(), getScanCredentialsId());
             GitHub hub = Connector.connect(getApiUri(), credentials);
-            GitHubOrgWebHook.register(hub, repoOwner);
+            try {
+                GitHubOrgWebHook.register(hub, repoOwner);
+            } finally {
+                Connector.release(hub);
+            }
         } catch (IOException e) {
             DescriptorImpl.LOGGER.log(Level.WARNING, e.getMessage(), e);
         }
     }
 
+    @Symbol("github")
     @Extension
     public static class DescriptorImpl extends SCMNavigatorDescriptor implements IconSpec {
 
@@ -609,17 +676,17 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         @Restricted(NoExternalUse.class)
-        public FormValidation doCheckScanCredentialsId(@AncestorInPath SCMSourceOwner context,
+        public FormValidation doCheckScanCredentialsId(@CheckForNull @AncestorInPath Item context,
                                                        @QueryParameter String apiUri,
                                                        @QueryParameter String scanCredentialsId) {
             return Connector.checkScanCredentials(context, apiUri, scanCredentialsId);
         }
 
-        public ListBoxModel doFillScanCredentialsIdItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri) {
+        public ListBoxModel doFillScanCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
             return Connector.listScanCredentials(context, apiUri);
         }
 
-        public ListBoxModel doFillCheckoutCredentialsIdItems(@AncestorInPath SCMSourceOwner context, @QueryParameter String apiUri) {
+        public ListBoxModel doFillCheckoutCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
             return Connector.listCheckoutCredentials(context, apiUri);
         }
 

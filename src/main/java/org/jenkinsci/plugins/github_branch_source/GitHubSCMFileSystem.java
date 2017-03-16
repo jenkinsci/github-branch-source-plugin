@@ -38,17 +38,20 @@ import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
-import org.apache.commons.lang.StringUtils;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
 
-public class GitHubSCMFileSystem extends SCMFileSystem {
+public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable {
+    private final GitHub gitHub;
     private final GHRepository repo;
     private final String ref;
+    private boolean open;
 
-    protected GitHubSCMFileSystem(GHRepository repo, String ref, @CheckForNull SCMRevision rev) throws IOException {
+    protected GitHubSCMFileSystem(GitHub gitHub, GHRepository repo, String ref, @CheckForNull SCMRevision rev) throws IOException {
         super(rev);
+        this.gitHub = gitHub;
+        this.open = true;
         this.repo = repo;
         if (rev != null) {
             if (rev.getHead() instanceof PullRequestSCMHead) {
@@ -66,6 +69,22 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
     }
 
     @Override
+    public void close() throws IOException {
+        synchronized (this) {
+            if (!open) {
+                return;
+            }
+            open = false;
+        }
+        Connector.release(gitHub);
+    }
+
+    @Override
+    public synchronized boolean isOpen() {
+        return open;
+    }
+
+    @Override
     public long lastModified() throws IOException {
         // TODO figure out how to implement this
         return 0L;
@@ -74,7 +93,7 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
     @NonNull
     @Override
     public SCMFile getRoot() {
-        return new GitHubSCMFile(repo, ref);
+        return new GitHubSCMFile(this, repo, ref);
     }
 
     @Extension
@@ -102,38 +121,47 @@ public class GitHubSCMFileSystem extends SCMFileSystem {
             GitHubSCMSource src = (GitHubSCMSource) source;
             String apiUri = src.getApiUri();
             StandardCredentials credentials =
-                    Connector.lookupScanCredentials(src.getOwner(), apiUri, src.getScanCredentialsId());
+                    Connector.lookupScanCredentials((Item)src.getOwner(), apiUri, src.getScanCredentialsId());
 
             // Github client and validation
             GitHub github = Connector.connect(apiUri, credentials);
             try {
-                github.checkApiUrlValidity();
-            } catch (HttpException e) {
-                String message = String.format("It seems %s is unreachable",
-                        apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
-                throw new IOException(message);
-            }
-            String ref;
-            if (head instanceof BranchSCMHead) {
-                ref = head.getName();
-            } else if (head instanceof PullRequestSCMHead) {
-                PullRequestSCMHead pr = (PullRequestSCMHead) head;
-                if (!pr.isMerge() && pr.getSourceRepo() != null) {
-                    return new GitHubSCMFileSystem(
-                            github.getUser(pr.getSourceOwner()).getRepository(pr.getSourceRepo()),
-                            pr.getSourceBranch(),
-                            rev);
+                try {
+                    github.checkApiUrlValidity();
+                } catch (HttpException e) {
+                    String message = String.format("It seems %s is unreachable",
+                            apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
+                    throw new IOException(message);
                 }
-                return null; // TODO support merge revisions somehow
-            } else {
-                return null;
-            }
+                String ref;
+                if (head instanceof BranchSCMHead) {
+                    ref = head.getName();
+                } else if (head instanceof PullRequestSCMHead) {
+                    PullRequestSCMHead pr = (PullRequestSCMHead) head;
+                    if (!pr.isMerge() && pr.getSourceRepo() != null) {
+                        return new GitHubSCMFileSystem(
+                                github, github.getUser(pr.getSourceOwner()).getRepository(pr.getSourceRepo()),
+                                pr.getSourceBranch(),
+                                rev);
+                    }
+                    // we need to release here as we are not throwing an exception or transferring responsibility to FS
+                    Connector.release(github);
+                    return null; // TODO support merge revisions somehow
+                } else {
+                    // we need to release here as we are not throwing an exception or transferring responsibility to FS
+                    Connector.release(github);
+                    return null;
+                }
 
-            GHRepository repo = github.getUser(src.getRepoOwner()).getRepository(src.getRepository());
-            if (rev == null) {
-                rev = new AbstractGitSCMSource.SCMRevisionImpl((BranchSCMHead) head, repo.getBranch(ref).getSHA1());
+                GHRepository repo = github.getUser(src.getRepoOwner()).getRepository(src.getRepository());
+                if (rev == null) {
+                    rev = new AbstractGitSCMSource.SCMRevisionImpl((BranchSCMHead) head, repo.getBranch(ref).getSHA1());
+                }
+                return new GitHubSCMFileSystem(github, repo, ref, rev);
+            } catch (IOException | RuntimeException e) {
+                Connector.release(github);
+                throw e;
             }
-            return new GitHubSCMFileSystem(repo, ref, rev);
         }
     }
 }

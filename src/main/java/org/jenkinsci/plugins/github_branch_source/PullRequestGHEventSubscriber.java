@@ -28,7 +28,6 @@ import com.cloudbees.jenkins.GitHubRepositoryName;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Item;
-import hudson.model.Job;
 import hudson.scm.SCM;
 import java.io.IOException;
 import java.io.StringReader;
@@ -53,6 +52,7 @@ import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.util.Timer;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
+import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
 import org.kohsuke.github.GHEvent;
 import org.kohsuke.github.GHEventPayload;
 import org.kohsuke.github.GHPullRequest;
@@ -102,18 +102,16 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
         return immutableEnumSet(PULL_REQUEST);
     }
 
-    /**
-     * @param event   only PULL_REQUEST event
-     * @param payload payload of gh-event. Never blank
-     */
     @Override
-    protected void onEvent(GHEvent event, String payload) {
+    protected void onEvent(GHSubscriberEvent event) {
         try {
             final GHEventPayload.PullRequest p = GitHub.offline()
-                    .parseEventPayload(new StringReader(payload), GHEventPayload.PullRequest.class);
+                    .parseEventPayload(new StringReader(event.getPayload()), GHEventPayload.PullRequest.class);
             String action = p.getAction();
             String repoUrl = p.getRepository().getHtmlUrl().toExternalForm();
-            LOGGER.log(Level.INFO, "Received {0} for {1}", new Object[]{event, repoUrl});
+            LOGGER.log(Level.INFO, "Received {0} for {1} from {2}",
+                    new Object[]{event.getGHEvent(), repoUrl, event.getOrigin()}
+            );
             Matcher matcher = REPOSITORY_NAME_PATTERN.matcher(repoUrl);
             if (matcher.matches()) {
                 final GitHubRepositoryName changedRepository = GitHubRepositoryName.create(repoUrl);
@@ -123,36 +121,42 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                 }
 
                 if ("opened".equals(action)) {
-                    Timer.get().schedule(new Runnable() {
-
-                        @Override
-                        public void run() {
-                            SCMHeadEvent.fireNow(new SCMHeadEventImpl(SCMEvent.Type.CREATED, p, changedRepository));
-                        }
-                    }, 5, TimeUnit.SECONDS);
+                    fireAfterDelay(new SCMHeadEventImpl(
+                            SCMEvent.Type.CREATED,
+                            event.getTimestamp(),
+                            p,
+                            changedRepository,
+                            event.getOrigin()
+                    ));
                 } else if ("reopened".equals(action) || "synchronize".equals(action)) {
-                    Timer.get().schedule(new Runnable() {
-                        @Override
-                        public void run() {
-                            SCMHeadEvent.fireNow(new SCMHeadEventImpl(SCMEvent.Type.UPDATED, p, changedRepository));
-                        }
-                    }, 5, TimeUnit.SECONDS);
+                    fireAfterDelay(new SCMHeadEventImpl(
+                            SCMEvent.Type.UPDATED,
+                            event.getTimestamp(),
+                            p,
+                            changedRepository,
+                            event.getOrigin()
+                    ));
                 } else if ("closed".equals(action)) {
-                    Timer.get().schedule(new Runnable() {
-                        @Override
-                        public void run() {
-                            SCMHeadEvent.fireNow(new SCMHeadEventImpl(SCMEvent.Type.REMOVED, p, changedRepository));
-                        }
-                    }, 5, TimeUnit.SECONDS);
+                    fireAfterDelay(new SCMHeadEventImpl(
+                            SCMEvent.Type.REMOVED,
+                            event.getTimestamp(),
+                            p,
+                            changedRepository,
+                            event.getOrigin()
+                    ));
                 }
             }
 
         } catch (IOException e) {
-            LogRecord lr = new LogRecord(Level.WARNING, "Could not parse {0} event with payload: {1}");
-            lr.setParameters(new Object[]{event, payload});
+            LogRecord lr = new LogRecord(Level.WARNING, "Could not parse {0} event from {1} with payload: {2}");
+            lr.setParameters(new Object[]{event.getGHEvent(), event.getOrigin(), event.getPayload()});
             lr.setThrown(e);
             LOGGER.log(lr);
         }
+    }
+
+    private void fireAfterDelay(final SCMHeadEventImpl e) {
+        SCMHeadEvent.fireLater(e, GitHubSCMSource.getEventDelaySeconds(), TimeUnit.SECONDS);
     }
 
     private static class SCMHeadEventImpl extends SCMHeadEvent<GHEventPayload.PullRequest> {
@@ -160,8 +164,9 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
         private final String repoOwner;
         private final String repository;
 
-        public SCMHeadEventImpl(Type type, GHEventPayload.PullRequest pullRequest, GitHubRepositoryName repo) {
-            super(type, pullRequest);
+        public SCMHeadEventImpl(Type type, long timestamp, GHEventPayload.PullRequest pullRequest, GitHubRepositoryName repo,
+                                String origin) {
+            super(type, timestamp, pullRequest, origin);
             this.repoHost = repo.getHost();
             this.repoOwner = pullRequest.getRepository().getOwnerName();
             this.repository = pullRequest.getRepository().getName();
@@ -216,7 +221,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
             }
             boolean hasPR = false;
 
-            boolean fork = !src.getRepoOwner().equals(prOwnerName);
+            boolean fork = !src.getRepoOwner().equalsIgnoreCase(prOwnerName);
 
             Map<SCMHead, SCMRevision> result = new HashMap<>();
 
