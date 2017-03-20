@@ -48,6 +48,8 @@ public class PullRequestSCMRevision extends SCMRevision {
      * The commit hash of the base branch we are tracking.
      * If {@link PullRequestSCMHead#isMerge}, this would be the current head of the base branch.
      * Otherwise it would be the PR’s {@code .base.sha}, the common ancestor of the PR branch and the base branch.
+     *
+     * @return the commit hash of the base branch we are tracking.
      */
     public @NonNull String getBaseHash() {
         return baseHash;
@@ -55,6 +57,8 @@ public class PullRequestSCMRevision extends SCMRevision {
 
     /**
      * The commit hash of the head of the pull request branch.
+     *
+     * @return The commit hash of the head of the pull request branch
      */
     public @NonNull String getPullHash() {
         return pullHash;
