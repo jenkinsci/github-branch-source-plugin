@@ -599,7 +599,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             DescriptorImpl.LOGGER.log(Level.WARNING, e.getMessage(), e);
         }
     }
-
+    
     @Symbol("github")
     @Extension
     public static class DescriptorImpl extends SCMNavigatorDescriptor implements IconSpec {
