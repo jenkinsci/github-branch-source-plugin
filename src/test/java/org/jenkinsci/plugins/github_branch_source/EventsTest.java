@@ -32,12 +32,18 @@ import jenkins.scm.api.SCMSourceEvent;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
 <<<<<<< HEAD
+<<<<<<< HEAD
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 =======
 import org.junit.Before;
 >>>>>>> ffa338a... [JENKINS-42243] Apply PR comments.
+=======
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+>>>>>>> 1707771... [JENKINS-42243] Do not use Mockito for EventsTest. Also reduce the events delay to make the tests faster.
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -62,13 +68,19 @@ public class EventsTest {
     private static GHSubscriberEvent ghEvent;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 1707771... [JENKINS-42243] Do not use Mockito for EventsTest. Also reduce the events delay to make the tests faster.
     @BeforeClass
     public static void setupDelay() {
         GitHubSCMSource.setEventDelaySeconds(1);
     }
 
+<<<<<<< HEAD
 =======
 >>>>>>> ffa338a... [JENKINS-42243] Apply PR comments.
+=======
+>>>>>>> 1707771... [JENKINS-42243] Do not use Mockito for EventsTest. Also reduce the events delay to make the tests faster.
     @Before
     public void resetFiredEvent() {
         firedEventType = null;
@@ -77,13 +89,19 @@ public class EventsTest {
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 1707771... [JENKINS-42243] Do not use Mockito for EventsTest. Also reduce the events delay to make the tests faster.
     @AfterClass
     public static void resetDelay() {
         GitHubSCMSource.setEventDelaySeconds(defaultFireDelayInSeconds);
     }
 
+<<<<<<< HEAD
 =======
 >>>>>>> ffa338a... [JENKINS-42243] Apply PR comments.
+=======
+>>>>>>> 1707771... [JENKINS-42243] Do not use Mockito for EventsTest. Also reduce the events delay to make the tests faster.
     @Test
     public void given_ghPushEventCreated_then_createdHeadEventFired() throws Exception {
         PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
@@ -137,19 +155,11 @@ public class EventsTest {
         ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventUpdated.json");
         waitAndAssertReceived(true);
     }
-<<<<<<< HEAD
 
     @Test
     public void given_ghPullRequestEventSync_then_updatedHeadEventFired() throws Exception {
         PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
-=======
-
-    @Test
-    public void given_ghPullRequestEventSync_then_updatedHeadEventFired() throws Exception {
-        PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
-
->>>>>>> ffa338a... [JENKINS-42243] Apply PR comments.
         firedEventType = SCMEvent.Type.UPDATED;
         ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventUpdatedSync.json");
         waitAndAssertReceived(true);

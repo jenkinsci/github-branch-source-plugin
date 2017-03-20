@@ -62,10 +62,7 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
-<<<<<<< HEAD
 import org.jenkinsci.Symbol;
-=======
->>>>>>> ffa338a... [JENKINS-42243] Apply PR comments.
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHMyself;
@@ -599,7 +596,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             DescriptorImpl.LOGGER.log(Level.WARNING, e.getMessage(), e);
         }
     }
-    
+
     @Symbol("github")
     @Extension
     public static class DescriptorImpl extends SCMNavigatorDescriptor implements IconSpec {
