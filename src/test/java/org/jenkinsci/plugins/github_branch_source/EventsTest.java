@@ -31,7 +31,9 @@ import jenkins.scm.api.SCMHeadEvent;
 import jenkins.scm.api.SCMSourceEvent;
 import org.apache.commons.io.IOUtils;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -41,24 +43,35 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class EventsTest {
+
     /**
      * All tests in this class only use Jenkins for the extensions
      */
     @ClassRule
     public static JenkinsRule r = new JenkinsRule();
 
+    private static int defaultFireDelayInSeconds = GitHubSCMSource.getEventDelaySeconds();
+
     private static SCMEvent.Type firedEventType;
     private static GHSubscriberEvent ghEvent;
+
+    @BeforeClass
+    public static void setupDelay() {
+        GitHubSCMSource.setEventDelaySeconds(1);
+    }
 
     @Before
     public void resetFiredEvent() {
         firedEventType = null;
         ghEvent = null;
         TestSCMEventListener.setReceived(false);
+    }
+
+    @AfterClass
+    public static void resetDelay() {
+        GitHubSCMSource.setEventDelaySeconds(defaultFireDelayInSeconds);
     }
 
     @Test
@@ -150,37 +163,32 @@ public class EventsTest {
     }
 
     private GHSubscriberEvent callOnEvent(PushGHEventSubscriber subscriber, String eventPayloadFile) throws IOException {
-        GHSubscriberEvent event = createMockEvent(eventPayloadFile);
+        GHSubscriberEvent event = createEvent(eventPayloadFile);
         subscriber.onEvent(event);
         return event;
     }
 
     private GHSubscriberEvent callOnEvent(PullRequestGHEventSubscriber subscriber, String eventPayloadFile) throws IOException {
-        GHSubscriberEvent event = createMockEvent(eventPayloadFile);
+        GHSubscriberEvent event = createEvent(eventPayloadFile);
         subscriber.onEvent(event);
         return event;
     }
 
     private GHSubscriberEvent callOnEvent(GitHubRepositoryEventSubscriber subscriber, String eventPayloadFile) throws IOException {
-        GHSubscriberEvent event = createMockEvent(eventPayloadFile);
+        GHSubscriberEvent event = createEvent(eventPayloadFile);
         subscriber.onEvent(event);
         return event;
     }
 
-    private GHSubscriberEvent createMockEvent(String eventPayloadFile) throws IOException {
-        GHSubscriberEvent event = mock(GHSubscriberEvent.class);
-        when(event.getPayload()).thenReturn(IOUtils.toString(getClass().getResourceAsStream(eventPayloadFile)));
-        when(event.getGHEvent()).thenReturn(null);
-        when(event.getOrigin()).thenReturn("myOrigin");
-        when(event.getTimestamp()).thenReturn(123456789L);
-
-        return event;
+    private GHSubscriberEvent createEvent(String eventPayloadFile) throws IOException {
+        String payload = IOUtils.toString(getClass().getResourceAsStream(eventPayloadFile));
+        return new GHSubscriberEvent("myOrigin", null, payload);
     }
 
     private void waitAndAssertReceived(boolean received) throws InterruptedException {
         long watermark = SCMEvents.getWatermark();
         // event will be fired by subscriber at some point
-        SCMEvents.awaitOne(watermark, 5100, TimeUnit.MILLISECONDS);
+        SCMEvents.awaitOne(watermark, 1200, TimeUnit.MILLISECONDS);
 
         assertEquals("Event should have " + ((!received) ? "not " : "") + "been received", received, TestSCMEventListener.didReceive());
     }
@@ -191,18 +199,17 @@ public class EventsTest {
         private static boolean eventReceived = false;
 
         public void onSCMHeadEvent(SCMHeadEvent<?> event) {
-            receiveEvent(event.getType(), event.getTimestamp(), event.getOrigin());
+            receiveEvent(event.getType(), event.getOrigin());
         }
 
         public void onSCMSourceEvent(SCMSourceEvent<?> event) {
-            receiveEvent(event.getType(), event.getTimestamp(), event.getOrigin());
+            receiveEvent(event.getType(), event.getOrigin());
         }
 
-        private void receiveEvent(SCMEvent.Type type, long timestamp, String origin) {
+        private void receiveEvent(SCMEvent.Type type, String origin) {
             eventReceived = true;
 
             assertEquals("Event type should be the same", type, firedEventType);
-            assertEquals("Event timestamp should be the same", timestamp, ghEvent.getTimestamp());
             assertEquals("Event origin should be the same", origin, ghEvent.getOrigin());
         }
 
