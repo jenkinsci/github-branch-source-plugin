@@ -1217,12 +1217,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    @Restricted(NoExternalUse.class)
     SCMSourceOwner getOwnerNotSynchronized() {
         return getOwner();
     }
 
-    @Restricted(NoExternalUse.class)
     GitHubWebHook getHook() {
         return GitHubWebHook.get();
     }

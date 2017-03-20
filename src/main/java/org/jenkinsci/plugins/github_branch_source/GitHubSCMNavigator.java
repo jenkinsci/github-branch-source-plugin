@@ -597,7 +597,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
-    @Restricted(NoExternalUse.class)
     GitHubWebHook getHook() {
         return GitHubWebHook.get();
     }
