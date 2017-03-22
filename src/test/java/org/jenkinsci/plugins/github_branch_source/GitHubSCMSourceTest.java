@@ -40,7 +40,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
@@ -60,6 +59,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -206,6 +206,17 @@ public class GitHubSCMSourceTest {
                 ),
                 instanceOf(GitHubRepoMetadataAction.class),
                 Matchers.<Action>is(new GitHubLink("icon-github-repo", "https://github.com/cloudbeers/yolo"))));
+    }
+
+    @Test
+    public void getTrustedRevisionReturnsRevisionIfRepoOwnerAndPullRequestBranchOwnerAreSameWithDifferentCase() throws Exception {
+        PullRequestSCMRevision revision = createRevision("CloudBeers");
+        assertThat(source.getTrustedRevision(revision, null), sameInstance((SCMRevision) revision));
+    }
+
+    private PullRequestSCMRevision createRevision(String sourceOwner) {
+        PullRequestSCMHead head = new PullRequestSCMHead("", false, 0, null, sourceOwner, null, null);
+        return new PullRequestSCMRevision(head, null, null);
     }
 
 }
