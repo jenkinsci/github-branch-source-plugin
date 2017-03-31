@@ -312,7 +312,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                             if (!src.getBuildOriginPRMerge()) {
                                 continue;
                             }
-                            if (src.getBuildForkPRHead()) {
+                            if (src.getBuildOriginPRHead()) {
                                 branchName += "-merge";
                             }
                         }
