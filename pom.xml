@@ -23,7 +23,7 @@
     <properties>
         <jenkins.version>1.625.3</jenkins.version>
         <workflow.version>1.14.2</workflow.version>
-        <scm-api.version>2.1.0</scm-api.version>
+        <scm-api.version>2.1.1</scm-api.version>
     </properties>
 
     <scm>
