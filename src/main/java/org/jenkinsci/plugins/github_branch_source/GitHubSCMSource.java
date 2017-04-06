@@ -597,7 +597,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 if (includes != null && !wantBranches && !wantPRNumbers.contains(number)) {
                     continue;
                 }
-                boolean fork = !repo.getOwner().equals(ghPullRequest.getHead().getUser());
+                GHUser headUser = ghPullRequest.getHead().getUser();
+                boolean fork = !repo.getOwner().equals(headUser);
                 if (wantPRs) {
                     listener.getLogger().format("%n    Checking pull request %s%n",
                             HyperlinkNote.encodeTo(ghPullRequest.getHtmlUrl().toString(), "#" + number));
@@ -619,8 +620,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     }
                     continue;
                 }
-                boolean trusted = collaboratorNames != null
-                        && collaboratorNames.contains(ghPullRequest.getHead().getUser().getLogin());
+                boolean trusted = collaboratorNames != null && headUser != null
+                        && collaboratorNames.contains(headUser.getLogin());
                 if (!trusted) {
                     listener.getLogger().format("    (not from a trusted source)%n");
                 }
