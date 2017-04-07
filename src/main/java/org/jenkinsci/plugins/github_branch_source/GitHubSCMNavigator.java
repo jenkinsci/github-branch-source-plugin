@@ -581,7 +581,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @Override
     public void afterSave(@NonNull SCMNavigatorOwner owner) {
-        getHook().registerHookFor(owner);
+        GitHubWebHook.get().registerHookFor(owner);
         try {
             // FIXME MINOR HACK ALERT
             StandardCredentials credentials =
@@ -595,10 +595,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
         } catch (IOException e) {
             DescriptorImpl.LOGGER.log(Level.WARNING, e.getMessage(), e);
         }
-    }
-
-    GitHubWebHook getHook() {
-        return GitHubWebHook.get();
     }
 
     @Symbol("github")

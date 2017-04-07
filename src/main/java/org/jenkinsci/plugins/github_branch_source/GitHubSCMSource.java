@@ -1211,18 +1211,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @Override
     public void afterSave() {
-        SCMSourceOwner owner = getOwnerNotSynchronized();
+        SCMSourceOwner owner = getOwner();
         if (owner != null) {
-            getHook().registerHookFor(owner);
+            GitHubWebHook.get().registerHookFor(owner);
         }
-    }
-
-    SCMSourceOwner getOwnerNotSynchronized() {
-        return getOwner();
-    }
-
-    GitHubWebHook getHook() {
-        return GitHubWebHook.get();
     }
 
     @Symbol("github")
