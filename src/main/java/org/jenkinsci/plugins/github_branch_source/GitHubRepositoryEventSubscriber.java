@@ -114,12 +114,7 @@ public class GitHubRepositoryEventSubscriber extends GHEventsSubscriber {
                 }
                 final NewSCMSourceEvent e = new NewSCMSourceEvent(event.getTimestamp(), event.getOrigin(), p, repo);
                 // Delaying the indexing for some seconds to avoid GitHub cache
-                Timer.get().schedule(new Runnable() {
-                    @Override
-                    public void run() {
-                        SCMSourceEvent.fireNow(e);
-                    }
-                }, 5, TimeUnit.SECONDS);
+                SCMSourceEvent.fireLater(e, GitHubSCMSource.getEventDelaySeconds(), TimeUnit.SECONDS);
             } else {
                 LOGGER.log(WARNING, "Malformed repository URL {0}", repoUrl);
             }
