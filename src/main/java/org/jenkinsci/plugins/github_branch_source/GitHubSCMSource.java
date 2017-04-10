@@ -56,6 +56,7 @@ import hudson.scm.SCM;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import hudson.util.LogTaskListener;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URL;
@@ -63,6 +64,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +77,7 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import javax.servlet.http.HttpServletResponse;
+import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
@@ -135,6 +138,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     private static /*mostly final*/ int eventDelaySeconds =
             Math.min(300, Math.max(0, Integer.getInteger(GitHubSCMSource.class.getName() + ".eventDelaySeconds", 5)));
+    /**
+     * Lock to guard access to the {@link #pullRequestSourceMap} field and prevent concurrent GitHub queries during
+     * a 1.x to 2.1.0+ upgrade.
+     * 
+     * @since 2.1.0
+     */
+    private static final Object pullRequestSourceMapLock = new Object();
 
     private final String apiUri;
 
@@ -198,6 +208,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @NonNull
     private transient /*effectively final*/ Map<Integer,ContributorMetadataAction> pullRequestContributorCache;
+
+    /**
+     * Used during upgrade from 1.x to 2.1.0+ only.
+     *
+     * @see #retrievePullRequestSource(int)
+     * @see PullRequestSCMHead.FixMetadata
+     * @see PullRequestSCMHead.FixMetadataMigration
+     * @since 2.1.0
+     */
+    @CheckForNull // normally null except during a migration from 1.x
+    private transient /*effectively final*/ Map<Integer,PullRequestSource> pullRequestSourceMap;
 
     @DataBoundConstructor
     public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
@@ -722,6 +743,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 // we did a full scan, so trim the cache entries
                 this.pullRequestMetadataCache.keySet().retainAll(pullRequestMetadataKeys);
                 this.pullRequestContributorCache.keySet().retainAll(pullRequestMetadataKeys);
+                if (Jenkins.getActiveInstance().getInitLevel().compareTo(InitMilestone.JOB_LOADED) > 0) {
+                    // synchronization should be cheap as only writers would be looking for this just to write null
+                    synchronized (pullRequestSourceMapLock) {
+                        this.pullRequestSourceMap = null; // all data has to have been migrated
+                    }
+                }
             }
         }
 
@@ -972,6 +999,51 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return StringUtils.removeEnd(StringUtils.removeEnd(apiUri, "/"), "api/v3") + owner + "/" + repo;
         }
         return null;
+    }
+
+    @Deprecated // TODO remove once migration from 1.x is no longer supported
+    PullRequestSource retrievePullRequestSource(int number) {
+        // we use a big honking great lock to prevent concurrent requests to github during job loading
+        Map<Integer, PullRequestSource> pullRequestSourceMap;
+        synchronized (pullRequestSourceMapLock) {
+            pullRequestSourceMap = this.pullRequestSourceMap;
+            if (pullRequestSourceMap == null) {
+                this.pullRequestSourceMap = pullRequestSourceMap = new HashMap<>();
+                if (repository != null && !repository.isEmpty()) {
+                    String fullName = repoOwner + "/" + repository;
+                    LOGGER.log(Level.INFO, "Getting remote pull requests from {0}", fullName);
+                    StandardCredentials credentials =
+                            Connector.lookupScanCredentials((Item) getOwner(), apiUri, scanCredentialsId);
+                    LogTaskListener listener = new LogTaskListener(LOGGER, Level.INFO);
+                    try {
+                        GitHub github = Connector.connect(apiUri, credentials);
+                        try {
+                            checkApiUrlValidity(github);
+                            Connector.checkApiRateLimit(listener, github);
+                            ghRepository = github.getRepository(fullName);
+                            LOGGER.log(Level.INFO, "Got remote pull requests from {0}", fullName);
+                            int n = 0;
+                            for (GHPullRequest pr: ghRepository.queryPullRequests().state(GHIssueState.OPEN).list()) {
+                                pullRequestSourceMap.put(pr.getNumber(), new PullRequestSource(
+                                        pr.getHead().getRepository().getOwnerName(),
+                                        pr.getHead().getRepository().getName(),
+                                        pr.getHead().getRef()));
+                                n++;
+                                if (n % 30  == 0) { // default page size is 30
+                                    Connector.checkApiRateLimit(listener, github);
+                                }
+                            }
+                        } finally {
+                            Connector.release(github);
+                        }
+                    } catch (IOException | InterruptedException e) {
+                        LOGGER.log(Level.WARNING,
+                                "Could not get all pull requests from " + fullName + ", there may be rebuilds", e);
+                    }
+                }
+            }
+            return pullRequestSourceMap.get(number);
+        }
     }
 
     /**
