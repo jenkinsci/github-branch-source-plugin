@@ -27,7 +27,6 @@ import com.cloudbees.jenkins.GitHubRepositoryName;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Item;
-import hudson.model.Job;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.Set;
@@ -42,7 +41,6 @@ import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorOwner;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceEvent;
-import jenkins.util.Timer;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
 import org.kohsuke.github.GHEvent;
@@ -114,12 +112,7 @@ public class GitHubRepositoryEventSubscriber extends GHEventsSubscriber {
                 }
                 final NewSCMSourceEvent e = new NewSCMSourceEvent(event.getTimestamp(), event.getOrigin(), p, repo);
                 // Delaying the indexing for some seconds to avoid GitHub cache
-                Timer.get().schedule(new Runnable() {
-                    @Override
-                    public void run() {
-                        SCMSourceEvent.fireNow(e);
-                    }
-                }, 5, TimeUnit.SECONDS);
+                SCMSourceEvent.fireLater(e, GitHubSCMSource.getEventDelaySeconds(), TimeUnit.SECONDS);
             } else {
                 LOGGER.log(WARNING, "Malformed repository URL {0}", repoUrl);
             }
