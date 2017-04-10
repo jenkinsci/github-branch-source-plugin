@@ -23,6 +23,7 @@
     <properties>
         <jenkins.version>1.625.3</jenkins.version>
         <workflow.version>1.14.2</workflow.version>
+        <scm-api.version>2.1.1</scm-api.version>
     </properties>
 
     <scm>
@@ -35,7 +36,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>scm-api</artifactId>
-            <version>2.1.1</version>
+            <version>${scm-api.version}</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -80,6 +81,13 @@
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>script-security</artifactId>
             <version>1.16</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>scm-api</artifactId>
+            <version>${scm-api.version}</version>
+            <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
