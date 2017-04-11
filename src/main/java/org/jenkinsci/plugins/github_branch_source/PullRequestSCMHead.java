@@ -185,6 +185,15 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         return target;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
+    public String getOriginName() {
+        return sourceBranch;
+    }
+
     public String getSourceOwner() {
         return sourceOwner;
     }
