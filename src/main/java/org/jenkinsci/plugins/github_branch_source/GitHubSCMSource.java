@@ -121,7 +121,7 @@ import static hudson.model.Items.XSTREAM2;
 public class GitHubSCMSource extends AbstractGitSCMSource {
 
     public static final String VALID_GITHUB_REPO_NAME = "^[0-9A-Za-z._-]+$";
-    public static final String VALID_GITHUB_USER_NAME = "^[0-9A-Za-z]([0-9A-Za-z._-]+[0-9A-Za-z])$";
+    public static final String VALID_GITHUB_USER_NAME = "^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$";
     public static final String VALID_GIT_SHA1 = "^[a-fA-F0-9]{40}$";
     public static final String GITHUB_URL = GitHubServerConfig.GITHUB_URL;
     private static final Logger LOGGER = Logger.getLogger(GitHubSCMSource.class.getName());
