@@ -907,9 +907,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (repoUrl != null) {
                 setBrowser(scm, repoUrl);
             }
-
         }
-        scm.getExtensions().add(new UserExclusion(authorExcludes));
+        if (StringUtils.isNotBlank(authorExcludes)) {
+            scm.getExtensions().add(new UserExclusion(authorExcludes));
+        }
         return scm;
     }
 
