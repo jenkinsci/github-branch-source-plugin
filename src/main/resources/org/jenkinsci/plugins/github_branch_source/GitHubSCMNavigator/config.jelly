@@ -30,6 +30,9 @@
         <f:entry title="${%Exclude branches}" field="excludes">
             <f:textbox default="${descriptor.defaultExcludes}"/>
         </f:entry>
+        <f:entry title="${%Exclude commits by these authors}" field="authorExcludes">
+            <f:textbox default="${descriptor.defaultAuthorExcludes}"/>
+        </f:entry>
         <f:entry title="${%buildOriginBranch.title}" field="buildOriginBranch">
             <f:checkbox default="${descriptor.defaultBuildOriginBranch}"/>
         </f:entry>

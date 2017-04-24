@@ -40,52 +40,21 @@ import hudson.Util;
 import hudson.console.HyperlinkNote;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
-import hudson.model.Action;
-import hudson.model.Actionable;
-import hudson.model.Item;
-import hudson.model.Run;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.plugins.git.GitException;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.Revision;
 import hudson.plugins.git.browser.GithubWeb;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.PreBuildMerge;
+import hudson.plugins.git.extensions.impl.UserExclusion;
 import hudson.plugins.git.util.MergeRecord;
 import hudson.scm.SCM;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
-import javax.servlet.http.HttpServletResponse;
 import jenkins.plugins.git.AbstractGitSCMSource;
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMHeadCategory;
-import jenkins.scm.api.SCMHeadEvent;
-import jenkins.scm.api.SCMHeadObserver;
-import jenkins.scm.api.SCMProbe;
-import jenkins.scm.api.SCMRevision;
-import jenkins.scm.api.SCMSourceCriteria;
-import jenkins.scm.api.SCMSourceDescriptor;
-import jenkins.scm.api.SCMSourceEvent;
-import jenkins.scm.api.SCMSourceOwner;
+import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.ContributorMetadataAction;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
@@ -102,19 +71,23 @@ import org.jenkinsci.plugins.gitclient.MergeCommand;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.github.GHBranch;
-import org.kohsuke.github.GHIssueState;
-import org.kohsuke.github.GHMyself;
-import org.kohsuke.github.GHOrganization;
-import org.kohsuke.github.GHPullRequest;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GHUser;
-import org.kohsuke.github.GitHub;
-import org.kohsuke.github.HttpException;
+import org.kohsuke.github.*;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URL;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import static hudson.model.Items.XSTREAM2;
 
@@ -153,6 +126,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @NonNull
     private String excludes = DescriptorImpl.defaultExcludes;
+
+    @NonNull
+    private String authorExcludes = DescriptorImpl.defaultAuthorExcludes;
 
     /** Whether to build regular origin branches. */
     @NonNull
@@ -371,6 +347,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @DataBoundSetter public void setExcludes(@NonNull String excludes) {
         this.excludes = excludes;
+    }
+
+    @NonNull
+    public String getAuthorExcludes() {
+        return authorExcludes;
+    }
+
+    @DataBoundSetter public void setAuthorExcludes(@NonNull String authorExcludes) {
+        this.authorExcludes = authorExcludes;
     }
 
     public boolean getBuildOriginBranch() {
@@ -877,21 +862,21 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @Override
     public SCM build(SCMHead head, SCMRevision revision) {
+        GitSCM scm = null;
         if (revision == null) {
             // TODO will this work sanely for PRs? Branch.scm seems to be used only as a fallback for SCMBinder/SCMVar where they would perhaps better just report an error.
-            GitSCM scm = (GitSCM) super.build(head, null);
+            scm = (GitSCM) super.build(head, null);
             String repoUrl = repositoryUrl(getRepoOwner(), getRepository());
             if (repoUrl != null) {
                 setBrowser(scm, repoUrl);
             }
-            return scm;
         } else if (head instanceof PullRequestSCMHead && ((PullRequestSCMHead) head).getSourceRepo() != null) {
             if (revision instanceof PullRequestSCMRevision) {
                 PullRequestSCMRevision prRev = (PullRequestSCMRevision) revision;
                 // we rely on GitHub exposing the pull request revision on the target repository
                 // TODO determine how we should name the checked out PR branch, as that affects the BRANCH_NAME env var
                 SCMHead checkoutHead = head; // should probably have been head.getTarget() but historical
-                GitSCM scm = (GitSCM) super.build(checkoutHead, new SCMRevisionImpl(checkoutHead, prRev.getPullHash()));
+                scm = (GitSCM) super.build(checkoutHead, new SCMRevisionImpl(checkoutHead, prRev.getPullHash()));
                 if (((PullRequestSCMHead) head).isMerge()) {
                     scm.getExtensions().add(new MergeWith(
                             StringUtils.defaultIfBlank(
@@ -910,21 +895,22 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 LOGGER.log(Level.WARNING, "Unexpected revision class {0} for {1}", new Object[]{
                         revision.getClass().getName(), head
                 });
-                GitSCM scm = (GitSCM) super.build(head, revision);
+                scm = (GitSCM) super.build(head, revision);
                 String repoUrl = repositoryUrl(getRepoOwner(), getRepository());
                 if (repoUrl != null) {
                     setBrowser(scm, repoUrl);
                 }
-                return scm;
             }
         } else {
-            GitSCM scm = (GitSCM) super.build(head, /* casting just as an assertion */(SCMRevisionImpl) revision);
+            scm = (GitSCM) super.build(head, /* casting just as an assertion */(SCMRevisionImpl) revision);
             String repoUrl = repositoryUrl(getRepoOwner(), getRepository());
             if (repoUrl != null) {
                 setBrowser(scm, repoUrl);
             }
-            return scm;
+
         }
+        scm.getExtensions().add(new UserExclusion(authorExcludes));
+        return scm;
     }
 
     // TODO remove and replace with scm.setBrowser(repoUrl) directly once baseline Git plugin 3.0.2+
@@ -1223,6 +1209,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         public static final String defaultIncludes = "*";
         public static final String defaultExcludes = "";
+        public static final String defaultAuthorExcludes = "";
         public static final String ANONYMOUS = "ANONYMOUS";
         public static final String SAME = "SAME";
         // Prior to JENKINS-33161 the unconditional behavior was to build fork PRs plus origin branches, and try to build a merge revision for PRs.
