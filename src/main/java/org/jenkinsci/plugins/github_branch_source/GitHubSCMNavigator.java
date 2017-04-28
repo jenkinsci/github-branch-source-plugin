@@ -27,10 +27,12 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
+import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
 import hudson.model.Action;
@@ -41,29 +43,37 @@ import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
-import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
 import jenkins.scm.api.SCMNavigatorEvent;
 import jenkins.scm.api.SCMNavigatorOwner;
+import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCategory;
 import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
+import jenkins.scm.api.trait.SCMNavigatorRequest;
+import jenkins.scm.api.trait.SCMNavigatorTrait;
+import jenkins.scm.api.trait.SCMSourceTrait;
+import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
+import jenkins.scm.api.trait.SCMTrait;
+import jenkins.scm.api.trait.SCMTraitDescriptor;
 import jenkins.scm.impl.UncategorizedSCMSourceCategory;
+import jenkins.scm.impl.trait.RegexSCMSourceFilterTrait;
+import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
 import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
@@ -71,7 +81,6 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
-import org.kohsuke.github.PagedIterable;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -79,139 +88,55 @@ import org.kohsuke.stapler.QueryParameter;
 
 public class GitHubSCMNavigator extends SCMNavigator {
 
+    @NonNull
     private final String repoOwner;
+    @CheckForNull
     private final String scanCredentialsId;
-    private final String checkoutCredentialsId;
+    @CheckForNull
     private final String apiUri;
-    private String pattern = ".*";
+    @NonNull
+    private List<SCMTrait<? extends SCMTrait<?>>> traits;
 
-    @CheckForNull
+    @Deprecated
+    private transient String checkoutCredentialsId;
+    @Deprecated
+    private transient String pattern;
+    @Deprecated
     private String includes;
-    @CheckForNull
+    @Deprecated
     private String excludes;
-    /** Whether to build regular origin branches. */
-    @Nonnull
-    private Boolean buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
-    /** Whether to build origin branches which happen to also have a PR filed from them (but here we are naming and building as a branch). */
-    @Nonnull
-    private Boolean buildOriginBranchWithPR = DescriptorImpl.defaultBuildOriginBranchWithPR;
-    /** Whether to build PRs filed from the origin, where the build is of the merge with the base branch. */
-    @Nonnull
-    private Boolean buildOriginPRMerge = DescriptorImpl.defaultBuildOriginPRMerge;
-    /** Whether to build PRs filed from the origin, where the build is of the branch head. */
-    @Nonnull
-    private Boolean buildOriginPRHead = DescriptorImpl.defaultBuildOriginPRHead;
-    /** Whether to build PRs filed from a fork, where the build is of the merge with the base branch. */
-    @Nonnull
-    private Boolean buildForkPRMerge = DescriptorImpl.defaultBuildForkPRMerge;
-    /** Whether to build PRs filed from a fork, where the build is of the branch head. */
-    @Nonnull
-    private Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+    @Deprecated
+    private transient Boolean buildOriginBranch;
+    @Deprecated
+    private transient Boolean buildOriginBranchWithPR;
+    @Deprecated
+    private transient Boolean buildOriginPRMerge;
+    @Deprecated
+    private transient Boolean buildOriginPRHead;
+    @Deprecated
+    private transient Boolean buildForkPRMerge;
+    @Deprecated
+    private transient Boolean buildForkPRHead;
 
     @DataBoundConstructor
+    public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId) {
+        this.apiUri = Util.fixEmptyAndTrim(apiUri);
+        this.repoOwner = repoOwner;
+        this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
+        this.traits = new ArrayList<>();
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
     public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
         this.repoOwner = repoOwner;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
-        this.checkoutCredentialsId = checkoutCredentialsId;
         this.apiUri = Util.fixEmpty(apiUri);
-    }
-
-    /** Use defaults for old settings. */
-    @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="Only non-null after we set them here!")
-    private Object readResolve() {
-        if (buildOriginBranch == null) {
-            buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
+        this.traits = new ArrayList<>();
+        if (!GitHubSCMSource.DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
+            traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
         }
-        if (buildOriginBranchWithPR == null) {
-            buildOriginBranchWithPR = DescriptorImpl.defaultBuildOriginBranchWithPR;
-        }
-        if (buildOriginPRMerge == null) {
-            buildOriginPRMerge = DescriptorImpl.defaultBuildOriginPRMerge;
-        }
-        if (buildOriginPRHead == null) {
-            buildOriginPRHead = DescriptorImpl.defaultBuildOriginPRHead;
-        }
-        if (buildForkPRMerge == null) {
-            buildForkPRMerge = DescriptorImpl.defaultBuildForkPRMerge;
-        }
-        if (buildForkPRHead == null) {
-            buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
-        }
-        return this;
-    }
-
-    @Nonnull
-    public String getIncludes() {
-        return includes != null ? includes : DescriptorImpl.defaultIncludes;
-    }
-
-    @DataBoundSetter
-    public void setIncludes(@Nonnull String includes) {
-        this.includes = includes.equals(DescriptorImpl.defaultIncludes) ? null : includes;
-    }
-
-    @Nonnull
-    public String getExcludes() {
-        return excludes != null ? excludes : DescriptorImpl.defaultExcludes;
-    }
-
-    @DataBoundSetter
-    public void setExcludes(@Nonnull String excludes) {
-        this.excludes = excludes.equals(DescriptorImpl.defaultExcludes) ? null : excludes;
-    }
-    
-    public boolean getBuildOriginBranch() {
-        return buildOriginBranch;
-    }
-
-    @DataBoundSetter
-    public void setBuildOriginBranch(boolean buildOriginBranch) {
-        this.buildOriginBranch = buildOriginBranch;
-    }
-
-    public boolean getBuildOriginBranchWithPR() {
-        return buildOriginBranchWithPR;
-    }
-
-    @DataBoundSetter
-    public void setBuildOriginBranchWithPR(boolean buildOriginBranchWithPR) {
-        this.buildOriginBranchWithPR = buildOriginBranchWithPR;
-    }
-
-    public boolean getBuildOriginPRMerge() {
-        return buildOriginPRMerge;
-    }
-
-    @DataBoundSetter
-    public void setBuildOriginPRMerge(boolean buildOriginPRMerge) {
-        this.buildOriginPRMerge = buildOriginPRMerge;
-    }
-
-    public boolean getBuildOriginPRHead() {
-        return buildOriginPRHead;
-    }
-
-    @DataBoundSetter
-    public void setBuildOriginPRHead(boolean buildOriginPRHead) {
-        this.buildOriginPRHead = buildOriginPRHead;
-    }
-
-    public boolean getBuildForkPRMerge() {
-        return buildForkPRMerge;
-    }
-
-    @DataBoundSetter
-    public void setBuildForkPRMerge(boolean buildForkPRMerge) {
-        this.buildForkPRMerge = buildForkPRMerge;
-    }
-
-    public boolean getBuildForkPRHead() {
-        return buildForkPRHead;
-    }
-
-    @DataBoundSetter
-    public void setBuildForkPRHead(boolean buildForkPRHead) {
-        this.buildForkPRHead = buildForkPRHead;
     }
 
     public String getRepoOwner() {
@@ -219,28 +144,339 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     @CheckForNull
-    public String getScanCredentialsId() {
-        return scanCredentialsId;
-    }
-
-    @CheckForNull
-    public String getCheckoutCredentialsId() {
-        return checkoutCredentialsId;
-    }
-
-    public String getPattern() {
-        return pattern;
-    }
-
-    @CheckForNull
     public String getApiUri() {
         return apiUri;
     }
 
+    @CheckForNull
+    public String getScanCredentialsId() {
+        return scanCredentialsId;
+    }
+
+    @NonNull
+    public List<SCMTrait<? extends SCMTrait<?>>> getTraits() {
+        return traits;
+    }
+
+    @DataBoundSetter
+    public void setTraits(@edu.umd.cs.findbugs.annotations.CheckForNull List<SCMTrait<? extends SCMTrait<?>>> traits) {
+        this.traits = traits != null ? new ArrayList<>(traits) : new ArrayList<SCMTrait<? extends SCMTrait<?>>>();
+    }
+
+    /** Use defaults for old settings. */
+    @SuppressWarnings("ConstantConditions")
+    @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="Only non-null after we set them here!")
+    private Object readResolve() {
+        if (traits == null) {
+            boolean buildOriginBranch = this.buildOriginBranch == null
+                    ? DescriptorImpl.defaultBuildOriginBranch : this.buildOriginBranch;
+            boolean buildOriginBranchWithPR = this.buildOriginBranchWithPR == null
+                    ? DescriptorImpl.defaultBuildOriginBranchWithPR : this.buildOriginBranchWithPR;
+            boolean buildOriginPRMerge = this.buildOriginPRMerge == null
+                    ? DescriptorImpl.defaultBuildOriginPRMerge : this.buildOriginPRMerge;
+            boolean buildOriginPRHead = this.buildOriginPRHead == null
+                    ? DescriptorImpl.defaultBuildOriginPRHead : this.buildOriginPRHead;
+            boolean buildForkPRMerge = this.buildForkPRMerge
+                    ? DescriptorImpl.defaultBuildForkPRMerge : this.buildForkPRMerge;
+            boolean buildForkPRHead = this.buildForkPRHead
+                    ? DescriptorImpl.defaultBuildForkPRHead : this.buildForkPRHead;
+            List<SCMTrait<? extends SCMTrait<?>>> traits = new ArrayList<>();
+            if (buildOriginBranch || buildOriginBranchWithPR) {
+                traits.add(new BranchDiscoveryTrait(buildOriginBranch, buildOriginBranchWithPR));
+            }
+            if (buildOriginPRMerge || buildOriginPRHead) {
+                traits.add(new OriginPullRequestDiscoveryTrait(buildOriginPRMerge, buildOriginPRHead));
+            }
+            if (buildForkPRMerge || buildForkPRHead) {
+                traits.add(new ForkPullRequestDiscoveryTrait(buildForkPRMerge, buildForkPRHead));
+            }
+            if (!GitHubSCMSource.DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
+                traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
+            }
+            if (!GitHubSCMSource.DescriptorImpl.defaultIncludes.equals(includes)
+                    || !GitHubSCMSource.DescriptorImpl.defaultExcludes.equals(excludes)) {
+                traits.add(new WildcardSCMHeadFilterTrait(includes, excludes));
+            }
+            if (pattern != null && !".*".equals(pattern)) {
+                traits.add(new RegexSCMSourceFilterTrait(pattern));
+            }
+            this.traits = traits;
+        }
+        return this;
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    @NonNull
+    public String getIncludes() {
+        for (SCMTrait<?> trait : traits) {
+            if (trait instanceof WildcardSCMHeadFilterTrait) {
+                return ((WildcardSCMHeadFilterTrait) trait).getIncludes();
+            }
+        }
+        return GitHubSCMSource.DescriptorImpl.defaultIncludes;
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    @DataBoundSetter
+    public void setIncludes(@NonNull String includes) {
+        for (int i = 0; i < traits.size(); i++) {
+            SCMTrait<?> trait = traits.get(i);
+            if (trait instanceof WildcardSCMHeadFilterTrait) {
+                traits.set(i,
+                        new WildcardSCMHeadFilterTrait(includes, ((WildcardSCMHeadFilterTrait) trait).getExcludes()));
+                return;
+            }
+        }
+        traits.add(new WildcardSCMHeadFilterTrait(includes, GitHubSCMSource.DescriptorImpl.defaultExcludes));
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    @NonNull
+    public String getExcludes() {
+        for (SCMTrait<?> trait : traits) {
+            if (trait instanceof WildcardSCMHeadFilterTrait) {
+                return ((WildcardSCMHeadFilterTrait) trait).getExcludes();
+            }
+        }
+        return GitHubSCMSource.DescriptorImpl.defaultExcludes;
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    @DataBoundSetter
+    public void setExcludes(@NonNull String excludes) {
+        for (int i = 0; i < traits.size(); i++) {
+            SCMTrait<?> trait = traits.get(i);
+            if (trait instanceof WildcardSCMHeadFilterTrait) {
+                traits.set(i,
+                        new WildcardSCMHeadFilterTrait(((WildcardSCMHeadFilterTrait) trait).getIncludes(), excludes));
+                return;
+            }
+        }
+        traits.add(new WildcardSCMHeadFilterTrait(GitHubSCMSource.DescriptorImpl.defaultIncludes, excludes));
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    public boolean getBuildOriginBranch() {
+        for (SCMTrait<?> trait : traits) {
+            if (trait instanceof BranchDiscoveryTrait) {
+                return ((BranchDiscoveryTrait) trait).isBuildBranch();
+            }
+        }
+        return false;
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    @DataBoundSetter
+    public void setBuildOriginBranch(boolean buildOriginBranch) {
+        for (int i = 0; i < traits.size(); i++) {
+            SCMTrait<?> trait = traits.get(i);
+            if (trait instanceof BranchDiscoveryTrait) {
+                traits.set(i, new BranchDiscoveryTrait(
+                        buildOriginBranch, ((BranchDiscoveryTrait) trait).isBuildBranchesWithPR()
+                ));
+                return;
+            }
+        }
+        traits.add(new BranchDiscoveryTrait(buildOriginBranch, false));
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    public boolean getBuildOriginBranchWithPR() {
+        for (SCMTrait<?> trait : traits) {
+            if (trait instanceof BranchDiscoveryTrait) {
+                return ((BranchDiscoveryTrait) trait).isBuildBranchesWithPR();
+            }
+        }
+        return false;
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    @DataBoundSetter
+    public void setBuildOriginBranchWithPR(boolean buildOriginBranchWithPR) {
+        for (int i = 0; i < traits.size(); i++) {
+            SCMTrait<?> trait = traits.get(i);
+            if (trait instanceof BranchDiscoveryTrait) {
+                traits.set(i, new BranchDiscoveryTrait(
+                        ((BranchDiscoveryTrait) trait).isBuildBranch(), buildOriginBranchWithPR
+                ));
+                return;
+            }
+        }
+        traits.add(new BranchDiscoveryTrait(false, buildOriginBranchWithPR));
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    public boolean getBuildOriginPRMerge() {
+        for (SCMTrait<?> trait : traits) {
+            if (trait instanceof OriginPullRequestDiscoveryTrait) {
+                return ((OriginPullRequestDiscoveryTrait) trait).isPRMerge();
+            }
+        }
+        return false;
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    @DataBoundSetter
+    public void setBuildOriginPRMerge(boolean buildOriginPRMerge) {
+        for (int i = 0; i < traits.size(); i++) {
+            SCMTrait<?> trait = traits.get(i);
+            if (trait instanceof OriginPullRequestDiscoveryTrait) {
+                traits.set(i, new OriginPullRequestDiscoveryTrait(
+                        buildOriginPRMerge, ((OriginPullRequestDiscoveryTrait)trait).isPRHead()
+                ));
+                return;
+            }
+        }
+        traits.add(new OriginPullRequestDiscoveryTrait(buildOriginPRMerge, false));
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    public boolean getBuildOriginPRHead() {
+        for (SCMTrait<?> trait : traits) {
+            if (trait instanceof OriginPullRequestDiscoveryTrait) {
+                return ((OriginPullRequestDiscoveryTrait) trait).isPRHead();
+            }
+        }
+        return false;
+
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    @DataBoundSetter
+    public void setBuildOriginPRHead(boolean buildOriginPRHead) {
+        for (int i = 0; i < traits.size(); i++) {
+            SCMTrait<?> trait = traits.get(i);
+            if (trait instanceof OriginPullRequestDiscoveryTrait) {
+                traits.set(i, new OriginPullRequestDiscoveryTrait(
+                        ((OriginPullRequestDiscoveryTrait) trait).isPRMerge(), buildOriginPRHead
+                ));
+                return;
+            }
+        }
+        traits.add(new OriginPullRequestDiscoveryTrait(false, buildOriginPRHead));
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    public boolean getBuildForkPRMerge() {
+        for (SCMTrait<?> trait : traits) {
+            if (trait instanceof ForkPullRequestDiscoveryTrait) {
+                return ((ForkPullRequestDiscoveryTrait) trait).isPRMerge();
+            }
+        }
+        return false;
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    @DataBoundSetter
+    public void setBuildForkPRMerge(boolean buildForkPRMerge) {
+        for (int i = 0; i < traits.size(); i++) {
+            SCMTrait<?> trait = traits.get(i);
+            if (trait instanceof ForkPullRequestDiscoveryTrait) {
+                traits.set(i, new ForkPullRequestDiscoveryTrait(
+                        buildForkPRMerge, ((ForkPullRequestDiscoveryTrait) trait).isPRHead()
+                ));
+                return;
+            }
+        }
+        traits.add(new ForkPullRequestDiscoveryTrait(buildForkPRMerge, false));
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    public boolean getBuildForkPRHead() {
+        for (SCMTrait<?> trait : traits) {
+            if (trait instanceof ForkPullRequestDiscoveryTrait) {
+                return ((ForkPullRequestDiscoveryTrait) trait).isPRHead();
+            }
+        }
+        return false;
+
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    @DataBoundSetter
+    public void setBuildForkPRHead(boolean buildForkPRHead) {
+        for (int i = 0; i < traits.size(); i++) {
+            SCMTrait<?> trait = traits.get(i);
+            if (trait instanceof ForkPullRequestDiscoveryTrait) {
+                traits.set(i, new ForkPullRequestDiscoveryTrait(
+                        ((ForkPullRequestDiscoveryTrait) trait).isPRMerge(), buildForkPRHead
+                ));
+                return;
+            }
+        }
+        traits.add(new ForkPullRequestDiscoveryTrait(false, buildForkPRHead));
+    }
+
+    @CheckForNull
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    public String getCheckoutCredentialsId() {
+        for (SCMTrait<?> trait : traits) {
+            if (trait instanceof SSHCheckoutTrait) {
+                return ((SSHCheckoutTrait) trait).getCredentialsId();
+            }
+        }
+        return GitHubSCMSource.DescriptorImpl.SAME;
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    public String getPattern() {
+        for (SCMTrait<?> trait : traits) {
+            if (trait instanceof RegexSCMSourceFilterTrait) {
+                return ((RegexSCMSourceFilterTrait) trait).getRegex();
+            }
+        }
+        return ".*";
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
     @DataBoundSetter
     public void setPattern(String pattern) {
-        Pattern.compile(pattern);
-        this.pattern = pattern;
+        for (int i = 0; i < traits.size(); i++) {
+            SCMTrait<?> trait = traits.get(i);
+            if (trait instanceof RegexSCMSourceFilterTrait) {
+                traits.set(i, new RegexSCMSourceFilterTrait(pattern));
+                return;
+            }
+        }
+        traits.add(new RegexSCMSourceFilterTrait(pattern));
     }
 
     @NonNull
@@ -251,6 +487,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
     @Override
     public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
+        Set<String> includes = observer.getIncludes();
+        if (includes != null && includes.size() == 1) {
+            // optimize for the single source case
+            visitSource(includes.iterator().next(), observer);
+            return;
+        }
         TaskListener listener = observer.getListener();
 
         // Input data validation
@@ -274,144 +516,103 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 throw new AbortException(message);
             }
 
-            Set<String> includes = observer.getIncludes();
-            int repoCount = 0;
-            if (!github.isAnonymous()) {
-                GHMyself myself = null;
+            GitHubSCMNavigatorRequest request = new GitHubSCMNavigatorContext()
+                    .withTraits() // TODO
+                    .newRequest(this, observer);
+            try {
+                SourceFactoryImpl sourceFactory = new SourceFactoryImpl(request);
+                WitnessImpl witness = new WitnessImpl(listener);
+
+                if (!github.isAnonymous()) {
+                    GHMyself myself = null;
+                    try {
+                        // Requires an authenticated access
+                        myself = github.getMyself();
+                    } catch (RateLimitExceededException rle) {
+                        throw new AbortException(rle.getMessage());
+                    }
+                    if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                            "Looking up repositories of myself %s", repoOwner
+                                    )));
+                        for (GHRepository repo : myself.listRepositories(100)) {
+                            Connector.checkApiRateLimit(listener, github);
+                            if (!repo.getOwnerName().equals(repoOwner)) {
+                                continue; // ignore repos in other orgs when using GHMyself
+                            }
+                            if (request.process(repo.getName(), sourceFactory, null, witness)) {
+                                listener.getLogger()
+                                        .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                                "%d repositories were processed (query completed)", witness.getCount()
+                                        )));
+                            }
+                        }
+                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                "%d repositories were processed", witness.getCount()
+                        )));
+                        return;
+                    }
+                }
+
+                GHOrganization org = null;
                 try {
-                    // Requires an authenticated access
-                    myself = github.getMyself();
+                    org = github.getOrganization(repoOwner);
                 } catch (RateLimitExceededException rle) {
                     throw new AbortException(rle.getMessage());
+                } catch (FileNotFoundException fnf) {
+                    // may be an user... ok to ignore
                 }
-                if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
-                    Iterable<GHRepository> repositories;
-                    if (includes != null && includes.size() == 1) {
-                        String repoName = includes.iterator().next();
-                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                "Looking up repository %s of myself %s", repoName, repoOwner
-                        )));
-                        GHRepository repo = myself.getRepository(repoName);
-                        repositories = repo == null ? Collections.<GHRepository>emptyList() : Collections.singletonList(repo);
-                    } else {
-                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                "Looking up repositories of myself %s", repoOwner
-                        )));
-                        repositories = myself.listRepositories(100);
-                    }
-                    for (GHRepository repo : repositories) {
-                        if (includes != null && !includes.contains(repo.getName())) {
-                            // skip as early as possible when the observer doesn't want it
-                            continue;
-                        }
-                        if (!observer.isObserving()) {
-                            listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                    "%d repositories were processed (query completed)", repoCount
-                            )));
-                            return;
-                        }
-                        checkInterrupt();
-                        Connector.checkApiRateLimit(listener, github);
-                        if (!repo.getOwnerName().equals(repoOwner)) {
-                            continue; // ignore repos in other orgs when using GHMyself
-                        }
-                        add(listener, observer, repo);
-                    }
-                    return;
-                }
-            }
-
-            GHOrganization org = null;
-            try {
-                org = github.getOrganization(repoOwner);
-            } catch (RateLimitExceededException rle) {
-                throw new AbortException(rle.getMessage());
-            } catch (FileNotFoundException fnf) {
-                // may be an user... ok to ignore
-            }
-            if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
-                Iterable<GHRepository> repositories;
-                if (includes != null && includes.size() == 1) {
-                    String repoName = includes.iterator().next();
-                    listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                            "Looking up repository %s of organization %s", repoName, repoOwner
-                    )));
-                    GHRepository repo = org.getRepository(repoName);
-                    repositories = repo == null
-                            ? Collections.<GHRepository>emptyList()
-                            : Collections.singletonList(repo);
-                } else {
+                if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
                     listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                             "Looking up repositories of organization %s", repoOwner
                     )));
-                    repositories = org.listRepositories(100);
+                    for (GHRepository repo : org.listRepositories(100)) {
+                        Connector.checkApiRateLimit(listener, github);
+                        if (request.process(repo.getName(), sourceFactory, null, witness)) {
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                            "%d repositories were processed (query completed)", witness.getCount()
+                                    )));
+                        }
+                    }
+                    listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                            "%d repositories were processed", witness.getCount()
+                    )));
+                    return;
                 }
-                for (GHRepository repo : repositories) {
-                    if (includes != null && !includes.contains(repo.getName())) {
-                        // skip as early as possible when the observer doesn't want it
-                        continue;
-                    }
-                    if (!observer.isObserving()) {
-                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                "%d repositories were processed (query completed)", repoCount
-                        )));
-                        return;
-                    }
-                    checkInterrupt();
-                    Connector.checkApiRateLimit(listener, github);
-                    if (add(listener, observer, repo)) {
-                        repoCount++;
-                    }
-                }
-                listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                        "%d repositories were processed", repoCount
-                )));
-                return;
-            }
 
-            GHUser user = null;
-            try {
-                user = github.getUser(repoOwner);
-            } catch (RateLimitExceededException rle) {
-                throw new AbortException(rle.getMessage());
-            } catch (FileNotFoundException fnf) {
-                // the user may not exist... ok to ignore
-            }
-            if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
-                Iterable<GHRepository> repositories;
-                if (includes != null && includes.size() == 1) {
-                    String repoName = includes.iterator().next();
-                    listener.getLogger().format("Looking up repository %s of user %s%n%n", repoName, repoOwner);
-                    GHRepository repo = user.getRepository(repoName);
-                    repositories = repo == null
-                            ? Collections.<GHRepository>emptyList()
-                            : Collections.singletonList(repo);
-                } else {
+                GHUser user = null;
+                try {
+                    user = github.getUser(repoOwner);
+                } catch (RateLimitExceededException rle) {
+                    throw new AbortException(rle.getMessage());
+                } catch (FileNotFoundException fnf) {
+                    // the user may not exist... ok to ignore
+                }
+                if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
                     listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
-                    repositories = user.listRepositories(100);
-                }
-                for (GHRepository repo : repositories) {
-                    if (includes != null && !includes.contains(repo.getName())) {
-                        // skip as early as possible when the observer doesn't want it
-                        continue;
-                    }
-                    if (!observer.isObserving()) {
-                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                "%d repositories were processed (query completed)", repoCount
-                        )));
-                        return;
-                    }
-                    checkInterrupt();
                     Connector.checkApiRateLimit(listener, github);
-                    add(listener, observer, repo);
+                    for (GHRepository repo : user.listRepositories(100)) {
+                        Connector.checkApiRateLimit(listener, github);
+                        if (request.process(repo.getName(), sourceFactory, null, witness)) {
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                            "%d repositories were processed (query completed)", witness.getCount()
+                                    )));
+                        }
+                    }
+                    listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                            "%d repositories were processed", witness.getCount()
+                    )));
+                    return;
                 }
-                listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                        "%d repositories were processed", repoCount
-                )));
-                return;
-            }
 
-            throw new AbortException(repoOwner + " does not correspond to a known GitHub User Account or Organization");
+                throw new AbortException(
+                        repoOwner + " does not correspond to a known GitHub User Account or Organization");
+            } finally {
+                request.close();
+            }
         } finally {
             Connector.release(github);
         }
@@ -449,96 +650,104 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 throw new AbortException(message);
             }
 
-            if (!github.isAnonymous()) {
-                listener.getLogger()
-                        .format("Connecting to %s using %s%n", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri,
-                                CredentialsNameProvider.name(credentials));
-                GHMyself myself = null;
+            GitHubSCMNavigatorRequest request = new GitHubSCMNavigatorContext()
+                    .withTraits() // TODO
+                    .newRequest(this, observer);
+            try {
+                SourceFactoryImpl sourceFactory = new SourceFactoryImpl(request);
+                WitnessImpl witness = new WitnessImpl(listener);
+
+                if (!github.isAnonymous()) {
+                    listener.getLogger()
+                            .format("Connecting to %s using %s%n", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri,
+                                    CredentialsNameProvider.name(credentials));
+                    GHMyself myself = null;
+                    try {
+                        // Requires an authenticated access
+                        myself = github.getMyself();
+                    } catch (RateLimitExceededException rle) {
+                        throw new AbortException(rle.getMessage());
+                    }
+                    if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
+                        listener.getLogger().format("Looking up %s repository of myself %s%n%n", sourceName, repoOwner);
+                        GHRepository repo = myself.getRepository(sourceName);
+                        if (repo != null && repo.getOwnerName().equals(repoOwner)) {
+                            if (request.process(repo.getName(), sourceFactory, null, witness)) {
+                                listener.getLogger()
+                                        .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                                "%d repositories were processed (query completed)", witness.getCount()
+                                        )));
+                            }
+                        }
+                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                "%d repositories were processed", witness.getCount()
+                        )));
+                        return;
+                    }
+                } else {
+                    listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
+                            apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
+                }
+
+                GHOrganization org = null;
                 try {
-                    // Requires an authenticated access
-                    myself = github.getMyself();
+                    org = github.getOrganization(repoOwner);
                 } catch (RateLimitExceededException rle) {
                     throw new AbortException(rle.getMessage());
+                } catch (FileNotFoundException fnf) {
+                    // may be an user... ok to ignore
                 }
-                if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
-                    listener.getLogger().format("Looking up %s repository of myself %s%n%n", sourceName, repoOwner);
-                    GHRepository repo = myself.getRepository(sourceName);
-                    if (repo != null && repo.getOwnerName().equals(repoOwner)) {
-                        add(listener, observer, repo);
+                if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
+                    listener.getLogger()
+                            .format("Looking up %s repository of organization %s%n%n", sourceName, repoOwner);
+                    GHRepository repo = org.getRepository(sourceName);
+                    if (repo != null) {
+                        if (request.process(repo.getName(), sourceFactory, null, witness)) {
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                            "%d repositories were processed (query completed)", witness.getCount()
+                                    )));
+                        }
                     }
+                    listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                            "%d repositories were processed", witness.getCount()
+                    )));
                     return;
                 }
-            } else {
-                listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
-                        apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
-            }
 
-            GHOrganization org = null;
-            try {
-                org = github.getOrganization(repoOwner);
-            } catch (RateLimitExceededException rle) {
-                throw new AbortException(rle.getMessage());
-            } catch (FileNotFoundException fnf) {
-                // may be an user... ok to ignore
-            }
-            if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
-                listener.getLogger().format("Looking up %s repository of organization %s%n%n", sourceName, repoOwner);
-                GHRepository repo = org.getRepository(sourceName);
-                if (repo != null) {
-                    add(listener, observer, repo);
+                GHUser user = null;
+                try {
+                    user = github.getUser(repoOwner);
+                } catch (RateLimitExceededException rle) {
+                    throw new AbortException(rle.getMessage());
+                } catch (FileNotFoundException fnf) {
+                    // the user may not exist... ok to ignore
                 }
-                return;
-            }
-
-            GHUser user = null;
-            try {
-                user = github.getUser(repoOwner);
-            } catch (RateLimitExceededException rle) {
-                throw new AbortException(rle.getMessage());
-            } catch (FileNotFoundException fnf) {
-                // the user may not exist... ok to ignore
-            }
-            if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
-                listener.getLogger().format("Looking up %s repository of user %s%n%n", sourceName, repoOwner);
-                GHRepository repo = user.getRepository(sourceName);
-                if (repo != null) {
-                    add(listener, observer, repo);
+                if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
+                    listener.getLogger().format("Looking up %s repository of user %s%n%n", sourceName, repoOwner);
+                    GHRepository repo = user.getRepository(sourceName);
+                    if (repo != null) {
+                        if (request.process(repo.getName(), sourceFactory, null, witness)) {
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                            "%d repositories were processed (query completed)", witness.getCount()
+                                    )));
+                        }
+                    }
+                    listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                            "%d repositories were processed", witness.getCount()
+                    )));
+                    return;
                 }
-                return;
-            }
 
-            throw new AbortException(repoOwner + " does not correspond to a known GitHub User Account or Organization");
+                throw new AbortException(
+                        repoOwner + " does not correspond to a known GitHub User Account or Organization");
+            } finally {
+                request.close();
+            }
         } finally {
             Connector.release(github);
         }
-    }
-
-    private boolean add(TaskListener listener, SCMSourceObserver observer, GHRepository repo)
-            throws InterruptedException, IOException {
-        String name = repo.getName();
-        if (!Pattern.compile(pattern).matcher(name).matches()) {
-            listener.getLogger().format("Ignoring %s%n", name);
-            return false;
-        }
-        listener.getLogger().format("Proposing %s%n", name);
-        checkInterrupt();
-        SCMSourceObserver.ProjectObserver projectObserver = observer.observe(name);
-
-        GitHubSCMSource ghSCMSource = new GitHubSCMSource(getId()+ "::" + name,
-                apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, name
-        );
-        ghSCMSource.setExcludes(getExcludes());
-        ghSCMSource.setIncludes(getIncludes());
-        ghSCMSource.setBuildOriginBranch(getBuildOriginBranch());
-        ghSCMSource.setBuildOriginBranchWithPR(getBuildOriginBranchWithPR());
-        ghSCMSource.setBuildOriginPRMerge(getBuildOriginPRMerge());
-        ghSCMSource.setBuildOriginPRHead(getBuildOriginPRHead());
-        ghSCMSource.setBuildForkPRMerge(getBuildForkPRMerge());
-        ghSCMSource.setBuildForkPRHead(getBuildForkPRHead());
-
-        projectObserver.addSource(ghSCMSource);
-        projectObserver.complete();
-        return true;
     }
 
     /**
@@ -646,7 +855,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         @Override
         public SCMNavigator newInstance(String name) {
-            return new GitHubSCMNavigator("", name, "", GitHubSCMSource.DescriptorImpl.SAME);
+            GitHubSCMNavigator navigator = new GitHubSCMNavigator("", name, "");
+            navigator.setTraits(getDefaultTraits());
+            return navigator;
         }
 
         @NonNull
@@ -669,10 +880,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return Connector.listScanCredentials(context, apiUri);
         }
 
-        public ListBoxModel doFillCheckoutCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
-            return Connector.listCheckoutCredentials(context, apiUri);
-        }
-
         public ListBoxModel doFillApiUriItems() {
             ListBoxModel result = new ListBoxModel();
             result.add("GitHub", "");
@@ -686,40 +893,17 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return !GitHubConfiguration.get().getEndpoints().isEmpty();
         }
 
-        // TODO repeating configuration blocks like this is clumsy; better to factor shared config into a Describable and use f:property
-
-        @Restricted(NoExternalUse.class)
-        public FormValidation doCheckIncludes(@QueryParameter String value) {
-            return delegate.doCheckIncludes(value);
+        public List<SCMTraitDescriptor<?>> getTraitDescriptors() {
+            List<SCMTraitDescriptor<?>> descriptors = new ArrayList<SCMTraitDescriptor<?>>();
+            descriptors.addAll(SCMNavigatorTrait._for(GitHubSCMNavigatorContext.class, GitHubSCMSourceBuilder.class));
+            descriptors.addAll(SCMSourceTrait._for(GitHubSCMSourceContext.class, GitHubSCMSource.GitHubSCMBuilder.class));
+            return descriptors;
         }
 
-        @Restricted(NoExternalUse.class)
-        public FormValidation doCheckBuildOriginBranchWithPR(
-            @QueryParameter boolean buildOriginBranch,
-            @QueryParameter boolean buildOriginBranchWithPR,
-            @QueryParameter boolean buildOriginPRMerge,
-            @QueryParameter boolean buildOriginPRHead,
-            @QueryParameter boolean buildForkPRMerge,
-            @QueryParameter boolean buildForkPRHead
-        ) {
-            return delegate.doCheckBuildOriginBranchWithPR(buildOriginBranch, buildOriginBranchWithPR, buildOriginPRMerge, buildOriginPRHead, buildForkPRMerge, buildForkPRHead);
-        }
-
-        @Restricted(NoExternalUse.class)
-        public FormValidation doCheckBuildOriginPRHead(@QueryParameter boolean buildOriginBranchWithPR, @QueryParameter boolean buildOriginPRMerge, @QueryParameter boolean buildOriginPRHead) {
-            return delegate.doCheckBuildOriginPRHead(buildOriginBranchWithPR, buildOriginPRMerge, buildOriginPRHead);
-        }
-
-        @Restricted(NoExternalUse.class)
-        public FormValidation doCheckBuildForkPRHead/* web method name controls UI position of message; we want this at the bottom */(
-            @QueryParameter boolean buildOriginBranch,
-            @QueryParameter boolean buildOriginBranchWithPR,
-            @QueryParameter boolean buildOriginPRMerge,
-            @QueryParameter boolean buildOriginPRHead,
-            @QueryParameter boolean buildForkPRMerge,
-            @QueryParameter boolean buildForkPRHead
-        ) {
-            return delegate.doCheckBuildForkPRHead(buildOriginBranch, buildOriginBranchWithPR, buildOriginPRMerge, buildOriginPRHead, buildForkPRMerge, buildForkPRHead);
+        public List<SCMTrait<? extends SCMTrait<?>>> getDefaultTraits() {
+            List<SCMTrait<? extends SCMTrait<?>>> result = new ArrayList<>();
+            result.addAll(delegate.getDefaultTraits());
+            return result;
         }
 
         static {
@@ -793,4 +977,41 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
+    private static class WitnessImpl implements SCMNavigatorRequest.Witness {
+        private int count;
+        private final TaskListener listener;
+
+        public WitnessImpl(TaskListener listener) {
+            this.listener = listener;
+        }
+
+        @Override
+        public void record(@NonNull String name, boolean isMatch) {
+            if (isMatch) {
+                listener.getLogger().format("Proposing %s%n", name);
+                count++;
+            } else {
+                listener.getLogger().format("Ignoring %s%n", name);
+            }
+        }
+
+        public int getCount() {
+            return count;
+        }
+    }
+
+    private class SourceFactoryImpl implements SCMNavigatorRequest.SourceFactory {
+        private final GitHubSCMNavigatorRequest request;
+
+        public SourceFactoryImpl(GitHubSCMNavigatorRequest request) {
+            this.request = request;
+        }
+
+        @Override
+        public SCMSource create(String name) {
+            return new GitHubSCMSourceBuilder(getId() + "::" + name, apiUri, scanCredentialsId, repoOwner, name)
+                    .withRequest(request)
+                    .build();
+        }
+    }
 }
