@@ -701,7 +701,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                     .encodeTo(repositoryUrl + "/tree/" + branchName, branchName));
                             BranchSCMHead head = new BranchSCMHead(branchName);
                             if (request.process(head, new SCMRevisionImpl(head, branch.getSHA1()),
-                                    new SCMSourceRequest.ProbeFactory<BranchSCMHead, SCMRevisionImpl>() {
+                                    new SCMSourceRequest.ProbeLambda<BranchSCMHead, SCMRevisionImpl>() {
                                         @Override
                                         public SCMSourceCriteria.Probe create(BranchSCMHead head,
                                                                               SCMRevisionImpl revision)
@@ -752,7 +752,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                                 pr, branchName, strategy == ChangeRequestCheckoutStrategy.MERGE
                                         ),
                                         null,
-                                        new SCMSourceRequest.ProbeFactory<PullRequestSCMHead, Void>() {
+                                        new SCMSourceRequest.ProbeLambda<PullRequestSCMHead, Void>() {
                                             @Override
                                             public SCMSourceCriteria.Probe create(PullRequestSCMHead head,
                                                                                   @Nullable Void ignored)
@@ -761,7 +761,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                                         .createProbe(trusted ? head : head.getTarget(), null);
                                             }
                                         },
-                                        new SCMSourceRequest.LazyRevisionFactory<PullRequestSCMHead, SCMRevision, Void>() {
+                                        new SCMSourceRequest.LazyRevisionLambda<PullRequestSCMHead, SCMRevision, Void>() {
                                             @NonNull
                                             @Override
                                             public SCMRevision create(@NonNull PullRequestSCMHead head,
