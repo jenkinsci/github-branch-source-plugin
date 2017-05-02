@@ -937,6 +937,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
         }
 
+        @NonNull
         @Override
         public GitSCM build() {
             SCMHead head = head();
