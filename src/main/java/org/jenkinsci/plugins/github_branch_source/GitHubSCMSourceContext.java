@@ -26,6 +26,7 @@ public class GitHubSCMSourceContext
         super(criteria, observer);
     }
 
+    @NonNull
     @Override
     public GitHubSCMSourceRequest newRequest(@NonNull SCMSource source, @CheckForNull TaskListener listener) {
         return new GitHubSCMSourceRequest(source, this, listener);
