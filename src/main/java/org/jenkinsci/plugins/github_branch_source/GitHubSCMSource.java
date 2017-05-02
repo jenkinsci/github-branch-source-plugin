@@ -930,7 +930,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
 
         public GitHubSCMBuilder(@NonNull SCMHead head, SCMRevision revision) {
-            super(head, revision);
+            super(head, revision, getRemote(), getCredentialsId());
             String repoUrl = repositoryUrl(getRepoOwner(), getRepository());
             if (repoUrl != null) {
                 withBrowser(new GithubWeb(repoUrl));
