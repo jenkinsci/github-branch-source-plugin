@@ -43,12 +43,10 @@ import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.Nonnull;
 import javax.inject.Inject;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
@@ -61,7 +59,6 @@ import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.trait.SCMNavigatorRequest;
 import jenkins.scm.api.trait.SCMNavigatorTrait;
 import jenkins.scm.api.trait.SCMSourceTrait;
-import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.api.trait.SCMTraitDescriptor;
 import jenkins.scm.impl.UncategorizedSCMSourceCategory;
@@ -1000,15 +997,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
-    private class SourceFactoryImpl implements SCMNavigatorRequest.SourceFactory {
+    private class SourceFactoryImpl implements SCMNavigatorRequest.SourceLambda {
         private final GitHubSCMNavigatorRequest request;
 
         public SourceFactoryImpl(GitHubSCMNavigatorRequest request) {
             this.request = request;
         }
 
+        @NonNull
         @Override
-        public SCMSource create(String name) {
+        public SCMSource create(@NonNull String name) {
             return new GitHubSCMSourceBuilder(getId() + "::" + name, apiUri, scanCredentialsId, repoOwner, name)
                     .withRequest(request)
                     .build();
