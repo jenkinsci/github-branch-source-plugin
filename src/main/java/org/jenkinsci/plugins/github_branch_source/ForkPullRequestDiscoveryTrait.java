@@ -2,10 +2,8 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import hudson.ExtensionList;
 import hudson.scm.SCM;
 import hudson.util.ListBoxModel;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import jenkins.scm.api.SCMHeadCategory;
@@ -101,14 +99,12 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         }
 
         public List<SCMHeadAuthorityDescriptor> getTrustDescriptors() {
-            List<SCMHeadAuthorityDescriptor> result = new ArrayList<>();
-            for (SCMHeadAuthorityDescriptor d : ExtensionList.lookup(SCMHeadAuthorityDescriptor.class)) {
-                if (d.isApplicableToRequest(GitHubSCMSourceRequest.class)
-                        && d.isApplicableToHead(PullRequestSCMHead.class)) {
-                    result.add(d);
-                }
-            }
-            return result;
+            return SCMHeadAuthority._for(
+                    GitHubSCMSourceRequest.class,
+                    ChangeRequestSCMHead2.class,
+                    null,
+                    SCMHeadOrigin.Fork.class
+            );
         }
     }
 
@@ -133,6 +129,11 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
             public String getDisplayName() {
                 return "Contributors";
             }
+
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
         }
     }
 
@@ -153,6 +154,11 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
             public String getDisplayName() {
                 return "Nobody";
             }
+
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
         }
     }
 
@@ -172,6 +178,11 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
             @Override
             public String getDisplayName() {
                 return "Everyone";
+            }
+
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
             }
         }
     }

@@ -6,6 +6,7 @@ import hudson.scm.SCM;
 import hudson.util.ListBoxModel;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
+import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.trait.SCMBuilder;
 import jenkins.scm.api.trait.SCMHeadAuthority;
@@ -134,6 +135,11 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
             @Override
             public String getDisplayName() {
                 return null;
+            }
+
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Default.class.isAssignableFrom(originClass);
             }
         }
     }

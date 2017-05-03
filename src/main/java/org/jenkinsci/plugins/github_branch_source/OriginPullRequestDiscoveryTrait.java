@@ -101,6 +101,11 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
             public String getDisplayName() {
                 return null;
             }
+
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Default.class.isAssignableFrom(originClass);
+            }
         }
     }
 }
