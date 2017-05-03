@@ -6,6 +6,7 @@ import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.trait.SCMNavigatorContext;
 
 public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavigatorContext, GitHubSCMNavigatorRequest> {
+    @NonNull
     @Override
     public GitHubSCMNavigatorRequest newRequest(@NonNull SCMNavigator navigator, @NonNull SCMSourceObserver observer) {
         return new GitHubSCMNavigatorRequest(navigator, this, observer);
