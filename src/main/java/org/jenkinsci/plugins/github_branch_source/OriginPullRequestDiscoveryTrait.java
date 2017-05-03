@@ -5,11 +5,12 @@ import hudson.Extension;
 import hudson.scm.SCM;
 import hudson.util.ListBoxModel;
 import java.util.Collections;
-import jenkins.scm.api.trait.SCMBuilder;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadOrigin;
+import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
+import jenkins.scm.api.trait.SCMBuilder;
 import jenkins.scm.api.trait.SCMHeadAuthority;
 import jenkins.scm.api.trait.SCMHeadAuthorityDescriptor;
 import jenkins.scm.api.trait.SCMSourceContext;
@@ -88,7 +89,7 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
     }
 
     public static class OriginChangeRequestSCMHeadAuthority
-            extends SCMHeadAuthority<SCMSourceRequest, ChangeRequestSCMHead2> {
+            extends SCMHeadAuthority<SCMSourceRequest, ChangeRequestSCMHead2, SCMRevision> {
         @Override
         protected boolean checkTrusted(@NonNull SCMSourceRequest request, @NonNull ChangeRequestSCMHead2 head) {
             return SCMHeadOrigin.DEFAULT.equals(head.getOrigin());

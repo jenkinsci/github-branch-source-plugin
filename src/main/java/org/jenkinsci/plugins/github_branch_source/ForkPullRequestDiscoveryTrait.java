@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadOrigin;
+import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
 import jenkins.scm.api.trait.SCMBuilder;
@@ -26,12 +27,14 @@ import org.kohsuke.stapler.DataBoundConstructor;
 
 public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     private final int strategyId;
-    private final SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2> trust;
+    private final SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends
+            SCMRevision>
+            trust;
 
     @DataBoundConstructor
     public ForkPullRequestDiscoveryTrait(int strategyId,
                                          SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends
-                                                 ChangeRequestSCMHead2> trust) {
+                                                 ChangeRequestSCMHead2, ? extends SCMRevision> trust) {
         this.strategyId = strategyId;
         this.trust = trust;
     }
@@ -55,7 +58,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         return (strategyId & 1) != 0;
     }
 
-    public SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2> getTrust() {
+    public SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision> getTrust() {
         return trust;
     }
 
@@ -110,7 +113,8 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     }
 
 
-    public static class TrustContributors extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead> {
+    public static class TrustContributors
+            extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
         @DataBoundConstructor
         public TrustContributors() {
         }
@@ -132,7 +136,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         }
     }
 
-    public static class TrustNobody extends SCMHeadAuthority<SCMSourceRequest, ChangeRequestSCMHead2> {
+    public static class TrustNobody extends SCMHeadAuthority<SCMSourceRequest, ChangeRequestSCMHead2, SCMRevision> {
         @DataBoundConstructor
         public TrustNobody() {
         }
@@ -152,7 +156,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         }
     }
 
-    public static class TrustEveryone extends SCMHeadAuthority<SCMSourceRequest, ChangeRequestSCMHead2> {
+    public static class TrustEveryone extends SCMHeadAuthority<SCMSourceRequest, ChangeRequestSCMHead2, SCMRevision> {
         @DataBoundConstructor
         public TrustEveryone() {
         }

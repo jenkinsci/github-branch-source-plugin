@@ -4,9 +4,10 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.scm.SCM;
 import hudson.util.ListBoxModel;
-import jenkins.scm.api.trait.SCMBuilder;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
+import jenkins.scm.api.SCMRevision;
+import jenkins.scm.api.trait.SCMBuilder;
 import jenkins.scm.api.trait.SCMHeadAuthority;
 import jenkins.scm.api.trait.SCMHeadAuthorityDescriptor;
 import jenkins.scm.api.trait.SCMHeadFilter;
@@ -122,7 +123,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
         }
     }
 
-    public static class BranchSCMHeadAuthority extends SCMHeadAuthority<SCMSourceRequest,BranchSCMHead> {
+    public static class BranchSCMHeadAuthority extends SCMHeadAuthority<SCMSourceRequest, BranchSCMHead, SCMRevision> {
         @Override
         protected boolean checkTrusted(@NonNull SCMSourceRequest request, @NonNull BranchSCMHead head) {
             return true;
