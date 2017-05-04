@@ -702,11 +702,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             BranchSCMHead head = new BranchSCMHead(branchName);
                             if (request.process(head, new SCMRevisionImpl(head, branch.getSHA1()),
                                     new SCMSourceRequest.ProbeLambda<BranchSCMHead, SCMRevisionImpl>() {
+                                        @NonNull
                                         @Override
-                                        public SCMSourceCriteria.Probe create(BranchSCMHead head,
-                                                                              SCMRevisionImpl revision)
+                                        public SCMSourceCriteria.Probe create(@NonNull BranchSCMHead head,
+                                                                              @Nullable SCMRevisionImpl revisionInfo)
                                                 throws IOException, InterruptedException {
-                                            return GitHubSCMSource.this.createProbe(head, revision);
+                                            return GitHubSCMSource.this.createProbe(head, revisionInfo);
                                         }
                                     }, new CriteriaWitness(listener))) {
                                 listener.getLogger().format("%n  %d branches were processed (query completed)%n", count);
@@ -753,9 +754,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                         ),
                                         null,
                                         new SCMSourceRequest.ProbeLambda<PullRequestSCMHead, Void>() {
+                                            @NonNull
                                             @Override
-                                            public SCMSourceCriteria.Probe create(PullRequestSCMHead head,
-                                                                                  @Nullable Void ignored)
+                                            public SCMSourceCriteria.Probe create(@NonNull PullRequestSCMHead head,
+                                                                                  @Nullable Void revisionInfo)
                                                     throws IOException, InterruptedException {
                                                 return GitHubSCMSource.this
                                                         .createProbe(trusted ? head : head.getTarget(), null);
