@@ -86,7 +86,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         }
 
         @Override
-        public boolean isApplicableToContext(Class<? extends SCMSourceContext> contextClass) {
+        public boolean isApplicableToContext(@NonNull Class<? extends SCMSourceContext> contextClass) {
             return GitHubSCMSourceRequest.class.isAssignableFrom(contextClass);
         }
 

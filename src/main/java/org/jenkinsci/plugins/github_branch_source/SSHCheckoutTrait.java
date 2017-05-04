@@ -5,6 +5,7 @@ import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.model.Queue;
@@ -53,12 +54,12 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
         }
 
         @Override
-        public boolean isApplicableToContext(Class<? extends SCMSourceContext> contextClass) {
+        public boolean isApplicableToContext(@NonNull Class<? extends SCMSourceContext> contextClass) {
             return GitHubSCMSourceRequest.class.isAssignableFrom(contextClass);
         }
 
         @Override
-        public boolean isApplicableToSCM(SCMDescriptor<?> scm) {
+        public boolean isApplicableToSCM(@NonNull SCMDescriptor<?> scm) {
             return scm instanceof GitSCM.DescriptorImpl;
         }
 
