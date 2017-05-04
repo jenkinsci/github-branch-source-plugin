@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
-    <j:choose>
-        <j:when test="${descriptor.apiUriSelectable}">
-            <f:entry title="${%API endpoint}" field="apiUri">
-                <f:select/>
-            </f:entry>
-        </j:when>
-        <j:otherwise>
-            <f:invisibleEntry>
-                <f:select field="apiUri"/>
-            </f:invisibleEntry>
-        </j:otherwise>
-    </j:choose>
-    <f:entry title="${%Credentials}" field="scanCredentialsId">
-        <c:select/>
-    </f:entry>
-    <f:entry title="${%Owner}" field="repoOwner">
-        <f:textbox/>
-    </f:entry>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials" xmlns:scm="/jenkins/scm/api/form">
+  <j:choose>
+    <j:when test="${descriptor.apiUriSelectable}">
+      <f:entry title="${%API endpoint}" field="apiUri">
+        <f:select/>
+      </f:entry>
+    </j:when>
+    <j:otherwise>
+      <f:invisibleEntry>
+        <f:select field="apiUri"/>
+      </f:invisibleEntry>
+    </j:otherwise>
+  </j:choose>
+  <f:entry title="${%Credentials}" field="scanCredentialsId">
+    <c:select/>
+  </f:entry>
+  <f:entry title="${%Owner}" field="repoOwner">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="${%Behaviours}">
     <f:entry title="${%Behaviours}">
-        <f:hetero-list name="traits" items="${instance == null ? descriptor.defaultTraits : instance.traits}"
-                       descriptors="${descriptor[attrs.field+'Descriptors'] ?: descriptor.getPropertyType(instance,'traits').getApplicableItemDescriptors()}"
-                       hasHeader="true" honorOrder="true" oneEach="true"/>
+      <scm:traits field="traits"/>
     </f:entry>
+  </f:entry>
 </j:jelly>

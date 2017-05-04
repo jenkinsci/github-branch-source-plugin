@@ -242,7 +242,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
         pullRequestMetadataCache = new ConcurrentHashMap<>();
         pullRequestContributorCache = new ConcurrentHashMap<>();
-        this.traits = new ArrayList<>(((DescriptorImpl)getDescriptor()).getDefaultTraits());
+        this.traits = new ArrayList<>(((DescriptorImpl) getDescriptor()).getTraitDefaults());
         if (!DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
             traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
         }
@@ -1515,7 +1515,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return SCMSourceTrait._for(this, GitHubSCMSourceContext.class, GitHubSCMBuilder.class);
         }
 
-        public List<SCMSourceTrait> getDefaultTraits() {
+        public List<SCMSourceTrait> getTraitDefaults() {
             return Arrays.asList( // TODO finalize
                     new BranchDiscoveryTrait(1),
                     new OriginPullRequestDiscoveryTrait(1),

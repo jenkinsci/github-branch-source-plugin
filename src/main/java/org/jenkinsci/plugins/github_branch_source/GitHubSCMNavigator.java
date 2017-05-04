@@ -853,7 +853,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @Override
         public SCMNavigator newInstance(String name) {
             GitHubSCMNavigator navigator = new GitHubSCMNavigator("", name, "");
-            navigator.setTraits(getDefaultTraits());
+            navigator.setTraits(getTraitDefaults());
             return navigator;
         }
 
@@ -897,9 +897,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return descriptors;
         }
 
-        public List<SCMTrait<? extends SCMTrait<?>>> getDefaultTraits() {
+        public List<SCMTrait<? extends SCMTrait<?>>> getTraitDefaults() {
             List<SCMTrait<? extends SCMTrait<?>>> result = new ArrayList<>();
-            result.addAll(delegate.getDefaultTraits());
+            result.addAll(delegate.getTraitDefaults());
             return result;
         }
 

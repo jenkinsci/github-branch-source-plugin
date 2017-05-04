@@ -1,6 +1,7 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:c="/lib/credentials" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form"
-  xmlns:f2="/org/jenkinsci/plugins/github_branch_source/form">
+<j:jelly xmlns:j="jelly:core" xmlns:c="/lib/credentials"
+         xmlns:f="/lib/form"
+         xmlns:f2="/org/jenkinsci/plugins/github_branch_source/form" xmlns:scm="/jenkins/scm/api/form">
   <j:choose>
     <j:when test="${descriptor.apiUriSelectable}">
     <f:entry title="${%API endpoint}" field="apiUri">
@@ -24,9 +25,7 @@
     <f2:select/>
   </f:entry>
   <f:entry title="${%Behaviours}">
-    <f:hetero-list name="traits" items="${instance == null ? descriptor.defaultTraits : instance.traits}"
-                   descriptors="${descriptor[attrs.field+'Descriptors'] ?: descriptor.getPropertyType(instance,'traits').getApplicableItemDescriptors()}"
-                   hasHeader="true" honorOrder="true" oneEach="true"/>
+    <scm:traits field="traits"/>
   </f:entry>
 
 </j:jelly>
