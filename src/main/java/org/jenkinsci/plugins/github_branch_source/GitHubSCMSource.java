@@ -108,6 +108,7 @@ import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHTag;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
@@ -759,6 +760,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     branchMap = Collections.singletonMap(branch.getName(), branch);
                 }
             } else {
+                // https://github.com/kohsuke/github-api/blob/master/src/main/java/org/kohsuke/github/GHRepository.java
                 branchMap = repo.getBranches();
             }
 
@@ -803,8 +805,26 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 }
                 branches++;
             }
-            listener.getLogger().format("%n  %d branches were processed%n", branches);
+
+            listener.getLogger().format("%n  %d branches were processed%n%n", branches);
+
+            List<GHTag> tagList = repo.listTags().asList();
+
+            for (GHTag tag: tagList) {
+                SCMHead taghead = new BranchSCMHead(tag.getName());
+                SCMRevision taghash = new SCMRevisionImpl(taghead, tag.getCommit().getSHA1());
+
+                listener.getLogger().format("    Tag: %s SHA: %s %n", tag.getName(), tag.getCommit().getSHA1());
+
+                observer.observe(taghead, taghash);
+                if (!observer.isObserving()) {
+                    listener.getLogger().format("    Error: Observer is not Observing.");
+                    return;
+                }
+            }
+
         }
+
     }
 
     /**
