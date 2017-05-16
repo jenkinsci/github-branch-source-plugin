@@ -72,9 +72,12 @@ public class GitHubBuildStatusNotification {
 
     private static void createCommitStatus(@NonNull GHRepository repo, @NonNull String revision,
                                            @NonNull GHCommitState state, @NonNull String url, @NonNull String message,
-                                           @NonNull SCMHead head) throws IOException {
+                                           @NonNull SCMHead head,
+                                           @NonNull Endpoint endpoint) throws IOException {
         LOGGER.log(Level.FINE, "{0}/commit/{1} {2} from {3}", new Object[] {repo.getHtmlUrl(), revision, state, url});
         String context;
+        String commitstatuscontext = endpoint.getCommitStatusContextIdentifier();
+        
         if (head instanceof PullRequestSCMHead) {
             if (((PullRequestSCMHead) head).isMerge()) {
                 context = commitstatuscontext + "/pr-merge";
@@ -93,7 +96,8 @@ public class GitHubBuildStatusNotification {
             GitHub gitHub = lookUpGitHub(build.getParent());
             try {
                 GHRepository repo = lookUpRepo(gitHub, build.getParent());
-                if (repo != null) {
+                Endpoint endpoint = lookUpEndpoint(build.getParent());
+                if (repo != null && endpoint != null) {
                     SCMRevisionAction action = build.getAction(SCMRevisionAction.class);
                     if (action != null) {
                         SCMRevision revision = action.getRevision();
@@ -104,18 +108,18 @@ public class GitHubBuildStatusNotification {
                             String revisionToNotify = resolveHeadCommit(revision);
                             SCMHead head = revision.getHead();
                             if (Result.SUCCESS.equals(result)) {
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good(), head);
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good(), head, endpoint);
                             } else if (Result.UNSTABLE.equals(result)) {
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable(), head);
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable(), head, endpoint);
                             } else if (Result.FAILURE.equals(result)) {
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure(), head);
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure(), head, endpoint);
                             } else if (Result.ABORTED.equals(result)) {
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Aborted(), head);
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Aborted(), head, endpoint);
                             } else if (result != null) { // NOT_BUILT etc.
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other(), head);
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other(), head, endpoint);
                             } else {
                                 ignoreError = true;
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending(), head);
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending(), head, endpoint);
                             }
                             if (result != null) {
                                 listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
@@ -192,6 +196,27 @@ public class GitHubBuildStatusNotification {
     }
 
     /**
+     * Returns the Endpoint associated to a Job.
+     *
+     * @param job A {@link Job}
+     * @return An {@link Endpoint} or null, if an Enpoint was not defined.
+     * @throws IOException
+     */
+    @CheckForNull
+    private static Endpoint lookUpEndpoint(@NonNull Job<?,?> job) throws IOException {
+        SCMSource src = SCMSource.SourceByItem.findSource(job);
+        if (src instanceof GitHubSCMSource) {
+            GitHubSCMSource source = (GitHubSCMSource) src;
+            for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {
+                if (e.getApiUri().equals(source.getApiUri())) {
+                    return e;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * With this listener one notifies to GitHub when a Job has been scheduled.
      * Sends: GHCommitState.PENDING
      */
@@ -236,7 +261,8 @@ public class GitHubBuildStatusNotification {
                                 return;
                             }
                             GHRepository repo = lookUpRepo(gitHub, job);
-                            if (repo != null) {
+                            Endpoint endpoint = lookUpEndpoint(job);
+                            if (repo != null && endpoint != null) {
                                 String url = DisplayURLProvider.get().getJobURL(job);
                                 // The submitter might push another commit before this build even starts.
                                 if (Jenkins.getActiveInstance().getQueue().getItem(taskId) instanceof Queue.LeftItem) {
@@ -246,7 +272,7 @@ public class GitHubBuildStatusNotification {
                                     return;
                                 }
                                 createCommitStatus(repo, hash, GHCommitState.PENDING, url,
-                                        Messages.GitHubBuildStatusNotification_CommitStatus_Queued(), head);
+                                        Messages.GitHubBuildStatusNotification_CommitStatus_Queued(), head, endpoint);
                             }
                         } finally {
                             Connector.release(gitHub);
