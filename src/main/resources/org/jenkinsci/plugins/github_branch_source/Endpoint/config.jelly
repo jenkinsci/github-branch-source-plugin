@@ -6,14 +6,11 @@
   <f:entry title="${%Name}" field="name">
     <f:textbox/>
   </f:entry>
-  <f:block>
-    <table>
-      <f:optionalBlock name="advanced options" title="advanced options">
-        <f:entry title="${%commit status context identifier}" field="commitStatusContextIdentifier">
-          <f:textbox default="${descriptor.defaultCommitStatusContextIdentifier}"/>
-        </f:entry>
-      </f:optionalBlock>
-    </table>
-  </f:block>
-
+  <f:section>
+    <f:advanced>
+      <f:entry title="${%commit status context identifier}" field="commitStatusContextIdentifier">
+        <f:textbox default="${descriptor.defaultCommitStatusContextIdentifier}"/>
+      </f:entry>
+    </f:advanced>
+  </f:section>
 </j:jelly>

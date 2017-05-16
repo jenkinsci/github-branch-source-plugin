@@ -77,7 +77,7 @@ public class GitHubBuildStatusNotification {
         LOGGER.log(Level.FINE, "{0}/commit/{1} {2} from {3}", new Object[] {repo.getHtmlUrl(), revision, state, url});
         String context;
         String commitstatuscontext = endpoint.getCommitStatusContextIdentifier();
-        
+
         if (head instanceof PullRequestSCMHead) {
             if (((PullRequestSCMHead) head).isMerge()) {
                 context = commitstatuscontext + "/pr-merge";
@@ -199,7 +199,7 @@ public class GitHubBuildStatusNotification {
      * Returns the Endpoint associated to a Job.
      *
      * @param job A {@link Job}
-     * @return An {@link Endpoint} or null, if an Enpoint was not defined.
+     * @return An {@link Endpoint} or null, if an Endpoint was not defined.
      * @throws IOException
      */
     @CheckForNull
