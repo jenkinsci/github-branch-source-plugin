@@ -105,9 +105,9 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
     }
 
     @Extension
-    public static class DesciptorImpl extends Descriptor<Endpoint> {
+    public static class DescriptorImpl extends Descriptor<Endpoint> {
 
-        private static final Logger LOGGER = Logger.getLogger(DesciptorImpl.class.getName());
+        private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
         public static final String defaultCommitStatusContextIdentifier = "continuous-integration/jenkins";
 
         @Override
