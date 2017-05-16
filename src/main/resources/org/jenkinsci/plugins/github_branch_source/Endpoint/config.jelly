@@ -6,9 +6,6 @@
   <f:entry title="${%Name}" field="name">
     <f:textbox/>
   </f:entry>
-  <f:entry title="${%commit status context identifier}" field="commitStatusContextIdentifier">
-    <f:textbox default="${descriptor.defaultCommitStatusContextIdentifier}"/>
-  </f:entry>
   <f:block>
     <table>
       <f:optionalBlock name="advanced options" title="advanced options">
