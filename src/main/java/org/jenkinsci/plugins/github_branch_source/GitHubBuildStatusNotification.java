@@ -77,12 +77,13 @@ public class GitHubBuildStatusNotification {
         String context;
         if (head instanceof PullRequestSCMHead) {
             if (((PullRequestSCMHead) head).isMerge()) {
-                context = "continuous-integration/jenkins/pr-merge";
+                context = commitstatuscontext + "/pr-merge";
+
             } else {
-                context = "continuous-integration/jenkins/pr-head";
+                context = commitstatuscontext + "/pr-head";
             }
         } else {
-            context = "continuous-integration/jenkins/branch";
+            context = commitstatuscontext + "/branch";
         }
         repo.createCommitStatus(revision, state, url, message, context);
     }
