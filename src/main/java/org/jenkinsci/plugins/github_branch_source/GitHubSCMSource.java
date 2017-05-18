@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -1361,7 +1362,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
 
         public ListBoxModel doFillCredentialsIdItems(@CheckForNull @AncestorInPath Item context,
-                                                     @QueryParameter String apiUri) {
+                                                     @QueryParameter String apiUri,
+                                                     @QueryParameter String credentialsId) {
+            if (context == null
+                    ? !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER)
+                    : !context.hasPermission(Item.EXTENDED_READ)) {
+                return new StandardListBoxModel().includeCurrentValue(credentialsId);
+            }
             return Connector.listScanCredentials(context, apiUri);
         }
 
@@ -1443,16 +1450,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         public boolean isApiUriSelectable() {
             return !GitHubConfiguration.get().getEndpoints().isEmpty();
-        }
-
-        @Restricted(NoExternalUse.class)
-        public ListBoxModel doFillCheckoutCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
-            return Connector.listCheckoutCredentials(context, apiUri);
-        }
-
-        @Restricted(NoExternalUse.class)
-        public ListBoxModel doFillScanCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
-            return doFillCredentialsIdItems(context, apiUri);
         }
 
         public ListBoxModel doFillRepositoryItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri,
