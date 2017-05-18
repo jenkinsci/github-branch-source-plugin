@@ -35,29 +35,43 @@ import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Action;
+import hudson.model.Item;
 import hudson.model.TaskListener;
+import hudson.model.User;
+import hudson.security.ACL;
+import hudson.security.AuthorizationStrategy;
+import hudson.security.SecurityRealm;
+import hudson.util.ListBoxModel;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import jenkins.branch.MultiBranchProject;
+import jenkins.model.Jenkins;
+import jenkins.plugins.git.GitSCMSource;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSourceCriteria;
+import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import org.hamcrest.Matchers;
+import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.MockAuthorizationStrategy;
+import org.jvnet.hudson.test.MockFolder;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
@@ -219,4 +233,140 @@ public class GitHubSCMSourceTest {
         return new PullRequestSCMRevision(head, null, null);
     }
 
+    @Test
+    public void doFillCredentials() throws Exception {
+        final GitHubSCMSource.DescriptorImpl d =
+                r.jenkins.getDescriptorByType(GitHubSCMSource.DescriptorImpl.class);
+        final WorkflowMultiBranchProject dummy = r.jenkins.add(new WorkflowMultiBranchProject(r.jenkins, "dummy"), "dummy");
+        SecurityRealm realm = r.jenkins.getSecurityRealm();
+        AuthorizationStrategy strategy = r.jenkins.getAuthorizationStrategy();
+        try {
+            r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+            MockAuthorizationStrategy mockStrategy = new MockAuthorizationStrategy();
+            mockStrategy.grant(Jenkins.ADMINISTER).onRoot().to("admin");
+            mockStrategy.grant(Item.CONFIGURE).onItems(dummy).to("bob");
+            mockStrategy.grant(Item.EXTENDED_READ).onItems(dummy).to("jim");
+            r.jenkins.setAuthorizationStrategy(mockStrategy);
+            ACL.impersonate(User.get("admin").impersonate(), new Runnable() {
+                @Override
+                public void run() {
+                    ListBoxModel rsp = d.doFillScanCredentialsIdItems(dummy, "", "does-not-exist");
+                    assertThat("Expecting only the provided value so that form config unchanged", rsp, hasSize(1));
+                    assertThat("Expecting only the provided value so that form config unchanged", rsp.get(0).value,
+                            Matchers.is("does-not-exist"));
+                    rsp = d.doFillScanCredentialsIdItems(null, "", "does-not-exist");
+                    assertThat("Expecting just the empty entry", rsp, hasSize(1));
+                    assertThat("Expecting just the empty entry", rsp.get(0).value, Matchers.is(""));
+                }
+            });
+            ACL.impersonate(User.get("bob").impersonate(), new Runnable() {
+                @Override
+                public void run() {
+                    ListBoxModel rsp = d.doFillScanCredentialsIdItems(dummy, "", "does-not-exist");
+                    assertThat("Expecting just the empty entry", rsp, hasSize(1));
+                    assertThat("Expecting just the empty entry", rsp.get(0).value, Matchers.is(""));
+                    rsp = d.doFillScanCredentialsIdItems(null, "", "does-not-exist");
+                    assertThat("Expecting only the provided value so that form config unchanged", rsp, hasSize(1));
+                    assertThat("Expecting only the provided value so that form config unchanged", rsp.get(0).value,
+                            Matchers.is("does-not-exist"));
+                }
+            });
+            ACL.impersonate(User.get("jim").impersonate(), new Runnable() {
+                @Override
+                public void run() {
+                    ListBoxModel rsp = d.doFillScanCredentialsIdItems(dummy, "", "does-not-exist");
+                    assertThat("Expecting just the empty entry", rsp, hasSize(1));
+                    assertThat("Expecting just the empty entry", rsp.get(0).value, Matchers.is(""));
+                }
+            });
+            ACL.impersonate(User.get("sue").impersonate(), new Runnable() {
+                @Override
+                public void run() {
+                    ListBoxModel rsp = d.doFillScanCredentialsIdItems(dummy, "", "does-not-exist");
+                    assertThat("Expecting only the provided value so that form config unchanged", rsp, hasSize(1));
+                    assertThat("Expecting only the provided value so that form config unchanged", rsp.get(0).value,
+                            Matchers.is("does-not-exist"));
+                }
+            });
+        } finally {
+            r.jenkins.setSecurityRealm(realm);
+            r.jenkins.setAuthorizationStrategy(strategy);
+            r.jenkins.remove(dummy);
+        }
+    }
+
+    @Test
+    public void doFillCheckoutCredentials() throws Exception {
+        final GitHubSCMSource.DescriptorImpl d =
+                r.jenkins.getDescriptorByType(GitHubSCMSource.DescriptorImpl.class);
+        final WorkflowMultiBranchProject dummy =
+                r.jenkins.add(new WorkflowMultiBranchProject(r.jenkins, "dummy"), "dummy");
+        SecurityRealm realm = r.jenkins.getSecurityRealm();
+        AuthorizationStrategy strategy = r.jenkins.getAuthorizationStrategy();
+        try {
+            r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+            MockAuthorizationStrategy mockStrategy = new MockAuthorizationStrategy();
+            mockStrategy.grant(Jenkins.ADMINISTER).onRoot().to("admin");
+            mockStrategy.grant(Item.CONFIGURE).onItems(dummy).to("bob");
+            mockStrategy.grant(Item.EXTENDED_READ).onItems(dummy).to("jim");
+            r.jenkins.setAuthorizationStrategy(mockStrategy);
+            ACL.impersonate(User.get("admin").impersonate(), new Runnable() {
+                @Override
+                public void run() {
+                    ListBoxModel rsp = d.doFillCheckoutCredentialsIdItems(dummy, "", "does-not-exist");
+                    assertThat("Expecting only the provided value so that form config unchanged", rsp, hasSize(1));
+                    assertThat("Expecting only the provided value so that form config unchanged", rsp.get(0).value,
+                            Matchers.is("does-not-exist"));
+                    rsp = d.doFillCheckoutCredentialsIdItems(null, "", "does-not-exist");
+                    assertThat("Expecting empty, same and anonymous", rsp, hasSize(3));
+                    assertThat("Expecting empty", rsp.get(0).value, Matchers.is(""));
+                    assertThat("Expecting same", rsp.get(1).value, Matchers.is(GitHubSCMSource.DescriptorImpl.SAME));
+                    assertThat("Expecting anonymous", rsp.get(2).value,
+                            Matchers.is(GitHubSCMSource.DescriptorImpl.ANONYMOUS));
+                }
+            });
+            ACL.impersonate(User.get("bob").impersonate(), new Runnable() {
+                @Override
+                public void run() {
+                    ListBoxModel rsp = d.doFillCheckoutCredentialsIdItems(dummy, "", "does-not-exist");
+                    assertThat("Expecting empty, same and anonymous", rsp, hasSize(3));
+                    assertThat("Expecting empty", rsp.get(0).value, Matchers.is(""));
+                    assertThat("Expecting same", rsp.get(1).value, Matchers.is(GitHubSCMSource.DescriptorImpl.SAME));
+                    assertThat("Expecting anonymous", rsp.get(2).value,
+                            Matchers.is(GitHubSCMSource.DescriptorImpl.ANONYMOUS));
+                    rsp = d.doFillCheckoutCredentialsIdItems(null, "", "does-not-exist");
+                    assertThat("Expecting only the provided value so that form config unchanged", rsp, hasSize(1));
+                    assertThat("Expecting only the provided value so that form config unchanged", rsp.get(0).value,
+                            Matchers.is("does-not-exist"));
+                }
+            });
+            ACL.impersonate(User.get("jim").impersonate(), new Runnable() {
+                @Override
+                public void run() {
+                    ListBoxModel rsp = d.doFillCheckoutCredentialsIdItems(dummy, "", "does-not-exist");
+                    assertThat("Expecting empty, same and anonymous", rsp, hasSize(3));
+                    assertThat("Expecting empty", rsp.get(0).value, Matchers.is(""));
+                    assertThat("Expecting same", rsp.get(1).value, Matchers.is(GitHubSCMSource.DescriptorImpl.SAME));
+                    assertThat("Expecting anonymous", rsp.get(2).value,
+                            Matchers.is(GitHubSCMSource.DescriptorImpl.ANONYMOUS));
+                }
+            });
+            ACL.impersonate(User.get("sue").impersonate(), new Runnable() {
+                @Override
+                public void run() {
+                    ListBoxModel rsp = d.doFillCheckoutCredentialsIdItems(dummy, "", "does-not-exist");
+                    assertThat("Expecting only the provided value so that form config unchanged", rsp, hasSize(1));
+                    assertThat("Expecting only the provided value so that form config unchanged", rsp.get(0).value,
+                            Matchers
+
+
+                                    .is("does-not-exist"));
+                }
+            });
+        } finally {
+            r.jenkins.setSecurityRealm(realm);
+            r.jenkins.setAuthorizationStrategy(strategy);
+            r.jenkins.remove(dummy);
+        }
+    }
 }
