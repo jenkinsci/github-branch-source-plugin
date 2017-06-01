@@ -1,9 +1,9 @@
-FROM jenkins:2.32.3
+FROM jenkins:2.46.3
 
 USER root
 
 # Not available in this distribution from universe (Utopic has 1.6):
-RUN wget -q -O /tmp/ngrok.zip https://dl.ngrok.com/ngrok_2.0.19_linux_amd64.zip && \
+RUN wget -q -O /tmp/ngrok.zip https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip && \
     cd /usr/local/bin && \
     unzip /tmp/ngrok.zip && \
     rm /tmp/ngrok.zip
