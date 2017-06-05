@@ -60,7 +60,11 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
         if (head instanceof PullRequestSCMHead) {
             PullRequestSCMHead pr = (PullRequestSCMHead) head;
             this.ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
-        } else {
+        } 
+        else if(head instanceof ReleaseSCMHead) {
+        	this.ref = "refs/tags/" + head.getName();
+        }
+        else {
             this.ref = "refs/heads/" + head.getName();
         }
     }
