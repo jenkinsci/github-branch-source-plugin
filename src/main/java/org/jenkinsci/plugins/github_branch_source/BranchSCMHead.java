@@ -62,7 +62,8 @@ public class BranchSCMHead extends SCMHead {
 
         @Override
         public SCMHead migrate(@NonNull GitHubSCMSource source, @NonNull SCMHead head) {
-            return new BranchSCMHead(head.getName());
+            // only migrate the exact class not subclasses
+            return SCMHead.class.equals(head.getClass()) ? new BranchSCMHead(head.getName()) : null;
         }
 
         @Override
