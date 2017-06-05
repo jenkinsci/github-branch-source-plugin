@@ -50,11 +50,13 @@ import org.kohsuke.stapler.QueryParameter;
 public class Endpoint extends AbstractDescribableImpl<Endpoint> {
     private final String name;
     private final String apiUri;
+    private final String commitStatusContextIdentifier;
 
     @DataBoundConstructor
-    public Endpoint(String apiUri, String name) {
+    public Endpoint(String apiUri, String name, String commitStatusContextIdentifier) {
         this.apiUri = Util.fixEmptyAndTrim(apiUri);
         this.name = Util.fixEmptyAndTrim(name);
+        this.commitStatusContextIdentifier = commitStatusContextIdentifier;
     }
 
     public String getApiUri() {
@@ -64,6 +66,11 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
     public String getName() {
         return name;
     }
+
+    public String getCommitStatusContextIdentifier() {
+        return commitStatusContextIdentifier;
+    }
+
 
     @Override
     public String toString() {
@@ -98,9 +105,10 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
     }
 
     @Extension
-    public static class DesciptorImpl extends Descriptor<Endpoint> {
+    public static class DescriptorImpl extends Descriptor<Endpoint> {
 
-        private static final Logger LOGGER = Logger.getLogger(DesciptorImpl.class.getName());
+        private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
+        public static final String defaultCommitStatusContextIdentifier = "continuous-integration/jenkins";
 
         @Override
         public String getDisplayName() {

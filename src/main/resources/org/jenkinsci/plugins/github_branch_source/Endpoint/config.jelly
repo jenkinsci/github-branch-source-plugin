@@ -6,4 +6,11 @@
   <f:entry title="${%Name}" field="name">
     <f:textbox/>
   </f:entry>
+  <f:section>
+    <f:advanced>
+      <f:entry title="${%commit status context identifier}" field="commitStatusContextIdentifier">
+        <f:textbox default="${descriptor.defaultCommitStatusContextIdentifier}"/>
+      </f:entry>
+    </f:advanced>
+  </f:section>
 </j:jelly>
