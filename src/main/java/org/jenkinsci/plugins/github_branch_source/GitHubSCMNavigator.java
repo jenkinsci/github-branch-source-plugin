@@ -141,6 +141,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         if (buildForkPRHead == null) {
             buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
         }
+        if (buildReleases == null) {
+            buildReleases = DescriptorImpl.defaultBuildReleases;
+        }
         return this;
     }
 
@@ -216,6 +219,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @DataBoundSetter
     public void setBuildForkPRHead(boolean buildForkPRHead) {
         this.buildForkPRHead = buildForkPRHead;
+    }
+    
+    public boolean getBuildReleases() {
+        return buildReleases;
+    }
+
+    @DataBoundSetter
+    public void setBuildReleases(boolean buildReleases) {
+        this.buildReleases = buildReleases;
     }
 
     public String getRepoOwner() {
@@ -539,6 +551,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         ghSCMSource.setBuildOriginPRHead(getBuildOriginPRHead());
         ghSCMSource.setBuildForkPRMerge(getBuildForkPRMerge());
         ghSCMSource.setBuildForkPRHead(getBuildForkPRHead());
+        ghSCMSource.setBuildReleases(getBuildReleases());
 
         projectObserver.addSource(ghSCMSource);
         projectObserver.complete();

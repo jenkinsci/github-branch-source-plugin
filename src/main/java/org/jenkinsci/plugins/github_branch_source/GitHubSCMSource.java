@@ -175,9 +175,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /** Whether to build PRs filed from a fork, where the build is of the branch head. */
     @NonNull
     private Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
-    /** Whether to build Tags */
+    /** Whether to build Releases */
     @NonNull
-    private Boolean buildTags = DescriptorImpl.defaultBuildTags;
+    private Boolean buildReleases = DescriptorImpl.defaultBuildReleases;
     
     /**
      * Cache of the official repository HTML URL as reported by {@link GitHub#getRepository(String)}.
@@ -239,6 +239,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         if (buildForkPRHead == null) {
             buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+        }
+        if (buildReleases == null) {
+            buildReleases = DescriptorImpl.defaultBuildReleases;
         }
         if (pullRequestMetadataCache == null) {
             pullRequestMetadataCache = new ConcurrentHashMap<>();
@@ -434,7 +437,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public void setBuildForkPRHead(boolean buildForkPRHead) {
         this.buildForkPRHead = buildForkPRHead;
     }
+    
+    public boolean getBuildReleases() {
+		return buildReleases;
+    }
 
+    @DataBoundSetter
+    public void setBuildReleases(boolean buildReleases) {
+        this.buildReleases = buildReleases;
+    }
+   
     @Override
     public String getRemote() {
         return getUriResolver().getRepositoryUri(apiUri, repoOwner, repository);
@@ -541,13 +553,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
 
                
-        if(wantReleases) {
+        if(wantReleases && buildReleases) {
+        	listener.getLogger().format("%n  Getting remote releases...%n");
         	Iterable<GHTag> tags;
         	tags = repo.listTags().asList();
         	for(GHTag tag : tags) {
-
-        		SCMHead head = null;
-        		head = new ReleaseSCMHead(tag, tag.getName(), false, false);
+        		listener.getLogger().format("%n  Getting remote release %s...%n", tag.getName());
+        		
+                SCMHead head = null;
+        		head = new ReleaseSCMHead(tag, tag.getName());
 
         		SCMRevision hash = new SCMRevisionImpl(head, tag.getCommit().getSHA1());
         		observer.observe(head, hash);
@@ -1151,6 +1165,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             || Boolean.TRUE.equals(buildOriginPRMerge)
             );
         }
+        else if(category instanceof TagSCMHeadCategory) {
+            return super.isCategoryEnabled(category) && (
+                    Boolean.TRUE.equals(buildReleases)
+            );
+        	
+        }
         return super.isCategoryEnabled(category);
     }
 
@@ -1265,7 +1285,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         public static final boolean defaultBuildOriginPRHead = false;
         public static final boolean defaultBuildForkPRMerge = true;
         public static final boolean defaultBuildForkPRHead = false;
-        public static final boolean defaultBuildTags = true;
 		public static final boolean defaultBuildReleases = true;
 
         @Initializer(before = InitMilestone.PLUGINS_STARTED)
@@ -1329,10 +1348,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             @QueryParameter boolean buildOriginPRHead,
             @QueryParameter boolean buildForkPRMerge,
             @QueryParameter boolean buildForkPRHead,
-            @QueryParameter boolean buildTags
+            @QueryParameter boolean buildReleases
             
         ) {
-            if (!buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerge && !buildOriginPRHead && !buildForkPRMerge && !buildForkPRHead && !buildTags) {
+            if (!buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerge && !buildOriginPRHead && !buildForkPRMerge && !buildForkPRHead && !buildReleases) {
                 return FormValidation.warning("You need to build something!");
             }
             if (buildForkPRMerge && buildForkPRHead) {
