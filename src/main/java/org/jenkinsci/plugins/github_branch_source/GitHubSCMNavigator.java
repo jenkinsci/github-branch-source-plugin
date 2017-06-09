@@ -99,6 +99,7 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 public class GitHubSCMNavigator extends SCMNavigator {
 
@@ -1308,6 +1309,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
          * @return validation results.
          * @since 2.2.0
          */
+        @RequirePOST
         @Restricted(NoExternalUse.class) // stapler
         public FormValidation doCheckCredentialsId(@CheckForNull @AncestorInPath Item context,
                                                        @QueryParameter String apiUri,
