@@ -167,10 +167,7 @@ public class Connector {
             if (!found) {
                 return FormValidation.error("Credentials not found");
             }
-            if (context != null && !(
-                       context.hasPermission(Item.CONFIGURE)
-                    || context.hasPermission(Item.BUILD)
-                    || context.hasPermission(CredentialsProvider.USE_ITEM))) {
+            if (context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.ok("Credentials found");
             }
             StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);

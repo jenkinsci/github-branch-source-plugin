@@ -119,6 +119,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
 import static hudson.model.Items.XSTREAM2;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 public class GitHubSCMSource extends AbstractGitSCMSource {
 
@@ -1271,6 +1272,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return FormValidation.ok();
         }
 
+        @RequirePOST
         @Restricted(NoExternalUse.class)
         public FormValidation doCheckScanCredentialsId(@CheckForNull @AncestorInPath Item context,
                                                        @QueryParameter String apiUri,
@@ -1357,12 +1359,20 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return Connector.listScanCredentials(context, apiUri);
         }
 
+        @RequirePOST
         public ListBoxModel doFillRepositoryItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri,
                 @QueryParameter String scanCredentialsId, @QueryParameter String repoOwner) throws IOException {
 
             repoOwner = Util.fixEmptyAndTrim(repoOwner);
             if (repoOwner == null) {
                 return new ListBoxModel();
+            }
+            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                context != null && !context.hasPermission(Item.EXTENDED_READ)) {
+                return new ListBoxModel(); // not supposed to be seeing this form
+            }
+            if (context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
+                return new ListBoxModel(); // not permitted to try connecting with these credentials
             }
             try {
                 StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
