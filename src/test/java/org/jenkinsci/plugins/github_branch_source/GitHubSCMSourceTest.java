@@ -43,6 +43,7 @@ import java.util.Map;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
+import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
@@ -215,8 +216,8 @@ public class GitHubSCMSourceTest {
     }
 
     private PullRequestSCMRevision createRevision(String sourceOwner) {
-        PullRequestSCMHead head = new PullRequestSCMHead("", false, 0, null, sourceOwner, null, null);
-        return new PullRequestSCMRevision(head, null, null);
+        PullRequestSCMHead head = new PullRequestSCMHead("", false, 0, new BranchSCMHead("non-null"), sourceOwner, null, null, SCMHeadOrigin.DEFAULT);
+        return new PullRequestSCMRevision(head, "non-null", null);
     }
 
 }
