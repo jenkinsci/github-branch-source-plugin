@@ -29,8 +29,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.Computer;
-import hudson.model.Item;
-import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Queue;
 import hudson.model.Result;
@@ -87,16 +85,24 @@ public class GitHubBuildStatusNotification {
         repo.createCommitStatus(revision, state, url, message, context);
     }
 
-    private static void createBuildCommitStatus(Run<?,?> build, TaskListener listener) {
-        try {
-            GitHub gitHub = lookUpGitHub(build.getParent());
+    private static void createBuildCommitStatus(Run<?, ?> build, TaskListener listener) {
+        SCMRevision revision = SCMRevisionAction.getRevision(build);
+        if (revision != null) { // only notify if we have a revision to notify
             try {
-                GHRepository repo = lookUpRepo(gitHub, build.getParent());
-                if (repo != null) {
-                    SCMRevisionAction action = build.getAction(SCMRevisionAction.class);
-                    if (action != null) {
-                        SCMRevision revision = action.getRevision();
-                        String url = DisplayURLProvider.get().getRunURL(build);
+                GitHub gitHub = lookUpGitHub(build.getParent());
+                try {
+                    GHRepository repo = lookUpRepo(gitHub, build.getParent());
+                    if (repo != null) {
+                        String url = null;
+                        try {
+                            url = DisplayURLProvider.get().getRunURL(build);
+                        } catch (IllegalStateException e) {
+                            listener.getLogger().println(
+                                    "Can not determine Jenkins root URL. Commit status notifications are disabled "
+                                            + "until a root URL is"
+                                            + " configured in Jenkins global configuration.");
+                            return;
+                        }
                         boolean ignoreError = false;
                         try {
                             Result result = build.getResult();
@@ -134,16 +140,16 @@ public class GitHubBuildStatusNotification {
                             }
                         }
                     }
+                } finally {
+                    Connector.release(gitHub);
                 }
-            } finally {
-                Connector.release(gitHub);
-            }
-        } catch (IOException ioe) {
-            listener.getLogger().format("%n"
-                    + "Could not update commit status. Message: %s%n"
-                    + "%n", ioe.getMessage());
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "Could not update commit status of run " + build.getFullDisplayName(), ioe);
+            } catch (IOException ioe) {
+                listener.getLogger().format("%n"
+                        + "Could not update commit status. Message: %s%n"
+                        + "%n", ioe.getMessage());
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "Could not update commit status of run " + build.getFullDisplayName(), ioe);
+                }
             }
         }
     }
@@ -219,6 +225,13 @@ public class GitHubBuildStatusNotification {
             Computer.threadPoolForRemoting.submit(new Runnable() {
                 @Override
                 public void run() {
+                    String url;
+                    try {
+                        url = DisplayURLProvider.get().getJobURL(job);
+                    } catch (IllegalStateException e) {
+                        // no root url defined, cannot notify, let's get out of here
+                        return;
+                    }
                     GitHub gitHub = null;
                     try {
                         gitHub = lookUpGitHub(job);
@@ -236,7 +249,6 @@ public class GitHubBuildStatusNotification {
                             }
                             GHRepository repo = lookUpRepo(gitHub, job);
                             if (repo != null) {
-                                String url = DisplayURLProvider.get().getJobURL(job);
                                 // The submitter might push another commit before this build even starts.
                                 if (Jenkins.getActiveInstance().getQueue().getItem(taskId) instanceof Queue.LeftItem) {
                                     // we took too long and the item has left the queue, no longer valid to apply pending

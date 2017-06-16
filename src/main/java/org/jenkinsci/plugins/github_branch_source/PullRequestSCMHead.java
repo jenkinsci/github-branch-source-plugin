@@ -90,11 +90,10 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
                 : new SCMHeadOrigin.Fork(this.sourceOwner);
     }
 
-    PullRequestSCMHead(@NonNull String name, boolean merge, int number,
-                       BranchSCMHead target, String sourceOwner, String sourceRepo, String sourceBranch,
-                       SCMHeadOrigin origin) {
+    PullRequestSCMHead(@NonNull String name, String sourceOwner, String sourceRepo, String sourceBranch, int number,
+                       BranchSCMHead target, SCMHeadOrigin origin, ChangeRequestCheckoutStrategy strategy) {
         super(name);
-        this.merge = merge;
+        this.merge = ChangeRequestCheckoutStrategy.MERGE == strategy;
         this.number = number;
         this.target = target;
         this.sourceOwner = sourceOwner;
@@ -276,18 +275,10 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
 
         @Override
         public PullRequestSCMHead migrate(@NonNull GitHubSCMSource source, @NonNull FixOrigin head) {
-            return new PullRequestSCMHead(
-                    head.getName(),
-                    head.isMerge(),
-                    head.getNumber(),
-                    head.getTarget(),
-                    head.getSourceOwner(),
-                    head.getSourceRepo(),
-                    head.getSourceBranch(),
-                    source.getRepoOwner().equalsIgnoreCase(head.getSourceOwner())
-                            ? SCMHeadOrigin.DEFAULT
-                            : new SCMHeadOrigin.Fork(head.getSourceOwner())
-            );
+            return new PullRequestSCMHead(head.getName(), head.getSourceOwner(), head.getSourceRepo(),
+                    head.getSourceBranch(), head.getNumber(), head.getTarget(), source.getRepoOwner().equalsIgnoreCase(head.getSourceOwner())
+                                        ? SCMHeadOrigin.DEFAULT
+                                        : new SCMHeadOrigin.Fork(head.getSourceOwner()), head.getCheckoutStrategy());
         }
 
         @Override
@@ -312,7 +303,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
     @Restricted(NoExternalUse.class)
     public static class FixMetadata extends PullRequestSCMHead {
         FixMetadata(String name, Boolean merge, int number, BranchSCMHead branchSCMHead) {
-            super(name, merge, number, branchSCMHead, null, null, null, null);
+            super(name, null, null, null, number, branchSCMHead, null, merge ? ChangeRequestCheckoutStrategy.MERGE : ChangeRequestCheckoutStrategy.HEAD);
         }
 
     }
@@ -334,18 +325,11 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         @Override
         public PullRequestSCMHead migrate(@NonNull GitHubSCMSource source, @NonNull FixMetadata head) {
             PullRequestSource src = source.retrievePullRequestSource(head.getNumber());
-            return new PullRequestSCMHead(
-                    head.getName(),
-                    head.isMerge(),
-                    head.getNumber(),
-                    head.getTarget(),
-                    src == null ? null : src.getSourceOwner(),
-                    src == null ? null : src.getSourceRepo(),
-                    src == null ? null : src.getSourceBranch(),
-                    src != null && source.getRepoOwner().equalsIgnoreCase(src.getSourceOwner())
-                            ? SCMHeadOrigin.DEFAULT
-                            : new SCMHeadOrigin.Fork(head.getSourceOwner())
-            );
+            return new PullRequestSCMHead(head.getName(), src == null ? null : src.getSourceOwner(),
+                    src == null ? null : src.getSourceRepo(), src == null ? null : src.getSourceBranch(),
+                    head.getNumber(), head.getTarget(), src != null && source.getRepoOwner().equalsIgnoreCase(src.getSourceOwner())
+                                        ? SCMHeadOrigin.DEFAULT
+                                        : new SCMHeadOrigin.Fork(head.getSourceOwner()), head.getCheckoutStrategy());
         }
 
         @Override

@@ -36,10 +36,13 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Action;
 import hudson.model.TaskListener;
+import hudson.util.LogTaskListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
@@ -47,6 +50,7 @@ import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
+import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -211,12 +215,14 @@ public class GitHubSCMSourceTest {
 
     @Test
     public void getTrustedRevisionReturnsRevisionIfRepoOwnerAndPullRequestBranchOwnerAreSameWithDifferentCase() throws Exception {
+        source.setBuildOriginPRHead(true);
         PullRequestSCMRevision revision = createRevision("CloudBeers");
-        assertThat(source.getTrustedRevision(revision, null), sameInstance((SCMRevision) revision));
+        assertThat(source.getTrustedRevision(revision, new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO)), sameInstance((SCMRevision) revision));
     }
 
     private PullRequestSCMRevision createRevision(String sourceOwner) {
-        PullRequestSCMHead head = new PullRequestSCMHead("", false, 0, new BranchSCMHead("non-null"), sourceOwner, null, null, SCMHeadOrigin.DEFAULT);
+        PullRequestSCMHead head = new PullRequestSCMHead("", sourceOwner, "yolo", "", 0, new BranchSCMHead("non-null"),
+                SCMHeadOrigin.DEFAULT, ChangeRequestCheckoutStrategy.HEAD);
         return new PullRequestSCMRevision(head, "non-null", null);
     }
 

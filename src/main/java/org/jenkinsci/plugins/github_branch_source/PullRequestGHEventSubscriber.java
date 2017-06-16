@@ -279,20 +279,18 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                 // fake head sha1
                 return Collections.emptyMap();
             }
-            boolean hasPR = false;
 
             boolean fork = !src.getRepoOwner().equalsIgnoreCase(prOwnerName);
 
             Map<SCMHead, SCMRevision> result = new HashMap<>();
-            GitHubSCMSourceContext context =
-                    new GitHubSCMSourceContext(src, null, SCMHeadObserver.none())
+            GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
                             .withTraits(src.getTraits());
             if (!fork && context.wantBranches()) {
                 final String branchName = ghPullRequest.getHead().getRef();
                 SCMHead head = new BranchSCMHead(branchName);
                 boolean excluded = false;
                 for (SCMHeadPrefilter prefilter: context.prefilters()) {
-                    if (prefilter.isExcluded(null, head)) {
+                    if (prefilter.isExcluded(source, head)) {
                         excluded = true;
                         break;
                     }
@@ -333,7 +331,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                     }
                     boolean excluded = false;
                     for (SCMHeadPrefilter prefilter : context.prefilters()) {
-                        if (prefilter.isExcluded(null, head)) {
+                        if (prefilter.isExcluded(source, head)) {
                             excluded = true;
                             break;
                         }

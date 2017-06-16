@@ -43,11 +43,15 @@ import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
+import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
 import jenkins.scm.api.SCMNavigatorEvent;
@@ -56,13 +60,18 @@ import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCategory;
 import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
+import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMNavigatorRequest;
 import jenkins.scm.api.trait.SCMNavigatorTrait;
+import jenkins.scm.api.trait.SCMNavigatorTraitDescriptor;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.api.trait.SCMTraitDescriptor;
 import jenkins.scm.impl.UncategorizedSCMSourceCategory;
+import jenkins.scm.impl.form.NamedArrayList;
+import jenkins.scm.impl.trait.Discovery;
 import jenkins.scm.impl.trait.RegexSCMSourceFilterTrait;
+import jenkins.scm.impl.trait.Selection;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
 import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
@@ -88,12 +97,14 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @NonNull
     private final String repoOwner;
     @CheckForNull
-    private final String scanCredentialsId;
+    private String apiUri;
     @CheckForNull
-    private final String apiUri;
+    private String credentialsId;
     @NonNull
     private List<SCMTrait<? extends SCMTrait<?>>> traits;
 
+    @Deprecated
+    private transient String scanCredentialsId;
     @Deprecated
     private transient String checkoutCredentialsId;
     @Deprecated
@@ -116,10 +127,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     private transient Boolean buildForkPRHead;
 
     @DataBoundConstructor
-    public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId) {
-        this.apiUri = Util.fixEmptyAndTrim(apiUri);
-        this.repoOwner = repoOwner;
-        this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
+    public GitHubSCMNavigator(String repoOwner) {
+        this.repoOwner = StringUtils.defaultString(repoOwner);
         this.traits = new ArrayList<>();
     }
 
@@ -127,17 +136,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
     public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
-        this.repoOwner = repoOwner;
-        this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
-        this.apiUri = Util.fixEmpty(apiUri);
-        this.traits = new ArrayList<>();
+        this(repoOwner);
+        setCredentialsId(scanCredentialsId);
+        setApiUri(apiUri);
         if (!GitHubSCMSource.DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
             traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
         }
-    }
-
-    public String getRepoOwner() {
-        return repoOwner;
     }
 
     @CheckForNull
@@ -145,9 +149,24 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return apiUri;
     }
 
+    @DataBoundSetter
+    public void setApiUri(String apiUri) {
+        this.apiUri = Util.fixEmptyAndTrim(apiUri);
+    }
+
     @CheckForNull
-    public String getScanCredentialsId() {
-        return scanCredentialsId;
+    public String getCredentialsId() {
+        return credentialsId;
+    }
+
+    @DataBoundSetter
+    public void setCredentialsId(@CheckForNull String scanCredentialsId) {
+        this.credentialsId = Util.fixEmpty(scanCredentialsId);
+    }
+
+    @NonNull
+    public String getRepoOwner() {
+        return repoOwner;
     }
 
     @NonNull
@@ -156,7 +175,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     @DataBoundSetter
-    public void setTraits(@edu.umd.cs.findbugs.annotations.CheckForNull List<SCMTrait<? extends SCMTrait<?>>> traits) {
+    public void setTraits(@CheckForNull List<SCMTrait<? extends SCMTrait<?>>> traits) {
         this.traits = traits != null ? new ArrayList<>(traits) : new ArrayList<SCMTrait<? extends SCMTrait<?>>>();
     }
 
@@ -164,34 +183,44 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @SuppressWarnings("ConstantConditions")
     @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="Only non-null after we set them here!")
     private Object readResolve() {
+        if (scanCredentialsId != null) {
+            credentialsId = scanCredentialsId;
+        }
         if (traits == null) {
-            boolean buildOriginBranch = this.buildOriginBranch == null
-                    ? DescriptorImpl.defaultBuildOriginBranch : this.buildOriginBranch;
-            boolean buildOriginBranchWithPR = this.buildOriginBranchWithPR == null
-                    ? DescriptorImpl.defaultBuildOriginBranchWithPR : this.buildOriginBranchWithPR;
-            boolean buildOriginPRMerge = this.buildOriginPRMerge == null
-                    ? DescriptorImpl.defaultBuildOriginPRMerge : this.buildOriginPRMerge;
-            boolean buildOriginPRHead = this.buildOriginPRHead == null
-                    ? DescriptorImpl.defaultBuildOriginPRHead : this.buildOriginPRHead;
-            boolean buildForkPRMerge = this.buildForkPRMerge
-                    ? DescriptorImpl.defaultBuildForkPRMerge : this.buildForkPRMerge;
-            boolean buildForkPRHead = this.buildForkPRHead
-                    ? DescriptorImpl.defaultBuildForkPRHead : this.buildForkPRHead;
+            boolean buildOriginBranch = this.buildOriginBranch == null || this.buildOriginBranch;
+            boolean buildOriginBranchWithPR = this.buildOriginBranchWithPR == null || this.buildOriginBranchWithPR;
+            boolean buildOriginPRMerge = this.buildOriginPRMerge != null && this.buildOriginPRMerge;
+            boolean buildOriginPRHead = this.buildOriginPRHead != null && this.buildOriginPRHead;
+            boolean buildForkPRMerge = this.buildForkPRMerge == null || this.buildForkPRMerge;
+            boolean buildForkPRHead = this.buildForkPRHead != null && this.buildForkPRHead;
             List<SCMTrait<? extends SCMTrait<?>>> traits = new ArrayList<>();
             if (buildOriginBranch || buildOriginBranchWithPR) {
                 traits.add(new BranchDiscoveryTrait(buildOriginBranch, buildOriginBranchWithPR));
             }
             if (buildOriginPRMerge || buildOriginPRHead) {
-                traits.add(new OriginPullRequestDiscoveryTrait(buildOriginPRMerge, buildOriginPRHead));
+                EnumSet<ChangeRequestCheckoutStrategy> s = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
+                if (buildOriginPRMerge) {
+                    s.add(ChangeRequestCheckoutStrategy.MERGE);
+                }
+                if (buildOriginPRHead) {
+                    s.add(ChangeRequestCheckoutStrategy.HEAD);
+                }
+                traits.add(new OriginPullRequestDiscoveryTrait(s));
             }
             if (buildForkPRMerge || buildForkPRHead) {
-                traits.add(new ForkPullRequestDiscoveryTrait(buildForkPRMerge, buildForkPRHead));
+                EnumSet<ChangeRequestCheckoutStrategy> s = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
+                if (buildForkPRMerge) {
+                    s.add(ChangeRequestCheckoutStrategy.MERGE);
+                }
+                if (buildForkPRHead) {
+                    s.add(ChangeRequestCheckoutStrategy.HEAD);
+                }
+                traits.add(new ForkPullRequestDiscoveryTrait(s, new ForkPullRequestDiscoveryTrait.TrustContributors()));
             }
             if (!GitHubSCMSource.DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
                 traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
             }
-            if (!GitHubSCMSource.DescriptorImpl.defaultIncludes.equals(includes)
-                    || !GitHubSCMSource.DescriptorImpl.defaultExcludes.equals(excludes)) {
+            if (!"*".equals(includes) || !"".equals(excludes)) {
                 traits.add(new WildcardSCMHeadFilterTrait(includes, excludes));
             }
             if (pattern != null && !".*".equals(pattern)) {
@@ -205,6 +234,22 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
+    @CheckForNull
+    public String getScanCredentialsId() {
+        return credentialsId;
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
+    @DataBoundSetter
+    public void setScanCredentialsId(@CheckForNull String scanCredentialsId) {
+        this.credentialsId = scanCredentialsId;
+    }
+
+    @Deprecated
+    @Restricted(DoNotUse.class)
+    @RestrictedSince("2.2.0")
     @NonNull
     public String getIncludes() {
         for (SCMTrait<?> trait : traits) {
@@ -212,23 +257,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 return ((WildcardSCMHeadFilterTrait) trait).getIncludes();
             }
         }
-        return GitHubSCMSource.DescriptorImpl.defaultIncludes;
-    }
-
-    @Deprecated
-    @Restricted(DoNotUse.class)
-    @RestrictedSince("2.2.0")
-    @DataBoundSetter
-    public void setIncludes(@NonNull String includes) {
-        for (int i = 0; i < traits.size(); i++) {
-            SCMTrait<?> trait = traits.get(i);
-            if (trait instanceof WildcardSCMHeadFilterTrait) {
-                traits.set(i,
-                        new WildcardSCMHeadFilterTrait(includes, ((WildcardSCMHeadFilterTrait) trait).getExcludes()));
-                return;
-            }
-        }
-        traits.add(new WildcardSCMHeadFilterTrait(includes, GitHubSCMSource.DescriptorImpl.defaultExcludes));
+        return "*";
     }
 
     @Deprecated
@@ -241,23 +270,51 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 return ((WildcardSCMHeadFilterTrait) trait).getExcludes();
             }
         }
-        return GitHubSCMSource.DescriptorImpl.defaultExcludes;
+        return "";
     }
 
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
     @DataBoundSetter
+    public void setIncludes(@NonNull String includes) {
+        for (int i = 0; i < traits.size(); i++) {
+            SCMTrait<?> trait = traits.get(i);
+            if (trait instanceof WildcardSCMHeadFilterTrait) {
+                WildcardSCMHeadFilterTrait existing = (WildcardSCMHeadFilterTrait) trait;
+                if ("*".equals(includes) && "".equals(existing.getExcludes())) {
+                    traits.remove(i);
+                } else {
+                    traits.set(i, new WildcardSCMHeadFilterTrait(includes, existing.getExcludes()));
+                }
+                return;
+            }
+        }
+        if (!"*".equals(includes)) {
+            traits.add(new WildcardSCMHeadFilterTrait(includes, ""));
+        }
+    }
+
+    @Deprecated
+    @Restricted(NoExternalUse.class)
+    @RestrictedSince("2.2.0")
+    @DataBoundSetter
     public void setExcludes(@NonNull String excludes) {
         for (int i = 0; i < traits.size(); i++) {
             SCMTrait<?> trait = traits.get(i);
             if (trait instanceof WildcardSCMHeadFilterTrait) {
-                traits.set(i,
-                        new WildcardSCMHeadFilterTrait(((WildcardSCMHeadFilterTrait) trait).getIncludes(), excludes));
+                WildcardSCMHeadFilterTrait existing = (WildcardSCMHeadFilterTrait) trait;
+                if ("*".equals(existing.getIncludes()) && "".equals(excludes)) {
+                    traits.remove(i);
+                } else {
+                    traits.set(i, new WildcardSCMHeadFilterTrait(existing.getIncludes(), excludes));
+                }
                 return;
             }
         }
-        traits.add(new WildcardSCMHeadFilterTrait(GitHubSCMSource.DescriptorImpl.defaultIncludes, excludes));
+        if (!"".equals(excludes)) {
+            traits.add(new WildcardSCMHeadFilterTrait("*", excludes));
+        }
     }
 
     @Deprecated
@@ -324,7 +381,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     public boolean getBuildOriginPRMerge() {
         for (SCMTrait<?> trait : traits) {
             if (trait instanceof OriginPullRequestDiscoveryTrait) {
-                return ((OriginPullRequestDiscoveryTrait) trait).isPRMerge();
+                return ((OriginPullRequestDiscoveryTrait) trait).getStrategies()
+                        .contains(ChangeRequestCheckoutStrategy.MERGE);
             }
         }
         return false;
@@ -338,13 +396,19 @@ public class GitHubSCMNavigator extends SCMNavigator {
         for (int i = 0; i < traits.size(); i++) {
             SCMTrait<?> trait = traits.get(i);
             if (trait instanceof OriginPullRequestDiscoveryTrait) {
-                traits.set(i, new OriginPullRequestDiscoveryTrait(
-                        buildOriginPRMerge, ((OriginPullRequestDiscoveryTrait)trait).isPRHead()
-                ));
+                Set<ChangeRequestCheckoutStrategy> s = ((OriginPullRequestDiscoveryTrait) trait).getStrategies();
+                if (buildOriginPRMerge) {
+                    s.add(ChangeRequestCheckoutStrategy.MERGE);
+                } else {
+                    s.remove(ChangeRequestCheckoutStrategy.MERGE);
+                }
+                traits.set(i, new OriginPullRequestDiscoveryTrait(s));
                 return;
             }
         }
-        traits.add(new OriginPullRequestDiscoveryTrait(buildOriginPRMerge, false));
+        if (buildOriginPRMerge) {
+            traits.add(new OriginPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE)));
+        }
     }
 
     @Deprecated
@@ -353,7 +417,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     public boolean getBuildOriginPRHead() {
         for (SCMTrait<?> trait : traits) {
             if (trait instanceof OriginPullRequestDiscoveryTrait) {
-                return ((OriginPullRequestDiscoveryTrait) trait).isPRHead();
+                return ((OriginPullRequestDiscoveryTrait) trait).getStrategies()
+                        .contains(ChangeRequestCheckoutStrategy.HEAD);
             }
         }
         return false;
@@ -368,13 +433,19 @@ public class GitHubSCMNavigator extends SCMNavigator {
         for (int i = 0; i < traits.size(); i++) {
             SCMTrait<?> trait = traits.get(i);
             if (trait instanceof OriginPullRequestDiscoveryTrait) {
-                traits.set(i, new OriginPullRequestDiscoveryTrait(
-                        ((OriginPullRequestDiscoveryTrait) trait).isPRMerge(), buildOriginPRHead
-                ));
+                Set<ChangeRequestCheckoutStrategy> s = ((OriginPullRequestDiscoveryTrait) trait).getStrategies();
+                if (buildOriginPRHead) {
+                    s.add(ChangeRequestCheckoutStrategy.HEAD);
+                } else {
+                    s.remove(ChangeRequestCheckoutStrategy.HEAD);
+                }
+                traits.set(i, new OriginPullRequestDiscoveryTrait(s));
                 return;
             }
         }
-        traits.add(new OriginPullRequestDiscoveryTrait(false, buildOriginPRHead));
+        if (buildOriginPRHead) {
+            traits.add(new OriginPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.HEAD)));
+        }
     }
 
     @Deprecated
@@ -383,7 +454,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     public boolean getBuildForkPRMerge() {
         for (SCMTrait<?> trait : traits) {
             if (trait instanceof ForkPullRequestDiscoveryTrait) {
-                return ((ForkPullRequestDiscoveryTrait) trait).isPRMerge();
+                return ((ForkPullRequestDiscoveryTrait) trait).getStrategies()
+                        .contains(ChangeRequestCheckoutStrategy.MERGE);
             }
         }
         return false;
@@ -397,13 +469,21 @@ public class GitHubSCMNavigator extends SCMNavigator {
         for (int i = 0; i < traits.size(); i++) {
             SCMTrait<?> trait = traits.get(i);
             if (trait instanceof ForkPullRequestDiscoveryTrait) {
-                traits.set(i, new ForkPullRequestDiscoveryTrait(
-                        buildForkPRMerge, ((ForkPullRequestDiscoveryTrait) trait).isPRHead()
-                ));
+                ForkPullRequestDiscoveryTrait forkTrait = (ForkPullRequestDiscoveryTrait) trait;
+                Set<ChangeRequestCheckoutStrategy> s = forkTrait.getStrategies();
+                if (buildForkPRMerge) {
+                    s.add(ChangeRequestCheckoutStrategy.MERGE);
+                } else {
+                    s.remove(ChangeRequestCheckoutStrategy.MERGE);
+                }
+                traits.set(i, new ForkPullRequestDiscoveryTrait(s, forkTrait.getTrust()));
                 return;
             }
         }
-        traits.add(new ForkPullRequestDiscoveryTrait(buildForkPRMerge, false));
+        if (buildForkPRMerge) {
+            traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
+                    new ForkPullRequestDiscoveryTrait.TrustContributors()));
+        }
     }
 
     @Deprecated
@@ -412,11 +492,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
     public boolean getBuildForkPRHead() {
         for (SCMTrait<?> trait : traits) {
             if (trait instanceof ForkPullRequestDiscoveryTrait) {
-                return ((ForkPullRequestDiscoveryTrait) trait).isPRHead();
+                return ((ForkPullRequestDiscoveryTrait) trait).getStrategies()
+                        .contains(ChangeRequestCheckoutStrategy.HEAD);
             }
         }
         return false;
-
     }
 
     @Deprecated
@@ -427,13 +507,21 @@ public class GitHubSCMNavigator extends SCMNavigator {
         for (int i = 0; i < traits.size(); i++) {
             SCMTrait<?> trait = traits.get(i);
             if (trait instanceof ForkPullRequestDiscoveryTrait) {
-                traits.set(i, new ForkPullRequestDiscoveryTrait(
-                        ((ForkPullRequestDiscoveryTrait) trait).isPRMerge(), buildForkPRHead
-                ));
+                ForkPullRequestDiscoveryTrait forkTrait = (ForkPullRequestDiscoveryTrait) trait;
+                Set<ChangeRequestCheckoutStrategy> s = forkTrait.getStrategies();
+                if (buildForkPRHead) {
+                    s.add(ChangeRequestCheckoutStrategy.HEAD);
+                } else {
+                    s.remove(ChangeRequestCheckoutStrategy.HEAD);
+                }
+                traits.set(i, new ForkPullRequestDiscoveryTrait(s, forkTrait.getTrust()));
                 return;
             }
         }
-        traits.add(new ForkPullRequestDiscoveryTrait(false, buildForkPRHead));
+        if (buildForkPRHead) {
+            traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.HEAD),
+                    new ForkPullRequestDiscoveryTrait.TrustContributors()));
+        }
     }
 
     @CheckForNull
@@ -497,7 +585,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
             throw new AbortException("Must specify user or organization");
         }
 
-        StandardCredentials credentials = Connector.lookupScanCredentials((Item)observer.getContext(), apiUri, scanCredentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item)observer.getContext(), apiUri,
+                credentialsId);
 
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
@@ -514,14 +603,14 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
 
             GitHubSCMNavigatorRequest request = new GitHubSCMNavigatorContext()
-                    .withTraits() // TODO
+                    .withTraits(traits) // TODO
                     .newRequest(this, observer);
             try {
-                SourceFactoryImpl sourceFactory = new SourceFactoryImpl(request);
+                SourceFactory sourceFactory = new SourceFactory(request);
                 WitnessImpl witness = new WitnessImpl(listener);
 
                 if (!github.isAnonymous()) {
-                    GHMyself myself = null;
+                    GHMyself myself;
                     try {
                         // Requires an authenticated access
                         myself = github.getMyself();
@@ -626,7 +715,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         StandardCredentials credentials =
-                Connector.lookupScanCredentials((Item)observer.getContext(), apiUri, scanCredentialsId);
+                Connector.lookupScanCredentials((Item)observer.getContext(), apiUri, credentialsId);
 
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
@@ -648,10 +737,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
 
             GitHubSCMNavigatorRequest request = new GitHubSCMNavigatorContext()
-                    .withTraits() // TODO
+                    .withTraits(traits)
                     .newRequest(this, observer);
             try {
-                SourceFactoryImpl sourceFactory = new SourceFactoryImpl(request);
+                SourceFactory sourceFactory = new SourceFactory(request);
                 WitnessImpl witness = new WitnessImpl(listener);
 
                 if (!github.isAnonymous()) {
@@ -758,7 +847,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         listener.getLogger().printf("Looking up details of %s...%n", getRepoOwner());
         List<Action> result = new ArrayList<>();
-        StandardCredentials credentials = Connector.lookupScanCredentials((Item)owner, getApiUri(), getScanCredentialsId());
+        StandardCredentials credentials = Connector.lookupScanCredentials((Item)owner, getApiUri(), credentialsId);
         GitHub hub = Connector.connect(getApiUri(), credentials);
         try {
             Connector.checkApiRateLimit(listener, hub);
@@ -791,8 +880,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         GitHubWebHook.get().registerHookFor(owner);
         try {
             // FIXME MINOR HACK ALERT
-            StandardCredentials credentials =
-                    Connector.lookupScanCredentials((Item)owner, getApiUri(), getScanCredentialsId());
+            StandardCredentials credentials = Connector.lookupScanCredentials((Item)owner, getApiUri(), credentialsId);
             GitHub hub = Connector.connect(getApiUri(), credentials);
             try {
                 GitHubOrgWebHook.register(hub, repoOwner);
@@ -810,15 +898,39 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
 
-        public static final String defaultIncludes = GitHubSCMSource.DescriptorImpl.defaultIncludes;
-        public static final String defaultExcludes = GitHubSCMSource.DescriptorImpl.defaultExcludes;
+        @Deprecated
+        @Restricted(DoNotUse.class)
+        @RestrictedSince("2.2.0")
+        public static final String defaultIncludes = "*";
+        @Deprecated
+        @Restricted(DoNotUse.class)
+        @RestrictedSince("2.2.0")
+        public static final String defaultExcludes = "";
         public static final String SAME = GitHubSCMSource.DescriptorImpl.SAME;
-        public static final boolean defaultBuildOriginBranch = GitHubSCMSource.DescriptorImpl.defaultBuildOriginBranch;
-        public static final boolean defaultBuildOriginBranchWithPR = GitHubSCMSource.DescriptorImpl.defaultBuildOriginBranchWithPR;
-        public static final boolean defaultBuildOriginPRMerge = GitHubSCMSource.DescriptorImpl.defaultBuildOriginPRMerge;
-        public static final boolean defaultBuildOriginPRHead = GitHubSCMSource.DescriptorImpl.defaultBuildOriginPRHead;
-        public static final boolean defaultBuildForkPRMerge = GitHubSCMSource.DescriptorImpl.defaultBuildForkPRMerge;
-        public static final boolean defaultBuildForkPRHead = GitHubSCMSource.DescriptorImpl.defaultBuildForkPRHead;
+        @Deprecated
+        @Restricted(DoNotUse.class)
+        @RestrictedSince("2.2.0")
+        public static final boolean defaultBuildOriginBranch = true;
+        @Deprecated
+        @Restricted(DoNotUse.class)
+        @RestrictedSince("2.2.0")
+        public static final boolean defaultBuildOriginBranchWithPR = true;
+        @Deprecated
+        @Restricted(DoNotUse.class)
+        @RestrictedSince("2.2.0")
+        public static final boolean defaultBuildOriginPRMerge = false;
+        @Deprecated
+        @Restricted(DoNotUse.class)
+        @RestrictedSince("2.2.0")
+        public static final boolean defaultBuildOriginPRHead = false;
+        @Deprecated
+        @Restricted(DoNotUse.class)
+        @RestrictedSince("2.2.0")
+        public static final boolean defaultBuildForkPRMerge = false;
+        @Deprecated
+        @Restricted(DoNotUse.class)
+        @RestrictedSince("2.2.0")
+        public static final boolean defaultBuildForkPRHead = false;
 
         @Inject private GitHubSCMSource.DescriptorImpl delegate;
 
@@ -852,8 +964,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         @Override
         public SCMNavigator newInstance(String name) {
-            GitHubSCMNavigator navigator = new GitHubSCMNavigator("", name, "");
-            navigator.setTraits(getTraitDefaults());
+            GitHubSCMNavigator navigator = new GitHubSCMNavigator(name);
+            navigator.setTraits(getTraitsDefaults());
             return navigator;
         }
 
@@ -890,14 +1002,37 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return !GitHubConfiguration.get().getEndpoints().isEmpty();
         }
 
-        public List<SCMTraitDescriptor<?>> getTraitDescriptors() {
-            List<SCMTraitDescriptor<?>> descriptors = new ArrayList<SCMTraitDescriptor<?>>();
-            descriptors.addAll(SCMNavigatorTrait._for(GitHubSCMNavigatorContext.class, GitHubSCMSourceBuilder.class));
-            descriptors.addAll(SCMSourceTrait._for(GitHubSCMSourceContext.class, GitHubSCMSource.GitHubSCMBuilder.class));
-            return descriptors;
+        public List<NamedArrayList<? extends SCMTraitDescriptor<?>>> getTraitsDescriptorLists() {
+            List<SCMTraitDescriptor<?>> all = new ArrayList<>();
+            all.addAll(SCMNavigatorTrait._for(this, GitHubSCMNavigatorContext.class, GitHubSCMSourceBuilder.class));
+            all.addAll(SCMSourceTrait._for(null, GitHubSCMBuilder.class));
+            all.addAll(SCMSourceTrait._for(GitHubSCMSourceContext.class, null));
+            Set<SCMTraitDescriptor<?>> dedup = new HashSet<>();
+            for (Iterator<SCMTraitDescriptor<?>> iterator = all.iterator(); iterator.hasNext(); ) {
+                SCMTraitDescriptor<?> d = iterator.next();
+                if (dedup.contains(d)
+                        || d instanceof GitBrowserSCMSourceTrait.DescriptorImpl) {
+                    // remove any we have seen already and ban the browser configuration as it will always be github
+                    iterator.remove();
+                } else {
+                    dedup.add(d);
+                }
+            }
+            List<NamedArrayList<? extends SCMTraitDescriptor<?>>> result = new ArrayList<>();
+            NamedArrayList.select(all, "Repositories", new NamedArrayList.Predicate<SCMTraitDescriptor<?>>() {
+                        @Override
+                        public boolean test(SCMTraitDescriptor<?> scmTraitDescriptor) {
+                            return scmTraitDescriptor instanceof SCMNavigatorTraitDescriptor;
+                        }
+                    },
+                    true, result);
+            NamedArrayList.select(all, "Within repository", NamedArrayList.anyOf(NamedArrayList.withAnnotation(Discovery.class),NamedArrayList.withAnnotation(Selection.class)),
+                    true, result);
+            NamedArrayList.select(all, "Additional", null, true, result);
+            return result;
         }
 
-        public List<SCMTrait<? extends SCMTrait<?>>> getTraitDefaults() {
+        public List<SCMTrait<? extends SCMTrait<?>>> getTraitsDefaults() {
             List<SCMTrait<? extends SCMTrait<?>>> result = new ArrayList<>();
             result.addAll(delegate.getTraitDefaults());
             return result;
@@ -997,17 +1132,17 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
-    private class SourceFactoryImpl implements SCMNavigatorRequest.SourceLambda {
+    private class SourceFactory implements SCMNavigatorRequest.SourceLambda {
         private final GitHubSCMNavigatorRequest request;
 
-        public SourceFactoryImpl(GitHubSCMNavigatorRequest request) {
+        public SourceFactory(GitHubSCMNavigatorRequest request) {
             this.request = request;
         }
 
         @NonNull
         @Override
         public SCMSource create(@NonNull String name) {
-            return new GitHubSCMSourceBuilder(getId() + "::" + name, apiUri, scanCredentialsId, repoOwner, name)
+            return new GitHubSCMSourceBuilder(getId() + "::" + name, apiUri, credentialsId, repoOwner, name)
                     .withRequest(request)
                     .build();
         }

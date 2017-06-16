@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
 
@@ -54,14 +55,17 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
         }
         return this;
     }
-        /**
-         * The commit hash of the base branch we are tracking.
-         * If {@link ChangeRequestSCMHead2#getCheckoutStrategy}, this would be the current head of the base branch.
-         * Otherwise it would be the PR’s {@code .base.sha}, the common ancestor of the PR branch and the base branch.
-         *
-         * @return the commit hash of the base branch we are tracking.
-         */
-    public @NonNull String getBaseHash() {
+
+    /**
+     * The commit hash of the base branch we are tracking.
+     * If {@link ChangeRequestSCMHead2#getCheckoutStrategy()} {@link ChangeRequestCheckoutStrategy#MERGE}, this
+     * would be the current head of the base branch.
+     * Otherwise it would be the PR’s {@code .base.sha}, the common ancestor of the PR branch and the base branch.
+     *
+     * @return the commit hash of the base branch we are tracking.
+     */
+    @NonNull
+    public String getBaseHash() {
         return baseHash;
     }
 
@@ -70,7 +74,8 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
      *
      * @return The commit hash of the head of the pull request branch
      */
-    public @NonNull String getPullHash() {
+    @NonNull
+    public String getPullHash() {
         return pullHash;
     }
 

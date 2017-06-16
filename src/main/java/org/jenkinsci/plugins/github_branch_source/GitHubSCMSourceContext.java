@@ -21,8 +21,7 @@ public class GitHubSCMSourceContext
     private Set<ChangeRequestCheckoutStrategy> originPRStrategies = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
     private Set<ChangeRequestCheckoutStrategy> forkPRStrategies = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
 
-    public GitHubSCMSourceContext(@NonNull GitHubSCMSource source, @CheckForNull SCMSourceCriteria criteria,
-                                  @NonNull SCMHeadObserver observer) {
+    public GitHubSCMSourceContext(@CheckForNull SCMSourceCriteria criteria, @NonNull SCMHeadObserver observer) {
         super(criteria, observer);
     }
 

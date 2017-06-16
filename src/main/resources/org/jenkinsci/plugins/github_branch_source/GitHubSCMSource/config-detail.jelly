@@ -14,7 +14,7 @@
       </f:invisibleEntry>
     </j:otherwise>
   </j:choose>
-  <f:entry title="${%Credentials}" field="scanCredentialsId">
+  <f:entry title="${%Credentials}" field="credentialsId">
     <c:select/>
   </f:entry>
   <f:entry title="${%Owner}" field="repoOwner">

@@ -168,7 +168,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
         return collaboratorNames;
     }
 
-    public synchronized void checkApiRateLimit() throws IOException, InterruptedException {
+    public void checkApiRateLimit() throws IOException, InterruptedException {
         if (gitHub != null) {
             Connector.checkApiRateLimit(listener(), gitHub);
         }

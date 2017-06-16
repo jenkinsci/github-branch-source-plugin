@@ -20,27 +20,28 @@ public class GitHubSCMSourceBuilder extends SCMSourceBuilder<GitHubSCMSourceBuil
         this.id = id;
         this.apiUri = apiUri;
         this.repoOwner = repoOwner;
+        this.credentialsId = credentialsId;
     }
 
     @NonNull
-    public String id() {
+    public final String id() {
         return id;
     }
 
-    public String apiUri() {
+    public final String apiUri() {
         return apiUri;
     }
 
     @NonNull
-    public String repoOwner() {
+    public final String repoOwner() {
         return repoOwner;
     }
 
-    public String credentialsId() {
+    public final String credentialsId() {
         return credentialsId;
     }
 
-    public GitHubSCMSourceBuilder withCredentialsId(String credentialsId) {
+    public final GitHubSCMSourceBuilder withCredentialsId(String credentialsId) {
         this.credentialsId = credentialsId;
         return this;
     }
@@ -48,7 +49,10 @@ public class GitHubSCMSourceBuilder extends SCMSourceBuilder<GitHubSCMSourceBuil
     @NonNull
     @Override
     public GitHubSCMSource build() {
-        GitHubSCMSource result = new GitHubSCMSource(id, apiUri, credentialsId, repoOwner, projectName());
+        GitHubSCMSource result = new GitHubSCMSource(repoOwner, projectName());
+        result.setId(id());
+        result.setApiUri(apiUri());
+        result.setCredentialsId(credentialsId());
         result.setTraits(traits());
         return result;
     }
