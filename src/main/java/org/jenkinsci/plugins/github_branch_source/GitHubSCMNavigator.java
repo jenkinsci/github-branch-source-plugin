@@ -43,6 +43,7 @@ import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -61,6 +62,7 @@ import jenkins.scm.api.SCMSourceCategory;
 import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+import jenkins.scm.api.trait.SCMHeadAuthority;
 import jenkins.scm.api.trait.SCMNavigatorRequest;
 import jenkins.scm.api.trait.SCMNavigatorTrait;
 import jenkins.scm.api.trait.SCMNavigatorTraitDescriptor;
@@ -78,6 +80,7 @@ import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
 import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -94,44 +97,128 @@ import org.kohsuke.stapler.QueryParameter;
 
 public class GitHubSCMNavigator extends SCMNavigator {
 
+    /**
+     * The owner of the repositories to navigate.
+     */
     @NonNull
     private final String repoOwner;
+    /**
+     * The API endpoint for the GitHub server.
+     */
     @CheckForNull
     private String apiUri;
+    /**
+     * The credentials to use when accessing {@link #apiUri} (and also the default credentials to use for checking out).
+     */
     @CheckForNull
     private String credentialsId;
+    /**
+     * The behavioural traits to apply.
+     */
     @NonNull
     private List<SCMTrait<? extends SCMTrait<?>>> traits;
 
+    /**
+     * Legacy configuration field
+     *
+     * @deprecated use {@link #credentialsId}.
+     */
     @Deprecated
     private transient String scanCredentialsId;
+    /**
+     * Legacy configuration field
+     *
+     * @deprecated use {@link SSHCheckoutTrait}.
+     */
     @Deprecated
     private transient String checkoutCredentialsId;
+    /**
+     * Legacy configuration field
+     *
+     * @deprecated use {@link RegexSCMSourceFilterTrait}.
+     */
     @Deprecated
     private transient String pattern;
+    /**
+     * Legacy configuration field
+     *
+     * @deprecated use {@link WildcardSCMHeadFilterTrait}.
+     */
     @Deprecated
     private String includes;
+    /**
+     * Legacy configuration field
+     *
+     * @deprecated use {@link WildcardSCMHeadFilterTrait}.
+     */
     @Deprecated
     private String excludes;
+    /**
+     * Legacy configuration field
+     *
+     * @deprecated use {@link BranchDiscoveryTrait}.
+     */
     @Deprecated
     private transient Boolean buildOriginBranch;
+    /**
+     * Legacy configuration field
+     *
+     * @deprecated use {@link BranchDiscoveryTrait}.
+     */
     @Deprecated
     private transient Boolean buildOriginBranchWithPR;
+    /**
+     * Legacy configuration field
+     *
+     * @deprecated use {@link OriginPullRequestDiscoveryTrait}.
+     */
     @Deprecated
     private transient Boolean buildOriginPRMerge;
+    /**
+     * Legacy configuration field
+     *
+     * @deprecated use {@link OriginPullRequestDiscoveryTrait}.
+     */
     @Deprecated
     private transient Boolean buildOriginPRHead;
+    /**
+     * Legacy configuration field
+     *
+     * @deprecated use {@link ForkPullRequestDiscoveryTrait}.
+     */
     @Deprecated
     private transient Boolean buildForkPRMerge;
+    /**
+     * Legacy configuration field
+     *
+     * @deprecated use {@link ForkPullRequestDiscoveryTrait}.
+     */
     @Deprecated
     private transient Boolean buildForkPRHead;
 
+    /**
+     * Constructor.
+     *
+     * @param repoOwner the owner of the repositories to navigate.
+     * @since 2.2.0
+     */
     @DataBoundConstructor
     public GitHubSCMNavigator(String repoOwner) {
         this.repoOwner = StringUtils.defaultString(repoOwner);
         this.traits = new ArrayList<>();
     }
 
+    /**
+     * Legacy constructor.
+     *
+     * @param apiUri                the API endpoint for the GitHub server.
+     * @param repoOwner             the owner of the repositories to navigate.
+     * @param scanCredentialsId     the credentials to use when accessing {@link #apiUri} (and also the default
+     *                              credentials to use for checking out).
+     * @param checkoutCredentialsId the credentials to use when checking out.
+     * @deprecated use {@link #GitHubSCMNavigator(String)}, {@link #setApiUri(String)},
+     * {@link #setCredentialsId(String)} and {@link SSHCheckoutTrait}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -139,47 +226,94 @@ public class GitHubSCMNavigator extends SCMNavigator {
         this(repoOwner);
         setCredentialsId(scanCredentialsId);
         setApiUri(apiUri);
-        if (!GitHubSCMSource.DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
+        if (checkoutCredentialsId != null && !GitHubSCMSource.DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
             traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
         }
     }
 
+    /**
+     * Gets the API endpoint for the GitHub server.
+     *
+     * @return the API endpoint for the GitHub server.
+     */
     @CheckForNull
     public String getApiUri() {
         return apiUri;
     }
 
+    /**
+     * Sets the API endpoint for the GitHub server.
+     *
+     * @param apiUri the API endpoint for the GitHub server.
+     * @since 2.2.0
+     */
     @DataBoundSetter
     public void setApiUri(String apiUri) {
-        this.apiUri = Util.fixEmptyAndTrim(apiUri);
+        apiUri = Util.fixEmptyAndTrim(apiUri);
+        this.apiUri = GitHubServerConfig.GITHUB_URL.equals(apiUri) ? null : apiUri;
     }
 
+    /**
+     * Gets the {@link StandardCredentials#getId()} of the credentials to use when accessing {@link #apiUri} (and also
+     * the default credentials to use for checking out).
+     *
+     * @return the {@link StandardCredentials#getId()} of the credentials to use when accessing {@link #apiUri} (and
+     * also the default credentials to use for checking out).
+     * @since 2.2.0
+     */
     @CheckForNull
     public String getCredentialsId() {
         return credentialsId;
     }
 
+    /**
+     * Sets the {@link StandardCredentials#getId()} of the credentials to use when accessing {@link #apiUri} (and also
+     * the default credentials to use for checking out).
+     *
+     * @param credentialsId the {@link StandardCredentials#getId()} of the credentials to use when accessing
+     *                      {@link #apiUri} (and also the default credentials to use for checking out).
+     * @since 2.2.0
+     */
     @DataBoundSetter
-    public void setCredentialsId(@CheckForNull String scanCredentialsId) {
-        this.credentialsId = Util.fixEmpty(scanCredentialsId);
+    public void setCredentialsId(@CheckForNull String credentialsId) {
+        this.credentialsId = Util.fixEmpty(credentialsId);
     }
 
+    /**
+     * Gets the name of the owner who's repositories will be navigated.
+     * @return the name of the owner who's repositories will be navigated.
+     */
     @NonNull
     public String getRepoOwner() {
         return repoOwner;
     }
 
+    /**
+     * Gets the behavioural traits that are applied to this navigator and any {@link GitHubSCMSource} instances it
+     * discovers.
+     *
+     * @return the behavioural traits.
+     */
     @NonNull
     public List<SCMTrait<? extends SCMTrait<?>>> getTraits() {
-        return traits;
+        return Collections.unmodifiableList(traits);
     }
 
+    /**
+     * Sets the behavioural traits that are applied to this navigator and any {@link GitHubSCMSource} instances it
+     * discovers. The new traits will take affect on the next navigation through any of the
+     * {@link #visitSources(SCMSourceObserver)} overloads or {@link #visitSource(String, SCMSourceObserver)}.
+     *
+     * @param traits the new behavioural traits.
+     */
     @DataBoundSetter
     public void setTraits(@CheckForNull List<SCMTrait<? extends SCMTrait<?>>> traits) {
         this.traits = traits != null ? new ArrayList<>(traits) : new ArrayList<SCMTrait<? extends SCMTrait<?>>>();
     }
 
-    /** Use defaults for old settings. */
+    /**
+     * Use defaults for old settings.
+     */
     @SuppressWarnings("ConstantConditions")
     @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="Only non-null after we set them here!")
     private Object readResolve() {
@@ -220,8 +354,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
             if (!GitHubSCMSource.DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
                 traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
             }
-            if (!"*".equals(includes) || !"".equals(excludes)) {
-                traits.add(new WildcardSCMHeadFilterTrait(includes, excludes));
+            if ((includes != null && !"*".equals(includes)) || (excludes != null && !"".equals(excludes))) {
+                traits.add(new WildcardSCMHeadFilterTrait(
+                        StringUtils.defaultIfBlank(includes, "*"),
+                        StringUtils.defaultIfBlank(excludes, "")));
             }
             if (pattern != null && !".*".equals(pattern)) {
                 traits.add(new RegexSCMSourceFilterTrait(pattern));
@@ -231,6 +367,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return this;
     }
 
+    /**
+     * Legacy getter.
+     *
+     * @return {@link #getCredentialsId()}.
+     * @deprecated use {@link #getCredentialsId()}.
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -239,6 +381,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return credentialsId;
     }
 
+    /**
+     * Legacy setter.
+     *
+     * @param scanCredentialsId the credentials.
+     * @deprecated use {@link #setCredentialsId(String)}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -247,6 +395,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         this.credentialsId = scanCredentialsId;
     }
 
+    /**
+     * Legacy getter.
+     *
+     * @return {@link WildcardSCMHeadFilterTrait#getIncludes()}
+     * @deprecated use {@link WildcardSCMHeadFilterTrait}.
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -260,6 +414,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return "*";
     }
 
+    /**
+     * Legacy getter.
+     *
+     * @return {@link WildcardSCMHeadFilterTrait#getExcludes()}
+     * @deprecated use {@link WildcardSCMHeadFilterTrait}.
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -273,6 +433,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return "";
     }
 
+    /**
+     * Legacy setter.
+     *
+     * @param includes see {@link WildcardSCMHeadFilterTrait#WildcardSCMHeadFilterTrait(String, String)}
+     * @deprecated use {@link WildcardSCMHeadFilterTrait}.
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -295,6 +461,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
+    /**
+     * Legacy setter.
+     *
+     * @param excludes see {@link WildcardSCMHeadFilterTrait#WildcardSCMHeadFilterTrait(String, String)}
+     * @deprecated use {@link WildcardSCMHeadFilterTrait}.
+     */
     @Deprecated
     @Restricted(NoExternalUse.class)
     @RestrictedSince("2.2.0")
@@ -317,6 +489,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
+    /**
+     * Legacy getter.
+     * @return {@link BranchDiscoveryTrait#isBuildBranch()}.
+     * @deprecated use {@link BranchDiscoveryTrait}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -329,6 +506,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return false;
     }
 
+    /**
+     * Legacy setter.
+     *
+     * @param buildOriginBranch see {@link BranchDiscoveryTrait#BranchDiscoveryTrait(boolean, boolean)}.
+     * @deprecated use {@link BranchDiscoveryTrait}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -346,6 +529,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         traits.add(new BranchDiscoveryTrait(buildOriginBranch, false));
     }
 
+    /**
+     * Legacy getter.
+     *
+     * @return {@link BranchDiscoveryTrait#isBuildBranchesWithPR()}.
+     * @deprecated use {@link BranchDiscoveryTrait}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -358,6 +547,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return false;
     }
 
+    /**
+     * Legacy setter.
+     *
+     * @param buildOriginBranchWithPR see {@link BranchDiscoveryTrait#BranchDiscoveryTrait(boolean, boolean)}.
+     * @deprecated use {@link BranchDiscoveryTrait}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -375,6 +570,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         traits.add(new BranchDiscoveryTrait(false, buildOriginBranchWithPR));
     }
 
+    /**
+     * Legacy getter.
+     *
+     * @return {@link OriginPullRequestDiscoveryTrait#getStrategies()}.
+     * @deprecated use {@link OriginPullRequestDiscoveryTrait#getStrategies()}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -388,6 +589,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return false;
     }
 
+    /**
+     * Legacy setter.
+     *
+     * @param buildOriginPRMerge see {@link OriginPullRequestDiscoveryTrait#OriginPullRequestDiscoveryTrait(Set)}.
+     * @deprecated use {@link OriginPullRequestDiscoveryTrait}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -411,6 +618,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
+    /**
+     * Legacy getter.
+     *
+     * @return {@link OriginPullRequestDiscoveryTrait#getStrategies()}.
+     * @deprecated use {@link OriginPullRequestDiscoveryTrait#getStrategies()}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -425,6 +638,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
     }
 
+    /**
+     * Legacy setter.
+     *
+     * @param buildOriginPRHead see {@link OriginPullRequestDiscoveryTrait#OriginPullRequestDiscoveryTrait(Set)}.
+     * @deprecated use {@link OriginPullRequestDiscoveryTrait}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -448,6 +667,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
+    /**
+     * Legacy getter.
+     *
+     * @return {@link ForkPullRequestDiscoveryTrait#getStrategies()}.
+     * @deprecated use {@link ForkPullRequestDiscoveryTrait#getStrategies()}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -461,6 +686,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return false;
     }
 
+    /**
+     * Legacy setter.
+     *
+     * @param buildForkPRMerge see {@link ForkPullRequestDiscoveryTrait#ForkPullRequestDiscoveryTrait(Set, SCMHeadAuthority)}.
+     * @deprecated use {@link ForkPullRequestDiscoveryTrait}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -486,6 +717,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
+    /**
+     * Legacy getter.
+     *
+     * @return {@link ForkPullRequestDiscoveryTrait#getStrategies()}.
+     * @deprecated use {@link ForkPullRequestDiscoveryTrait#getStrategies()}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -499,6 +736,13 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return false;
     }
 
+    /**
+     * Legacy setter.
+     *
+     * @param buildForkPRHead see
+     * {@link ForkPullRequestDiscoveryTrait#ForkPullRequestDiscoveryTrait(Set, SCMHeadAuthority)}.
+     * @deprecated use {@link ForkPullRequestDiscoveryTrait}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -524,6 +768,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
+    /**
+     * Legacy getter.
+     *
+     * @return {@link SSHCheckoutTrait#getCredentialsId()} with some mangling to preserve legacy behaviour.
+     * @deprecated use {@link SSHCheckoutTrait}
+     */
     @CheckForNull
     @Deprecated
     @Restricted(DoNotUse.class)
@@ -531,12 +781,21 @@ public class GitHubSCMNavigator extends SCMNavigator {
     public String getCheckoutCredentialsId() {
         for (SCMTrait<?> trait : traits) {
             if (trait instanceof SSHCheckoutTrait) {
-                return ((SSHCheckoutTrait) trait).getCredentialsId();
+                return StringUtils.defaultString(
+                        ((SSHCheckoutTrait) trait).getCredentialsId(),
+                        GitHubSCMSource.DescriptorImpl.ANONYMOUS
+                );
             }
         }
         return GitHubSCMSource.DescriptorImpl.SAME;
     }
 
+    /**
+     * Legacy getter.
+     *
+     * @return {@link RegexSCMSourceFilterTrait#getRegex()}.
+     * @deprecated use {@link RegexSCMSourceFilterTrait}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -549,6 +808,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return ".*";
     }
 
+    /**
+     * Legacy setter.
+     *
+     * @param pattern see {@link RegexSCMSourceFilterTrait#RegexSCMSourceFilterTrait(String)}.
+     * @deprecated use {@link RegexSCMSourceFilterTrait}
+     */
     @Deprecated
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
@@ -557,19 +822,31 @@ public class GitHubSCMNavigator extends SCMNavigator {
         for (int i = 0; i < traits.size(); i++) {
             SCMTrait<?> trait = traits.get(i);
             if (trait instanceof RegexSCMSourceFilterTrait) {
-                traits.set(i, new RegexSCMSourceFilterTrait(pattern));
+                if (".*".equals(pattern)) {
+                    traits.remove(i);
+                } else {
+                    traits.set(i, new RegexSCMSourceFilterTrait(pattern));
+                }
                 return;
             }
         }
-        traits.add(new RegexSCMSourceFilterTrait(pattern));
+        if (!".*".equals(pattern)) {
+            traits.add(new RegexSCMSourceFilterTrait(pattern));
+        }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @NonNull
     @Override
     protected String id() {
         return StringUtils.defaultIfBlank(apiUri, GitHubSCMSource.GITHUB_URL) + "::" + repoOwner;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void visitSources(SCMSourceObserver observer) throws IOException, InterruptedException {
         Set<String> includes = observer.getIncludes();
@@ -704,6 +981,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void visitSource(String sourceName, SCMSourceObserver observer)
             throws IOException, InterruptedException {
@@ -942,26 +1222,41 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return Messages.GitHubSCMNavigator_Pronoun();
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public String getDisplayName() {
             return Messages.GitHubSCMNavigator_DisplayName();
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public String getDescription() {
             return Messages.GitHubSCMNavigator_Description();
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public String getIconFilePathPattern() {
             return "plugin/github-branch-source/images/:size/github-scmnavigator.png";
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public String getIconClassName() {
             return "icon-github-scm-navigator";
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public SCMNavigator newInstance(String name) {
             GitHubSCMNavigator navigator = new GitHubSCMNavigator(name);
@@ -969,6 +1264,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return navigator;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @NonNull
         @Override
         protected SCMSourceCategory[] createCategories() {
@@ -978,17 +1276,35 @@ public class GitHubSCMNavigator extends SCMNavigator {
             };
         }
 
+        @Restricted(NoExternalUse.class) // stapler
+        public FormValidation doCheckCredentialsId(@CheckForNull @AncestorInPath Item context,
+                                                       @QueryParameter String apiUri,
+                                                       @QueryParameter String credentialsId) {
+            return Connector.checkScanCredentials(context, apiUri, credentialsId);
+        }
+
+        @Restricted(NoExternalUse.class)
+        public ListBoxModel doFillCredentialsIdItems(@CheckForNull @AncestorInPath Item context,
+                                                         @QueryParameter String apiUri) {
+            return Connector.listScanCredentials(context, apiUri);
+        }
+
+        @Deprecated
         @Restricted(NoExternalUse.class)
         public FormValidation doCheckScanCredentialsId(@CheckForNull @AncestorInPath Item context,
                                                        @QueryParameter String apiUri,
                                                        @QueryParameter String scanCredentialsId) {
-            return Connector.checkScanCredentials(context, apiUri, scanCredentialsId);
+            return doCheckCredentialsId(context, apiUri, scanCredentialsId);
         }
 
+        @Deprecated
+        @Restricted(NoExternalUse.class)
         public ListBoxModel doFillScanCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
-            return Connector.listScanCredentials(context, apiUri);
+            return doFillCredentialsIdItems(context, apiUri);
         }
 
+        @Restricted(NoExternalUse.class) // stapler
+        @SuppressWarnings("unused") // stapler
         public ListBoxModel doFillApiUriItems() {
             ListBoxModel result = new ListBoxModel();
             result.add("GitHub", "");
@@ -998,10 +1314,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return result;
         }
 
+        @SuppressWarnings("unused") // jelly
         public boolean isApiUriSelectable() {
             return !GitHubConfiguration.get().getEndpoints().isEmpty();
         }
 
+        @SuppressWarnings("unused") // jelly
         public List<NamedArrayList<? extends SCMTraitDescriptor<?>>> getTraitsDescriptorLists() {
             List<SCMTraitDescriptor<?>> all = new ArrayList<>();
             all.addAll(SCMNavigatorTrait._for(this, GitHubSCMNavigatorContext.class, GitHubSCMSourceBuilder.class));
@@ -1032,6 +1350,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return result;
         }
 
+        @SuppressWarnings("unused") // jelly
         public List<SCMTrait<? extends SCMTrait<?>>> getTraitsDefaults() {
             List<SCMTrait<? extends SCMTrait<?>>> result = new ArrayList<>();
             result.addAll(delegate.getTraitDefaults());
@@ -1109,6 +1428,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
+    /**
+     * A {@link SCMNavigatorRequest.Witness} that counts how many sources have been observed.
+     */
     private static class WitnessImpl implements SCMNavigatorRequest.Witness {
         private int count;
         private final TaskListener listener;
@@ -1132,6 +1454,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
+    /**
+     * Our {@link SCMNavigatorRequest.SourceLambda}.
+     */
     private class SourceFactory implements SCMNavigatorRequest.SourceLambda {
         private final GitHubSCMNavigatorRequest request;
 

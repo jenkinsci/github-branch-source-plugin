@@ -49,7 +49,6 @@ import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.transport.RefSpec;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
-import org.kohsuke.github.GitHub;
 
 /**
  * Builds a {@link GitSCM} for {@link GitHubSCMSource}.
@@ -58,17 +57,37 @@ import org.kohsuke.github.GitHub;
  */
 public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
 
+    /**
+     * Singleton instance of {@link HttpsRepositoryUriResolver}.
+     */
     private static final HttpsRepositoryUriResolver HTTPS = new HttpsRepositoryUriResolver();
+    /**
+     * Singleton instance of {@link SshRepositoryUriResolver}.
+     */
     private static final SshRepositoryUriResolver SSH = new SshRepositoryUriResolver();
     /**
      * The context within which credentials should be resolved.
      */
+    @CheckForNull
     private final SCMSourceOwner context;
+    /**
+     * The API URL
+     */
+    @NonNull
     private final String apiUri;
+    /**
+     * The repository owner.
+     */
     @NonNull
     private final String repoOwner;
+    /**
+     * The repository name.
+     */
     @NonNull
     private final String repository;
+    /**
+     * The definitive HTML user-facing URL of the repository (as provided by the GitHub API) if available.
+     */
     @CheckForNull
     private final URL repositoryUrl;
 
@@ -105,6 +124,12 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         }
     }
 
+    /**
+     * Tries to guess the HTTPS URL of the Git repository.
+     *
+     * @param source the source.
+     * @return the (possibly incorrect) best guess at the Git repository URL.
+     */
     private static String guessRemote(GitHubSCMSource source) {
         String apiUri = StringUtils.removeEnd(source.getApiUri(), "/");
         if (StringUtils.isBlank(apiUri) || GitHubServerConfig.GITHUB_URL.equals(apiUri)) {
@@ -112,7 +137,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         } else {
             apiUri = StringUtils.removeEnd(apiUri, "/api/v3");
         }
-        return  apiUri + "/" + source.getRepoOwner() + "/" + source.getRepository() + ".git";
+        return apiUri + "/" + source.getRepoOwner() + "/" + source.getRepository() + ".git";
     }
 
     /**
@@ -188,7 +213,6 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
             }
         }
     }
-
 
     /**
      * Updates the {@link GitSCMBuilder#withRemote(String)} based on the current {@link #head()} and
