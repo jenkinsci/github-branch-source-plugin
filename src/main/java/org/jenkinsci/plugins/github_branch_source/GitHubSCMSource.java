@@ -533,7 +533,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public String getCheckoutCredentialsId() {
         for (SCMSourceTrait trait : traits) {
             if (trait instanceof SSHCheckoutTrait) {
-                return ((SSHCheckoutTrait) trait).getCredentialsId();
+                return StringUtils.defaultString(
+                        ((SSHCheckoutTrait) trait).getCredentialsId(),
+                        GitHubSCMSource.DescriptorImpl.ANONYMOUS
+                );
             }
         }
         return DescriptorImpl.SAME;
