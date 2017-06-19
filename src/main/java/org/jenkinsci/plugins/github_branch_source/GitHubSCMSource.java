@@ -962,26 +962,27 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    private void updateCollaboratorNames(@NonNull TaskListener listener, @CheckForNull StandardCredentials credentials,
-                                         @NonNull GHRepository ghRepository)
+    @NonNull
+    private Set<String> updateCollaboratorNames(@NonNull TaskListener listener, @CheckForNull StandardCredentials credentials,
+                                                @NonNull GHRepository ghRepository)
             throws IOException {
         if (credentials == null && (apiUri == null || GITHUB_URL.equals(apiUri))) {
             // anonymous access to GitHub will never get list of collaborators and will
             // burn an API call, so no point in even trying
             listener.getLogger().println("Anonymous cannot query list of collaborators, assuming none");
-            collaboratorNames = Collections.emptySet();
+            return collaboratorNames = Collections.emptySet();
         } else {
             try {
-                collaboratorNames = new HashSet<>(ghRepository.getCollaboratorNames());
+                return collaboratorNames = new HashSet<>(ghRepository.getCollaboratorNames());
             } catch (FileNotFoundException e) {
                 // not permitted
                 listener.getLogger().println("Not permitted to query list of collaborators, assuming none");
-                collaboratorNames = Collections.emptySet();
+                return collaboratorNames = Collections.emptySet();
             } catch (HttpException e) {
                 if (e.getResponseCode() == HttpServletResponse.SC_UNAUTHORIZED
                         || e.getResponseCode() == HttpServletResponse.SC_NOT_FOUND) {
                     listener.getLogger().println("Not permitted to query list of collaborators, assuming none");
-                    collaboratorNames = Collections.emptySet();
+                    return collaboratorNames = Collections.emptySet();
                 } else {
                     throw e;
                 }
@@ -1808,11 +1809,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         @Override
         protected Set<String> create() {
             try {
-                updateCollaboratorNames(listener, credentials, repo);
+                return updateCollaboratorNames(listener, credentials, repo);
             } catch (IOException e) {
                 throw new WrappedException(e);
             }
-            return collaboratorNames;
         }
     }
 
