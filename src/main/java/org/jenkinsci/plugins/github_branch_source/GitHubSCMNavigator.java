@@ -75,6 +75,7 @@ import jenkins.scm.impl.trait.Discovery;
 import jenkins.scm.impl.trait.RegexSCMSourceFilterTrait;
 import jenkins.scm.impl.trait.Selection;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
+import net.jcip.annotations.GuardedBy;
 import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
 import org.jenkins.ui.icon.IconSet;
@@ -226,7 +227,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         this(repoOwner);
         setCredentialsId(scanCredentialsId);
         setApiUri(apiUri);
-        if (checkoutCredentialsId != null && !GitHubSCMSource.DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
+        if (checkoutCredentialsId != null && !DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
             traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
         }
     }
@@ -351,7 +352,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 }
                 traits.add(new ForkPullRequestDiscoveryTrait(s, new ForkPullRequestDiscoveryTrait.TrustContributors()));
             }
-            if (!GitHubSCMSource.DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
+            if (!DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
                 traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
             }
             if ((includes != null && !"*".equals(includes)) || (excludes != null && !"".equals(excludes))) {
@@ -787,7 +788,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 );
             }
         }
-        return GitHubSCMSource.DescriptorImpl.SAME;
+        return DescriptorImpl.SAME;
     }
 
     /**
@@ -1276,6 +1277,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
             };
         }
 
+        /**
+         * Validates the selected credentials.
+         *
+         * @param context       the context.
+         * @param apiUri        the end-point.
+         * @param credentialsId the credentials.
+         * @return validation results.
+         * @since 2.2.0
+         */
         @Restricted(NoExternalUse.class) // stapler
         public FormValidation doCheckCredentialsId(@CheckForNull @AncestorInPath Item context,
                                                        @QueryParameter String apiUri,
@@ -1283,12 +1293,29 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return Connector.checkScanCredentials(context, apiUri, credentialsId);
         }
 
-        @Restricted(NoExternalUse.class)
+        /**
+         * Populates the drop-down list of credentials.
+         *
+         * @param context the context.
+         * @param apiUri  the end-point.
+         * @return the drop-down list.
+         * @since 2.2.0
+         */
+        @Restricted(NoExternalUse.class) // stapler
         public ListBoxModel doFillCredentialsIdItems(@CheckForNull @AncestorInPath Item context,
                                                          @QueryParameter String apiUri) {
             return Connector.listScanCredentials(context, apiUri);
         }
 
+        /**
+         * Legacy method.
+         *
+         * @param context the context.
+         * @param apiUri  the endpoint.
+         * @param scanCredentialsId the scan credentials.
+         * @return the {@link ListBoxModel}
+         * @deprecated use {@link #doCheckCredentialsId(Item, String, String)}
+         */
         @Deprecated
         @Restricted(NoExternalUse.class)
         public FormValidation doCheckScanCredentialsId(@CheckForNull @AncestorInPath Item context,
@@ -1297,12 +1324,26 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return doCheckCredentialsId(context, apiUri, scanCredentialsId);
         }
 
+        /**
+         * Legacy method.
+         *
+         * @param context the context.
+         * @param apiUri  the endpoint.
+         * @return the {@link ListBoxModel}
+         * @deprecated use {@link #doFillCredentialsIdItems(Item, String)}
+         */
         @Deprecated
         @Restricted(NoExternalUse.class)
+        @RestrictedSince("2.2.0")
         public ListBoxModel doFillScanCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
             return doFillCredentialsIdItems(context, apiUri);
         }
 
+        /**
+         * Returns the available GitHub endpoint items.
+         *
+         * @return the available GitHub endpoint items.
+         */
         @Restricted(NoExternalUse.class) // stapler
         @SuppressWarnings("unused") // stapler
         public ListBoxModel doFillApiUriItems() {
@@ -1314,11 +1355,23 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return result;
         }
 
+        /**
+         * Returns {@code true} if there is more than one GitHub endpoint configured, and consequently the UI should
+         * provide the ability to select the endpoint.
+         *
+         * @return {@code true} if there is more than one GitHub endpoint configured.
+         */
         @SuppressWarnings("unused") // jelly
         public boolean isApiUriSelectable() {
             return !GitHubConfiguration.get().getEndpoints().isEmpty();
         }
 
+        /**
+         * Returns the {@link SCMTraitDescriptor} instances grouped into categories.
+         *
+         * @return the categorized list of {@link SCMTraitDescriptor} instances.
+         * @since 2.2.0
+         */
         @SuppressWarnings("unused") // jelly
         public List<NamedArrayList<? extends SCMTraitDescriptor<?>>> getTraitsDescriptorLists() {
             List<SCMTraitDescriptor<?>> all = new ArrayList<>();
@@ -1432,24 +1485,47 @@ public class GitHubSCMNavigator extends SCMNavigator {
      * A {@link SCMNavigatorRequest.Witness} that counts how many sources have been observed.
      */
     private static class WitnessImpl implements SCMNavigatorRequest.Witness {
+        /**
+         * The count of repositories matches.
+         */
+        @GuardedBy("this")
         private int count;
+        /**
+         * The listener to log to.
+         */
+        @NonNull
         private final TaskListener listener;
 
-        public WitnessImpl(TaskListener listener) {
+        /**
+         * Constructor.
+         *
+         * @param listener the listener to log to.
+         */
+        public WitnessImpl(@NonNull TaskListener listener) {
             this.listener = listener;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public void record(@NonNull String name, boolean isMatch) {
             if (isMatch) {
                 listener.getLogger().format("Proposing %s%n", name);
-                count++;
+                synchronized (this) {
+                    count++;
+                }
             } else {
                 listener.getLogger().format("Ignoring %s%n", name);
             }
         }
 
-        public int getCount() {
+        /**
+         * Returns the count of repositories matches.
+         *
+         * @return the count of repositories matches.
+         */
+        public synchronized int getCount() {
             return count;
         }
     }
@@ -1458,12 +1534,23 @@ public class GitHubSCMNavigator extends SCMNavigator {
      * Our {@link SCMNavigatorRequest.SourceLambda}.
      */
     private class SourceFactory implements SCMNavigatorRequest.SourceLambda {
+        /**
+         * The request.
+         */
         private final GitHubSCMNavigatorRequest request;
 
+        /**
+         * Constructor.
+         *
+         * @param request the request to decorate {@link SCMSource} instances with.
+         */
         public SourceFactory(GitHubSCMNavigatorRequest request) {
             this.request = request;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @NonNull
         @Override
         public SCMSource create(@NonNull String name) {

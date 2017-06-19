@@ -1625,14 +1625,14 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode__when__checkoutCredentials_SAME__then__noTraitAdded() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator(null, "test", "scan", GitHubSCMSource.DescriptorImpl.SAME);
-        assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMSource.DescriptorImpl.SAME));
+        assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMNavigator.DescriptorImpl.SAME));
         assertThat(instance.getTraits(), not(Matchers.<SCMTrait<?>>hasItem(instanceOf(SSHCheckoutTrait.class))));
     }
 
     @Test
     public void given__legacyCode__when__checkoutCredentials_null__then__noTraitAdded() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator(null, "test", "scan", null);
-        assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMSource.DescriptorImpl.SAME));
+        assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMNavigator.DescriptorImpl.SAME));
         assertThat(instance.getTraits(), not(Matchers.<SCMTrait<?>>hasItem(instanceOf(SSHCheckoutTrait.class))));
     }
 
