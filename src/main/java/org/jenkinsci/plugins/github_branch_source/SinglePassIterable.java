@@ -16,20 +16,39 @@ import net.jcip.annotations.GuardedBy;
  * @param <V>
  */
 class SinglePassIterable<V> implements Iterable<V> {
+    /**
+     * The delegate.
+     */
     @GuardedBy("items")
     @CheckForNull
     private Iterator<V> delegate;
+    /**
+     * The items we have seen so far.
+     */
     private final List<V> items;
 
+    /**
+     * Constructor.
+     *
+     * @param delegate the {@link Iterable}.
+     */
     public SinglePassIterable(@NonNull Iterable<V> delegate) {
         this(delegate.iterator());
     }
 
+    /**
+     * Constructor.
+     *
+     * @param delegate the {@link Iterator}.
+     */
     public SinglePassIterable(@NonNull Iterator<V> delegate) {
         this.delegate = delegate;
         items = new ArrayList<>();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final Iterator<V> iterator() {
         synchronized (items) {
@@ -41,11 +60,17 @@ class SinglePassIterable<V> implements Iterable<V> {
         return new Iterator<V>() {
             int index = 0;
 
+            /**
+             * {@inheritDoc}
+             */
             @Override
             public void remove() {
                 throw new UnsupportedOperationException();
             }
 
+            /**
+             * {@inheritDoc}
+             */
             @Override
             public boolean hasNext() {
                 synchronized (items) {
@@ -63,6 +88,9 @@ class SinglePassIterable<V> implements Iterable<V> {
                 }
             }
 
+            /**
+             * {@inheritDoc}
+             */
             @Override
             public V next() {
                 synchronized (items) {
@@ -90,7 +118,17 @@ class SinglePassIterable<V> implements Iterable<V> {
         };
     }
 
-    public void observe(V v) {}
+    /**
+     * Callback for each element observed from the delegate.
+     *
+     * @param v the element.
+     */
+    protected void observe(V v) {
+    }
 
-    public void completed() {}
+    /**
+     * Callback for when the delegate has reached the end.
+     */
+    protected void completed() {
+    }
 }

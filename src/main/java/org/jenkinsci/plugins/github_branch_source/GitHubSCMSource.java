@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015-2016 CloudBees, Inc.
+ * Copyright 2015-2017 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -141,44 +141,105 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     private static final Object pullRequestSourceMapLock = new Object();
 
-    @CheckForNull
+    //////////////////////////////////////////////////////////////////////
+    // Configuration fields
+    //////////////////////////////////////////////////////////////////////
+
+    /**
+     * The GitHub end-point or {@code null} if {@link #GITHUB_URL} is implied.
+     */
+    @CheckForNull // TODO migrate to non-null with configuration of GITHUB_URL by default
     private String apiUri;
 
-    /** Credentials for GitHub API; currently only supports username/password (personal access token). */
+    /**
+     * Credentials for GitHub API; currently only supports username/password (personal access token).
+     * @since 2.2.0
+     */
     @CheckForNull
     private String credentialsId;
 
+    /**
+     * The repository owner.
+     */
+    @NonNull
     private final String repoOwner;
 
+    /**
+     * The repository
+     */
+    @NonNull
     private final String repository;
 
+    /**
+     * The behaviours to apply to this source.
+     * @since 2.2.0
+     */
     @NonNull
     private List<SCMSourceTrait> traits;
 
+    //////////////////////////////////////////////////////////////////////
+    // Legacy Configuration fields
+    //////////////////////////////////////////////////////////////////////
+
+    /**
+     * Legacy field.
+     */
     @Deprecated
     private transient String scanCredentialsId;
+    /**
+     * Legacy field.
+     */
     @Deprecated
     private transient String checkoutCredentialsId;
+    /**
+     * Legacy field.
+     */
     @Deprecated
     private String includes;
+    /**
+     * Legacy field.
+     */
     @Deprecated
     private String excludes;
+    /**
+     * Legacy field.
+     */
     @Deprecated
     private transient Boolean buildOriginBranch;
+    /**
+     * Legacy field.
+     */
     @Deprecated
     private transient Boolean buildOriginBranchWithPR;
+    /**
+     * Legacy field.
+     */
     @Deprecated
     private transient Boolean buildOriginPRMerge;
+    /**
+     * Legacy field.
+     */
     @Deprecated
     private transient Boolean buildOriginPRHead;
+    /**
+     * Legacy field.
+     */
     @Deprecated
     private transient Boolean buildForkPRMerge;
+    /**
+     * Legacy field.
+     */
     @Deprecated
     private transient Boolean buildForkPRHead;
+
+    //////////////////////////////////////////////////////////////////////
+    // Run-time cached state
+    //////////////////////////////////////////////////////////////////////
 
     /**
      * Cache of the official repository HTML URL as reported by {@link GitHub#getRepository(String)}.
      */
+    @CheckForNull
     private transient URL repositoryUrl;
     /**
      * The collaborator names used to determine if pull requests are from trusted authors
@@ -213,8 +274,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @CheckForNull // normally null except during a migration from 1.x
     private transient /*effectively final*/ Map<Integer,PullRequestSource> pullRequestSourceMap;
 
+    /**
+     * Constructor, defaults to {@link #GITHUB_URL} as the end-point, and anonymous access, does not default any
+     * {@link SCMSourceTrait} behaviours.
+     *
+     * @param repoOwner the repository owner.
+     * @param repository the repository name.
+     * @since 2.2.0
+     */
     @DataBoundConstructor
-    public GitHubSCMSource(String repoOwner, String repository) {
+    public GitHubSCMSource(@NonNull String repoOwner, @NonNull String repository) {
         this.repoOwner = repoOwner;
         this.repository = repository;
         pullRequestMetadataCache = new ConcurrentHashMap<>();
@@ -222,8 +291,20 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         this.traits = new ArrayList<>(((DescriptorImpl) getDescriptor()).getTraitDefaults());
     }
 
+    /**
+     * Legacy constructor.
+     * @param id the source id.
+     * @param apiUri the GitHub endpoint.
+     * @param checkoutCredentialsId the checkout credentials id or {@link DescriptorImpl#SAME} or
+     * {@link DescriptorImpl#ANONYMOUS}.
+     * @param scanCredentialsId the scan credentials id or {@code null}.
+     * @param repoOwner the repository owner.
+     * @param repository the repository name.
+     */
     @Deprecated
-    public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
+    public GitHubSCMSource(@CheckForNull String id, @CheckForNull String apiUri, @NonNull String checkoutCredentialsId,
+                           @CheckForNull String scanCredentialsId, @NonNull String repoOwner,
+                           @NonNull String repository) {
         this(repoOwner, repository);
         setId(id);
         setApiUri(apiUri);
@@ -238,53 +319,89 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    @Deprecated
-    public GitHubSCMSource(String id, String repoOwner, String repository) {
-        this(repoOwner, repository);
-        setId(id);
-    }
-
-    @CheckForNull
+    /**
+     * Returns the GitHub API end-point or {@code null} if {@link #GITHUB_URL}.
+     *
+     * @return the GitHub API end-point or {@code null} if {@link #GITHUB_URL}.
+     */
+    @CheckForNull // TODO switch to NonNull
     public String getApiUri() {
         return apiUri;
     }
 
+    /**
+     * Sets the GitHub API end-point.
+     *
+     * @param apiUri the GitHub API end-point or {@code null} if {@link #GITHUB_URL}.
+     * @since 2.2.0
+     */
     @DataBoundSetter
-    public void setApiUri(String apiUri) {
+    public void setApiUri(@CheckForNull String apiUri) {
         this.apiUri = Util.fixEmptyAndTrim(apiUri);
     }
 
+    /**
+     * Gets the credentials used to access the GitHub REST API (also used as the default credentials for checking out
+     * sources.
+     * @return the credentials used to access the GitHub REST API or {@code null} to access anonymously
+     */
+    @Override
     @CheckForNull
     public String getCredentialsId() {
         return credentialsId;
     }
 
+    /**
+     * Sets the credentials used to access the GitHub REST API (also used as the default credentials for checking out
+     * sources.
+     *
+     * @param credentialsId the credentials used to access the GitHub REST API or {@code null} to access anonymously
+     * @since 2.2.0
+     */
     @DataBoundSetter
-    public void setCredentialsId(@CheckForNull String scanCredentialsId) {
-        this.credentialsId = Util.fixEmpty(scanCredentialsId);
+    public void setCredentialsId(@CheckForNull String credentialsId) {
+        this.credentialsId = Util.fixEmpty(credentialsId);
     }
 
+    /**
+     * Gets the repository owner.
+     * @return the repository owner.
+     */
     @NonNull
     public String getRepoOwner() {
         return repoOwner;
     }
 
+    /**
+     * Gets the repository name.
+     * @return the repository name.
+     */
     @NonNull
     public String getRepository() {
         return repository;
     }
 
+    /**
+     * {@inheritDoc}
+     * @since 2.2.0
+     */
     @Override
     public List<SCMSourceTrait> getTraits() {
         return traits;
     }
 
+    /**
+     * Sets the behaviours that are applied to this {@link GitHubSCMSource}.
+     * @param traits the behaviours that are to be applied.
+     */
     @DataBoundSetter
-    public void setTraits(List<SCMSourceTrait> traits) {
-        this.traits = traits == null ? new ArrayList<SCMSourceTrait>() : new ArrayList<SCMSourceTrait>(traits);
+    public void setTraits(@CheckForNull List<SCMSourceTrait> traits) {
+        this.traits = new ArrayList<>(Util.fixNull(traits));
     }
 
-    /** Use defaults for old settings. */
+    /**
+     * Use defaults for old settings.
+     */
     @SuppressWarnings("ConstantConditions")
     @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="Only non-null after we set them here!")
     private Object readResolve() {
@@ -369,7 +486,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 .getRepositoryUri(apiUri, repoOwner, repository);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getPronoun() {
         return Messages.GitHubSCMSource_Pronoun();
@@ -1679,6 +1798,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             this.credentials = credentials;
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @NonNull
         @Override
         protected Set<String> create() {
             try {
@@ -1699,6 +1822,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             this.listener = listener;
         }
 
+        /**
+         * {@inheritDoc}
+         */
+        @NonNull
         @Override
         protected Set<String> create() {
             if (collaboratorNames != null) {
