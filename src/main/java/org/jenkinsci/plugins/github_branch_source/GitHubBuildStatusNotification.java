@@ -47,6 +47,7 @@ import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource.SCMRevisionImpl;
 import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
@@ -180,7 +181,8 @@ public class GitHubBuildStatusNotification {
      * Returns the GitHub Repository associated to a Job.
      *
      * @param job A {@link Job}
-     * @return A {@link GHRepository} or null, either if a scan credentials was not provided, or a GitHubSCMSource was not defined.
+     * @return A {@link GHRepository} or {@code null}, if any of: a credentials was not provided; notifications were
+     * disabled, or the job is not from a {@link GitHubSCMSource}.
      * @throws IOException
      */
     @CheckForNull
@@ -188,6 +190,11 @@ public class GitHubBuildStatusNotification {
         SCMSource src = SCMSource.SourceByItem.findSource(job);
         if (src instanceof GitHubSCMSource) {
             GitHubSCMSource source = (GitHubSCMSource) src;
+            if (new GitHubSCMSourceContext(null, SCMHeadObserver.none())
+                    .withTraits(source.getTraits())
+                    .notificationsDisabled()) {
+                return null;
+            }
             if (source.getScanCredentialsId() != null) {
                 return Connector.connect(source.getApiUri(), Connector.lookupScanCredentials
                         (job, null, source.getScanCredentialsId()));
@@ -219,6 +226,11 @@ public class GitHubBuildStatusNotification {
             }
             final SCMHead head = SCMHead.HeadByItem.findHead(job);
             if (!(head instanceof PullRequestSCMHead)) {
+                return;
+            }
+            if (new GitHubSCMSourceContext(null, SCMHeadObserver.none())
+                    .withTraits(((GitHubSCMSource) source).getTraits())
+                    .notificationsDisabled()) {
                 return;
             }
             // prevent delays in the queue when updating github
@@ -265,15 +277,15 @@ public class GitHubBuildStatusNotification {
                     } catch (FileNotFoundException e) {
                         LOGGER.log(Level.WARNING,
                                 "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?",
-                                LOGGER.isLoggable(Level.FINE) ? e : (Throwable)null);
+                                LOGGER.isLoggable(Level.FINE) ? e : null);
                     } catch (IOException e) {
                         LOGGER.log(Level.WARNING,
                                 "Could not update commit status to PENDING. Message: " + e.getMessage(),
-                                LOGGER.isLoggable(Level.FINE) ? e : (Throwable) null);
+                                LOGGER.isLoggable(Level.FINE) ? e : null);
                     } catch (InterruptedException e) {
                         LOGGER.log(Level.WARNING,
                                 "Could not update commit status to PENDING. Rate limit exhausted",
-                                LOGGER.isLoggable(Level.FINE) ? e : (Throwable) null);
+                                LOGGER.isLoggable(Level.FINE) ? e : null);
                         LOGGER.log(Level.FINE, null, e);
                     } finally {
                         Connector.release(gitHub);
