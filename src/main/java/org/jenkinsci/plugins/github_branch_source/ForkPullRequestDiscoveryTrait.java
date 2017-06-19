@@ -324,7 +324,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
          */
         @Override
         protected boolean checkTrusted(@NonNull SCMSourceRequest request, @NonNull ChangeRequestSCMHead2 head) {
-            return !head.getOrigin().equals(SCMHeadOrigin.DEFAULT);
+            return true;
         }
 
         /**
