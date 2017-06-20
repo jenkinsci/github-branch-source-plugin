@@ -66,6 +66,10 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
      */
     private static final SshRepositoryUriResolver SSH = new SshRepositoryUriResolver();
     /**
+     * The GitHub API suffix for GitHub Server.
+     */
+    private static final String API_V3 = "api/v3";
+    /**
      * The context within which credentials should be resolved.
      */
     @CheckForNull
@@ -106,7 +110,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         repoOwner = source.getRepoOwner();
         repository = source.getRepository();
         repositoryUrl = source.getRepositoryUrl();
-        //
+        // now configure the ref specs
         withoutRefSpecs();
         String repoUrl;
         if (head instanceof PullRequestSCMHead) {
@@ -135,7 +139,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         if (StringUtils.isBlank(apiUri) || GitHubServerConfig.GITHUB_URL.equals(apiUri)) {
             apiUri = "https://github.com";
         } else {
-            apiUri = StringUtils.removeEnd(apiUri, "/api/v3");
+            apiUri = StringUtils.removeEnd(apiUri, "/"+API_V3);
         }
         return apiUri + "/" + source.getRepoOwner() + "/" + source.getRepository() + ".git";
     }
@@ -159,8 +163,8 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         if (StringUtils.isBlank(apiUri) || GitHubServerConfig.GITHUB_URL.equals(apiUri)) {
             return "https://github.com/" + owner + "/" + repo;
         }
-        if (StringUtils.endsWith(StringUtils.removeEnd(apiUri, "/"), "/api/v3")) {
-            return StringUtils.removeEnd(StringUtils.removeEnd(apiUri, "/"), "api/v3") + owner + "/" + repo;
+        if (StringUtils.endsWith(StringUtils.removeEnd(apiUri, "/"), "/"+API_V3)) {
+            return StringUtils.removeEnd(StringUtils.removeEnd(apiUri, "/"), API_V3) + owner + "/" + repo;
         }
         return null;
     }

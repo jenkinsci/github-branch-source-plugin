@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.github_branch_source;
 
+import hudson.util.XStream2;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
@@ -19,6 +20,11 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 
 public class ForkPullRequestDiscoveryTraitTest {
+    @Test
+    public void xstream() throws Exception  {
+        System.out.println(new XStream2().toXML(new ForkPullRequestDiscoveryTrait(3, new ForkPullRequestDiscoveryTrait.TrustContributors())));
+    }
+
     @Test
     public void given__disoverHeadMerge__when__appliedToContext__then__strategiesCorrect() throws Exception {
         GitHubSCMSourceContext ctx = new GitHubSCMSourceContext(null, SCMHeadObserver.none());

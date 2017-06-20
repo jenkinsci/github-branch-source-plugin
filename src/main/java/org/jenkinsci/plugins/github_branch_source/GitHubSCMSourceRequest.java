@@ -102,7 +102,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
      */
     @CheckForNull
     private Iterable<GHBranch> branches;
-    // TODO private Iterable<BitbucketTag> tags;
+    // TODO private Iterable<GHTag> tags;
     /**
      * The repository collaborator names or {@code null} if not provided.
      */

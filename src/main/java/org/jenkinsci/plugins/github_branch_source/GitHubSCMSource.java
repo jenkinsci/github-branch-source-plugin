@@ -137,7 +137,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * Lock to guard access to the {@link #pullRequestSourceMap} field and prevent concurrent GitHub queries during
      * a 1.x to 2.1.0+ upgrade.
      *
-     * @since 2.1.0
+     * @since 2.2.0
      */
     private static final Object pullRequestSourceMapLock = new Object();
 
@@ -1138,7 +1138,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * @deprecated use {@link MergeWithGitSCMExtension}.
      */
     @Restricted(DoNotUse.class)
-    @RestrictedSince("3.4.0")
+    @RestrictedSince("2.2.0")
     @Deprecated
     private static class MergeWith extends GitSCMExtension {
         private final String baseName;

@@ -73,9 +73,8 @@ public class MergeWithGitSCMExtension extends GitSCMExtension {
 
     @Override
     public Revision decorateRevisionToBuild(GitSCM scm, Run<?, ?> build, GitClient git, TaskListener listener,
-                                            Revision marked, Revision rev) throws
-
-            IOException, InterruptedException, GitException {
+                                            Revision marked, Revision rev)
+            throws IOException, InterruptedException, GitException {
         ObjectId baseObjectId;
         if (StringUtils.isBlank(baseHash)) {
             try {
