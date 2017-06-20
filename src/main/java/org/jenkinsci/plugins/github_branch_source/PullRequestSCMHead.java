@@ -127,7 +127,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         if (metadata != null) {
             // Upgrade from 1.x:
             if (UPGRADE_SKIPPED_2_0_X.compareAndSet(false, true)) {
-                LOGGER.log(Level.WARNING, "GitHub Branch Source plugin was directly upgraded from 1.x to 2.1.0 "
+                LOGGER.log(Level.WARNING, "GitHub Branch Source plugin was directly upgraded from 1.x to 2.2.0 "
                         + "or newer without completing a full fetch from all repositories. Consequently startup may be "
                         + "delayed while GitHub is queried for the missing information");
             }

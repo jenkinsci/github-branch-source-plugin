@@ -25,7 +25,7 @@ package org.jenkinsci.plugins.github_branch_source;
 
 /**
  * Used for data migration for a 1.x upgrade.
- * @since 2.1.0
+ * @since 2.2.0
  */
 @Deprecated // TODO remove once migration from 1.x is no longer supported
 class PullRequestSource {

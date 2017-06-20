@@ -135,7 +135,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             Math.min(300, Math.max(0, Integer.getInteger(GitHubSCMSource.class.getName() + ".eventDelaySeconds", 5)));
     /**
      * Lock to guard access to the {@link #pullRequestSourceMap} field and prevent concurrent GitHub queries during
-     * a 1.x to 2.1.0+ upgrade.
+     * a 1.x to 2.2.0+ upgrade.
      *
      * @since 2.2.0
      */
@@ -264,12 +264,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     private transient /*effectively final*/ Map<Integer,ContributorMetadataAction> pullRequestContributorCache;
 
     /**
-     * Used during upgrade from 1.x to 2.1.0+ only.
+     * Used during upgrade from 1.x to 2.2.0+ only.
      *
      * @see #retrievePullRequestSource(int)
      * @see PullRequestSCMHead.FixMetadata
      * @see PullRequestSCMHead.FixMetadataMigration
-     * @since 2.1.0
+     * @since 2.2.0
      */
     @CheckForNull // normally null except during a migration from 1.x
     private transient /*effectively final*/ Map<Integer,PullRequestSource> pullRequestSourceMap;
