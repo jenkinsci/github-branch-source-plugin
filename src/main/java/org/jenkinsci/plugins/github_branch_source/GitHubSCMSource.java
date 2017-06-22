@@ -311,7 +311,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         setCredentialsId(scanCredentialsId);
         // legacy constructor means legacy defaults
         this.traits = new ArrayList<>();
-        this.traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
         this.traits.add(new BranchDiscoveryTrait(true, true));
         this.traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustContributors()));
         if (!DescriptorImpl.SAME.equals(checkoutCredentialsId)) {

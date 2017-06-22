@@ -1509,6 +1509,76 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
+    public void given__legacyCode__when__constructor_cloud__then__discoveryTraitDefaults() throws Exception {
+        GitHubSCMNavigator instance = new GitHubSCMNavigator(
+                null,
+                "cloudbeers",
+                "bcaef157-f105-407f-b150-df7722eab6c1",
+                "SAME"
+        );
+        assertThat(instance.id(), is("https://api.github.com::cloudbeers"));
+        assertThat(instance.getRepoOwner(), is("cloudbeers"));
+        assertThat(instance.getApiUri(), is(nullValue()));
+        assertThat(instance.getCredentialsId(), is("bcaef157-f105-407f-b150-df7722eab6c1"));
+        assertThat(instance.getTraits(),
+                containsInAnyOrder(
+                        Matchers.<SCMTrait<?>>allOf(
+                                instanceOf(BranchDiscoveryTrait.class),
+                                hasProperty("buildBranch", is(true)),
+                                hasProperty("buildBranchesWithPR", is(true))
+                        ),
+                        Matchers.<SCMTrait<?>>allOf(
+                                instanceOf(ForkPullRequestDiscoveryTrait.class),
+                                hasProperty("strategyId", is(2)),
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                        )
+                )
+        );
+        // legacy API
+        assertThat(instance.getCheckoutCredentialsId(), is("SAME"));
+        assertThat(instance.getPattern(), is(".*"));
+        assertThat(instance.getIncludes(), is("*"));
+        assertThat(instance.getExcludes(), is(""));
+    }
+
+    @Test
+    public void given__legacyCode__when__constructor_server__then__discoveryTraitDefaults() throws Exception {
+        GitHubSCMNavigator instance = new GitHubSCMNavigator(
+                "https://github.test/api/v3",
+                "cloudbeers",
+                "bcaef157-f105-407f-b150-df7722eab6c1",
+                "8b2e4f77-39c5-41a9-b63b-8d367350bfdf"
+        );
+        assertThat(instance.id(), is("https://github.test/api/v3::cloudbeers"));
+        assertThat(instance.getRepoOwner(), is("cloudbeers"));
+        assertThat(instance.getApiUri(), is("https://github.test/api/v3"));
+        assertThat(instance.getCredentialsId(), is("bcaef157-f105-407f-b150-df7722eab6c1"));
+        assertThat(instance.getTraits(),
+                containsInAnyOrder(
+                        Matchers.<SCMTrait<?>>allOf(
+                                instanceOf(BranchDiscoveryTrait.class),
+                                hasProperty("buildBranch", is(true)),
+                                hasProperty("buildBranchesWithPR", is(true))
+                        ),
+                        Matchers.<SCMTrait<?>>allOf(
+                                instanceOf(ForkPullRequestDiscoveryTrait.class),
+                                hasProperty("strategyId", is(2)),
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                        ),
+                        Matchers.<SCMTrait<?>>allOf(
+                                Matchers.instanceOf(SSHCheckoutTrait.class),
+                                hasProperty("credentialsId", is("8b2e4f77-39c5-41a9-b63b-8d367350bfdf"))
+                        )
+                )
+        );
+        // legacy API
+        assertThat(instance.getCheckoutCredentialsId(), is("8b2e4f77-39c5-41a9-b63b-8d367350bfdf"));
+        assertThat(instance.getPattern(), is(".*"));
+        assertThat(instance.getIncludes(), is("*"));
+        assertThat(instance.getExcludes(), is(""));
+    }
+
+    @Test
     public void given__instance__when__setTraits_empty__then__traitsEmpty() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(Collections.<SCMTrait<?>>emptyList());
@@ -1630,10 +1700,13 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode__when__checkoutCredentials_null__then__noTraitAdded() {
+    public void given__legacyCode__when__checkoutCredentials_null__then__traitAdded_ANONYMOUS() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator(null, "test", "scan", null);
-        assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMNavigator.DescriptorImpl.SAME));
-        assertThat(instance.getTraits(), not(Matchers.<SCMTrait<?>>hasItem(instanceOf(SSHCheckoutTrait.class))));
+        assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMSource.DescriptorImpl.ANONYMOUS));
+        assertThat(instance.getTraits(), Matchers.<SCMTrait<?>>hasItem(allOf(
+                instanceOf(SSHCheckoutTrait.class),
+                hasProperty("credentialsId", is(nullValue()))
+        )));
     }
 
     @Test

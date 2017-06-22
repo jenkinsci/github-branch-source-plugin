@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
@@ -338,6 +339,81 @@ public class GitHubSCMSourceTraitsTest {
         );
         // Legacy API
         assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMSource.DescriptorImpl.ANONYMOUS));
+        assertThat(instance.getIncludes(), is("*"));
+        assertThat(instance.getExcludes(), is(""));
+        assertThat(instance.getBuildOriginBranch(), is(true));
+        assertThat(instance.getBuildOriginBranchWithPR(), is(true));
+        assertThat(instance.getBuildOriginPRHead(), is(false));
+        assertThat(instance.getBuildOriginPRMerge(), is(false));
+        assertThat(instance.getBuildForkPRHead(), is(false));
+        assertThat(instance.getBuildForkPRMerge(), is(true));
+    }
+
+    @Test
+    public void given__legacyCode__when__constructor_cloud__then__discoveryTraitDefaults() throws Exception {
+        GitHubSCMSource instance = new GitHubSCMSource("preserve-id", null, "SAME",
+                "e4d8c11a-0d24-472f-b86b-4b017c160e9a", "cloudbeers", "stunning-adventure");
+        assertThat(instance.getId(), is("preserve-id"));
+        assertThat(instance.getApiUri(), is(nullValue()));
+        assertThat(instance.getRepoOwner(), is("cloudbeers"));
+        assertThat(instance.getRepository(), is("stunning-adventure"));
+        assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
+        assertThat(instance.getTraits(),
+                containsInAnyOrder(
+                        Matchers.<SCMSourceTrait>allOf(
+                                instanceOf(BranchDiscoveryTrait.class),
+                                hasProperty("buildBranch", is(true)),
+                                hasProperty("buildBranchesWithPR", is(true))
+                        ),
+                        Matchers.<SCMSourceTrait>allOf(
+                                instanceOf(ForkPullRequestDiscoveryTrait.class),
+                                hasProperty("strategyId", is(1)),
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                        )
+                )
+        );
+        // Legacy API
+        assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMSource.DescriptorImpl.SAME));
+        assertThat(instance.getIncludes(), is("*"));
+        assertThat(instance.getExcludes(), is(""));
+        assertThat(instance.getBuildOriginBranch(), is(true));
+        assertThat(instance.getBuildOriginBranchWithPR(), is(true));
+        assertThat(instance.getBuildOriginPRHead(), is(false));
+        assertThat(instance.getBuildOriginPRMerge(), is(false));
+        assertThat(instance.getBuildForkPRHead(), is(false));
+        assertThat(instance.getBuildForkPRMerge(), is(true));
+    }
+
+    @Test
+    public void given__legacyCode__when__constructor_server__then__discoveryTraitDefaults() throws Exception {
+        GitHubSCMSource instance = new GitHubSCMSource(null, "https://github.test/api/v3",
+                "8b2e4f77-39c5-41a9-b63b-8d367350bfdf", "e4d8c11a-0d24-472f-b86b-4b017c160e9a",
+                "cloudbeers", "stunning-adventure");
+        assertThat(instance.getId(), is(notNullValue()));
+        assertThat(instance.getApiUri(), is("https://github.test/api/v3"));
+        assertThat(instance.getRepoOwner(), is("cloudbeers"));
+        assertThat(instance.getRepository(), is("stunning-adventure"));
+        assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
+        assertThat(instance.getTraits(),
+                containsInAnyOrder(
+                        Matchers.<SCMSourceTrait>allOf(
+                                instanceOf(BranchDiscoveryTrait.class),
+                                hasProperty("buildBranch", is(true)),
+                                hasProperty("buildBranchesWithPR", is(true))
+                        ),
+                        Matchers.<SCMSourceTrait>allOf(
+                                instanceOf(ForkPullRequestDiscoveryTrait.class),
+                                hasProperty("strategyId", is(1)),
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                        ),
+                        Matchers.<SCMSourceTrait>allOf(
+                                Matchers.instanceOf(SSHCheckoutTrait.class),
+                                hasProperty("credentialsId", is("8b2e4f77-39c5-41a9-b63b-8d367350bfdf"))
+                        )
+                )
+        );
+        // Legacy API
+        assertThat(instance.getCheckoutCredentialsId(), is("8b2e4f77-39c5-41a9-b63b-8d367350bfdf"));
         assertThat(instance.getIncludes(), is("*"));
         assertThat(instance.getExcludes(), is(""));
         assertThat(instance.getBuildOriginBranch(), is(true));
