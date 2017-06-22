@@ -2,7 +2,9 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import jenkins.model.Jenkins;
+import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.impl.trait.RegexSCMSourceFilterTrait;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
@@ -1529,7 +1531,7 @@ public class GitHubSCMNavigatorTraitsTest {
                         ),
                         Matchers.<SCMTrait<?>>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
-                                hasProperty("strategyId", is(2)),
+                                hasProperty("strategies", is(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE))),
                                 hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
                         )
                 )
@@ -1562,7 +1564,7 @@ public class GitHubSCMNavigatorTraitsTest {
                         ),
                         Matchers.<SCMTrait<?>>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
-                                hasProperty("strategyId", is(2)),
+                                hasProperty("strategies", is(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE))),
                                 hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
                         ),
                         Matchers.<SCMTrait<?>>allOf(

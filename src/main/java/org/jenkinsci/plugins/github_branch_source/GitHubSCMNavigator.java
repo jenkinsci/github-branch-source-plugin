@@ -230,7 +230,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         // legacy constructor means legacy defaults
         this.traits = new ArrayList<>();
         this.traits.add(new BranchDiscoveryTrait(true, true));
-        this.traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.HEAD),
+        this.traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
                 new ForkPullRequestDiscoveryTrait.TrustContributors()));
         if (!GitHubSCMSource.DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
             traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
