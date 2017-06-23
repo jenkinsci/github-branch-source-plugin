@@ -1346,6 +1346,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return Messages.GitHubSCMSource_DisplayName();
         }
 
+        public ListBoxModel doFillCredentialsIdItems(@CheckForNull @AncestorInPath Item context,
+                                                     @QueryParameter String apiUri) {
+            return Connector.listScanCredentials(context, apiUri);
+        }
+
+        public FormValidation doCheckCredentialsId(@CheckForNull @AncestorInPath Item context,
+                                                       @QueryParameter String apiUri,
+                                                       @QueryParameter String value) {
+            return Connector.checkScanCredentials(context, apiUri, value);
+        }
+
         @Restricted(NoExternalUse.class)
         public FormValidation doCheckIncludes(@QueryParameter String value) {
             if (value.isEmpty()) {
@@ -1358,7 +1369,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         public FormValidation doCheckScanCredentialsId(@CheckForNull @AncestorInPath Item context,
                                                        @QueryParameter String apiUri,
                                                        @QueryParameter String scanCredentialsId) {
-            return Connector.checkScanCredentials(context, apiUri, scanCredentialsId);
+            return doCheckCredentialsId(context, apiUri, scanCredentialsId);
         }
 
         @Restricted(NoExternalUse.class)
@@ -1419,12 +1430,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return !GitHubConfiguration.get().getEndpoints().isEmpty();
         }
 
+        @Restricted(NoExternalUse.class)
         public ListBoxModel doFillCheckoutCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
             return Connector.listCheckoutCredentials(context, apiUri);
         }
 
+        @Restricted(NoExternalUse.class)
         public ListBoxModel doFillScanCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
-            return Connector.listScanCredentials(context, apiUri);
+            return doFillCredentialsIdItems(context, apiUri);
         }
 
         public ListBoxModel doFillRepositoryItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri,
