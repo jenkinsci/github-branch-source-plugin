@@ -158,7 +158,7 @@ public class GitHubSCMSourceContext
     }
 
     /**
-     * Adds a requirement for branch details to any {@link GitHubSCMSourceContext} for this context.
+     * Adds a requirement for branch details to any {@link GitHubSCMSourceRequest} for this context.
      *
      * @param include {@code true} to add the requirement or {@code false} to leave the requirement as is (makes
      *                simpler with method chaining)
@@ -171,7 +171,7 @@ public class GitHubSCMSourceContext
     }
 
     /**
-     * Adds a requirement for tag details to any {@link GitHubSCMSourceContext} for this context.
+     * Adds a requirement for tag details to any {@link GitHubSCMSourceRequest} for this context.
      *
      * @param include {@code true} to add the requirement or {@code false} to leave the requirement as is (makes
      *                simpler with method chaining)
@@ -184,7 +184,7 @@ public class GitHubSCMSourceContext
     }
 
     /**
-     * Adds a requirement for origin pull request details to any {@link GitHubSCMSourceContext} for this context.
+     * Adds a requirement for origin pull request details to any {@link GitHubSCMSourceRequest} for this context.
      *
      * @param include {@code true} to add the requirement or {@code false} to leave the requirement as is (makes
      *                simpler with method chaining)
@@ -197,7 +197,7 @@ public class GitHubSCMSourceContext
     }
 
     /**
-     * Adds a requirement for fork pull request details to any {@link GitHubSCMSourceContext} for this context.
+     * Adds a requirement for fork pull request details to any {@link GitHubSCMSourceRequest} for this context.
      *
      * @param include {@code true} to add the requirement or {@code false} to leave the requirement as is (makes
      *                simpler with method chaining)
