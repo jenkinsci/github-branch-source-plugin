@@ -32,8 +32,10 @@ import java.util.Set;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
+import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
+import jenkins.scm.api.trait.SCMBuilder;
 import jenkins.scm.api.trait.SCMHeadAuthority;
 import jenkins.scm.api.trait.SCMHeadAuthorityDescriptor;
 import jenkins.scm.api.trait.SCMSourceContext;
@@ -141,8 +143,16 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
          * {@inheritDoc}
          */
         @Override
-        public boolean isApplicableToContext(@NonNull Class<? extends SCMSourceContext> contextClass) {
-            return GitHubSCMSourceContext.class.isAssignableFrom(contextClass);
+        public Class<? extends SCMSourceContext> getContextClass() {
+            return GitHubSCMSourceContext.class;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public Class<? extends SCMSource> getSourceClass() {
+            return GitHubSCMSource.class;
         }
 
         /**

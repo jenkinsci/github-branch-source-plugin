@@ -38,6 +38,7 @@ import hudson.console.HyperlinkNote;
 import hudson.model.Action;
 import hudson.model.Item;
 import hudson.model.TaskListener;
+import hudson.plugins.git.GitSCM;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
@@ -52,6 +53,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
+import jenkins.model.Jenkins;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
@@ -67,6 +69,7 @@ import jenkins.scm.api.trait.SCMNavigatorRequest;
 import jenkins.scm.api.trait.SCMNavigatorTrait;
 import jenkins.scm.api.trait.SCMNavigatorTraitDescriptor;
 import jenkins.scm.api.trait.SCMSourceTrait;
+import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.api.trait.SCMTraitDescriptor;
 import jenkins.scm.impl.UncategorizedSCMSourceCategory;
@@ -1379,10 +1382,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
          */
         @SuppressWarnings("unused") // jelly
         public List<NamedArrayList<? extends SCMTraitDescriptor<?>>> getTraitsDescriptorLists() {
+            GitHubSCMSource.DescriptorImpl sourceDescriptor =
+                    Jenkins.getActiveInstance().getDescriptorByType(GitHubSCMSource.DescriptorImpl.class);
             List<SCMTraitDescriptor<?>> all = new ArrayList<>();
             all.addAll(SCMNavigatorTrait._for(this, GitHubSCMNavigatorContext.class, GitHubSCMSourceBuilder.class));
-            all.addAll(SCMSourceTrait._for(null, GitHubSCMBuilder.class));
-            all.addAll(SCMSourceTrait._for(GitHubSCMSourceContext.class, null));
+            all.addAll(SCMSourceTrait._for(sourceDescriptor, GitHubSCMSourceContext.class, null));
+            all.addAll(SCMSourceTrait._for(sourceDescriptor, null, GitHubSCMBuilder.class));
             Set<SCMTraitDescriptor<?>> dedup = new HashSet<>();
             for (Iterator<SCMTraitDescriptor<?>> iterator = all.iterator(); iterator.hasNext(); ) {
                 SCMTraitDescriptor<?> d = iterator.next();
@@ -1411,7 +1416,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @SuppressWarnings("unused") // jelly
         public List<SCMTrait<? extends SCMTrait<?>>> getTraitsDefaults() {
             List<SCMTrait<? extends SCMTrait<?>>> result = new ArrayList<>();
-            result.addAll(delegate.getTraitDefaults());
+            result.addAll(delegate.getTraitsDefaults());
             return result;
         }
 

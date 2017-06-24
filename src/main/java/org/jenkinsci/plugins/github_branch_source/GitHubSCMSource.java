@@ -42,6 +42,7 @@ import hudson.model.Action;
 import hudson.model.Actionable;
 import hudson.model.Item;
 import hudson.model.TaskListener;
+import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
@@ -288,7 +289,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         this.repository = repository;
         pullRequestMetadataCache = new ConcurrentHashMap<>();
         pullRequestContributorCache = new ConcurrentHashMap<>();
-        this.traits = new ArrayList<>(((DescriptorImpl) getDescriptor()).getTraitDefaults());
+        this.traits = new ArrayList<>(((DescriptorImpl) getDescriptor()).getTraitsDefaults());
     }
 
     /**
@@ -1563,11 +1564,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
 
         public List<NamedArrayList<? extends SCMTraitDescriptor<?>>> getTraitsDescriptorLists() {
-            List<SCMSourceTraitDescriptor> all = new ArrayList<>();
-            all.addAll(SCMSourceTrait._for(null, GitHubSCMBuilder.class));
-            all.addAll(SCMSourceTrait._for(GitHubSCMSourceContext.class, null));
+            List<SCMTraitDescriptor<?>> all = new ArrayList<>();
+            all.addAll(SCMSourceTrait._for(this, GitHubSCMSourceContext.class, null));
+            all.addAll(SCMSourceTrait._for(this, null, GitHubSCMBuilder.class));
             Set<SCMTraitDescriptor<?>> dedup = new HashSet<>();
-            for (Iterator<SCMSourceTraitDescriptor> iterator = all.iterator(); iterator.hasNext(); ) {
+            for (Iterator<SCMTraitDescriptor<?>> iterator = all.iterator(); iterator.hasNext(); ) {
                 SCMTraitDescriptor<?> d = iterator.next();
                 if (dedup.contains(d)
                         || d instanceof GitBrowserSCMSourceTrait.DescriptorImpl) {
@@ -1586,11 +1587,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return result;
         }
 
-        public List<SCMSourceTrait> getTraitDefaults() {
+        public List<SCMSourceTrait> getTraitsDefaults() {
             return Arrays.asList( // TODO finalize
-                    new BranchDiscoveryTrait(1),
-                    new OriginPullRequestDiscoveryTrait(1),
-                    new ForkPullRequestDiscoveryTrait(1, new ForkPullRequestDiscoveryTrait.TrustContributors())
+                    new BranchDiscoveryTrait(true, false),
+                    new OriginPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE)),
+                    new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustContributors())
             );
         }
 
