@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.impl.trait.RegexSCMSourceFilterTrait;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
@@ -1970,6 +1971,38 @@ public class GitHubSCMNavigatorTraitsTest {
                 hasProperty("includes", is("feature/*")),
                 hasProperty("excludes", is("feature/ignore"))
         )));
+    }
+
+    @Test
+    public void given__legacyCode__when__setBuildOriginBranch__then__traitsMaintained() {
+        GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
+        instance.setTraits(Collections.<SCMTrait<?>>emptyList());
+        assertThat(instance.getTraits(), is(Collections.<SCMTrait<?>>emptyList()));
+        instance.setBuildOriginBranch(true);
+        assertThat(instance.getTraits(), contains(instanceOf(BranchDiscoveryTrait.class)));
+        instance.setBuildOriginBranch(false);
+        assertThat(instance.getTraits(), is(Collections.<SCMTrait<?>>emptyList()));
+
+        instance.setBuildOriginBranchWithPR(true);
+        assertThat(instance.getTraits(), contains(instanceOf(BranchDiscoveryTrait.class)));
+        instance.setBuildOriginBranchWithPR(false);
+        assertThat(instance.getTraits(), is(Collections.<SCMTrait<?>>emptyList()));
+
+        instance.setBuildOriginBranchWithPR(true);
+        instance.setBuildOriginBranch(true);
+        assertThat(instance.getTraits(), contains(instanceOf(BranchDiscoveryTrait.class)));
+        instance.setBuildOriginBranchWithPR(false);
+        assertThat(instance.getTraits(), contains(instanceOf(BranchDiscoveryTrait.class)));
+        instance.setBuildOriginBranch(false);
+        assertThat(instance.getTraits(), is(Collections.<SCMTrait<?>>emptyList()));
+
+        instance.setBuildOriginBranchWithPR(true);
+        instance.setBuildOriginBranch(true);
+        assertThat(instance.getTraits(), contains(instanceOf(BranchDiscoveryTrait.class)));
+        instance.setBuildOriginBranch(false);
+        assertThat(instance.getTraits(), contains(instanceOf(BranchDiscoveryTrait.class)));
+        instance.setBuildOriginBranchWithPR(false);
+        assertThat(instance.getTraits(), is(Collections.<SCMTrait<?>>emptyList()));
     }
 
 }

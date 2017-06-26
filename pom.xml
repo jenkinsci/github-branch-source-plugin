@@ -36,7 +36,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
-            <version>1.8</version>
+            <version>1.9</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -46,7 +46,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
-            <version>3.4.0-alpha-1</version>
+            <version>3.4.0-alpha-4</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>

@@ -529,13 +529,18 @@ public class GitHubSCMNavigator extends SCMNavigator {
         for (int i = 0; i < traits.size(); i++) {
             SCMTrait<?> trait = traits.get(i);
             if (trait instanceof BranchDiscoveryTrait) {
-                traits.set(i, new BranchDiscoveryTrait(
-                        buildOriginBranch, ((BranchDiscoveryTrait) trait).isBuildBranchesWithPR()
-                ));
+                BranchDiscoveryTrait previous = (BranchDiscoveryTrait) trait;
+                if (buildOriginBranch || previous.isBuildBranchesWithPR()) {
+                    traits.set(i, new BranchDiscoveryTrait(buildOriginBranch, previous.isBuildBranchesWithPR()));
+                } else {
+                    traits.remove(i);
+                }
                 return;
             }
         }
-        traits.add(new BranchDiscoveryTrait(buildOriginBranch, false));
+        if (buildOriginBranch) {
+            traits.add(new BranchDiscoveryTrait(buildOriginBranch, false));
+        }
     }
 
     /**
@@ -570,13 +575,18 @@ public class GitHubSCMNavigator extends SCMNavigator {
         for (int i = 0; i < traits.size(); i++) {
             SCMTrait<?> trait = traits.get(i);
             if (trait instanceof BranchDiscoveryTrait) {
-                traits.set(i, new BranchDiscoveryTrait(
-                        ((BranchDiscoveryTrait) trait).isBuildBranch(), buildOriginBranchWithPR
-                ));
+                BranchDiscoveryTrait previous = (BranchDiscoveryTrait) trait;
+                if (buildOriginBranchWithPR || previous.isBuildBranch()) {
+                    traits.set(i, new BranchDiscoveryTrait(previous.isBuildBranch(), buildOriginBranchWithPR));
+                } else {
+                    traits.remove(i);
+                }
                 return;
             }
         }
-        traits.add(new BranchDiscoveryTrait(false, buildOriginBranchWithPR));
+        if (buildOriginBranchWithPR) {
+            traits.add(new BranchDiscoveryTrait(false, buildOriginBranchWithPR));
+        }
     }
 
     /**
