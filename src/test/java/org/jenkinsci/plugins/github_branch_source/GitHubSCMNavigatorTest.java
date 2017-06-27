@@ -33,6 +33,7 @@ import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.sun.tools.internal.jxc.ap.Const;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.Action;
@@ -64,6 +65,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_API_URL;
+import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_RAW_URL;
 import static org.junit.Assert.assertThat;
 
 public class GitHubSCMNavigatorTest {
@@ -94,9 +97,9 @@ public class GitHubSCMNavigatorTest {
                                 return Response.Builder.like(response)
                                         .but()
                                         .body(response.getBodyAsString()
-                                                .replace("https://api.github.com/",
+                                                .replace(GITHUB_API_URL,
                                                         "http://localhost:" + githubApi.port() + "/")
-                                                .replace("https://raw.githubusercontent.com/",
+                                                .replace(GITHUB_RAW_URL,
                                                         "http://localhost:" + githubRaw.port() + "/")
                                         )
                                         .build();
@@ -124,9 +127,9 @@ public class GitHubSCMNavigatorTest {
         githubRaw.enableRecordMappings(new SingleRootFileSource("src/test/resources/raw/mappings"),
                 new SingleRootFileSource("src/test/resources/raw/__files"));
         githubApi.stubFor(
-                get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
+                get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom(Constants.GITHUB_API_URL)));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
-                .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
+                .willReturn(aResponse().proxiedFrom(GITHUB_RAW_URL)));
         navigator = new GitHubSCMNavigator("http://localhost:" + githubApi.port(), "cloudbeers", null, null);
     }
 

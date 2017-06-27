@@ -61,6 +61,8 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_API_URL;
+import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_RAW_URL;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 
@@ -94,9 +96,9 @@ public class GitHubSCMFileSystemTest {
                                 return Response.Builder.like(response)
                                         .but()
                                         .body(response.getBodyAsString()
-                                                .replace("https://api.github.com/",
+                                                .replace(GITHUB_API_URL,
                                                         "http://localhost:" + githubApi.port() + "/")
-                                                .replace("https://raw.githubusercontent.com/",
+                                                .replace(GITHUB_RAW_URL,
                                                         "http://localhost:" + githubRaw.port() + "/")
                                         )
                                         .build();
@@ -137,9 +139,10 @@ public class GitHubSCMFileSystemTest {
         githubRaw.enableRecordMappings(new SingleRootFileSource("src/test/resources/raw/mappings"),
                 new SingleRootFileSource("src/test/resources/raw/__files"));
         githubApi.stubFor(
-                get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
+                get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom(
+                        GITHUB_API_URL)));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
-                .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
+                .willReturn(aResponse().proxiedFrom(GITHUB_RAW_URL)));
         source = new GitHubSCMSource(null, "http://localhost:" + githubApi.port(), null, null, "cloudbeers", "yolo");
     }
 
