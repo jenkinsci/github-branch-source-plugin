@@ -25,6 +25,7 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import com.cloudbees.jenkins.GitHubRepositoryName;
+import com.sun.tools.internal.jxc.ap.Const;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Item;
@@ -57,6 +58,8 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
 import static com.google.common.collect.Sets.immutableEnumSet;
+import static org.jenkinsci.plugins.github_branch_source.Constants.REFS_HEADS;
+import static org.jenkinsci.plugins.github_branch_source.Constants.REPOSITORY_NAME_PATTERN;
 import static org.kohsuke.github.GHEvent.PUSH;
 
 /**
@@ -66,7 +69,6 @@ import static org.kohsuke.github.GHEvent.PUSH;
 public class PushGHEventSubscriber extends GHEventsSubscriber {
 
     private static final Logger LOGGER = Logger.getLogger(PushGHEventSubscriber.class.getName());
-    private static final Pattern REPOSITORY_NAME_PATTERN = Pattern.compile("https?://([^/]+)/([^/]+)/([^/]+)");
 
     @Override
     protected boolean isApplicable(@Nullable Item project) {
@@ -183,8 +185,8 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
         @Override
         public String descriptionFor(@NonNull SCMNavigator navigator) {
             String ref = getPayload().getRef();
-            if (ref.startsWith("refs/heads/")) {
-                ref = ref.substring("refs/heads/".length());
+            if (ref.startsWith(REFS_HEADS)) {
+                ref = ref.substring(REFS_HEADS.length());
             }
             return "Push event to branch " + ref + " in repository " + repository;
         }
@@ -192,8 +194,8 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
         @Override
         public String descriptionFor(SCMSource source) {
             String ref = getPayload().getRef();
-            if (ref.startsWith("refs/heads/")) {
-                ref = ref.substring("refs/heads/".length());
+            if (ref.startsWith(REFS_HEADS)) {
+                ref = ref.substring(REFS_HEADS.length());
             }
             return "Push event to branch " + ref;
         }
@@ -201,8 +203,8 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
         @Override
         public String description() {
             String ref = getPayload().getRef();
-            if (ref.startsWith("refs/heads/")) {
-                ref = ref.substring("refs/heads/".length());
+            if (ref.startsWith(REFS_HEADS)) {
+                ref = ref.substring(REFS_HEADS.length());
             }
             return "Push event to branch " + ref + " in repository " + repoOwner + "/" + repository;
         }
@@ -254,9 +256,9 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                 // we only want the branch details if the branch is actually built!
                 String ref = push.getRef();
                 BranchSCMHead head;
-                if (ref.startsWith("refs/heads/")) {
+                if (ref.startsWith(REFS_HEADS)) {
                     // GitHub is consistent in inconsistency, this ref is the full ref... other refs are not!
-                    head = new BranchSCMHead(ref.substring("refs/heads/".length()));
+                    head = new BranchSCMHead(ref.substring(REFS_HEADS.length()));
                 } else {
                     head = new BranchSCMHead(ref);
                 }

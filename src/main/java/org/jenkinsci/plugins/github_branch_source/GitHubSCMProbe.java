@@ -42,6 +42,8 @@ import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
+import static org.jenkinsci.plugins.github_branch_source.Constants.REFS_HEADS;
+
 @SuppressFBWarnings("SE_TRANSIENT_FIELD_NOT_RESTORED")
 class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
     private static final long serialVersionUID = 1L;
@@ -61,7 +63,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
             PullRequestSCMHead pr = (PullRequestSCMHead) head;
             this.ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
         } else {
-            this.ref = "refs/heads/" + head.getName();
+            this.ref = REFS_HEADS + head.getName();
         }
     }
 

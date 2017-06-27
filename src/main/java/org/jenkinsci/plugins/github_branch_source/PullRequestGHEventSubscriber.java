@@ -60,6 +60,7 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
 import static com.google.common.collect.Sets.immutableEnumSet;
+import static org.jenkinsci.plugins.github_branch_source.Constants.REPOSITORY_NAME_PATTERN;
 import static org.kohsuke.github.GHEvent.PULL_REQUEST;
 
 /**
@@ -69,7 +70,6 @@ import static org.kohsuke.github.GHEvent.PULL_REQUEST;
 public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
 
     private static final Logger LOGGER = Logger.getLogger(PullRequestGHEventSubscriber.class.getName());
-    private static final Pattern REPOSITORY_NAME_PATTERN = Pattern.compile("https?://([^/]+)/([^/]+)/([^/]+)");
 
     @Override
     protected boolean isApplicable(@Nullable Item project) {
