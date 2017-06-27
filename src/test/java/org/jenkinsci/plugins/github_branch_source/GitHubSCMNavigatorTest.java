@@ -59,7 +59,7 @@ import org.mockito.Mockito;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_API_URL;
+import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_API_URL_WITH_SCHEME;
 import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_RAW_URL;
 import static org.jenkinsci.plugins.github_branch_source.Constants.LOCALHOST;
 import static org.junit.Assert.assertThat;
@@ -92,7 +92,7 @@ public class GitHubSCMNavigatorTest {
                                 return Response.Builder.like(response)
                                         .but()
                                         .body(response.getBodyAsString()
-                                                .replace(GITHUB_API_URL,
+                                                .replace(GITHUB_API_URL_WITH_SCHEME,
                                                         LOCALHOST + githubApi.port() + "/")
                                                 .replace(GITHUB_RAW_URL,
                                                         LOCALHOST + githubRaw.port() + "/")
@@ -122,7 +122,7 @@ public class GitHubSCMNavigatorTest {
         githubRaw.enableRecordMappings(new SingleRootFileSource("src/test/resources/raw/mappings"),
                 new SingleRootFileSource("src/test/resources/raw/__files"));
         githubApi.stubFor(
-                get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom(Constants.GITHUB_API_URL)));
+                get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom(Constants.GITHUB_API_URL_WITH_SCHEME)));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom(GITHUB_RAW_URL)));
         navigator = new GitHubSCMNavigator(LOCALHOST + githubApi.port(), "cloudbeers", null, null);
