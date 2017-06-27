@@ -120,7 +120,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                     return;
                 }
 
-                if ("opened".equals(action)) {
+                if (PullRequestStatus.OPENED.equals(action)) {
                     fireAfterDelay(new SCMHeadEventImpl(
                             SCMEvent.Type.CREATED,
                             event.getTimestamp(),
@@ -128,7 +128,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                             changedRepository,
                             event.getOrigin()
                     ));
-                } else if ("reopened".equals(action) || "synchronize".equals(action)) {
+                } else if (PullRequestStatus.REOPENED.equals(action) || PullRequestStatus.SYNCHRONIZE.equals(action)) {
                     fireAfterDelay(new SCMHeadEventImpl(
                             SCMEvent.Type.UPDATED,
                             event.getTimestamp(),
@@ -136,7 +136,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                             changedRepository,
                             event.getOrigin()
                     ));
-                } else if ("closed".equals(action)) {
+                } else if (PullRequestStatus.CLOSED.equals(action)) {
                     fireAfterDelay(new SCMHeadEventImpl(
                             SCMEvent.Type.REMOVED,
                             event.getTimestamp(),
@@ -187,13 +187,13 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
             String action = getPayload().getAction();
             if (action != null) {
                 switch (action) {
-                    case "opened":
+                    case PullRequestStatus.OPENED:
                         return "Pull request #" + getPayload().getNumber() + " opened in repository " + repository;
-                    case "reopened":
+                    case PullRequestStatus.REOPENED:
                         return "Pull request #" + getPayload().getNumber() + " reopened in repository " + repository;
-                    case "synchronize":
+                    case PullRequestStatus.SYNCHRONIZE:
                         return "Pull request #" + getPayload().getNumber() + " updated in repository " + repository;
-                    case "closed":
+                    case PullRequestStatus.CLOSED:
                         return "Pull request #" + getPayload().getNumber() + " closed in repository " + repository;
                 }
             }
@@ -205,13 +205,13 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
             String action = getPayload().getAction();
             if (action != null) {
                 switch (action) {
-                    case "opened":
+                    case PullRequestStatus.OPENED:
                         return "Pull request #" + getPayload().getNumber() + " opened";
-                    case "reopened":
+                    case PullRequestStatus.REOPENED:
                         return "Pull request #" + getPayload().getNumber() + " reopened";
-                    case "synchronize":
+                    case PullRequestStatus.SYNCHRONIZE:
                         return "Pull request #" + getPayload().getNumber() + " updated";
-                    case "closed":
+                    case PullRequestStatus.CLOSED:
                         return "Pull request #" + getPayload().getNumber() + " closed";
                 }
             }
@@ -223,15 +223,15 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
             String action = getPayload().getAction();
             if (action != null) {
                 switch (action) {
-                    case "opened":
+                    case PullRequestStatus.OPENED:
                         return "Pull request #" + getPayload().getNumber() + " opened in repository " + repoOwner + "/" + repository;
-                    case "reopened":
+                    case PullRequestStatus.REOPENED:
                         return "Pull request #" + getPayload().getNumber() + " reopened in repository " + repoOwner
                                 + "/" + repository;
-                    case "synchronize":
+                    case PullRequestStatus.SYNCHRONIZE:
                         return "Pull request #" + getPayload().getNumber() + " updated in repository " + repoOwner + "/"
                                 + repository;
-                    case "closed":
+                    case PullRequestStatus.CLOSED:
                         return "Pull request #" + getPayload().getNumber() + " closed in repository " + repoOwner + "/"
                                 + repository;
                 }
