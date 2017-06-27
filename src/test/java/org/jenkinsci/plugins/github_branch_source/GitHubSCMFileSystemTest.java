@@ -43,7 +43,6 @@ import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -63,6 +62,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_API_URL;
 import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_RAW_URL;
+import static org.jenkinsci.plugins.github_branch_source.Constants.LOCALHOST;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 
@@ -97,9 +97,9 @@ public class GitHubSCMFileSystemTest {
                                         .but()
                                         .body(response.getBodyAsString()
                                                 .replace(GITHUB_API_URL,
-                                                        "http://localhost:" + githubApi.port() + "/")
+                                                        LOCALHOST + githubApi.port() + "/")
                                                 .replace(GITHUB_RAW_URL,
-                                                        "http://localhost:" + githubRaw.port() + "/")
+                                                        LOCALHOST + githubRaw.port() + "/")
                                         )
                                         .build();
                             }

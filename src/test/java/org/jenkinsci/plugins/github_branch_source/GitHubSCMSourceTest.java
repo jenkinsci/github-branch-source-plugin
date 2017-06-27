@@ -63,6 +63,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
 import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_API_URL;
 import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_RAW_URL;
+import static org.jenkinsci.plugins.github_branch_source.Constants.LOCALHOST;
 import static org.junit.Assert.assertThat;
 
 public class GitHubSCMSourceTest {
@@ -94,9 +95,9 @@ public class GitHubSCMSourceTest {
                                         .but()
                                         .body(response.getBodyAsString()
                                                 .replace(GITHUB_API_URL,
-                                                        "http://localhost:" + githubApi.port() + "/")
+                                                        LOCALHOST + githubApi.port() + "/")
                                                 .replace(GITHUB_RAW_URL,
-                                                        "http://localhost:" + githubRaw.port() + "/")
+                                                        LOCALHOST + githubRaw.port() + "/")
                                         )
                                         .build();
                             }
@@ -127,7 +128,7 @@ public class GitHubSCMSourceTest {
                         GITHUB_API_URL)));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom(GITHUB_RAW_URL)));
-        source = new GitHubSCMSource(null, "http://localhost:" + githubApi.port(), null, null, "cloudbeers", "yolo");
+        source = new GitHubSCMSource(null, LOCALHOST + githubApi.port(), null, null, "cloudbeers", "yolo");
     }
 
     @Test

@@ -33,22 +33,17 @@ import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.sun.tools.internal.jxc.ap.Const;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.Action;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
 import java.io.File;
-import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jenkins.scm.api.SCMFile;
-import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMNavigatorOwner;
-import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
@@ -64,9 +59,9 @@ import org.mockito.Mockito;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_API_URL;
 import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_RAW_URL;
+import static org.jenkinsci.plugins.github_branch_source.Constants.LOCALHOST;
 import static org.junit.Assert.assertThat;
 
 public class GitHubSCMNavigatorTest {
@@ -98,9 +93,9 @@ public class GitHubSCMNavigatorTest {
                                         .but()
                                         .body(response.getBodyAsString()
                                                 .replace(GITHUB_API_URL,
-                                                        "http://localhost:" + githubApi.port() + "/")
+                                                        LOCALHOST + githubApi.port() + "/")
                                                 .replace(GITHUB_RAW_URL,
-                                                        "http://localhost:" + githubRaw.port() + "/")
+                                                        LOCALHOST + githubRaw.port() + "/")
                                         )
                                         .build();
                             }
@@ -130,7 +125,7 @@ public class GitHubSCMNavigatorTest {
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom(Constants.GITHUB_API_URL)));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom(GITHUB_RAW_URL)));
-        navigator = new GitHubSCMNavigator("http://localhost:" + githubApi.port(), "cloudbeers", null, null);
+        navigator = new GitHubSCMNavigator(LOCALHOST + githubApi.port(), "cloudbeers", null, null);
     }
 
     @Test
