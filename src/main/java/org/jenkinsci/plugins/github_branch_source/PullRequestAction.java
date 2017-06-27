@@ -28,7 +28,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.InvisibleAction;
 import java.net.URL;
 import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.actions.ChangeRequestAction;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.github.GHPullRequest;
