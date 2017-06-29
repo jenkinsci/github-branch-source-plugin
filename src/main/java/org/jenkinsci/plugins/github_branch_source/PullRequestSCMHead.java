@@ -49,6 +49,7 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
     private final String sourceOwner;
     private final String sourceRepo;
     private final String sourceBranch;
+    private final String targetOwner;
     /**
      * Only populated if de-serializing instances.
      */
@@ -60,6 +61,7 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
         this.merge = merge;
         this.number = pr.getNumber();
         this.target = new BranchSCMHead(pr.getBase().getRef());
+        this.targetOwner = pr.getBase().getRepository().getOwnerName();
         // the source stuff is immutable for a pull request on github, so safe to store here
         this.sourceOwner = pr.getHead().getRepository().getOwnerName();
         this.sourceRepo = pr.getHead().getRepository().getName();
@@ -67,12 +69,13 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
     }
 
     PullRequestSCMHead(@NonNull String name, boolean merge, int number,
-                       BranchSCMHead target, String sourceOwner, String sourceRepo, String sourceBranch) {
+                       BranchSCMHead target, String sourceOwner, String targetOwner, String sourceRepo, String sourceBranch) {
         super(name);
         this.merge = merge;
         this.number = number;
         this.target = target;
         this.sourceOwner = sourceOwner;
+        this.targetOwner = targetOwner;
         this.sourceRepo = sourceRepo;
         this.sourceBranch = sourceBranch;
     }
@@ -110,9 +113,11 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
                     new BranchSCMHead(metadata.getBaseRef()),
                     null,
                     null,
+                    null,
                     null
             );
         }
+
         return this;
     }
 
@@ -141,6 +146,10 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
     @Override
     public SCMHead getTarget() {
         return target;
+    }
+
+    public String getTargetOwner() {
+        return targetOwner;
     }
 
     public String getSourceOwner() {
