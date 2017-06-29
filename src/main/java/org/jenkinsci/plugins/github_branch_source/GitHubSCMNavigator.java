@@ -107,7 +107,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /** Whether to build PRs filed from a fork, where the build is of the branch head. */
     @Nonnull
     private Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
-
+    /** Whether to build releases */
+    @Nonnull
+    private Boolean buildReleases = DescriptorImpl.defaultBuildReleases;
+    
+    
     @DataBoundConstructor
     public GitHubSCMNavigator(String apiUri, String repoOwner, String scanCredentialsId, String checkoutCredentialsId) {
         this.repoOwner = repoOwner;
@@ -136,6 +140,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
         if (buildForkPRHead == null) {
             buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+        }
+        if (buildReleases == null) {
+            buildReleases = DescriptorImpl.defaultBuildReleases;
         }
         return this;
     }
@@ -212,6 +219,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @DataBoundSetter
     public void setBuildForkPRHead(boolean buildForkPRHead) {
         this.buildForkPRHead = buildForkPRHead;
+    }
+    
+    public boolean getBuildReleases() {
+        return buildReleases;
+    }
+
+    @DataBoundSetter
+    public void setBuildReleases(boolean buildReleases) {
+        this.buildReleases = buildReleases;
     }
 
     public String getRepoOwner() {
@@ -535,6 +551,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         ghSCMSource.setBuildOriginPRHead(getBuildOriginPRHead());
         ghSCMSource.setBuildForkPRMerge(getBuildForkPRMerge());
         ghSCMSource.setBuildForkPRHead(getBuildForkPRHead());
+        ghSCMSource.setBuildReleases(getBuildReleases());
 
         projectObserver.addSource(ghSCMSource);
         projectObserver.complete();
@@ -613,6 +630,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         public static final boolean defaultBuildOriginPRHead = GitHubSCMSource.DescriptorImpl.defaultBuildOriginPRHead;
         public static final boolean defaultBuildForkPRMerge = GitHubSCMSource.DescriptorImpl.defaultBuildForkPRMerge;
         public static final boolean defaultBuildForkPRHead = GitHubSCMSource.DescriptorImpl.defaultBuildForkPRHead;
+        public static final boolean defaultBuildReleases = GitHubSCMSource.DescriptorImpl.defaultBuildReleases;
 
         @Inject private GitHubSCMSource.DescriptorImpl delegate;
 
@@ -700,9 +718,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
             @QueryParameter boolean buildOriginPRMerge,
             @QueryParameter boolean buildOriginPRHead,
             @QueryParameter boolean buildForkPRMerge,
-            @QueryParameter boolean buildForkPRHead
+            @QueryParameter boolean buildForkPRHead,
+            @QueryParameter boolean buildReleases
         ) {
-            return delegate.doCheckBuildOriginBranchWithPR(buildOriginBranch, buildOriginBranchWithPR, buildOriginPRMerge, buildOriginPRHead, buildForkPRMerge, buildForkPRHead);
+            return delegate.doCheckBuildOriginBranchWithPR(buildOriginBranch, buildOriginBranchWithPR, buildOriginPRMerge, buildOriginPRHead, buildForkPRMerge, buildForkPRHead, buildReleases);
         }
 
         @Restricted(NoExternalUse.class)
@@ -717,9 +736,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
             @QueryParameter boolean buildOriginPRMerge,
             @QueryParameter boolean buildOriginPRHead,
             @QueryParameter boolean buildForkPRMerge,
-            @QueryParameter boolean buildForkPRHead
+            @QueryParameter boolean buildForkPRHead,
+            @QueryParameter boolean buildReleases
         ) {
-            return delegate.doCheckBuildForkPRHead(buildOriginBranch, buildOriginBranchWithPR, buildOriginPRMerge, buildOriginPRHead, buildForkPRMerge, buildForkPRHead);
+            return delegate.doCheckBuildForkPRHead(buildOriginBranch, buildOriginBranchWithPR, buildOriginPRMerge, buildOriginPRHead, buildForkPRMerge, buildForkPRHead, buildReleases);
         }
 
         static {

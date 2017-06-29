@@ -91,6 +91,8 @@ import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.UncategorizedSCMHeadCategory;
+import jenkins.scm.impl.TagSCMHeadCategory;
+import jenkins.scm.api.mixin.TagSCMHead;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
@@ -108,6 +110,7 @@ import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHTag;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
@@ -172,7 +175,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /** Whether to build PRs filed from a fork, where the build is of the branch head. */
     @NonNull
     private Boolean buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
-
+    /** Whether to build Releases */
+    @NonNull
+    private Boolean buildReleases = DescriptorImpl.defaultBuildReleases;
+    
     /**
      * Cache of the official repository HTML URL as reported by {@link GitHub#getRepository(String)}.
      */
@@ -199,6 +205,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @NonNull
     private transient /*effectively final*/ Map<Integer,ContributorMetadataAction> pullRequestContributorCache;
 
+
+   
     @DataBoundConstructor
     public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
         super(id);
@@ -231,6 +239,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         if (buildForkPRHead == null) {
             buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+        }
+        if (buildReleases == null) {
+            buildReleases = DescriptorImpl.defaultBuildReleases;
         }
         if (pullRequestMetadataCache == null) {
             pullRequestMetadataCache = new ConcurrentHashMap<>();
@@ -426,7 +437,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public void setBuildForkPRHead(boolean buildForkPRHead) {
         this.buildForkPRHead = buildForkPRHead;
     }
+    
+    public boolean getBuildReleases() {
+		return buildReleases;
+    }
 
+    @DataBoundSetter
+    public void setBuildReleases(boolean buildReleases) {
+        this.buildReleases = buildReleases;
+    }
+   
     @Override
     public String getRemote() {
         return getUriResolver().getRepositoryUri(apiUri, repoOwner, repository);
@@ -509,12 +529,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             GHRepository repo) throws IOException, InterruptedException {
         boolean wantPRs = true;
         boolean wantBranches = true;
+        boolean wantReleases = true;
         Set<Integer> wantPRNumbers = null;
         int wantBranchCount = 0;
         Set<SCMHead> includes = observer.getIncludes();
         if (includes != null) {
             wantPRs = false;
             wantBranches = false;
+            wantReleases = false;
             wantPRNumbers = new HashSet<>();
             for (SCMHead h : includes) {
                 if (h instanceof PullRequestSCMHead) {
@@ -524,9 +546,29 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     wantBranches = true;
                     wantBranchCount++;
                 }
+                else if (h instanceof TagSCMHead) {
+                	wantReleases = true;
+                }
             }
         }
 
+               
+        if(wantReleases && buildReleases) {
+        	listener.getLogger().format("%n  Getting remote releases...%n");
+        	Iterable<GHTag> tags;
+        	tags = repo.listTags().asList();
+        	for(GHTag tag : tags) {
+        		listener.getLogger().format("%n  Getting remote release %s...%n", tag.getName());
+        		
+                SCMHead head = null;
+        		head = new ReleaseSCMHead(tag, tag.getName());
+
+        		SCMRevision hash = new SCMRevisionImpl(head, tag.getCommit().getSHA1());
+        		observer.observe(head, hash);
+        	}
+   
+        }
+        
         // To implement buildOriginBranch && !buildOriginBranchWithPR we need to first find the pull requests,
         // so we can skip corresponding origin branches later. Awkward.
         Set<String> originBranchesWithPR = new HashSet<>();
@@ -870,7 +912,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 baseHash = pr.getBase().getSha();
             }
             return new PullRequestSCMRevision((PullRequestSCMHead) head, baseHash, pr.getHead().getSha());
-        } else {
+        }
+        else if(head instanceof ReleaseSCMHead) {
+        	return new SCMRevisionImpl(head, repo.getRef("tags/" + head.getName()).getObject().getSha());
+        }
+        else {
             return new SCMRevisionImpl(head, repo.getRef("heads/" + head.getName()).getObject().getSha());
         }
     }
@@ -1119,6 +1165,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             || Boolean.TRUE.equals(buildOriginPRMerge)
             );
         }
+        else if(category instanceof TagSCMHeadCategory) {
+            return super.isCategoryEnabled(category) && (
+                    Boolean.TRUE.equals(buildReleases)
+            );
+        	
+        }
         return super.isCategoryEnabled(category);
     }
 
@@ -1136,7 +1188,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (owner instanceof Actionable) {
             GitHubLink repoLink = ((Actionable) owner).getAction(GitHubLink.class);
             if (repoLink != null) {
-                String url;
+                String url = null;
                 ObjectMetadataAction metadataAction = null;
                 if (head instanceof PullRequestSCMHead) {
                     // pull request to this repository
@@ -1151,7 +1203,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     if (contributor != null) {
                         result.add(contributor);
                     }
-                } else {
+                } 
+                else {
                     // branch in this repository
                     url = repoLink.getUrl() + "/tree/" + head.getName();
                     metadataAction = new ObjectMetadataAction(head.getName(), null, url);
@@ -1232,6 +1285,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         public static final boolean defaultBuildOriginPRHead = false;
         public static final boolean defaultBuildForkPRMerge = true;
         public static final boolean defaultBuildForkPRHead = false;
+		public static final boolean defaultBuildReleases = true;
 
         @Initializer(before = InitMilestone.PLUGINS_STARTED)
         public static void addAliases() {
@@ -1265,7 +1319,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             @QueryParameter boolean buildOriginPRMerge,
             @QueryParameter boolean buildOriginPRHead,
             @QueryParameter boolean buildForkPRMerge,
-            @QueryParameter boolean buildForkPRHead
+            @QueryParameter boolean buildForkPRHead,
+            @QueryParameter boolean buildReleases
         ) {
             if (buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerge && !buildOriginPRHead && !buildForkPRMerge && !buildForkPRHead) {
                 // TODO in principle we could make doRetrieve populate originBranchesWithPR without actually including any PRs, but it would be more work and probably never wanted anyway.
@@ -1292,9 +1347,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             @QueryParameter boolean buildOriginPRMerge,
             @QueryParameter boolean buildOriginPRHead,
             @QueryParameter boolean buildForkPRMerge,
-            @QueryParameter boolean buildForkPRHead
+            @QueryParameter boolean buildForkPRHead,
+            @QueryParameter boolean buildReleases
+            
         ) {
-            if (!buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerge && !buildOriginPRHead && !buildForkPRMerge && !buildForkPRHead) {
+            if (!buildOriginBranch && !buildOriginBranchWithPR && !buildOriginPRMerge && !buildOriginPRHead && !buildForkPRMerge && !buildForkPRHead && !buildReleases) {
                 return FormValidation.warning("You need to build something!");
             }
             if (buildForkPRMerge && buildForkPRHead) {
@@ -1451,8 +1508,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         protected SCMHeadCategory[] createCategories() {
             return new SCMHeadCategory[]{
                     new UncategorizedSCMHeadCategory(Messages._GitHubSCMSource_UncategorizedCategory()),
-                    new ChangeRequestSCMHeadCategory(Messages._GitHubSCMSource_ChangeRequestCategory())
-                    // TODO add support for tags and maybe feature branch identification
+                    new ChangeRequestSCMHeadCategory(Messages._GitHubSCMSource_ChangeRequestCategory()),
+                    new TagSCMHeadCategory(Messages._GitHubSCMSource_ReleasesCategory())
+                    // TODO add support for feature branch identification
             };
         }
 
