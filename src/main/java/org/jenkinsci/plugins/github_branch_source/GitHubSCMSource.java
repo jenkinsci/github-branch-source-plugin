@@ -619,8 +619,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     }
                     continue;
                 }
-                boolean trusted = collaboratorNames != null
-                        && collaboratorNames.contains(ghPullRequest.getHead().getRepository().getOwnerName());
+                boolean trusted = isTrusted(ghPullRequest, collaboratorNames);
                 if (!trusted) {
                     listener.getLogger().format("    (not from a trusted source)%n");
                 }
@@ -805,6 +804,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             listener.getLogger().format("%n  %d branches were processed%n", branches);
         }
+    }
+
+    private boolean isTrusted(GHPullRequest ghPullRequest, Collection<String> collaboratorNames) {
+        String prUserLogin = ghPullRequest.getUser().getLogin();
+        String prRepoOwner = ghPullRequest.getHead().getRepository().getOwnerName();
+        return collaboratorNames != null
+                && (collaboratorNames.contains(prRepoOwner) || collaboratorNames.contains(prUserLogin));
     }
 
     /**
