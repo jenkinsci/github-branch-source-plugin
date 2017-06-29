@@ -35,11 +35,14 @@ import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -176,7 +179,18 @@ public class GitHubSCMFileSystemTest {
         assumeThat(((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash(),
                 is("c0e024f89969b976da165eecaa71e09dc60c3da1"));
         SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
-        assertThat(fs.getRoot().child("fu/bar.txt").contentAsString(), is("Some text\n"));
+
+        // On windows, if somebody has not configured Git correctly, the checkout may have "fixed" line endings
+        // So let's detect that and fix our expectations.
+        String expected = "Some text\n";
+        try (InputStream is = getClass().getResourceAsStream("/raw/__files/body-fu-bar.txt-b4k4I.txt")) {
+            if (is != null) {
+                expected = IOUtils.toString(is, StandardCharsets.US_ASCII);
+            }
+        } catch (IOException e) {
+            // ignore
+        }
+        assertThat(fs.getRoot().child("fu/bar.txt").contentAsString(), is(expected));
     }
 
     @Test
