@@ -1452,14 +1452,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
 
         public ListBoxModel doFillRepositoryItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri,
-                @QueryParameter String scanCredentialsId, @QueryParameter String repoOwner) throws IOException {
+                @QueryParameter String credentialsId, @QueryParameter String repoOwner) throws IOException {
 
             repoOwner = Util.fixEmptyAndTrim(repoOwner);
             if (repoOwner == null) {
                 return new ListBoxModel();
             }
             try {
-                StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
+                StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, credentialsId);
                 GitHub github = Connector.connect(apiUri, credentials);
                 try {
 
@@ -1513,14 +1513,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
                         Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
                         LOGGER.log(Level.FINE, "as {0} looking for repositories in {1}",
-                                new Object[]{scanCredentialsId, repoOwner});
+                                new Object[]{credentialsId, repoOwner});
                         for (GHRepository repo : org.listRepositories(100)) {
                             LOGGER.log(Level.FINE, "as {0} found {1}/{2}",
-                                    new Object[]{scanCredentialsId, repoOwner, repo.getName()});
+                                    new Object[]{credentialsId, repoOwner, repo.getName()});
                             result.add(repo.getName());
                         }
                         LOGGER.log(Level.FINE, "as {0} result of {1} is {2}",
-                                new Object[]{scanCredentialsId, repoOwner, result});
+                                new Object[]{credentialsId, repoOwner, result});
                         return nameAndValueModel(result);
                     }
 
