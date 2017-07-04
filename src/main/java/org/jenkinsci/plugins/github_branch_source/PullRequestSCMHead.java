@@ -63,8 +63,8 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
         this.target = new BranchSCMHead(pr.getBase().getRef());
         // the source stuff is immutable for a pull request on github, so safe to store here
         GHRepository repository = pr.getHead().getRepository(); // may be null for deleted forks JENKINS-41246
-        this.sourceOwner = repository.getOwnerName();
-        this.sourceRepo = repository.getName();
+        this.sourceOwner = repository == null ? null : repository.getOwnerName();
+        this.sourceRepo = repository == null ? null : repository.getName();
         this.sourceBranch = pr.getHead().getRef();
     }
 
