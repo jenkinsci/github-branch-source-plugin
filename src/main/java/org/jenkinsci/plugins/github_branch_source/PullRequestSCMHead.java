@@ -32,6 +32,7 @@ import jenkins.scm.api.mixin.ChangeRequestSCMHead;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHPullRequest;
+import org.kohsuke.github.GHRepository;
 
 /**
  * Head corresponding to a pull request.
@@ -61,8 +62,9 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
         this.number = pr.getNumber();
         this.target = new BranchSCMHead(pr.getBase().getRef());
         // the source stuff is immutable for a pull request on github, so safe to store here
-        this.sourceOwner = pr.getHead().getRepository().getOwnerName();
-        this.sourceRepo = pr.getHead().getRepository().getName();
+        GHRepository repository = pr.getHead().getRepository(); // may be null for deleted forks JENKINS-41246
+        this.sourceOwner = repository.getOwnerName();
+        this.sourceRepo = repository.getName();
         this.sourceBranch = pr.getHead().getRef();
     }
 
