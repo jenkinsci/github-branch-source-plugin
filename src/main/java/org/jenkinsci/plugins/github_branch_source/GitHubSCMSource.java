@@ -821,7 +821,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 Connector.checkConnectionValidity(apiUri, listener, credentials, github);
 
                 // Input data validation
-                if (repository == null || repository.isEmpty()) {
+                if (StringUtils.isBlank(repository)) {
                     throw new AbortException("No repository selected, skipping");
                 }
 
@@ -898,12 +898,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                 } else {
                                     branchName = "PR-" + number + "-" + strategy.name().toLowerCase(Locale.ENGLISH);
                                 }
-                                // TODO move trusted decision to traits
-                                final boolean trusted = collaboratorNames != null
-                                        && collaboratorNames.contains(pr.getHead().getRepository().getOwnerName());
-                                if (!trusted) {
-                                    listener.getLogger().format("    (not from a trusted source)%n");
-                                }
                                 count++;
                                 if (request.process(new PullRequestSCMHead(
                                                 pr, branchName, strategy == ChangeRequestCheckoutStrategy.MERGE
@@ -915,6 +909,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                             public SCMSourceCriteria.Probe create(@NonNull PullRequestSCMHead head,
                                                                                   @Nullable Void revisionInfo)
                                                     throws IOException, InterruptedException {
+                                                boolean trusted = request.isTrusted(head);
+                                                if (!trusted) {
+                                                    listener.getLogger().format("    (not from a trusted source)%n");
+                                                }
                                                 return GitHubSCMSource.this
                                                         .createProbe(trusted ? head : head.getTarget(), null);
                                             }
@@ -1121,9 +1119,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             LOGGER.log(Level.INFO, "Got remote pull requests from {0}", fullName);
                             int n = 0;
                             for (GHPullRequest pr: ghRepository.queryPullRequests().state(GHIssueState.OPEN).list()) {
+                                GHRepository repository = pr.getHead().getRepository();
+                                // JENKINS-41246 repository may be null for deleted forks
                                 pullRequestSourceMap.put(pr.getNumber(), new PullRequestSource(
-                                        pr.getHead().getRepository().getOwnerName(),
-                                        pr.getHead().getRepository().getName(),
+                                        repository == null ? null : repository.getOwnerName(),
+                                        repository == null ? null : repository.getName(),
                                         pr.getHead().getRef()));
                                 n++;
                                 if (n % 30  == 0) { // default page size is 30
