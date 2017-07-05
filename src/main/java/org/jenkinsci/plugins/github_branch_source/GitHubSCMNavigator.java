@@ -71,7 +71,6 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
-import org.kohsuke.github.PagedIterable;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -113,7 +112,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         this.repoOwner = repoOwner;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
         this.checkoutCredentialsId = checkoutCredentialsId;
-        this.apiUri = Util.fixEmpty(apiUri);
+        this.apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmpty(apiUri));
     }
 
     /** Use defaults for old settings. */
@@ -136,6 +135,19 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
         if (buildForkPRHead == null) {
             buildForkPRHead = DescriptorImpl.defaultBuildForkPRHead;
+        }
+        if (!StringUtils.equals(apiUri, GitHubConfiguration.normalizeApiUri(apiUri))) {
+            GitHubSCMNavigator that = new GitHubSCMNavigator(apiUri, repoOwner, scanCredentialsId, checkoutCredentialsId);
+            that.pattern = this.pattern;
+            that.includes = this.includes;
+            that.excludes = this.excludes;
+            that.buildOriginBranch = this.buildOriginBranch;
+            that.buildOriginBranchWithPR = this.buildOriginBranchWithPR;
+            that.buildOriginPRHead = this.buildOriginPRHead;
+            that.buildOriginPRMerge = this.buildOriginPRMerge;
+            that.buildForkPRHead = this.buildForkPRHead;
+            that.buildForkPRMerge = this.buildForkPRMerge;
+            return that;
         }
         return this;
     }
@@ -677,7 +689,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
             ListBoxModel result = new ListBoxModel();
             result.add("GitHub", "");
             for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {
-                result.add(e.getName() == null ? e.getApiUri() : e.getName(), e.getApiUri());
+                result.add(e.getName() == null ? e.getApiUri() : e.getName() + " (" + e.getApiUri() + ")",
+                        e.getApiUri());
             }
             return result;
         }
