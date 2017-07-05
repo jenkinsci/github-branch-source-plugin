@@ -40,7 +40,6 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMEvent;
@@ -50,7 +49,6 @@ import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
-import jenkins.util.Timer;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
 import org.kohsuke.github.GHEvent;
@@ -60,6 +58,7 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
 import static com.google.common.collect.Sets.immutableEnumSet;
+import static org.jenkinsci.plugins.github_branch_source.Constants.REPOSITORY_NAME_PATTERN;
 import static org.kohsuke.github.GHEvent.PULL_REQUEST;
 
 /**
@@ -69,7 +68,6 @@ import static org.kohsuke.github.GHEvent.PULL_REQUEST;
 public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
 
     private static final Logger LOGGER = Logger.getLogger(PullRequestGHEventSubscriber.class.getName());
-    private static final Pattern REPOSITORY_NAME_PATTERN = Pattern.compile("https?://([^/]+)/([^/]+)/([^/]+)");
 
     @Override
     protected boolean isApplicable(@Nullable Item project) {
@@ -120,7 +118,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                     return;
                 }
 
-                if ("opened".equals(action)) {
+                if (PullRequestStatus.OPENED.equals(action)) {
                     fireAfterDelay(new SCMHeadEventImpl(
                             SCMEvent.Type.CREATED,
                             event.getTimestamp(),
@@ -128,7 +126,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                             changedRepository,
                             event.getOrigin()
                     ));
-                } else if ("reopened".equals(action) || "synchronize".equals(action)) {
+                } else if (PullRequestStatus.REOPENED.equals(action) || PullRequestStatus.SYNCHRONIZE.equals(action)) {
                     fireAfterDelay(new SCMHeadEventImpl(
                             SCMEvent.Type.UPDATED,
                             event.getTimestamp(),
@@ -136,7 +134,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                             changedRepository,
                             event.getOrigin()
                     ));
-                } else if ("closed".equals(action)) {
+                } else if (PullRequestStatus.CLOSED.equals(action)) {
                     fireAfterDelay(new SCMHeadEventImpl(
                             SCMEvent.Type.REMOVED,
                             event.getTimestamp(),
@@ -187,13 +185,13 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
             String action = getPayload().getAction();
             if (action != null) {
                 switch (action) {
-                    case "opened":
+                    case PullRequestStatus.OPENED:
                         return "Pull request #" + getPayload().getNumber() + " opened in repository " + repository;
-                    case "reopened":
+                    case PullRequestStatus.REOPENED:
                         return "Pull request #" + getPayload().getNumber() + " reopened in repository " + repository;
-                    case "synchronize":
+                    case PullRequestStatus.SYNCHRONIZE:
                         return "Pull request #" + getPayload().getNumber() + " updated in repository " + repository;
-                    case "closed":
+                    case PullRequestStatus.CLOSED:
                         return "Pull request #" + getPayload().getNumber() + " closed in repository " + repository;
                 }
             }
@@ -205,13 +203,13 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
             String action = getPayload().getAction();
             if (action != null) {
                 switch (action) {
-                    case "opened":
+                    case PullRequestStatus.OPENED:
                         return "Pull request #" + getPayload().getNumber() + " opened";
-                    case "reopened":
+                    case PullRequestStatus.REOPENED:
                         return "Pull request #" + getPayload().getNumber() + " reopened";
-                    case "synchronize":
+                    case PullRequestStatus.SYNCHRONIZE:
                         return "Pull request #" + getPayload().getNumber() + " updated";
-                    case "closed":
+                    case PullRequestStatus.CLOSED:
                         return "Pull request #" + getPayload().getNumber() + " closed";
                 }
             }
@@ -223,15 +221,15 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
             String action = getPayload().getAction();
             if (action != null) {
                 switch (action) {
-                    case "opened":
+                    case PullRequestStatus.OPENED:
                         return "Pull request #" + getPayload().getNumber() + " opened in repository " + repoOwner + "/" + repository;
-                    case "reopened":
+                    case PullRequestStatus.REOPENED:
                         return "Pull request #" + getPayload().getNumber() + " reopened in repository " + repoOwner
                                 + "/" + repository;
-                    case "synchronize":
+                    case PullRequestStatus.SYNCHRONIZE:
                         return "Pull request #" + getPayload().getNumber() + " updated in repository " + repoOwner + "/"
                                 + repository;
-                    case "closed":
+                    case PullRequestStatus.CLOSED:
                         return "Pull request #" + getPayload().getNumber() + " closed in repository " + repoOwner + "/"
                                 + repository;
                 }

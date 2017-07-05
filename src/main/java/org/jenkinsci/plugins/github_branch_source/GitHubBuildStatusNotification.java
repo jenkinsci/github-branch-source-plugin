@@ -29,8 +29,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.Computer;
-import hudson.model.Item;
-import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Queue;
 import hudson.model.Result;

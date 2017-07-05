@@ -27,7 +27,6 @@ import com.cloudbees.jenkins.GitHubRepositoryName;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Item;
-import hudson.model.Job;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.Set;
@@ -36,13 +35,11 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorOwner;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceEvent;
-import jenkins.util.Timer;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
 import org.kohsuke.github.GHEvent;
@@ -52,6 +49,7 @@ import org.kohsuke.github.GitHub;
 import static com.google.common.collect.Sets.immutableEnumSet;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
+import static org.jenkinsci.plugins.github_branch_source.Constants.REPOSITORY_NAME_PATTERN;
 import static org.kohsuke.github.GHEvent.REPOSITORY;
 
 /**
@@ -61,8 +59,6 @@ import static org.kohsuke.github.GHEvent.REPOSITORY;
 public class GitHubRepositoryEventSubscriber extends GHEventsSubscriber {
 
     private static final Logger LOGGER = Logger.getLogger(GitHubRepositoryEventSubscriber.class.getName());
-    private static final Pattern REPOSITORY_NAME_PATTERN = Pattern.compile("https?://([^/]+)/([^/]+)/([^/]+)");
-
 
     @Override
     protected boolean isApplicable(@Nullable Item item) {

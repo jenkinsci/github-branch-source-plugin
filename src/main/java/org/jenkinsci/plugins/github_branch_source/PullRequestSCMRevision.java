@@ -25,7 +25,6 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 
 /**

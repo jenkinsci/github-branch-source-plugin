@@ -43,7 +43,6 @@ import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -61,6 +60,9 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_API_URL_WITH_SCHEME;
+import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_RAW_URL;
+import static org.jenkinsci.plugins.github_branch_source.Constants.LOCALHOST;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 
@@ -94,10 +96,10 @@ public class GitHubSCMFileSystemTest {
                                 return Response.Builder.like(response)
                                         .but()
                                         .body(response.getBodyAsString()
-                                                .replace("https://api.github.com/",
-                                                        "http://localhost:" + githubApi.port() + "/")
-                                                .replace("https://raw.githubusercontent.com/",
-                                                        "http://localhost:" + githubRaw.port() + "/")
+                                                .replace(GITHUB_API_URL_WITH_SCHEME,
+                                                        LOCALHOST + githubApi.port() + "/")
+                                                .replace(GITHUB_RAW_URL,
+                                                        LOCALHOST + githubRaw.port() + "/")
                                         )
                                         .build();
                             }
@@ -137,10 +139,11 @@ public class GitHubSCMFileSystemTest {
         githubRaw.enableRecordMappings(new SingleRootFileSource("src/test/resources/raw/mappings"),
                 new SingleRootFileSource("src/test/resources/raw/__files"));
         githubApi.stubFor(
-                get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
+                get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom(
+                        GITHUB_API_URL_WITH_SCHEME)));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
-                .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
-        source = new GitHubSCMSource(null, "http://localhost:" + githubApi.port(), null, null, "cloudbeers", "yolo");
+                .willReturn(aResponse().proxiedFrom(GITHUB_RAW_URL)));
+        source = new GitHubSCMSource(null, LOCALHOST + githubApi.port(), null, null, "cloudbeers", "yolo");
     }
 
     @Test

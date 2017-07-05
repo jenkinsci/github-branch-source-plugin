@@ -29,8 +29,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.logging.Logger;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
 

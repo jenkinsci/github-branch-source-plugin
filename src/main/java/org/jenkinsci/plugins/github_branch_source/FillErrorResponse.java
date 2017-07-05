@@ -2,7 +2,6 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import hudson.Util;
 import java.io.IOException;
-import java.util.Locale;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;

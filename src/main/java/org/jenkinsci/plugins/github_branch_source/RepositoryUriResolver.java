@@ -29,8 +29,10 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import static org.jenkinsci.plugins.github_branch_source.Constants.GITHUB_API_URL;
+
 /**
- * Resolves the URI of a GitHub repositort from the API URI, owner and repository name.
+ * Resolves the URI of a GitHub repository from the API URI, owner and repository name.
  */
 public abstract class RepositoryUriResolver {
 
@@ -56,7 +58,7 @@ public abstract class RepositoryUriResolver {
         if (apiUri != null) {
             try {
                 URL endpoint = new URL(apiUri);
-                if (!"api.github.com".equals(endpoint.getHost())) {
+                if (!GITHUB_API_URL.equals(endpoint.getHost())) {
                     return endpoint.getHost();
                 }
             } catch (MalformedURLException e) {
