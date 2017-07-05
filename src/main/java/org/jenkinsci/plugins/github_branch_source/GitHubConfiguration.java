@@ -132,7 +132,7 @@ import org.kohsuke.stapler.StaplerRequest;
         }
         List<Endpoint> endpoints = new ArrayList<>(getEndpoints());
         for (Endpoint ep : endpoints) {
-            if (ep.getApiUri().equals(endpoint.getApiUri())) {
+            if (StringUtils.equals(ep.getApiUri(), endpoint.getApiUri())) {
                 return false;
             }
         }
@@ -154,7 +154,7 @@ import org.kohsuke.stapler.StaplerRequest;
         boolean found = false;
         for (int i = 0; i < endpoints.size(); i++) {
             Endpoint ep = endpoints.get(i);
-            if (ep.getApiUri().equals(endpoint.getApiUri())) {
+            if (StringUtils.equals(ep.getApiUri(), endpoint.getApiUri())) {
                 endpoints.set(i, endpoint);
                 found = true;
                 break;
@@ -187,7 +187,7 @@ import org.kohsuke.stapler.StaplerRequest;
         boolean modified = false;
         List<Endpoint> endpoints = new ArrayList<>(getEndpoints());
         for (Iterator<Endpoint> iterator = endpoints.iterator(); iterator.hasNext(); ) {
-            if (apiUri.equals(iterator.next().getApiUri())) {
+            if (StringUtils.equals(apiUri, iterator.next().getApiUri())) {
                 iterator.remove();
                 modified = true;
             }
@@ -206,7 +206,7 @@ import org.kohsuke.stapler.StaplerRequest;
     public synchronized Endpoint findEndpoint(@CheckForNull String apiUri) {
         apiUri = normalizeApiUri(apiUri);
         for (Endpoint endpoint : getEndpoints()) {
-            if (apiUri.equals(endpoint.getApiUri())) {
+            if (StringUtils.equals(apiUri, endpoint.getApiUri())) {
                 return endpoint;
             }
         }
