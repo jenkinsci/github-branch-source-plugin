@@ -49,5 +49,8 @@
     <f:entry title="${%buildForkPRHead.title}" field="buildForkPRHead">
         <f:checkbox default="${descriptor.defaultBuildForkPRHead}"/>
     </f:entry>
+    <f:entry title="${%disableNotifications.title}" field="disableNotifications">
+      <f:checkbox default="${descriptor.defaultDisableNotifications}"/>
+    </f:entry>
   </f:advanced>
 </j:jelly>

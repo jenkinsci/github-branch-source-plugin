@@ -152,7 +152,7 @@ public class GitHubBuildStatusNotification {
      * Returns the GitHub Repository associated to a Job.
      *
      * @param job A {@link Job}
-     * @return A {@link GHRepository} or null, either if a scan credentials was not provided, or a GitHubSCMSource was not defined.
+     * @return A {@link GHRepository}. Will return null if either a scan credentials was not provided, or if a GitHubSCMSource was not defined or if notifications are disabled.
      * @throws IOException
      */
     @CheckForNull
@@ -163,7 +163,7 @@ public class GitHubBuildStatusNotification {
         SCMSource src = SCMSource.SourceByItem.findSource(job);
         if (src instanceof GitHubSCMSource) {
             GitHubSCMSource source = (GitHubSCMSource) src;
-            if (source.getScanCredentialsId() != null) {
+            if (source.getScanCredentialsId() != null && !source.getDisableNotifications()) {
                 return github.getRepository(source.getRepoOwner() + "/" + source.getRepository());
             }
         }
