@@ -61,8 +61,7 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
      */
     private static final String[] COMMON_PREFIX_HOSTNAMES = {
             "git.",
-            "gitea.",
-            "gogs.",
+            "github.",
             "vcs.",
             "scm.",
             "source."
