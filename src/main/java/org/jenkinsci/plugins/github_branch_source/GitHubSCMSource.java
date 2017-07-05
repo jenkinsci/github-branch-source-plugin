@@ -202,7 +202,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @DataBoundConstructor
     public GitHubSCMSource(String id, String apiUri, String checkoutCredentialsId, String scanCredentialsId, String repoOwner, String repository) {
         super(id);
-        this.apiUri = Util.fixEmpty(apiUri);
+        this.apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmpty(apiUri));
         this.repoOwner = repoOwner;
         this.repository = repository;
         this.scanCredentialsId = Util.fixEmpty(scanCredentialsId);
@@ -237,6 +237,20 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         if (pullRequestContributorCache == null) {
             pullRequestContributorCache = new ConcurrentHashMap<>();
+        }
+        if (!StringUtils.equals(apiUri, GitHubConfiguration.normalizeApiUri(apiUri))) {
+            GitHubSCMSource that = new GitHubSCMSource(
+                    getId(), apiUri, checkoutCredentialsId, scanCredentialsId, repoOwner, repository
+            );
+            that.includes = this.includes;
+            that.excludes = this.excludes;
+            that.buildOriginBranch = this.buildOriginBranch;
+            that.buildOriginBranchWithPR = this.buildOriginBranchWithPR;
+            that.buildOriginPRHead = this.buildOriginPRHead;
+            that.buildOriginPRMerge = this.buildOriginPRMerge;
+            that.buildForkPRHead = this.buildForkPRHead;
+            that.buildForkPRMerge = this.buildForkPRMerge;
+            return that;
         }
         return this;
     }
@@ -1311,7 +1325,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             ListBoxModel result = new ListBoxModel();
             result.add("GitHub", "");
             for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {
-                result.add(e.getName() == null ? e.getApiUri() : e.getName(), e.getApiUri());
+                result.add(e.getName() == null ? e.getApiUri() : e.getName() + " (" + e.getApiUri() + ")",
+                        e.getApiUri());
             }
             return result;
         }
