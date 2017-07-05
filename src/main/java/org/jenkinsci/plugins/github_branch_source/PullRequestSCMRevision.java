@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2016 CloudBees, Inc.
+ * Copyright 2016-2017 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,13 +25,16 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMRevision;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
+import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
 
 /**
  * Revision of a pull request.
  */
-public class PullRequestSCMRevision extends SCMRevision {
+public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequestSCMHead> {
     
     private static final long serialVersionUID = 1L;
 
@@ -39,19 +42,30 @@ public class PullRequestSCMRevision extends SCMRevision {
     private final @NonNull String pullHash;
 
     PullRequestSCMRevision(@NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash) {
-        super(head);
+        super(head, new AbstractGitSCMSource.SCMRevisionImpl(head.getTarget(), baseHash));
         this.baseHash = baseHash;
         this.pullHash = pullHash;
     }
 
+    @SuppressFBWarnings({"SE_PRIVATE_READ_RESOLVE_NOT_INHERITED", "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"})
+    private Object readResolve() {
+        if (getTarget() == null) {
+            // fix an instance prior to the type migration, thankfully we have all the required info
+            return new PullRequestSCMRevision((PullRequestSCMHead) getHead(), baseHash, pullHash);
+        }
+        return this;
+    }
+
     /**
      * The commit hash of the base branch we are tracking.
-     * If {@link PullRequestSCMHead#isMerge}, this would be the current head of the base branch.
+     * If {@link ChangeRequestSCMHead2#getCheckoutStrategy()} {@link ChangeRequestCheckoutStrategy#MERGE}, this
+     * would be the current head of the base branch.
      * Otherwise it would be the PR’s {@code .base.sha}, the common ancestor of the PR branch and the base branch.
      *
      * @return the commit hash of the base branch we are tracking.
      */
-    public @NonNull String getBaseHash() {
+    @NonNull
+    public String getBaseHash() {
         return baseHash;
     }
 
@@ -60,21 +74,22 @@ public class PullRequestSCMRevision extends SCMRevision {
      *
      * @return The commit hash of the head of the pull request branch
      */
-    public @NonNull String getPullHash() {
+    @NonNull
+    public String getPullHash() {
         return pullHash;
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equivalent(ChangeRequestSCMRevision<?> o) {
         if (!(o instanceof PullRequestSCMRevision)) {
             return false;
         }
         PullRequestSCMRevision other = (PullRequestSCMRevision) o;
-        return getHead().equals(other.getHead()) && baseHash.equals(other.baseHash) && pullHash.equals(other.pullHash);
+        return getHead().equals(other.getHead()) && pullHash.equals(other.pullHash);
     }
 
     @Override
-    public int hashCode() {
+    public int _hashCode() {
         return pullHash.hashCode();
     }
 

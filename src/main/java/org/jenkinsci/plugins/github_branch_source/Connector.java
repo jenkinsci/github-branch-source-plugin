@@ -373,7 +373,7 @@ public class Connector {
         return CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class));
     }
 
-    private static List<DomainRequirement> githubDomainRequirements(String apiUri) {
+    static List<DomainRequirement> githubDomainRequirements(String apiUri) {
         return URIRequirementBuilder.fromUri(StringUtils.defaultIfEmpty(apiUri, "https://github.com")).build();
     }
 

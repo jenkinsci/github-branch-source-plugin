@@ -29,8 +29,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.model.Computer;
-import hudson.model.Item;
-import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.Queue;
 import hudson.model.Result;
@@ -49,6 +47,7 @@ import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource.SCMRevisionImpl;
 import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
@@ -87,16 +86,24 @@ public class GitHubBuildStatusNotification {
         repo.createCommitStatus(revision, state, url, message, context);
     }
 
-    private static void createBuildCommitStatus(Run<?,?> build, TaskListener listener) {
-        try {
-            GitHub gitHub = lookUpGitHub(build.getParent());
+    private static void createBuildCommitStatus(Run<?, ?> build, TaskListener listener) {
+        SCMRevision revision = SCMRevisionAction.getRevision(build);
+        if (revision != null) { // only notify if we have a revision to notify
             try {
-                GHRepository repo = lookUpRepo(gitHub, build.getParent());
-                if (repo != null) {
-                    SCMRevisionAction action = build.getAction(SCMRevisionAction.class);
-                    if (action != null) {
-                        SCMRevision revision = action.getRevision();
-                        String url = DisplayURLProvider.get().getRunURL(build);
+                GitHub gitHub = lookUpGitHub(build.getParent());
+                try {
+                    GHRepository repo = lookUpRepo(gitHub, build.getParent());
+                    if (repo != null) {
+                        String url = null;
+                        try {
+                            url = DisplayURLProvider.get().getRunURL(build);
+                        } catch (IllegalStateException e) {
+                            listener.getLogger().println(
+                                    "Can not determine Jenkins root URL. Commit status notifications are disabled "
+                                            + "until a root URL is"
+                                            + " configured in Jenkins global configuration.");
+                            return;
+                        }
                         boolean ignoreError = false;
                         try {
                             Result result = build.getResult();
@@ -134,16 +141,16 @@ public class GitHubBuildStatusNotification {
                             }
                         }
                     }
+                } finally {
+                    Connector.release(gitHub);
                 }
-            } finally {
-                Connector.release(gitHub);
-            }
-        } catch (IOException ioe) {
-            listener.getLogger().format("%n"
-                    + "Could not update commit status. Message: %s%n"
-                    + "%n", ioe.getMessage());
-            if (LOGGER.isLoggable(Level.FINE)) {
-                LOGGER.log(Level.FINE, "Could not update commit status of run " + build.getFullDisplayName(), ioe);
+            } catch (IOException ioe) {
+                listener.getLogger().format("%n"
+                        + "Could not update commit status. Message: %s%n"
+                        + "%n", ioe.getMessage());
+                if (LOGGER.isLoggable(Level.FINE)) {
+                    LOGGER.log(Level.FINE, "Could not update commit status of run " + build.getFullDisplayName(), ioe);
+                }
             }
         }
     }
@@ -174,7 +181,8 @@ public class GitHubBuildStatusNotification {
      * Returns the GitHub Repository associated to a Job.
      *
      * @param job A {@link Job}
-     * @return A {@link GHRepository} or null, either if a scan credentials was not provided, or a GitHubSCMSource was not defined.
+     * @return A {@link GHRepository} or {@code null}, if any of: a credentials was not provided; notifications were
+     * disabled, or the job is not from a {@link GitHubSCMSource}.
      * @throws IOException
      */
     @CheckForNull
@@ -182,6 +190,11 @@ public class GitHubBuildStatusNotification {
         SCMSource src = SCMSource.SourceByItem.findSource(job);
         if (src instanceof GitHubSCMSource) {
             GitHubSCMSource source = (GitHubSCMSource) src;
+            if (new GitHubSCMSourceContext(null, SCMHeadObserver.none())
+                    .withTraits(source.getTraits())
+                    .notificationsDisabled()) {
+                return null;
+            }
             if (source.getScanCredentialsId() != null) {
                 return Connector.connect(source.getApiUri(), Connector.lookupScanCredentials
                         (job, null, source.getScanCredentialsId()));
@@ -215,10 +228,22 @@ public class GitHubBuildStatusNotification {
             if (!(head instanceof PullRequestSCMHead)) {
                 return;
             }
+            if (new GitHubSCMSourceContext(null, SCMHeadObserver.none())
+                    .withTraits(((GitHubSCMSource) source).getTraits())
+                    .notificationsDisabled()) {
+                return;
+            }
             // prevent delays in the queue when updating github
             Computer.threadPoolForRemoting.submit(new Runnable() {
                 @Override
                 public void run() {
+                    String url;
+                    try {
+                        url = DisplayURLProvider.get().getJobURL(job);
+                    } catch (IllegalStateException e) {
+                        // no root url defined, cannot notify, let's get out of here
+                        return;
+                    }
                     GitHub gitHub = null;
                     try {
                         gitHub = lookUpGitHub(job);
@@ -236,7 +261,6 @@ public class GitHubBuildStatusNotification {
                             }
                             GHRepository repo = lookUpRepo(gitHub, job);
                             if (repo != null) {
-                                String url = DisplayURLProvider.get().getJobURL(job);
                                 // The submitter might push another commit before this build even starts.
                                 if (Jenkins.getActiveInstance().getQueue().getItem(taskId) instanceof Queue.LeftItem) {
                                     // we took too long and the item has left the queue, no longer valid to apply pending
@@ -253,15 +277,15 @@ public class GitHubBuildStatusNotification {
                     } catch (FileNotFoundException e) {
                         LOGGER.log(Level.WARNING,
                                 "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?",
-                                LOGGER.isLoggable(Level.FINE) ? e : (Throwable)null);
+                                LOGGER.isLoggable(Level.FINE) ? e : null);
                     } catch (IOException e) {
                         LOGGER.log(Level.WARNING,
                                 "Could not update commit status to PENDING. Message: " + e.getMessage(),
-                                LOGGER.isLoggable(Level.FINE) ? e : (Throwable) null);
+                                LOGGER.isLoggable(Level.FINE) ? e : null);
                     } catch (InterruptedException e) {
                         LOGGER.log(Level.WARNING,
                                 "Could not update commit status to PENDING. Rate limit exhausted",
-                                LOGGER.isLoggable(Level.FINE) ? e : (Throwable) null);
+                                LOGGER.isLoggable(Level.FINE) ? e : null);
                         LOGGER.log(Level.FINE, null, e);
                     } finally {
                         Connector.release(gitHub);

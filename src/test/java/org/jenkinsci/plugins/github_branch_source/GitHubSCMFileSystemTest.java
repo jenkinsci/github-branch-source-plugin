@@ -140,7 +140,7 @@ public class GitHubSCMFileSystemTest {
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
-        source = new GitHubSCMSource(null, "http://localhost:" + githubApi.port(), null, null, "cloudbeers", "yolo");
+        source = new GitHubSCMSource(null, "http://localhost:" + githubApi.port(), GitHubSCMSource.DescriptorImpl.SAME, null, "cloudbeers", "yolo");
     }
 
     @Test

@@ -44,11 +44,12 @@ import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMEvent;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadEvent;
+import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
-import jenkins.util.Timer;
+import jenkins.scm.api.trait.SCMHeadPrefilter;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
 import org.kohsuke.github.GHEvent;
@@ -65,9 +66,18 @@ import static org.kohsuke.github.GHEvent.PUSH;
 @Extension
 public class PushGHEventSubscriber extends GHEventsSubscriber {
 
+    /**
+     * Our logger.
+     */
     private static final Logger LOGGER = Logger.getLogger(PushGHEventSubscriber.class.getName());
+    /**
+     * Pattern to parse github repository urls.
+     */
     private static final Pattern REPOSITORY_NAME_PATTERN = Pattern.compile("https?://([^/]+)/([^/]+)/([^/]+)");
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected boolean isApplicable(@Nullable Item project) {
         if (project != null) {
@@ -92,6 +102,8 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
     }
 
     /**
+     * {@inheritDoc}
+     *
      * @return set with only PULL_REQUEST event
      */
     @Override
@@ -99,6 +111,9 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
         return immutableEnumSet(PUSH);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void onEvent(GHSubscriberEvent event) {
         try {
@@ -163,7 +178,8 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
         private final String repoOwner;
         private final String repository;
 
-        public SCMHeadEventImpl(Type type, long timestamp, GHEventPayload.Push pullRequest, GitHubRepositoryName repo, String origin) {
+        public SCMHeadEventImpl(Type type, long timestamp, GHEventPayload.Push pullRequest, GitHubRepositoryName repo,
+                                String origin) {
             super(type, timestamp, pullRequest, origin);
             this.repoHost = repo.getHost();
             this.repoOwner = pullRequest.getRepository().getOwnerName();
@@ -174,12 +190,18 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             return repoHost.equalsIgnoreCase(RepositoryUriResolver.hostnameFromApiUri(apiUri));
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public boolean isMatch(@NonNull SCMNavigator navigator) {
             return navigator instanceof GitHubSCMNavigator
                     && repoOwner.equalsIgnoreCase(((GitHubSCMNavigator) navigator).getRepoOwner());
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public String descriptionFor(@NonNull SCMNavigator navigator) {
             String ref = getPayload().getRef();
@@ -189,6 +211,9 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             return "Push event to branch " + ref + " in repository " + repository;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public String descriptionFor(SCMSource source) {
             String ref = getPayload().getRef();
@@ -198,6 +223,9 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             return "Push event to branch " + ref;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public String description() {
             String ref = getPayload().getRef();
@@ -207,12 +235,18 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             return "Push event to branch " + ref + " in repository " + repoOwner + "/" + repository;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @NonNull
         @Override
         public String getSourceName() {
             return repository;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @NonNull
         @Override
         public Map<SCMHead, SCMRevision> heads(@NonNull SCMSource source) {
@@ -250,7 +284,9 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
              * things for us, so we just claim a BranchSCMHead
              */
 
-            if (src.getBuildOriginBranchWithPR() || src.getBuildOriginBranch()) {
+            GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
+                    .withTraits(src.getTraits());
+            if (context.wantBranches()) {
                 // we only want the branch details if the branch is actually built!
                 String ref = push.getRef();
                 BranchSCMHead head;
@@ -260,12 +296,24 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                 } else {
                     head = new BranchSCMHead(ref);
                 }
-                return Collections.<SCMHead, SCMRevision>singletonMap(head,
-                        new AbstractGitSCMSource.SCMRevisionImpl(head, push.getHead()));
+                boolean excluded = false;
+                for (SCMHeadPrefilter prefilter : context.prefilters()) {
+                    if (prefilter.isExcluded(source, head)) {
+                        excluded = true;
+                        break;
+                    }
+                }
+                if (!excluded) {
+                    return Collections.<SCMHead, SCMRevision>singletonMap(head,
+                            new AbstractGitSCMSource.SCMRevisionImpl(head, push.getHead()));
+                }
             }
             return Collections.emptyMap();
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public boolean isMatch(@NonNull SCM scm) {
             return false;

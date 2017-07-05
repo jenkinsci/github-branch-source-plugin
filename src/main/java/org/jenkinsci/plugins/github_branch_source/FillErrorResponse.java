@@ -13,11 +13,10 @@ import org.kohsuke.stapler.StaplerResponse;
 // TODO replace with corresponding core functionality once Jenkins core has JENKINS-42443
 class FillErrorResponse extends IOException implements HttpResponse {
 
-    private final String message;
     private final boolean clearList;
 
     public FillErrorResponse(String message, boolean clearList) {
-        this.message = message;
+        super(message);
         this.clearList = clearList;
     }
 
@@ -29,7 +28,7 @@ class FillErrorResponse extends IOException implements HttpResponse {
         rsp.setHeader("X-Jenkins-Select-Error", clearList ? "clear" : "retain");
         rsp.getWriter().print(
                 "<div class=\'error\'><img src=\'" + req.getContextPath()
-                        + Jenkins.RESOURCE_PATH + "/images/none.gif\' height=16 width=1>" + Util.escape(message) +
+                        + Jenkins.RESOURCE_PATH + "/images/none.gif\' height=16 width=1>" + Util.escape(getMessage()) +
                         "</div>");
 
     }

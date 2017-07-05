@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2016 CloudBees, Inc.
+ * Copyright 2016-2017 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,16 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.Extension;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.mixin.ChangeRequestSCMHead;
+import jenkins.scm.api.SCMHeadMigration;
+import jenkins.scm.api.SCMHeadOrigin;
+import jenkins.scm.api.SCMRevision;
+import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHPullRequest;
@@ -36,11 +43,12 @@ import org.kohsuke.github.GHRepository;
 
 /**
  * Head corresponding to a pull request.
- * Named like {@code PR-123} or {@code PR-123-merged} or {@code PR-123-unmerged}.
+ * Named like {@code PR-123} or {@code PR-123-merge} or {@code PR-123-head}.
  */
-public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead {
+public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2 {
 
     private static final Logger LOGGER = Logger.getLogger(PullRequestSCMHead.class.getName());
+    private static final AtomicBoolean UPGRADE_SKIPPED_2_0_X = new AtomicBoolean(false);
 
     private static final long serialVersionUID = 1;
 
@@ -50,10 +58,23 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
     private final String sourceOwner;
     private final String sourceRepo;
     private final String sourceBranch;
+    private final SCMHeadOrigin origin;
     /**
      * Only populated if de-serializing instances.
      */
     private transient Metadata metadata;
+
+    PullRequestSCMHead(PullRequestSCMHead copy) {
+        super(copy.getName());
+        this.merge = copy.merge;
+        this.number = copy.number;
+        this.target = copy.target;
+        this.sourceOwner = copy.sourceOwner;
+        this.sourceRepo = copy.sourceRepo;
+        this.sourceBranch = copy.sourceBranch;
+        this.origin = copy.origin;
+        this.metadata = copy.metadata;
+    }
 
     PullRequestSCMHead(GHPullRequest pr, String name, boolean merge) {
         super(name);
@@ -66,17 +87,21 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
         this.sourceOwner = repository == null ? null : repository.getOwnerName();
         this.sourceRepo = repository == null ? null : repository.getName();
         this.sourceBranch = pr.getHead().getRef();
+        this.origin = pr.getRepository().getOwnerName().equalsIgnoreCase(sourceOwner)
+                ? SCMHeadOrigin.DEFAULT
+                : new SCMHeadOrigin.Fork(this.sourceOwner);
     }
 
-    PullRequestSCMHead(@NonNull String name, boolean merge, int number,
-                       BranchSCMHead target, String sourceOwner, String sourceRepo, String sourceBranch) {
+    PullRequestSCMHead(@NonNull String name, String sourceOwner, String sourceRepo, String sourceBranch, int number,
+                       BranchSCMHead target, SCMHeadOrigin origin, ChangeRequestCheckoutStrategy strategy) {
         super(name);
-        this.merge = merge;
+        this.merge = ChangeRequestCheckoutStrategy.MERGE == strategy;
         this.number = number;
         this.target = target;
         this.sourceOwner = sourceOwner;
         this.sourceRepo = sourceRepo;
         this.sourceBranch = sourceBranch;
+        this.origin = origin;
     }
 
     /**
@@ -102,18 +127,25 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
             merge = true;
         }
         if (metadata != null) {
-            // the source branch info is missing, thankfully, the missing information is not part of the key
-            // so we can just use dummy values and this should only affect SCMFileSystem API. Once
-            // there is an index, the head will be replaced with Branch API 2.0.x and it should all go away
-            return new PullRequestSCMHead(
+            // Upgrade from 1.x:
+            if (UPGRADE_SKIPPED_2_0_X.compareAndSet(false, true)) {
+                LOGGER.log(Level.WARNING, "GitHub Branch Source plugin was directly upgraded from 1.x to 2.2.0 "
+                        + "or newer without completing a full fetch from all repositories. Consequently startup may be "
+                        + "delayed while GitHub is queried for the missing information");
+            }
+            // we need the help of FixMetadataMigration
+            return new FixMetadata(
                     getName(),
                     merge,
                     metadata.getNumber(),
-                    new BranchSCMHead(metadata.getBaseRef()),
-                    null,
-                    null,
-                    null
+                    new BranchSCMHead(metadata.getBaseRef())
             );
+        }
+        if (origin == null && !(this instanceof FixOrigin)) {
+            // Upgrade from 2.0.x
+
+            // we need the help of FixOriginMigration
+            return new FixOrigin(this);
         }
         return this;
     }
@@ -132,6 +164,15 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
      */
     @NonNull
     @Override
+    public ChangeRequestCheckoutStrategy getCheckoutStrategy() {
+        return merge ? ChangeRequestCheckoutStrategy.MERGE : ChangeRequestCheckoutStrategy.HEAD;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
     public String getId() {
         return Integer.toString(number);
     }
@@ -141,8 +182,17 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
      */
     @NonNull
     @Override
-    public SCMHead getTarget() {
+    public BranchSCMHead getTarget() {
         return target;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
+    public String getOriginName() {
+        return sourceBranch;
     }
 
     public String getSourceOwner() {
@@ -155,6 +205,12 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
 
     public String getSourceRepo() {
         return sourceRepo;
+    }
+
+    @NonNull
+    @Override
+    public SCMHeadOrigin getOrigin() {
+        return origin == null ? SCMHeadOrigin.DEFAULT : origin;
     }
 
     /**
@@ -189,4 +245,105 @@ public final class PullRequestSCMHead extends SCMHead implements ChangeRequestSC
             return baseRef;
         }
     }
+
+    /**
+     * Used to handle data migration.
+     *
+     * @see FixOriginMigration
+     * @deprecated used for data migration.
+     */
+    @Deprecated
+    @Restricted(NoExternalUse.class)
+    public static class FixOrigin extends PullRequestSCMHead {
+
+        FixOrigin(PullRequestSCMHead pullRequestSCMHead) {
+            super(pullRequestSCMHead);
+        }
+    }
+
+    /**
+     * Used to handle data migration.
+     *
+     * @see FixOriginMigration
+     * @deprecated used for data migration.
+     */
+    @Restricted(NoExternalUse.class)
+    @Extension
+    public static class FixOriginMigration extends
+            SCMHeadMigration<GitHubSCMSource, FixOrigin, PullRequestSCMRevision> {
+        public FixOriginMigration() {
+            super(GitHubSCMSource.class, FixOrigin.class, PullRequestSCMRevision.class);
+        }
+
+        @Override
+        public PullRequestSCMHead migrate(@NonNull GitHubSCMSource source, @NonNull FixOrigin head) {
+            return new PullRequestSCMHead(head.getName(), head.getSourceOwner(), head.getSourceRepo(),
+                    head.getSourceBranch(), head.getNumber(), head.getTarget(), source.getRepoOwner().equalsIgnoreCase(head.getSourceOwner())
+                                        ? SCMHeadOrigin.DEFAULT
+                                        : new SCMHeadOrigin.Fork(head.getSourceOwner()), head.getCheckoutStrategy());
+        }
+
+        @Override
+        public SCMRevision migrate(@NonNull GitHubSCMSource source,
+                                   @NonNull PullRequestSCMRevision revision) {
+            PullRequestSCMHead head = migrate(source, (FixOrigin) revision.getHead());
+            return head != null ? new PullRequestSCMRevision(
+                    head,
+                    revision.getBaseHash(),
+                    revision.getPullHash()
+            ) : null;
+        }
+    }
+
+    /**
+     * Used to handle data migration.
+     *
+     * @see FixMetadataMigration
+     * @deprecated used for data migration.
+     */
+    @Deprecated
+    @Restricted(NoExternalUse.class)
+    public static class FixMetadata extends PullRequestSCMHead {
+        FixMetadata(String name, Boolean merge, int number, BranchSCMHead branchSCMHead) {
+            super(name, null, null, null, number, branchSCMHead, null, merge ? ChangeRequestCheckoutStrategy.MERGE : ChangeRequestCheckoutStrategy.HEAD);
+        }
+
+    }
+
+    /**
+     * Used to handle data migration.
+     *
+     * @see FixOriginMigration
+     * @deprecated used for data migration.
+     */
+    @Restricted(NoExternalUse.class)
+    @Extension
+    public static class FixMetadataMigration extends
+            SCMHeadMigration<GitHubSCMSource, FixMetadata, PullRequestSCMRevision> {
+        public FixMetadataMigration() {
+            super(GitHubSCMSource.class, FixMetadata.class, PullRequestSCMRevision.class);
+        }
+
+        @Override
+        public PullRequestSCMHead migrate(@NonNull GitHubSCMSource source, @NonNull FixMetadata head) {
+            PullRequestSource src = source.retrievePullRequestSource(head.getNumber());
+            return new PullRequestSCMHead(head.getName(), src == null ? null : src.getSourceOwner(),
+                    src == null ? null : src.getSourceRepo(), src == null ? null : src.getSourceBranch(),
+                    head.getNumber(), head.getTarget(), src != null && source.getRepoOwner().equalsIgnoreCase(src.getSourceOwner())
+                                        ? SCMHeadOrigin.DEFAULT
+                                        : new SCMHeadOrigin.Fork(head.getSourceOwner()), head.getCheckoutStrategy());
+        }
+
+        @Override
+        public SCMRevision migrate(@NonNull GitHubSCMSource source,
+                                   @NonNull PullRequestSCMRevision revision) {
+            PullRequestSCMHead head = migrate(source, (FixMetadata) revision.getHead());
+            return head != null ? new PullRequestSCMRevision(
+                    head,
+                    revision.getBaseHash(),
+                    revision.getPullHash()
+            ) : null;
+        }
+    }
+
 }

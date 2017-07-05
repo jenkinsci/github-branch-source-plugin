@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -46,11 +47,13 @@ import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMEvent;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadEvent;
+import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
-import jenkins.util.Timer;
+import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+import jenkins.scm.api.trait.SCMHeadPrefilter;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
 import org.kohsuke.github.GHEvent;
@@ -276,88 +279,68 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                 // fake head sha1
                 return Collections.emptyMap();
             }
-            boolean hasPR = false;
 
             boolean fork = !src.getRepoOwner().equalsIgnoreCase(prOwnerName);
 
             Map<SCMHead, SCMRevision> result = new HashMap<>();
-
-            if (src.getBuildOriginBranchWithPR()
-                    || src.getBuildOriginPRMerge()
-                    || src.getBuildOriginPRHead()
-                    || src.getBuildForkPRMerge()
-                    || src.getBuildForkPRHead()) {
-                int number = pullRequest.getNumber();
-                if (fork && !src.getBuildForkPRMerge() && !src.getBuildForkPRHead()) {
-                    // Submitted from fork, skipping
-                } else if (!fork && !src.getBuildOriginPRMerge() && !src.getBuildOriginPRHead() && !src
-                        .getBuildOriginBranchWithPR()) {
-                    // Submitted from origin repository, skipping
-                } else {
-                    if (!fork) {
-                        hasPR = true;
-                    }
-                    for (boolean merge : new boolean[]{false, true}) {
-                        String branchName = "PR-" + number;
-                        if (merge && fork) {
-                            if (!src.getBuildForkPRMerge()) {
-                                continue; // not doing this combination
-                            }
-                            if (src.getBuildForkPRHead()) {
-                                branchName += "-merge"; // make sure they are distinct
-                            }
-                            // If we only build merged, or only unmerged, then we use the /PR-\d+/ scheme as before.
-                        }
-                        if (merge && !fork) {
-                            if (!src.getBuildOriginPRMerge()) {
-                                continue;
-                            }
-                            if (src.getBuildOriginPRHead()) {
-                                branchName += "-merge";
-                            }
-                        }
-                        if (!merge && fork) {
-                            if (!src.getBuildForkPRHead()) {
-                                continue;
-                            }
-                            if (src.getBuildForkPRMerge()) {
-                                branchName += "-head";
-                            }
-                        }
-                        if (!merge && !fork) {
-                            if (!src.getBuildOriginPRHead()) {
-                                continue;
-                            }
-                            if (src.getBuildOriginPRMerge()) {
-                                branchName += "-head";
-                            }
-                        }
-                        // don't care about trusted as SCMHead equality is based on the branch name anyway and
-                        PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge);
-                        if (merge) {
-                            // it will take a call to GitHub to get the merge commit, so let the event receiver poll
-                            result.put(head, null);
-                        } else {
-                            // Give the event receiver the data we have so they can revalidate
-                            result.put(head, new PullRequestSCMRevision(
-                                    head,
-                                    ghPullRequest.getBase().getSha(),
-                                    ghPullRequest.getHead().getSha()
-                            ));
-                        }
+            GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
+                            .withTraits(src.getTraits());
+            if (!fork && context.wantBranches()) {
+                final String branchName = ghPullRequest.getHead().getRef();
+                SCMHead head = new BranchSCMHead(branchName);
+                boolean excluded = false;
+                for (SCMHeadPrefilter prefilter: context.prefilters()) {
+                    if (prefilter.isExcluded(source, head)) {
+                        excluded = true;
+                        break;
                     }
                 }
-            }
-            if (!fork && (hasPR ? src.getBuildOriginBranchWithPR() : src.getBuildOriginBranch())) {
-                final String branchName = ghPullRequest.getHead().getRef();
-                if (!src.isExcluded(branchName)) {
-                    SCMHead head = new BranchSCMHead(branchName);
+                if (!excluded) {
                     SCMRevision hash =
                             new AbstractGitSCMSource.SCMRevisionImpl(head, ghPullRequest.getHead().getSha());
                     result.put(head, hash);
                 }
             }
-
+            if (context.wantPRs()) {
+                int number = pullRequest.getNumber();
+                Set<ChangeRequestCheckoutStrategy> strategies = fork ? context.forkPRStrategies() : context.originPRStrategies();
+                for (ChangeRequestCheckoutStrategy strategy: strategies) {
+                    final String branchName;
+                    if (strategies.size() == 1) {
+                        branchName = "PR-" + number;
+                    } else {
+                        branchName = "PR-" + number + "-" + strategy.name().toLowerCase(Locale.ENGLISH);
+                    }
+                    PullRequestSCMHead head;
+                    PullRequestSCMRevision revision;
+                    switch (strategy) {
+                        case MERGE:
+                            // it will take a call to GitHub to get the merge commit, so let the event receiver poll
+                            head = new PullRequestSCMHead(ghPullRequest, branchName, true);
+                            revision = null;
+                            break;
+                        default:
+                            // Give the event receiver the data we have so they can revalidate
+                            head = new PullRequestSCMHead(ghPullRequest, branchName, false);
+                            revision = new PullRequestSCMRevision(
+                                    head,
+                                    ghPullRequest.getBase().getSha(),
+                                    ghPullRequest.getHead().getSha()
+                            );
+                            break;
+                    }
+                    boolean excluded = false;
+                    for (SCMHeadPrefilter prefilter : context.prefilters()) {
+                        if (prefilter.isExcluded(source, head)) {
+                            excluded = true;
+                            break;
+                        }
+                    }
+                    if (!excluded) {
+                        result.put(head, revision);
+                    }
+                }
+            }
             return result;
         }
 

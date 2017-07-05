@@ -1,0 +1,5 @@
+<org.jenkinsci.plugins.github__branch__source.GitHubSCMNavigator>
+  <repoOwner>cloudbeers</repoOwner>
+  <credentialsId>bcaef157-f105-407f-b150-df7722eab6c1</credentialsId>
+  <traits/>
+</org.jenkinsci.plugins.github__branch__source.GitHubSCMNavigator>

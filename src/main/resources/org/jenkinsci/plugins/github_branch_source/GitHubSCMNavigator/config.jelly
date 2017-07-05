@@ -1,52 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials">
-    <j:if test="${descriptor.apiUriSelectable}">
-        <f:entry title="${%API endpoint}" field="apiUri">
-            <f:select/>
-        </f:entry>
-    </j:if>
-    <f:entry title="${%Owner}" field="repoOwner">
-        <f:textbox/>
-    </f:entry>
-    <f:entry title="${%Scan credentials}" field="scanCredentialsId">
-        <c:select/>
-    </f:entry>
-    <f:entry title="${%Repository name pattern}" field="pattern">
-        <f:textbox default=".*"/>
-    </f:entry>
-    <f:advanced>
-        <j:if test="${!descriptor.apiUriSelectable}">
-            <f:entry title="${%API endpoint}" field="apiUri">
-                <f:select/>
-            </f:entry>
-        </j:if>
-        <f:entry title="${%Checkout credentials}" field="checkoutCredentialsId">
-            <c:select default="${descriptor.SAME}"/>
-        </f:entry>
-        <f:entry title="${%Include branches}" field="includes">
-            <f:textbox default="${descriptor.defaultIncludes}"/>
-        </f:entry>
-        <f:entry title="${%Exclude branches}" field="excludes">
-            <f:textbox default="${descriptor.defaultExcludes}"/>
-        </f:entry>
-        <f:entry title="${%buildOriginBranch.title}" field="buildOriginBranch">
-            <f:checkbox default="${descriptor.defaultBuildOriginBranch}"/>
-        </f:entry>
-        <f:entry title="${%buildOriginBranchWithPR.title}" field="buildOriginBranchWithPR">
-            <f:checkbox default="${descriptor.defaultBuildOriginBranchWithPR}"/>
-        </f:entry>
-        <f:entry title="${%buildOriginPRMerge.title}" field="buildOriginPRMerge">
-            <f:checkbox default="${descriptor.defaultBuildOriginPRMerge}"/>
-        </f:entry>
-        <f:entry title="${%buildOriginPRHead.title}" field="buildOriginPRHead">
-            <f:checkbox default="${descriptor.defaultBuildOriginPRHead}"/>
-        </f:entry>
-        <f:entry title="${%buildForkPRMerge.title}" field="buildForkPRMerge">
-            <f:checkbox default="${descriptor.defaultBuildForkPRMerge}"/>
-        </f:entry>
-        <f:entry title="${%buildForkPRHead.title}" field="buildForkPRHead">
-            <f:checkbox default="${descriptor.defaultBuildForkPRHead}"/>
-        </f:entry>
-    </f:advanced>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:c="/lib/credentials" xmlns:scm="/jenkins/scm/api/form">
+  <j:choose>
+    <j:when test="${descriptor.apiUriSelectable}">
+      <f:entry title="${%API endpoint}" field="apiUri">
+        <f:select/>
+      </f:entry>
+    </j:when>
+    <j:otherwise>
+      <f:invisibleEntry>
+        <f:select field="apiUri"/>
+      </f:invisibleEntry>
+    </j:otherwise>
+  </j:choose>
+  <f:entry title="${%Credentials}" field="credentialsId">
+    <c:select/>
+  </f:entry>
+  <f:entry title="${%Owner}" field="repoOwner">
+    <f:textbox/>
+  </f:entry>
+  <f:entry title="${%Behaviours}">
+    <scm:traits field="traits"/>
+  </f:entry>
 </j:jelly>

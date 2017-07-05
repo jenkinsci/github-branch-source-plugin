@@ -1,0 +1,12 @@
+<org.jenkinsci.plugins.github__branch__source.GitHubSCMNavigator>
+  <repoOwner>cloudbeers</repoOwner>
+  <scanCredentialsId>bcaef157-f105-407f-b150-df7722eab6c1</scanCredentialsId>
+  <checkoutCredentialsId>SAME</checkoutCredentialsId>
+  <pattern>.*</pattern>
+  <buildOriginBranch>true</buildOriginBranch>
+  <buildOriginBranchWithPR>false</buildOriginBranchWithPR>
+  <buildOriginPRMerge>false</buildOriginPRMerge>
+  <buildOriginPRHead>true</buildOriginPRHead>
+  <buildForkPRMerge>false</buildForkPRMerge>
+  <buildForkPRHead>true</buildForkPRHead>
+</org.jenkinsci.plugins.github__branch__source.GitHubSCMNavigator>
