@@ -619,12 +619,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     }
                     continue;
                 }
-                boolean trusted = collaboratorNames != null
-                        && collaboratorNames.contains(ghPullRequest.getHead().getRepository().getOwnerName());
+                GHRepository repository = ghPullRequest.getHead().getRepository();
+                // repository may be null for deleted forks (JENKINS-41246) in which case they are not trusted
+                boolean trusted = repository != null && collaboratorNames != null
+                        && collaboratorNames.contains(repository.getOwnerName());
                 if (!trusted) {
                     listener.getLogger().format("    (not from a trusted source)%n");
                 }
-                for (boolean merge : new boolean[] {false, true}) {
+                for (boolean merge : new boolean[]{false, true}) {
                     String branchName = "PR-" + number;
                     if (merge && fork) {
                         if (!buildForkPRMerge) {
@@ -671,7 +673,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             user.getLogin(),
                             user.getName(),
                             user.getEmail()
-                            ));
+                    ));
                     pullRequestMetadataKeys.add(number);
                     PullRequestSCMHead head = new PullRequestSCMHead(ghPullRequest, branchName, merge);
                     if (includes != null && !includes.contains(head)) {
@@ -708,10 +710,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     } else {
                         baseHash = ghPullRequest.getBase().getSha();
                     }
-                    PullRequestSCMRevision rev = new PullRequestSCMRevision(head, baseHash, ghPullRequest.getHead().getSha());
+                    PullRequestSCMRevision rev =
+                            new PullRequestSCMRevision(head, baseHash, ghPullRequest.getHead().getSha());
                     observer.observe(head, rev);
                     if (!observer.isObserving()) {
-                        listener.getLogger().format("%n  %d pull requests were processed (query completed)%n", pullrequests);
+                        listener.getLogger()
+                                .format("%n  %d pull requests were processed (query completed)%n", pullrequests);
                         return;
                     }
                 }
