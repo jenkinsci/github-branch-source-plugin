@@ -337,7 +337,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @DataBoundSetter
     public void setApiUri(@CheckForNull String apiUri) {
-        this.apiUri = Util.fixEmptyAndTrim(apiUri);
+        this.apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmptyAndTrim(apiUri));
     }
 
     /**
@@ -452,6 +452,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
             }
             this.traits = traits;
+        }
+        if (!StringUtils.equals(apiUri, GitHubConfiguration.normalizeApiUri(apiUri))) {
+            setApiUri(apiUri);
         }
         return this;
     }
@@ -1432,7 +1435,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             ListBoxModel result = new ListBoxModel();
             result.add("GitHub", "");
             for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {
-                result.add(e.getName() == null ? e.getApiUri() : e.getName(), e.getApiUri());
+                result.add(e.getName() == null ? e.getApiUri() : e.getName() + " (" + e.getApiUri() + ")",
+                        e.getApiUri());
             }
             return result;
         }

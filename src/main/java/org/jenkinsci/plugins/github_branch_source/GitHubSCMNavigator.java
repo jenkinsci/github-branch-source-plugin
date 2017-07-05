@@ -258,7 +258,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @DataBoundSetter
     public void setApiUri(String apiUri) {
-        apiUri = Util.fixEmptyAndTrim(apiUri);
+        apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmptyAndTrim(apiUri));
         this.apiUri = GitHubServerConfig.GITHUB_URL.equals(apiUri) ? null : apiUri;
     }
 
@@ -372,6 +372,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 traits.add(new RegexSCMSourceFilterTrait(pattern));
             }
             this.traits = traits;
+        }
+        if (!StringUtils.equals(apiUri, GitHubConfiguration.normalizeApiUri(apiUri))) {
+            setApiUri(apiUri);
         }
         return this;
     }
@@ -1368,7 +1371,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
             ListBoxModel result = new ListBoxModel();
             result.add("GitHub", "");
             for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {
-                result.add(e.getName() == null ? e.getApiUri() : e.getName(), e.getApiUri());
+                result.add(e.getName() == null ? e.getApiUri() : e.getName() + " (" + e.getApiUri() + ")",
+                        e.getApiUri());
             }
             return result;
         }
