@@ -38,18 +38,6 @@ import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.regex.Pattern;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
-import javax.inject.Inject;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorDescriptor;
 import jenkins.scm.api.SCMNavigatorEvent;
@@ -76,6 +64,19 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 
+import javax.annotation.CheckForNull;
+import javax.annotation.Nonnull;
+import javax.inject.Inject;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
+
 public class GitHubSCMNavigator extends SCMNavigator {
 
     private final String repoOwner;
@@ -88,6 +89,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
     private String includes;
     @CheckForNull
     private String excludes;
+
+    @CheckForNull
+    private String authorExcludes;
+
     /** Whether to build regular origin branches. */
     @Nonnull
     private Boolean buildOriginBranch = DescriptorImpl.defaultBuildOriginBranch;
@@ -170,6 +175,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @DataBoundSetter
     public void setExcludes(@Nonnull String excludes) {
         this.excludes = excludes.equals(DescriptorImpl.defaultExcludes) ? null : excludes;
+    }
+
+    @Nonnull
+    public String getAuthorExcludes() {
+        return authorExcludes != null ? authorExcludes : DescriptorImpl.defaultAuthorExcludes;
+    }
+
+    @DataBoundSetter
+    public void setAuthorExcludes(@Nonnull String authorExcludes) {
+        this.authorExcludes = authorExcludes.equals(DescriptorImpl.defaultAuthorExcludes) ? null : authorExcludes;
     }
     
     public boolean getBuildOriginBranch() {
@@ -541,6 +556,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         );
         ghSCMSource.setExcludes(getExcludes());
         ghSCMSource.setIncludes(getIncludes());
+        ghSCMSource.setAuthorExcludes(getAuthorExcludes());
         ghSCMSource.setBuildOriginBranch(getBuildOriginBranch());
         ghSCMSource.setBuildOriginBranchWithPR(getBuildOriginBranchWithPR());
         ghSCMSource.setBuildOriginPRMerge(getBuildOriginPRMerge());
@@ -618,6 +634,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
         public static final String defaultIncludes = GitHubSCMSource.DescriptorImpl.defaultIncludes;
         public static final String defaultExcludes = GitHubSCMSource.DescriptorImpl.defaultExcludes;
+        public static final String defaultAuthorExcludes = GitHubSCMSource.DescriptorImpl.defaultAuthorExcludes;
         public static final String SAME = GitHubSCMSource.DescriptorImpl.SAME;
         public static final boolean defaultBuildOriginBranch = GitHubSCMSource.DescriptorImpl.defaultBuildOriginBranch;
         public static final boolean defaultBuildOriginBranchWithPR = GitHubSCMSource.DescriptorImpl.defaultBuildOriginBranchWithPR;
