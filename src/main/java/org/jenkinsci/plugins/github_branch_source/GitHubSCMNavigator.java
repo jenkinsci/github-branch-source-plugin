@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -1324,40 +1325,14 @@ public class GitHubSCMNavigator extends SCMNavigator {
          */
         @Restricted(NoExternalUse.class) // stapler
         public ListBoxModel doFillCredentialsIdItems(@CheckForNull @AncestorInPath Item context,
-                                                         @QueryParameter String apiUri) {
+                                                     @QueryParameter String apiUri,
+                                                     @QueryParameter String credentialsId) {
+            if (context == null
+                    ? !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER)
+                    : !context.hasPermission(Item.EXTENDED_READ)) {
+                return new StandardListBoxModel().includeCurrentValue(credentialsId);
+            }
             return Connector.listScanCredentials(context, apiUri);
-        }
-
-        /**
-         * Legacy method.
-         *
-         * @param context the context.
-         * @param apiUri  the endpoint.
-         * @param scanCredentialsId the scan credentials.
-         * @return the {@link ListBoxModel}
-         * @deprecated use {@link #doCheckCredentialsId(Item, String, String)}
-         */
-        @Deprecated
-        @Restricted(NoExternalUse.class)
-        public FormValidation doCheckScanCredentialsId(@CheckForNull @AncestorInPath Item context,
-                                                       @QueryParameter String apiUri,
-                                                       @QueryParameter String scanCredentialsId) {
-            return doCheckCredentialsId(context, apiUri, scanCredentialsId);
-        }
-
-        /**
-         * Legacy method.
-         *
-         * @param context the context.
-         * @param apiUri  the endpoint.
-         * @return the {@link ListBoxModel}
-         * @deprecated use {@link #doFillCredentialsIdItems(Item, String)}
-         */
-        @Deprecated
-        @Restricted(NoExternalUse.class)
-        @RestrictedSince("2.2.0")
-        public ListBoxModel doFillScanCredentialsIdItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri) {
-            return doFillCredentialsIdItems(context, apiUri);
         }
 
         /**
