@@ -325,7 +325,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
         return Util.fixNull(branches);
     }
 
-    // TODO Iterable<BitbucketTag> getTags() and setTags(...)
+    // TODO Iterable<GHTag> getTags() and setTags(...)
 
     /**
      * Provides the request with the names of the repository collaborators.

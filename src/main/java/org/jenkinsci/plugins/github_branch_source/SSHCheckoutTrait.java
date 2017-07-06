@@ -54,7 +54,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 /**
  * A {@link SCMSourceTrait} for {@link GitHubSCMSource} that causes the {@link GitSCM} checkout to be performed using a
- * SSH private key rather than the Bitbucket username password credentials used for scanning / indexing.
+ * SSH private key rather than the GitHub username password credentials used for scanning / indexing.
  *
  * @since 2.2.0
  */
