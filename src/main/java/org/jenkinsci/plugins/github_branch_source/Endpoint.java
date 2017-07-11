@@ -45,6 +45,7 @@ import java.util.Locale;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
+import jenkins.scm.api.SCMName;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -70,54 +71,13 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
     private final String name;
     private final String apiUri;
 
-    /**
-     * Makes best effort to guess a "sensible" display name from the hostname in the apiUri.
-     *
-     * @param apiUri the apiUri.
-     * @return the display name or {@code null}
-     * @throws LinkageError if Guava changes their API that we have depended on.
-     */
-    @CheckForNull
-    /*package*/ static String inferDisplayName(@CheckForNull String apiUri) throws LinkageError {
-        if (apiUri == null) {
-            return apiUri;
-        }
-        String hostName;
-        try {
-            URI serverUri = new URI(apiUri);
-            hostName = serverUri.getHost();
-            if (hostName != null) {
-                // let's see if we can make this more "friendly"
-                InternetDomainName host = InternetDomainName.from(hostName);
-                if (host.hasPublicSuffix()) {
-                    String publicName = host.publicSuffix().name();
-                    hostName = StringUtils.removeEnd(StringUtils.removeEnd(host.name(), publicName), ".")
-                            .toLowerCase(Locale.ENGLISH);
-                } else {
-                    hostName = StringUtils.removeEnd(host.name(), ".").toLowerCase(Locale.ENGLISH);
-                }
-                for (String prefix : COMMON_PREFIX_HOSTNAMES) {
-                    if (hostName.startsWith(prefix)) {
-                        hostName = hostName.substring(prefix.length());
-                        break;
-                    }
-                }
-            }
-        } catch (URISyntaxException e) {
-            // ignore, best effort
-            hostName = null;
-        }
-        return hostName;
-    }
-
     @DataBoundConstructor
     public Endpoint(String apiUri, String name) {
         this.apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmptyAndTrim(apiUri));
-        name = Util.fixEmptyAndTrim(name);
-        if (name == null) {
-            this.name = inferDisplayName(apiUri);
+        if (StringUtils.isBlank(name)) {
+            this.name = SCMName.fromUrl(this.apiUri, COMMON_PREFIX_HOSTNAMES);
         } else {
-            this.name = name;
+            this.name = name.trim();
         }
     }
 
