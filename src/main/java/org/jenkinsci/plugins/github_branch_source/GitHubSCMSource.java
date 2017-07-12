@@ -451,7 +451,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (!"*".equals(includes) || !"".equals(excludes)) {
                 traits.add(new WildcardSCMHeadFilterTrait(includes, excludes));
             }
-            if (!DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
+            if (checkoutCredentialsId != null
+                    && !DescriptorImpl.SAME.equals(checkoutCredentialsId)
+                    && !checkoutCredentialsId.equals(scanCredentialsId)) {
                 traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
             }
             this.traits = traits;

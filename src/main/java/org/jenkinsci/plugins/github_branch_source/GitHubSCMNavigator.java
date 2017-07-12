@@ -362,7 +362,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 }
                 traits.add(new ForkPullRequestDiscoveryTrait(s, new ForkPullRequestDiscoveryTrait.TrustContributors()));
             }
-            if (!DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
+            if (checkoutCredentialsId != null
+                    && !DescriptorImpl.SAME.equals(checkoutCredentialsId)
+                    && !checkoutCredentialsId.equals(scanCredentialsId)) {
                 traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
             }
             if ((includes != null && !"*".equals(includes)) || (excludes != null && !"".equals(excludes))) {
