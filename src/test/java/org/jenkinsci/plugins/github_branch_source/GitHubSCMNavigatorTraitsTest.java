@@ -15,6 +15,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.hamcrest.Matchers.allOf;
@@ -183,6 +184,53 @@ public class GitHubSCMNavigatorTraitsTest {
         );
         // legacy API
         assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMSource.DescriptorImpl.ANONYMOUS));
+        assertThat(instance.getPattern(), is(".*"));
+        assertThat(instance.getIncludes(), is("*"));
+        assertThat(instance.getExcludes(), is(""));
+    }
+
+    @Issue("JENKINS-45467")
+    @Test
+    public void same_checkout_credentials() throws Exception {
+        GitHubSCMNavigator instance = load();
+        assertThat(instance.id(), is("https://github.test/api/v3::cloudbeers"));
+        assertThat(instance.getRepoOwner(), is("cloudbeers"));
+        assertThat(instance.getApiUri(), is("https://github.test/api/v3"));
+        assertThat(instance.getCredentialsId(), is("bcaef157-f105-407f-b150-df7722eab6c1"));
+        assertThat("checkout credentials equal to scan should mean no checkout trait",
+                instance.getTraits(),
+                not(
+                        hasItem(
+                        Matchers.<SCMTrait<?>>allOf(
+                                Matchers.instanceOf(SSHCheckoutTrait.class),
+                                hasProperty("credentialsId", is(nullValue()))
+                        )
+                )
+                )
+        );
+        assertThat(".* as a pattern should mean no RegexSCMSourceFilterTrait",
+                instance.getTraits(),
+                not(hasItem(Matchers.<SCMTrait<?>>instanceOf(RegexSCMSourceFilterTrait.class))));
+        assertThat(instance.getTraits(),
+                containsInAnyOrder(
+                        Matchers.<SCMTrait<?>>allOf(
+                                instanceOf(BranchDiscoveryTrait.class),
+                                hasProperty("buildBranch", is(true)),
+                                hasProperty("buildBranchesWithPR", is(true))
+                        ),
+                        Matchers.<SCMTrait<?>>allOf(
+                                instanceOf(OriginPullRequestDiscoveryTrait.class),
+                                hasProperty("strategyId", is(2))
+                        ),
+                        Matchers.<SCMTrait<?>>allOf(
+                                instanceOf(ForkPullRequestDiscoveryTrait.class),
+                                hasProperty("strategyId", is(2)),
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                        )
+                )
+        );
+        // legacy API
+        assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMSource.DescriptorImpl.SAME));
         assertThat(instance.getPattern(), is(".*"));
         assertThat(instance.getIncludes(), is("*"));
         assertThat(instance.getExcludes(), is(""));

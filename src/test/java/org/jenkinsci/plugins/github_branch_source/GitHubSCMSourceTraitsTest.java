@@ -17,6 +17,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import static org.hamcrest.Matchers.allOf;
@@ -216,6 +217,48 @@ public class GitHubSCMSourceTraitsTest {
         );
         // Legacy API
         assertThat(instance.getCheckoutCredentialsId(), is("other-credentials"));
+        assertThat(instance.getIncludes(), is("*"));
+        assertThat(instance.getExcludes(), is(""));
+        assertThat(instance.getBuildOriginBranch(), is(true));
+        assertThat(instance.getBuildOriginBranchWithPR(), is(false));
+        assertThat(instance.getBuildOriginPRHead(), is(true));
+        assertThat(instance.getBuildOriginPRMerge(), is(false));
+        assertThat(instance.getBuildForkPRHead(), is(true));
+        assertThat(instance.getBuildForkPRMerge(), is(false));
+    }
+
+    @Issue("JENKINS-45467")
+    @Test
+    public void same_checkout_credentials() throws Exception {
+        GitHubSCMSource instance = load();
+        assertThat(instance.getId(), is("org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator"
+                + "::https://github.test/api/v3"
+                + "::cloudbeers"
+                + "::stunning-adventure"));
+        assertThat(instance.getApiUri(), is("https://github.test/api/v3"));
+        assertThat(instance.getRepoOwner(), is("cloudbeers"));
+        assertThat(instance.getRepository(), is("stunning-adventure"));
+        assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
+        assertThat(instance.getTraits(),
+                containsInAnyOrder(
+                        Matchers.<SCMSourceTrait>allOf(
+                                instanceOf(BranchDiscoveryTrait.class),
+                                hasProperty("buildBranch", is(true)),
+                                hasProperty("buildBranchesWithPR", is(false))
+                        ),
+                        Matchers.<SCMSourceTrait>allOf(
+                                instanceOf(OriginPullRequestDiscoveryTrait.class),
+                                hasProperty("strategyId", is(2))
+                        ),
+                        Matchers.<SCMSourceTrait>allOf(
+                                instanceOf(ForkPullRequestDiscoveryTrait.class),
+                                hasProperty("strategyId", is(2)),
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                        )
+                )
+        );
+        // Legacy API
+        assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMSource.DescriptorImpl.SAME));
         assertThat(instance.getIncludes(), is("*"));
         assertThat(instance.getExcludes(), is(""));
         assertThat(instance.getBuildOriginBranch(), is(true));
