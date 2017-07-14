@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.util.ListBoxModel;
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -45,6 +46,7 @@ import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.trait.Discovery;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -310,6 +312,98 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
             @Override
             public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
                 return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+
+        }
+    }
+
+    /**
+     * An {@link SCMHeadAuthority} that trusts contributors to the repository.
+     */
+    public static class TrustPermission
+            extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+        @NonNull
+        private final GHPermissionType permission;
+
+        /**
+         * Constructor.
+         */
+        @DataBoundConstructor
+        public TrustPermission(@NonNull String permission) {
+            GHPermissionType permissionType = GHPermissionType.ADMIN;
+            for (GHPermissionType p: GHPermissionType.values()) {
+                if (p.name().equalsIgnoreCase(permission)) {
+                    permissionType = p;
+                }
+            }
+            this.permission = permissionType;
+        }
+
+        public TrustPermission(@NonNull GHPermissionType permission) {
+            this.permission = permission;
+        }
+
+        @NonNull
+        public GHPermissionType getPermissionType() {
+            return permission;
+        }
+
+        @NonNull
+        public String getPermission() {
+            return permission.name();
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head) {
+            if (!head.getOrigin().equals(SCMHeadOrigin.DEFAULT)) {
+                try {
+                    // TODO get the repository from getTrusted which currently doesn't provide it to the request.
+                    GHPermissionType permission = request.getRepository().getPermission(head.getSourceOwner());
+                    return permission.ordinal() <= this.permission.ordinal();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Our descriptor.
+         */
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public String getDisplayName() {
+                return Messages.ForkPullRequestDiscoveryTrait_permissionsDisplayName();
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+
+            /**
+             * Populates the permissions.
+             * @return the list of permissions.
+             */
+            @Restricted(NoExternalUse.class)
+            @SuppressWarnings("unused")
+            public ListBoxModel doFillPermissionItems() {
+                ListBoxModel result = new ListBoxModel();
+                for (GHPermissionType p: GHPermissionType.values()) {
+                    result.add(p.name());
+                }
+                return result;
             }
 
         }

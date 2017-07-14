@@ -43,6 +43,7 @@ import jenkins.scm.api.mixin.TagSCMHead;
 import jenkins.scm.api.trait.SCMSourceRequest;
 import org.kohsuke.github.GHBranch;
 import org.kohsuke.github.GHPullRequest;
+import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
 /**
@@ -113,6 +114,11 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
      */
     @CheckForNull
     private GitHub gitHub;
+    /**
+     * The repository.
+     */
+    @CheckForNull
+    private GHRepository repository;
 
     /**
      * Constructor.
@@ -375,6 +381,24 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
      */
     public void setGitHub(@CheckForNull GitHub gitHub) {
         this.gitHub = gitHub;
+    }
+
+    /**
+     * Returns the {@link GHRepository}.
+     *
+     * @return the {@link GHRepository}.
+     */
+    public GHRepository getRepository() {
+        return repository;
+    }
+
+    /**
+     * Sets the {@link GHRepository}.
+     *
+     * @param repository the {@link GHRepository}.
+     */
+    public void setRepository(GHRepository repository) {
+        this.repository = repository;
     }
 
     /**

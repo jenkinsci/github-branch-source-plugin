@@ -842,6 +842,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         .newRequest(this, listener)) {
                     // populate the request with its data sources
                     request.setGitHub(github);
+                    request.setRepository(ghRepository);
                     if (request.isFetchPRs()) {
                         request.setPullRequests(new LazyPullRequests(request, ghRepository));
                     }
