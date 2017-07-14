@@ -43,6 +43,7 @@ import jenkins.scm.impl.trait.Discovery;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHPullRequest;
+import org.kohsuke.github.GHRepository;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -233,7 +234,9 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
         public boolean isExcluded(@NonNull SCMSourceRequest request, @NonNull SCMHead head) {
             if (head instanceof BranchSCMHead && request instanceof GitHubSCMSourceRequest) {
                 for (GHPullRequest p : ((GitHubSCMSourceRequest) request).getPullRequests()) {
-                    if (p.getBase().getRepository().getFullName().equalsIgnoreCase(p.getHead().getRepository().getFullName())
+                    GHRepository headRepo = p.getHead().getRepository();
+                    if (headRepo != null // head repo can be null if the PR is from a repo that has been deleted
+                            && p.getBase().getRepository().getFullName().equalsIgnoreCase(headRepo.getFullName())
                             && p.getHead().getRef().equals(head.getName())) {
                         return true;
                     }
@@ -254,8 +257,9 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
         public boolean isExcluded(@NonNull SCMSourceRequest request, @NonNull SCMHead head) {
             if (head instanceof BranchSCMHead && request instanceof GitHubSCMSourceRequest) {
                 for (GHPullRequest p : ((GitHubSCMSourceRequest) request).getPullRequests()) {
-                    if (p.getBase().getRepository().getFullName()
-                            .equalsIgnoreCase(p.getHead().getRepository().getFullName())
+                    GHRepository headRepo = p.getHead().getRepository();
+                    if (headRepo != null // head repo can be null if the PR is from a repo that has been deleted
+                            && p.getBase().getRepository().getFullName().equalsIgnoreCase(headRepo.getFullName())
                             && p.getHead().getRef().equals(head.getName())) {
                         return false;
                     }
