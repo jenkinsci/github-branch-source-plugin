@@ -232,9 +232,9 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
         @Override
         public boolean isExcluded(@NonNull SCMSourceRequest request, @NonNull SCMHead head) {
             if (head instanceof BranchSCMHead && request instanceof GitHubSCMSourceRequest) {
-                for (GHPullRequest pullRequest : ((GitHubSCMSourceRequest) request).getPullRequests()) {
-                    if (pullRequest.getHead().getRef().equals(head.getName())) {
-                        // TODO correct is also a PR test
+                for (GHPullRequest p : ((GitHubSCMSourceRequest) request).getPullRequests()) {
+                    if (p.getBase().getRepository().getFullName().equalsIgnoreCase(p.getHead().getRepository().getFullName())
+                            && p.getHead().getRef().equals(head.getName())) {
                         return true;
                     }
                 }
@@ -253,12 +253,14 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
         @Override
         public boolean isExcluded(@NonNull SCMSourceRequest request, @NonNull SCMHead head) {
             if (head instanceof BranchSCMHead && request instanceof GitHubSCMSourceRequest) {
-                for (GHPullRequest pullRequest : ((GitHubSCMSourceRequest) request).getPullRequests()) {
-                    if (!pullRequest.getHead().getRef().equals(head.getName())) {
-                        // TODO correct is also a PR test
-                        return true;
+                for (GHPullRequest p : ((GitHubSCMSourceRequest) request).getPullRequests()) {
+                    if (p.getBase().getRepository().getFullName()
+                            .equalsIgnoreCase(p.getHead().getRepository().getFullName())
+                            && p.getHead().getRef().equals(head.getName())) {
+                        return false;
                     }
                 }
+                return true;
             }
             return false;
         }
