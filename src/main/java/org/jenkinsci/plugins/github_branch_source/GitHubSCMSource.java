@@ -1501,8 +1501,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         }
                         if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
                             Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-                            for (String name : myself.getAllRepositories().keySet()) {
-                                result.add(name);
+                            for (GHRepository repo : myself.listRepositories(100, GHMyself.RepositoryListFilter.OWNER)) {
+                                result.add(repo.getName());
                             }
                             return nameAndValueModel(result);
                         }
