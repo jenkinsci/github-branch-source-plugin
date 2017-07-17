@@ -357,15 +357,11 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
          * {@inheritDoc}
          */
         @Override
-        protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head) {
+        protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head)
+                throws IOException, InterruptedException {
             if (!head.getOrigin().equals(SCMHeadOrigin.DEFAULT)) {
-                try {
-                    // TODO get the repository from getTrusted which currently doesn't provide it to the request.
-                    GHPermissionType permission = request.getRepository().getPermission(head.getSourceOwner());
-                    return permission.ordinal() <= this.permission.ordinal();
-                } catch (IOException e) {
-                    // ignore
-                }
+                GHPermissionType permission = request.getPermissions(head.getSourceOwner());
+                return permission.ordinal() <= this.permission.ordinal();
             }
             return false;
         }

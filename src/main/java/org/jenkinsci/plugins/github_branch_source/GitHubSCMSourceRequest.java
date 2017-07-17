@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
+import com.google.common.base.Function;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
@@ -42,6 +43,7 @@ import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.TagSCMHead;
 import jenkins.scm.api.trait.SCMSourceRequest;
 import org.kohsuke.github.GHBranch;
+import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
@@ -119,6 +121,16 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
      */
     @CheckForNull
     private GHRepository repository;
+    /**
+     * The resolved permissions keyed by user.
+     */
+    @NonNull
+    private final Map<String, GHPermissionType> permissions = new HashMap<>();
+    /**
+     * A deferred lookup of the permissions.
+     */
+    @CheckForNull
+    private GitHubPermissionsSource permissionsSource;
 
     /**
      * Constructor.
@@ -412,6 +424,52 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
         if (branches instanceof Closeable) {
             ((Closeable) branches).close();
         }
+        if (permissionsSource instanceof Closeable) {
+            ((Closeable) permissionsSource).close();
+        }
         super.close();
+    }
+
+    /**
+     * Returns the permissions of the supplied user.
+     *
+     * @param username the user.
+     * @return the permissions of the supplied user.
+     */
+    public synchronized GHPermissionType getPermissions(String username) throws IOException, InterruptedException {
+        if (permissions.containsKey(username)) {
+            return permissions.get(username);
+        }
+        if (permissionsSource != null) {
+            GHPermissionType result = permissionsSource.fetch(username);
+            permissions.put(username, result);
+            return result;
+        }
+        if (repository != null && username.equalsIgnoreCase(repository.getOwnerName())) {
+            return GHPermissionType.ADMIN;
+        }
+        if (collaboratorNames != null && collaboratorNames.contains(username)) {
+            return GHPermissionType.WRITE;
+        }
+        return GHPermissionType.NONE;
+    }
+
+    /**
+     * Returns the permission source.
+     *
+     * @return the permission source.
+     */
+    @CheckForNull
+    public GitHubPermissionsSource getPermissionsSource() {
+        return permissionsSource;
+    }
+
+    /**
+     * Sets the permission source.
+     *
+     * @param permissionsSource the permission source.
+     */
+    public void setPermissionsSource(@CheckForNull GitHubPermissionsSource permissionsSource) {
+        this.permissionsSource = permissionsSource;
     }
 }

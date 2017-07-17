@@ -29,6 +29,7 @@ import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.google.common.base.Function;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -111,6 +112,7 @@ import org.kohsuke.github.GHBranch;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
@@ -853,6 +855,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         // TODO request.setTags(repo.getTags);
                     }
                     request.setCollaboratorNames(new LazyContributorNames(request, listener, github, ghRepository, credentials));
+                    request.setPermissionsSource(new GitHubPermissionsSource() {
+                        @Override
+                        public GHPermissionType fetch(String username) throws IOException, InterruptedException {
+                            return ghRepository.getPermission(username);
+                        }
+                    });
 
                     if (request.isFetchBranches() && !request.isComplete()) {
                         listener.getLogger().format("%n  Checking branches...%n");
@@ -1184,6 +1192,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 } else {
                     request.setCollaboratorNames(new DeferredContributorNames(request, listener));
                 }
+                request.setPermissionsSource(new DeferredPermissionsSource(listener));
                 if (request.isTrusted(head)) {
                     return revision;
                 }
@@ -1925,6 +1934,40 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 }
             } catch (IOException | InterruptedException e) {
                 throw new WrappedException(e);
+            }
+        }
+    }
+
+    private class DeferredPermissionsSource extends GitHubPermissionsSource implements Closeable {
+
+        private final TaskListener listener;
+        private GitHub github;
+        private GHRepository repo;
+
+        public DeferredPermissionsSource(TaskListener listener) {
+            this.listener = listener;
+        }
+
+        @Override
+        public GHPermissionType fetch(String username) throws IOException, InterruptedException {
+            if (repo == null) {
+                listener.getLogger().format("Connecting to %s to check permissions of obtain list of %s for %s/%s%n",
+                        apiUri == null ? GITHUB_URL : apiUri, username, repoOwner, repository);
+                StandardCredentials credentials = Connector.lookupScanCredentials(
+                        (Item) getOwner(), apiUri, credentialsId
+                );
+                github = Connector.connect(apiUri, credentials);
+                repo = github.getRepository(repository);
+            }
+            return repo.getPermission(username);
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (github != null) {
+                Connector.release(github);
+                github = null;
+                repo = null;
             }
         }
     }
