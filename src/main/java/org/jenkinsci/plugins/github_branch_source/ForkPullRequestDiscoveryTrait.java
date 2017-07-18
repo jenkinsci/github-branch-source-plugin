@@ -322,35 +322,12 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
      */
     public static class TrustPermission
             extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
-        @NonNull
-        private final GHPermissionType permission;
 
         /**
          * Constructor.
          */
         @DataBoundConstructor
-        public TrustPermission(@NonNull String permission) {
-            GHPermissionType permissionType = GHPermissionType.ADMIN;
-            for (GHPermissionType p: GHPermissionType.values()) {
-                if (p.name().equalsIgnoreCase(permission)) {
-                    permissionType = p;
-                }
-            }
-            this.permission = permissionType;
-        }
-
-        public TrustPermission(@NonNull GHPermissionType permission) {
-            this.permission = permission;
-        }
-
-        @NonNull
-        public GHPermissionType getPermissionType() {
-            return permission;
-        }
-
-        @NonNull
-        public String getPermission() {
-            return permission.name();
+        public TrustPermission() {
         }
 
         /**
@@ -361,7 +338,12 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
                 throws IOException, InterruptedException {
             if (!head.getOrigin().equals(SCMHeadOrigin.DEFAULT)) {
                 GHPermissionType permission = request.getPermissions(head.getSourceOwner());
-                return permission.ordinal() <= this.permission.ordinal();
+                switch (permission) {
+                    case ADMIN:
+                    case WRITE:
+                        return true;
+                    default:return false;
+                }
             }
             return false;
         }
@@ -371,7 +353,6 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
          */
         @Extension
         public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
-
             /**
              * {@inheritDoc}
              */
@@ -387,21 +368,6 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
             public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
                 return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
             }
-
-            /**
-             * Populates the permissions.
-             * @return the list of permissions.
-             */
-            @Restricted(NoExternalUse.class)
-            @SuppressWarnings("unused")
-            public ListBoxModel doFillPermissionItems() {
-                ListBoxModel result = new ListBoxModel();
-                for (GHPermissionType p: GHPermissionType.values()) {
-                    result.add(p.name());
-                }
-                return result;
-            }
-
         }
     }
 

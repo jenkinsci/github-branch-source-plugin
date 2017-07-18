@@ -31,13 +31,14 @@
             All pull requests from forks will be treated as trusted. <strong>NOTE:</strong> this option can be dangerous
             if used on a public repository hosted on GitHub.
         </dd>
-        <dt>Permissions</dt>
+        <dt>From users with Admin or Write permission</dt>
         <dd>
-            Pull requests forks will be treated as trusted if the fork owner has the specified minimum permissions
-            against the origin repository.
+            Pull requests forks will be treated as trusted if and only if the fork owner has either Admin or Write
+            permissions on the origin repository.
             Note that this strategy requires the
             <a href="https://developer.github.com/v3/repos/collaborators/#review-a-users-permission-level">Review
-            a user's permission level</a> API.
+            a user's permission level</a> API, as a result on GitHub Enterprise Server versions before 2.12 this
+            is the same as trusting <strong>Nobody</strong>.
         </dd>
     </dl>
 </div>
