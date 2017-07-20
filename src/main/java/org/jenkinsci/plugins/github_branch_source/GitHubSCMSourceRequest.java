@@ -42,6 +42,7 @@ import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.TagSCMHead;
 import jenkins.scm.api.trait.SCMSourceRequest;
+import net.jcip.annotations.GuardedBy;
 import org.kohsuke.github.GHBranch;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHPullRequest;
@@ -125,6 +126,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
      * The resolved permissions keyed by user.
      */
     @NonNull
+    @GuardedBy("self")
     private final Map<String, GHPermissionType> permissions = new HashMap<>();
     /**
      * A deferred lookup of the permissions.
@@ -436,13 +438,17 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
      * @param username the user.
      * @return the permissions of the supplied user.
      */
-    public synchronized GHPermissionType getPermissions(String username) throws IOException, InterruptedException {
-        if (permissions.containsKey(username)) {
-            return permissions.get(username);
+    public GHPermissionType getPermissions(String username) throws IOException, InterruptedException {
+        synchronized (permissions) {
+            if (permissions.containsKey(username)) {
+                return permissions.get(username);
+            }
         }
         if (permissionsSource != null) {
             GHPermissionType result = permissionsSource.fetch(username);
-            permissions.put(username, result);
+            synchronized (permissions) {
+                permissions.put(username, result);
+            }
             return result;
         }
         if (repository != null && username.equalsIgnoreCase(repository.getOwnerName())) {
