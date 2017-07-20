@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.util.ListBoxModel;
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -45,6 +46,7 @@ import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.trait.Discovery;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -312,6 +314,60 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
                 return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
             }
 
+        }
+    }
+
+    /**
+     * An {@link SCMHeadAuthority} that trusts contributors to the repository.
+     */
+    public static class TrustPermission
+            extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+
+        /**
+         * Constructor.
+         */
+        @DataBoundConstructor
+        public TrustPermission() {
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head)
+                throws IOException, InterruptedException {
+            if (!head.getOrigin().equals(SCMHeadOrigin.DEFAULT)) {
+                GHPermissionType permission = request.getPermissions(head.getSourceOwner());
+                switch (permission) {
+                    case ADMIN:
+                    case WRITE:
+                        return true;
+                    default:return false;
+                }
+            }
+            return false;
+        }
+
+        /**
+         * Our descriptor.
+         */
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public String getDisplayName() {
+                return Messages.ForkPullRequestDiscoveryTrait_permissionsDisplayName();
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
         }
     }
 

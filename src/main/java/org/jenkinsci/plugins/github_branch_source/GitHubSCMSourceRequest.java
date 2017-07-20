@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
+import com.google.common.base.Function;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
@@ -41,8 +42,11 @@ import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.TagSCMHead;
 import jenkins.scm.api.trait.SCMSourceRequest;
+import net.jcip.annotations.GuardedBy;
 import org.kohsuke.github.GHBranch;
+import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHPullRequest;
+import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
 /**
@@ -113,6 +117,22 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
      */
     @CheckForNull
     private GitHub gitHub;
+    /**
+     * The repository.
+     */
+    @CheckForNull
+    private GHRepository repository;
+    /**
+     * The resolved permissions keyed by user.
+     */
+    @NonNull
+    @GuardedBy("self")
+    private final Map<String, GHPermissionType> permissions = new HashMap<>();
+    /**
+     * A deferred lookup of the permissions.
+     */
+    @CheckForNull
+    private GitHubPermissionsSource permissionsSource;
 
     /**
      * Constructor.
@@ -378,6 +398,24 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     }
 
     /**
+     * Returns the {@link GHRepository}.
+     *
+     * @return the {@link GHRepository}.
+     */
+    public GHRepository getRepository() {
+        return repository;
+    }
+
+    /**
+     * Sets the {@link GHRepository}.
+     *
+     * @param repository the {@link GHRepository}.
+     */
+    public void setRepository(GHRepository repository) {
+        this.repository = repository;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -388,6 +426,56 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
         if (branches instanceof Closeable) {
             ((Closeable) branches).close();
         }
+        if (permissionsSource instanceof Closeable) {
+            ((Closeable) permissionsSource).close();
+        }
         super.close();
+    }
+
+    /**
+     * Returns the permissions of the supplied user.
+     *
+     * @param username the user.
+     * @return the permissions of the supplied user.
+     */
+    public GHPermissionType getPermissions(String username) throws IOException, InterruptedException {
+        synchronized (permissions) {
+            if (permissions.containsKey(username)) {
+                return permissions.get(username);
+            }
+        }
+        if (permissionsSource != null) {
+            GHPermissionType result = permissionsSource.fetch(username);
+            synchronized (permissions) {
+                permissions.put(username, result);
+            }
+            return result;
+        }
+        if (repository != null && username.equalsIgnoreCase(repository.getOwnerName())) {
+            return GHPermissionType.ADMIN;
+        }
+        if (collaboratorNames != null && collaboratorNames.contains(username)) {
+            return GHPermissionType.WRITE;
+        }
+        return GHPermissionType.NONE;
+    }
+
+    /**
+     * Returns the permission source.
+     *
+     * @return the permission source.
+     */
+    @CheckForNull
+    public GitHubPermissionsSource getPermissionsSource() {
+        return permissionsSource;
+    }
+
+    /**
+     * Sets the permission source.
+     *
+     * @param permissionsSource the permission source.
+     */
+    public void setPermissionsSource(@CheckForNull GitHubPermissionsSource permissionsSource) {
+        this.permissionsSource = permissionsSource;
     }
 }
