@@ -23,6 +23,7 @@ import java.util.logging.Logger;
 import jenkins.branch.BranchSource;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitSCMSourceDefaults;
+import jenkins.plugins.git.MergeWithGitSCMExtension;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
