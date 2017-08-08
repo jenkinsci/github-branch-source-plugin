@@ -520,7 +520,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         );
     }
 
-    @Restricted(DoNotUse.class)
+    @Restricted(NoExternalUse.class)
     @RestrictedSince("2.2.0")
     @Deprecated
     @CheckForNull

@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.22</version>
+        <version>2.32</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
@@ -66,7 +66,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>display-url-api</artifactId>
-            <version>0.1</version>
+            <version>0.2</version>
         </dependency>
         <!-- Currently just here for interactive testing via hpi:run: -->
         <dependency>
