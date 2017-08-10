@@ -71,17 +71,18 @@ public class GitHubBuildStatusNotification {
 
     private static void createCommitStatus(@NonNull GHRepository repo, @NonNull String revision,
                                            @NonNull GHCommitState state, @NonNull String url, @NonNull String message,
-                                           @NonNull SCMHead head) throws IOException {
+                                           @NonNull SCMHead head, @NonNull String jobName) throws IOException {
         LOGGER.log(Level.FINE, "{0}/commit/{1} {2} from {3}", new Object[] {repo.getHtmlUrl(), revision, state, url});
         String context;
+        String suffix = jobName.replaceAll("(.*)/.*", "$1");
         if (head instanceof PullRequestSCMHead) {
             if (((PullRequestSCMHead) head).isMerge()) {
-                context = "continuous-integration/jenkins/pr-merge";
+                context = "continuous-integration/jenkins/" + suffix + "/pr-merge";
             } else {
-                context = "continuous-integration/jenkins/pr-head";
+                context = "continuous-integration/jenkins/" + suffix + "/pr-head";
             }
         } else {
-            context = "continuous-integration/jenkins/branch";
+            context = "continuous-integration/jenkins/" + suffix + "/branch";
         }
         repo.createCommitStatus(revision, state, url, message, context);
     }
@@ -110,18 +111,18 @@ public class GitHubBuildStatusNotification {
                             String revisionToNotify = resolveHeadCommit(revision);
                             SCMHead head = revision.getHead();
                             if (Result.SUCCESS.equals(result)) {
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good(), head);
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good(), head, build.getParent().getFullName());
                             } else if (Result.UNSTABLE.equals(result)) {
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable(), head);
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable(), head, build.getParent().getFullName());
                             } else if (Result.FAILURE.equals(result)) {
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure(), head);
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure(), head, build.getParent().getFullName());
                             } else if (Result.ABORTED.equals(result)) {
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Aborted(), head);
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Aborted(), head, build.getParent().getFullName());
                             } else if (result != null) { // NOT_BUILT etc.
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other(), head);
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other(), head, build.getParent().getFullName());
                             } else {
                                 ignoreError = true;
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending(), head);
+                                createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending(), head, build.getParent().getFullName());
                             }
                             if (result != null) {
                                 listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
@@ -269,7 +270,7 @@ public class GitHubBuildStatusNotification {
                                     return;
                                 }
                                 createCommitStatus(repo, hash, GHCommitState.PENDING, url,
-                                        Messages.GitHubBuildStatusNotification_CommitStatus_Queued(), head);
+                                        Messages.GitHubBuildStatusNotification_CommitStatus_Queued(), head, job.getFullName());
                             }
                         } finally {
                             Connector.release(gitHub);
