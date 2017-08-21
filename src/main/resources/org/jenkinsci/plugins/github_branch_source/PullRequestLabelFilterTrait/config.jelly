@@ -1,0 +1,7 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson"
+         xmlns:f="/lib/form" xmlns:f2="/org/jenkinsci/plugins/github_branch_source/form">
+  <f:entry title="Pull request label regex" field="pullRequestLabelRegex">
+    <f:textbox default=".*"/>
+  </f:entry>
+</j:jelly>

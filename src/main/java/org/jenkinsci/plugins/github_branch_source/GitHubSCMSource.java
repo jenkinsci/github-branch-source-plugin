@@ -49,50 +49,17 @@ import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.LogTaskListener;
-import java.io.Closeable;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.ObjectStreamException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
-import java.util.logging.Logger;
-import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.MergeWithGitSCMExtension;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMHeadCategory;
-import jenkins.scm.api.SCMHeadEvent;
-import jenkins.scm.api.SCMHeadObserver;
-import jenkins.scm.api.SCMProbe;
-import jenkins.scm.api.SCMRevision;
-import jenkins.scm.api.SCMSourceCriteria;
-import jenkins.scm.api.SCMSourceDescriptor;
-import jenkins.scm.api.SCMSourceEvent;
-import jenkins.scm.api.SCMSourceOwner;
+import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.ContributorMetadataAction;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMSourceRequest;
 import jenkins.scm.api.trait.SCMSourceTrait;
-import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.api.trait.SCMTraitDescriptor;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
@@ -107,24 +74,28 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.github.GHBranch;
-import org.kohsuke.github.GHIssueState;
-import org.kohsuke.github.GHMyself;
-import org.kohsuke.github.GHOrganization;
-import org.kohsuke.github.GHPermissionType;
-import org.kohsuke.github.GHPullRequest;
-import org.kohsuke.github.GHRef;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GHUser;
-import org.kohsuke.github.GitHub;
-import org.kohsuke.github.HttpException;
+import org.kohsuke.github.*;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.Closeable;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.ObjectStreamException;
+import java.net.URL;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import static hudson.model.Items.XSTREAM2;
-import org.kohsuke.stapler.interceptor.RequirePOST;
+
 
 public class GitHubSCMSource extends AbstractGitSCMSource {
 
@@ -899,6 +870,26 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             boolean fork = !ghRepository.getOwner().equals(pr.getHead().getUser());
                             listener.getLogger().format("%n    Checking pull request %s%n",
                                     HyperlinkNote.encodeTo(pr.getHtmlUrl().toString(), "#" + number));
+                            Pattern pullRequestLabelRegexPattern = request.getPullRequestLabelRegexPattern();
+                            if (pullRequestLabelRegexPattern != null) {
+                                boolean foundLabel = false;
+                                listener.getLogger().format("%n    Checking labels for %s%n", HyperlinkNote.encodeTo(pr.getHtmlUrl().toString(), "#" + number));
+                                for (GHLabel label : pr.getLabels()) {
+                                    if (pullRequestLabelRegexPattern.matcher(label.getName()).matches()) {
+                                        foundLabel = true;
+                                        listener.getLogger().format("%n    Build %s. Found valid label : %s%n", HyperlinkNote.encodeTo(pr.getHtmlUrl().toString(), "#" + number), label.getName());
+                                        break;
+                                    }
+                                }
+                                if (!foundLabel) {
+                                    StringBuilder labelList = new StringBuilder();
+                                    for (GHLabel label : pr.getLabels()) {
+                                        labelList.append(' ').append(label.getName());
+                                    }
+                                    listener.getLogger().format("%n    Not building %s. No valid labels found. Labels got : %s%n", HyperlinkNote.encodeTo(pr.getHtmlUrl().toString(), "#" + number), labelList.toString());
+                                    continue PRs;
+                                }
+                            }
                             if (strategies.get(fork).isEmpty()) {
                                 if (fork) {
                                     listener.getLogger().format("    Submitted from fork, skipping%n%n");
