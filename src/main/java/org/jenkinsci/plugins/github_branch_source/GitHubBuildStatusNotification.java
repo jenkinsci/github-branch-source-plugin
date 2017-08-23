@@ -197,7 +197,7 @@ public class GitHubBuildStatusNotification {
             }
             if (source.getScanCredentialsId() != null) {
                 return Connector.connect(source.getApiUri(), Connector.lookupScanCredentials
-                        (job, null, source.getScanCredentialsId()));
+                        (job, source.getApiUri(), source.getScanCredentialsId()));
             }
         }
         return null;
