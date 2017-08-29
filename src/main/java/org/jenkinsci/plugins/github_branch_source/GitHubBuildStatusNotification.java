@@ -87,7 +87,8 @@ public class GitHubBuildStatusNotification {
     }
 
     private static void createBuildCommitStatus(Run<?, ?> build, TaskListener listener) {
-        SCMRevision revision = SCMRevisionAction.getRevision(build);
+        SCMSource src = SCMSource.SourceByItem.findSource(build.getParent());
+        SCMRevision revision = src != null ? SCMRevisionAction.getRevision(src, build) : null;
         if (revision != null) { // only notify if we have a revision to notify
             try {
                 GitHub gitHub = lookUpGitHub(build.getParent());
