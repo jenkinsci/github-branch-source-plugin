@@ -28,6 +28,8 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.TaskListener;
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.regex.Pattern;
+
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
@@ -71,6 +73,11 @@ public class GitHubSCMSourceContext
      * {@code true} if notifications should be disabled in this context.
      */
     private boolean notificationsDisabled;
+
+    /**
+     * Label for pull request to build.
+     */
+    private Pattern pullRequestLabelRegexPattern;
 
     /**
      * Constructor.
@@ -155,6 +162,14 @@ public class GitHubSCMSourceContext
      */
     public final boolean notificationsDisabled() {
         return notificationsDisabled;
+    }
+
+
+    /**
+     * Returns pull request label if set
+     */
+    public final Pattern pullRequestLabelRegexPattern() {
+        return pullRequestLabelRegexPattern;
     }
 
     /**
@@ -242,6 +257,12 @@ public class GitHubSCMSourceContext
     @NonNull
     public final GitHubSCMSourceContext withNotificationsDisabled(boolean disabled) {
         this.notificationsDisabled = disabled;
+        return this;
+    }
+
+
+    public GitHubSCMSourceContext withPullRequestLabelRegexPattern(Pattern pullRequestLabelRegexPattern) {
+        this.pullRequestLabelRegexPattern = pullRequestLabelRegexPattern;
         return this;
     }
 

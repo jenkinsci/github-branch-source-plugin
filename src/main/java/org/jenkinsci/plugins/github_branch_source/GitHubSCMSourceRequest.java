@@ -36,6 +36,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
+
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMSource;
@@ -81,6 +83,10 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
      */
     @NonNull
     private final Set<ChangeRequestCheckoutStrategy> forkPRStrategies;
+    /**
+     * The pull request label
+     */
+    private final Pattern pullRequestLabelRegexPattern;
     /**
      * The set of pull request numbers that the request is scoped to or {@code null} if the request is not limited.
      */
@@ -147,6 +153,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
         fetchTags = context.wantTags();
         fetchOriginPRs = context.wantOriginPRs();
         fetchForkPRs = context.wantForkPRs();
+        pullRequestLabelRegexPattern = context.pullRequestLabelRegexPattern();
         originPRStrategies = fetchOriginPRs && !context.originPRStrategies().isEmpty()
                 ? Collections.unmodifiableSet(EnumSet.copyOf(context.originPRStrategies()))
                 : Collections.<ChangeRequestCheckoutStrategy>emptySet();
@@ -271,6 +278,15 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
             result.put(fork, getPRStrategies(fork));
         }
         return result;
+    }
+
+    /**
+     * Returns the label of pull requests
+     *
+     * @return pull request label
+     */
+    public Pattern getPullRequestLabelRegexPattern() {
+        return pullRequestLabelRegexPattern;
     }
 
     /**
