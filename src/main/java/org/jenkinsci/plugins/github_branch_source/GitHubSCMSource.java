@@ -94,7 +94,6 @@ import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMSourceRequest;
 import jenkins.scm.api.trait.SCMSourceTrait;
-import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.api.trait.SCMTraitDescriptor;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
@@ -887,7 +886,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                         public SCMSourceCriteria.Probe create(@NonNull BranchSCMHead head,
                                                                               @Nullable SCMRevisionImpl revisionInfo)
                                                 throws IOException, InterruptedException {
-                                            return GitHubSCMSource.this.createProbe(head, revisionInfo);
+                                            return new GitHubSCMProbe(github, ghRepository, head, revisionInfo);
                                         }
                                     }, new CriteriaWitness(listener))) {
                                 listener.getLogger().format("%n  %d branches were processed (query completed)%n", count);
@@ -937,8 +936,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                                 if (!trusted) {
                                                     listener.getLogger().format("    (not from a trusted source)%n");
                                                 }
-                                                return GitHubSCMSource.this
-                                                        .createProbe(trusted ? head : head.getTarget(), null);
+                                                return new GitHubSCMProbe(github, ghRepository,
+                                                        trusted ? head : head.getTarget(), null);
                                             }
                                         },
                                         new SCMSourceRequest.LazyRevisionLambda<PullRequestSCMHead, SCMRevision, Void>() {
@@ -1018,7 +1017,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                         public SCMSourceCriteria.Probe create(@NonNull GitHubTagSCMHead head,
                                                                               @Nullable SCMRevisionImpl revisionInfo)
                                                 throws IOException, InterruptedException {
-                                            return GitHubSCMSource.this.createProbe(head, revisionInfo);
+                                            return new GitHubSCMProbe(github, ghRepository, head, revisionInfo);
                                         }
                                     }, new CriteriaWitness(listener))) {
                                 listener.getLogger()
@@ -1490,11 +1489,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * {@inheritDoc}
      */
     protected boolean isCategoryEnabled(@NonNull SCMHeadCategory category) {
-        if (super.isCategoryEnabled(category)) {
-            for (SCMSourceTrait trait : traits) {
-                if (trait.isCategoryEnabled(category)) {
-                    return true;
-                }
+        for (SCMSourceTrait trait : traits) {
+            if (trait.isCategoryEnabled(category)) {
+                return true;
             }
         }
         return false;
@@ -1907,7 +1904,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return new SCMHeadCategory[]{
                     new UncategorizedSCMHeadCategory(Messages._GitHubSCMSource_UncategorizedCategory()),
                     new ChangeRequestSCMHeadCategory(Messages._GitHubSCMSource_ChangeRequestCategory()),
-                    TagSCMHeadCategory.DEFAULT
+                    new TagSCMHeadCategory(Messages._GitHubSCMSource_TagCategory())
             };
         }
 

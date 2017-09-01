@@ -26,4 +26,13 @@ public class GitHubTagSCMHead extends SCMHead implements TagSCMHead {
     public long getTimestamp() {
         return timestamp;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String getPronoun() {
+        return Messages.GitHubTagSCMHead_Pronoun();
+    }
+
 }

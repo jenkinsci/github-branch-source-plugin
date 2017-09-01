@@ -36,6 +36,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMProbe;
 import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMRevision;
+import org.eclipse.jgit.lib.Constants;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHRef;
@@ -60,8 +61,10 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
         if (head instanceof PullRequestSCMHead) {
             PullRequestSCMHead pr = (PullRequestSCMHead) head;
             this.ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
+        } else if (head instanceof GitHubTagSCMHead){
+            this.ref = Constants.R_TAGS + head.getName();
         } else {
-            this.ref = "refs/heads/" + head.getName();
+            this.ref = Constants.R_HEADS + head.getName();
         }
     }
 

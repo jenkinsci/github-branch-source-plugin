@@ -461,6 +461,8 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
      *
      * @param username the user.
      * @return the permissions of the supplied user.
+     * @throws IOException if the permissions could not be retrieved.
+     * @throws InterruptedException if interrupted while retrieving the permissions.
      */
     public GHPermissionType getPermissions(String username) throws IOException, InterruptedException {
         synchronized (permissions) {
