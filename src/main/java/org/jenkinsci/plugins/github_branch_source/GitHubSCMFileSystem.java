@@ -40,8 +40,10 @@ import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.Constants;
+import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
+import org.kohsuke.github.GHTagObject;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
 
@@ -194,7 +196,13 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                     return null;
                 }
                 if (rev == null) {
-                    rev = new AbstractGitSCMSource.SCMRevisionImpl(head, repo.getRef(refName).getObject().getSha());
+                    GHRef ref = repo.getRef(refName);
+                    if ("tag".equalsIgnoreCase(ref.getObject().getType())) {
+                        GHTagObject tag = repo.getTagObject(ref.getObject().getSha());
+                        rev = new AbstractGitSCMSource.SCMRevisionImpl(head, tag.getObject().getSha());
+                    } else {
+                        rev = new AbstractGitSCMSource.SCMRevisionImpl(head, ref.getObject().getSha());
+                    }
                 }
                 return new GitHubSCMFileSystem(github, repo, refName, rev);
             } catch (IOException | RuntimeException e) {

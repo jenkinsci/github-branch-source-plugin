@@ -89,28 +89,29 @@ class GitHubSCMFile extends SCMFile {
             try {
                 switch (info) {
                     case DIRECTORY_ASSUMED:
-                        metadata = repo.getDirectoryContent(getPath(), Constants.R_REFS + ref);
+                        metadata = repo.getDirectoryContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                         info = TypeInfo.DIRECTORY_CONFIRMED;
                         resolved = true;
                         break;
                     case DIRECTORY_CONFIRMED:
-                        metadata = repo.getDirectoryContent(getPath(), Constants.R_REFS + ref);
+                        metadata = repo.getDirectoryContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                         resolved = true;
                         break;
                     case NON_DIRECTORY_CONFIRMED:
-                        metadata = repo.getFileContent(getPath(), Constants.R_REFS + ref);
+                        metadata = repo.getFileContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                         resolved = true;
                         break;
                     case UNRESOLVED:
                         checkOpen();
                         try {
-                            metadata = repo.getFileContent(getPath(), Constants.R_REFS + ref);
+                            metadata = repo.getFileContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                             info = TypeInfo.NON_DIRECTORY_CONFIRMED;
                             resolved = true;
                         } catch (IOException e) {
                             if (e.getCause() instanceof IOException
                                     && e.getCause().getCause() instanceof JsonMappingException) {
-                                metadata = repo.getDirectoryContent(getPath(), Constants.R_REFS + ref);
+                                metadata = repo.getDirectoryContent(getPath(),
+                                        ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                                 info = TypeInfo.DIRECTORY_CONFIRMED;
                                 resolved = true;
                             } else {

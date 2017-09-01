@@ -990,19 +990,21 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             listener.getLogger().format("%n    Checking tag %s%n", HyperlinkNote
                                     .encodeTo(repositoryUrl + "/tree/" + tagName, tagName));
                             long tagDate = 0L;
-                            String tagSha = tag.getObject().getSha();
+                            String sha = tag.getObject().getSha();
                             if ("tag".equalsIgnoreCase(tag.getObject().getType())) {
                                 // annotated tag object
                                 try {
-                                    GHTagObject tagObject = request.getRepository().getTagObject(tagSha);
+                                    GHTagObject tagObject = request.getRepository().getTagObject(sha);
                                     tagDate = tagObject.getTagger().getDate().getTime();
+                                    // we want the sha of the tagged commit not the tag object
+                                    sha = tagObject.getObject().getSha();
                                 } catch (IOException e) {
                                     // ignore, if the tag doesn't exist, the probe will handle that correctly
                                     // we just need enough of a date value to allow for probing
                                 }
                             } else {
                                 try {
-                                    GHCommit commit = request.getRepository().getCommit(tagSha);
+                                    GHCommit commit = request.getRepository().getCommit(sha);
                                     tagDate = commit.getCommitDate().getTime();
                                 } catch (IOException e) {
                                     // ignore, if the tag doesn't exist, the probe will handle that correctly
@@ -1010,7 +1012,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                 }
                             }
                             GitHubTagSCMHead head = new GitHubTagSCMHead(tagName, tagDate);
-                            if (request.process(head, new SCMRevisionImpl(head, tagSha),
+                            if (request.process(head, new SCMRevisionImpl(head, sha),
                                     new SCMSourceRequest.ProbeLambda<GitHubTagSCMHead, SCMRevisionImpl>() {
                                         @NonNull
                                         @Override
@@ -1359,8 +1361,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     }
                     return new PullRequestSCMRevision(prhead, baseHash, pr.getHead().getSha());
                 } else if (head instanceof GitHubTagSCMHead) {
-                    // TODO verify
-                    return new SCMRevisionImpl(head, ghRepository.getRef("tags/" + head.getName()).getObject().getSha());
+                    GHRef tag = ghRepository.getRef("tags/" + head.getName());
+                    String sha = tag.getObject().getSha();
+                    if ("tag".equalsIgnoreCase(tag.getObject().getType())) {
+                        // annotated tag object
+                        GHTagObject tagObject = ghRepository.getTagObject(sha);
+                        // we want the sha of the tagged commit not the tag object
+                        sha = tagObject.getObject().getSha();
+                    }
+                    return new SCMRevisionImpl(head, sha);
                 } else {
                     return new SCMRevisionImpl(head, ghRepository.getRef("heads/" + head.getName()).getObject().getSha());
                 }
