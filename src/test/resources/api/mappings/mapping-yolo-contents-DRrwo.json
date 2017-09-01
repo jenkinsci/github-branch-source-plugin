@@ -1,6 +1,6 @@
 {
   "request" : {
-    "url" : "/repos/cloudbeers/yolo/contents/?ref=heads%2Fmaster",
+    "url" : "/repos/cloudbeers/yolo/contents/?ref=refs%2Fheads%2Fmaster",
     "method" : "GET"
   },
   "response" : {

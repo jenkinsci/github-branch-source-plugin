@@ -138,7 +138,7 @@ class GitHubSCMFile extends SCMFile {
     @Override
     public Iterable<SCMFile> children() throws IOException {
         checkOpen();
-        List<GHContent> content = repo.getDirectoryContent(getPath(), Constants.R_REFS + ref);
+        List<GHContent> content = repo.getDirectoryContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
         List<SCMFile> result = new ArrayList<>(content.size());
         for (GHContent c : content) {
             result.add(new GitHubSCMFile(this, c.getName(), c));
