@@ -116,7 +116,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
             }
         } else if (revision == null) {
             try {
-                GHRef ref = repo.getRef(StringUtils.removeStart(this.ref, Constants.R_REFS));
+                GHRef ref = repo.getRef(this.ref);
                 GHCommit commit = repo.getCommit(ref.getObject().getSha());
                 return commit.getCommitDate().getTime();
             } catch (IOException e) {
@@ -132,7 +132,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
         checkOpen();
         try {
             int index = path.lastIndexOf('/') + 1;
-            List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), ref);
+            List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), Constants.R_REFS + ref);
             for (GHContent content : directoryContent) {
                 if (content.getPath().equals(path)) {
                     if (content.isFile()) {
