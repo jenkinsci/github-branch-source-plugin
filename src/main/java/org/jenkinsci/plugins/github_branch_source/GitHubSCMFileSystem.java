@@ -38,6 +38,7 @@ import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
@@ -50,7 +51,16 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
     private final String ref;
     private boolean open;
 
-    protected GitHubSCMFileSystem(GitHub gitHub, GHRepository repo, String ref, @CheckForNull SCMRevision rev) throws IOException {
+    /**
+     * Constructor.
+     *
+     * @param gitHub the {@link GitHub}
+     * @param repo the {@link GHRepository}
+     * @param refName the ref name, e.g. {@code heads/branchName}, {@code tags/tagName}, {@code pull/N/head} or the SHA.
+     * @param rev the optional revision.
+     * @throws IOException if I/O errors occur.
+     */
+    protected GitHubSCMFileSystem(GitHub gitHub, GHRepository repo, String refName, @CheckForNull SCMRevision rev) throws IOException {
         super(rev);
         this.gitHub = gitHub;
         this.open = true;
@@ -63,10 +73,10 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
             } else if (rev instanceof AbstractGitSCMSource.SCMRevisionImpl) {
                 this.ref = ((AbstractGitSCMSource.SCMRevisionImpl) rev).getHash();
             } else {
-                this.ref = ref;
+                this.ref = refName;
             }
         } else {
-            this.ref = ref;
+            this.ref = refName;
         }
     }
 
@@ -135,11 +145,11 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                             apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
                     throw new IOException(message);
                 }
-                String ref;
+                String refName;
                 if (head instanceof BranchSCMHead) {
-                    ref = Constants.R_HEADS + head.getName();
+                    refName = "heads/" + head.getName();
                 } else if (head instanceof GitHubTagSCMHead) {
-                    ref = Constants.R_TAGS + head.getName();
+                    refName = "tags/" + head.getName();
                 } else if (head instanceof PullRequestSCMHead) {
                     PullRequestSCMHead pr = (PullRequestSCMHead) head;
                     if (!pr.isMerge() && pr.getSourceRepo() != null) {
@@ -184,9 +194,9 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                     return null;
                 }
                 if (rev == null) {
-                    rev = new AbstractGitSCMSource.SCMRevisionImpl(head, repo.getRef(ref).getObject().getSha());
+                    rev = new AbstractGitSCMSource.SCMRevisionImpl(head, repo.getRef(refName).getObject().getSha());
                 }
-                return new GitHubSCMFileSystem(github, repo, ref, rev);
+                return new GitHubSCMFileSystem(github, repo, refName, rev);
             } catch (IOException | RuntimeException e) {
                 Connector.release(github);
                 throw e;

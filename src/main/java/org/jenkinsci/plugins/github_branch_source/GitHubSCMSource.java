@@ -1220,7 +1220,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 // maybe it's a tag
             }
             try {
-                GHRef tag = ghRepository.getRef(Constants.R_TAGS + headName);
+                GHRef tag = ghRepository.getRef("tags/" + headName);
                 if (tag != null && context.wantTags()) {
                     long tagDate = 0L;
                     String tagSha = tag.getObject().getSha();
@@ -2071,7 +2071,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 if (tagNames != null && tagNames.size() == 1) {
                     String tagName = tagNames.iterator().next();
                     request.listener().getLogger().format("%n  Getting remote tag %s...%n", tagName);
-                    return Collections.singletonList(repo.getRef(Constants.R_TAGS + tagName));
+                    return Collections.singletonList(repo.getRef("tags/" + tagName));
                 }
                 request.listener().getLogger().format("%n  Getting remote tags...%n");
                 return repo.listRefs("tags");

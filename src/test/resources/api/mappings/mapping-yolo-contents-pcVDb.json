@@ -1,6 +1,6 @@
 {
   "request" : {
-    "url" : "/repos/cloudbeers/yolo/contents/?ref=refs%2Fheads%2Fstephenc-patch-1",
+    "url" : "/repos/cloudbeers/yolo/contents/?ref=heads%2Fstephenc-patch-1",
     "method" : "GET"
   },
   "response" : {

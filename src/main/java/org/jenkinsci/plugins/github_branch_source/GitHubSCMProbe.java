@@ -36,6 +36,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMProbe;
 import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMRevision;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
@@ -60,11 +61,11 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
         this.name = head.getName();
         if (head instanceof PullRequestSCMHead) {
             PullRequestSCMHead pr = (PullRequestSCMHead) head;
-            this.ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
+            this.ref = "pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
         } else if (head instanceof GitHubTagSCMHead){
-            this.ref = Constants.R_TAGS + head.getName();
+            this.ref = "tags/" + head.getName();
         } else {
-            this.ref = Constants.R_HEADS + head.getName();
+            this.ref = "heads/" + head.getName();
         }
     }
 
@@ -115,7 +116,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
             }
         } else if (revision == null) {
             try {
-                GHRef ref = repo.getRef(this.ref);
+                GHRef ref = repo.getRef(StringUtils.removeStart(this.ref, Constants.R_REFS));
                 GHCommit commit = repo.getCommit(ref.getObject().getSha());
                 return commit.getCommitDate().getTime();
             } catch (IOException e) {
