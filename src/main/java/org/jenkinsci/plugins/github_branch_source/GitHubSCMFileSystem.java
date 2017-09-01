@@ -38,6 +38,7 @@ import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
+import org.eclipse.jgit.lib.Constants;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
@@ -136,7 +137,9 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                 }
                 String ref;
                 if (head instanceof BranchSCMHead) {
-                    ref = head.getName();
+                    ref = Constants.R_HEADS + head.getName();
+                } else if (head instanceof GitHubTagSCMHead) {
+                    ref = Constants.R_TAGS + head.getName();
                 } else if (head instanceof PullRequestSCMHead) {
                     PullRequestSCMHead pr = (PullRequestSCMHead) head;
                     if (!pr.isMerge() && pr.getSourceRepo() != null) {
@@ -181,7 +184,7 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                     return null;
                 }
                 if (rev == null) {
-                    rev = new AbstractGitSCMSource.SCMRevisionImpl((BranchSCMHead) head, repo.getBranch(ref).getSHA1());
+                    rev = new AbstractGitSCMSource.SCMRevisionImpl(head, repo.getRef(ref).getObject().getSha());
                 }
                 return new GitHubSCMFileSystem(github, repo, ref, rev);
             } catch (IOException | RuntimeException e) {

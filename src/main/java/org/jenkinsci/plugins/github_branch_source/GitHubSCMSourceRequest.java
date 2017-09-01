@@ -23,7 +23,6 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
-import com.google.common.base.Function;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
@@ -46,6 +45,7 @@ import net.jcip.annotations.GuardedBy;
 import org.kohsuke.github.GHBranch;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHPullRequest;
+import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
@@ -106,7 +106,11 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
      */
     @CheckForNull
     private Iterable<GHBranch> branches;
-    // TODO private Iterable<GHTag> tags;
+    /**
+     * The tag details or {@code null} if not {@link #isFetchTags()}.
+     */
+    @CheckForNull
+    private Iterable<GHRef> tags;
     /**
      * The repository collaborator names or {@code null} if not provided.
      */
@@ -343,6 +347,26 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     @NonNull
     public final Iterable<GHBranch> getBranches() {
         return Util.fixNull(branches);
+    }
+
+    /**
+     * Provides the requests with the tag details.
+     *
+     * @param tags the tag details.
+     */
+    public final void setTags(@CheckForNull Iterable<GHRef> tags) {
+        this.tags = tags;
+    }
+
+    /**
+     * Returns the branch details or an empty list if either the request did not specify to {@link #isFetchBranches()}
+     * or if the branch details have not been provided by {@link #setBranches(Iterable)} yet.
+     *
+     * @return the branch details (may be empty)
+     */
+    @NonNull
+    public final Iterable<GHRef> getTags() {
+        return Util.fixNull(tags);
     }
 
     // TODO Iterable<GHTag> getTags() and setTags(...)
