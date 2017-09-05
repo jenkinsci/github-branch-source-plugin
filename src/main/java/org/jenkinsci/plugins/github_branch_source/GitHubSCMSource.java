@@ -1767,11 +1767,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             try {
                 request.checkApiRateLimit();
                 Set<String> branchNames = request.getRequestedOriginBranchNames();
-                    if (branchNames != null && branchNames.size() == 1) {
-                        String branchName = branchNames.iterator().next();
-                        request.listener().getLogger().format("%n  Getting remote branch %s...%n", branchName);
-                        return Collections.singletonList(repo.getBranch(branchName));
+                if (branchNames != null && branchNames.size() == 1) {
+                    String branchName = branchNames.iterator().next();
+                    request.listener().getLogger().format("%n  Getting remote branch %s...%n", branchName);
+                    try {
+                        GHBranch branch = repo.getBranch(branchName);
+                        return Collections.singletonList(branch);
+                    } catch (FileNotFoundException e) {
+                        // branch does not currently exist
+                        return Collections.emptyList();
                     }
+                }
                 request.listener().getLogger().format("%n  Getting remote branches...%n");
                 return repo.getBranches().values();
             } catch (IOException | InterruptedException e) {
