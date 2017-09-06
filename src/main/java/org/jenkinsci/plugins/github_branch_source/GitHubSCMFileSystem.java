@@ -39,6 +39,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
 
@@ -139,8 +140,22 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                 } else if (head instanceof PullRequestSCMHead) {
                     PullRequestSCMHead pr = (PullRequestSCMHead) head;
                     if (!pr.isMerge() && pr.getSourceRepo() != null) {
+                        GHUser user = github.getUser(pr.getSourceOwner());
+                        if (user == null) {
+                            // we need to release here as we are not throwing an exception or transferring
+                            // responsibility to FS
+                            Connector.release(github);
+                            return null;
+                        }
+                        GHRepository repo = user.getRepository(pr.getSourceRepo());
+                        if (repo == null) {
+                            // we need to release here as we are not throwing an exception or transferring
+                            // responsibility to FS
+                            Connector.release(github);
+                            return null;
+                        }
                         return new GitHubSCMFileSystem(
-                                github, github.getUser(pr.getSourceOwner()).getRepository(pr.getSourceRepo()),
+                                github, repo,
                                 pr.getSourceBranch(),
                                 rev);
                     }
@@ -153,7 +168,18 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                     return null;
                 }
 
-                GHRepository repo = github.getUser(src.getRepoOwner()).getRepository(src.getRepository());
+                GHUser user = github.getUser(src.getRepoOwner());
+                if (user == null) {
+                    // we need to release here as we are not throwing an exception or transferring responsibility to FS
+                    Connector.release(github);
+                    return null;
+                }
+                GHRepository repo = user.getRepository(src.getRepository());
+                if (repo == null) {
+                    // we need to release here as we are not throwing an exception or transferring responsibility to FS
+                    Connector.release(github);
+                    return null;
+                }
                 if (rev == null) {
                     rev = new AbstractGitSCMSource.SCMRevisionImpl((BranchSCMHead) head, repo.getBranch(ref).getSHA1());
                 }
