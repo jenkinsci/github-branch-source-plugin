@@ -78,7 +78,7 @@ class GitHubSCMFile extends SCMFile {
     }
 
     private void checkOpen() throws IOException {
-        if (!closable.isOpen()) {
+        if (!closable.isOpen() || (!resolved && repo == null)) {
             throw new IOException("Closed");
         }
     }
