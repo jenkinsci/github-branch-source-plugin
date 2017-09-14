@@ -1291,7 +1291,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             github.checkApiUrlValidity();
         } catch (HttpException e) {
             String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
-            throw new AbortException(message);
+            throw new IOException(message, e);
         }
     }
 
