@@ -65,6 +65,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -112,6 +113,7 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHBranch;
 import org.kohsuke.github.GHCommit;
+import org.kohsuke.github.GHFileNotFoundException;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
@@ -2000,8 +2002,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                 pr.getHtmlUrl().toExternalForm()
                         )
                 );
-                GHUser user = pr.getUser();
                 try {
+                    GHUser user = pr.getUser();
                     if (users.containsKey(user.getLogin())) {
                         // looked up this user already
                         user = users.get(user.getLogin());
@@ -2083,7 +2085,58 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     return Collections.singletonList(repo.getRef("tags/" + tagName));
                 }
                 request.listener().getLogger().format("%n  Getting remote tags...%n");
-                return repo.listRefs("tags");
+                // GitHub will give a 404 if the repository does not have any tags
+                // we could rework the code that iterates to expect the 404, but that
+                // would mean leaking the strange behaviour in every trait that consults the list
+                // of tags. (And GitHub API is probably correct in throwing the GHFileNotFoundException
+                // from a PagedIterable, so we don't want to fix that)
+                //
+                // Instead we just return a wrapped iterator that does the right thing.
+                final Iterable<GHRef> iterable = repo.listRefs("tags");
+                return new Iterable<GHRef>() {
+                    @Override
+                    public Iterator<GHRef> iterator() {
+                        final Iterator<GHRef> iterator;
+                        try {
+                            iterator = iterable.iterator();
+                        } catch (Error e) {
+                            if (e.getCause() instanceof GHFileNotFoundException) {
+                                return Collections.<GHRef>emptyList().iterator();
+                            }
+                            throw e;
+                        }
+                        return new Iterator<GHRef>() {
+                            @Override
+                            public boolean hasNext() {
+                                try {
+                                    return iterator.hasNext();
+                                } catch (Error e) {
+                                    if (e.getCause() instanceof GHFileNotFoundException) {
+                                        return false;
+                                    }
+                                    throw e;
+                                }
+                            }
+
+                            @Override
+                            public GHRef next() {
+                                try {
+                                    return iterator.next();
+                                } catch (Error e) {
+                                    if (e.getCause() instanceof GHFileNotFoundException) {
+                                        throw new NoSuchElementException();
+                                    }
+                                    throw e;
+                                }
+                            }
+
+                            @Override
+                            public void remove() {
+                                throw new UnsupportedOperationException("remove");
+                            }
+                        };
+                    }
+                };
             } catch (IOException | InterruptedException e) {
                 throw new GitHubSCMSource.WrappedException(e);
             }
