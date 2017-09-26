@@ -1964,7 +1964,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         (Item) getOwner(), apiUri, credentialsId
                 );
                 github = Connector.connect(apiUri, credentials);
-                repo = github.getRepository(repository);
+                String fullName = repoOwner + "/" + repository;
+                repo = github.getRepository(fullName);
             }
             return repo.getPermission(username);
         }
