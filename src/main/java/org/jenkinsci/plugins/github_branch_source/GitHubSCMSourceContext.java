@@ -71,6 +71,10 @@ public class GitHubSCMSourceContext
      * {@code true} if notifications should be disabled in this context.
      */
     private boolean notificationsDisabled;
+    /**
+     * Context label used to notify Github of build status.
+     */
+    private String notificationContext = "";
 
     /**
      * Constructor.
@@ -158,6 +162,14 @@ public class GitHubSCMSourceContext
     }
 
     /**
+     * Returns the context label used to notify Github of build status.
+     * @return the context label used to notify Github of build status.
+     */
+    public final String getNotificationContext() {
+        return notificationContext;
+    }
+
+    /**
      * Adds a requirement for branch details to any {@link GitHubSCMSourceRequest} for this context.
      *
      * @param include {@code true} to add the requirement or {@code false} to leave the requirement as is (makes
@@ -242,6 +254,18 @@ public class GitHubSCMSourceContext
     @NonNull
     public final GitHubSCMSourceContext withNotificationsDisabled(boolean disabled) {
         this.notificationsDisabled = disabled;
+        return this;
+    }
+
+    /**
+     * Defines the context label used to notify Github of build status.
+     *
+     * @param context the label used to notify Github of build status.
+     * @return {@code this} for method chaining.
+     */
+    @NonNull
+    public final GitHubSCMSourceContext withNotificationContext(String context) {
+        this.notificationContext = context;
         return this;
     }
 
