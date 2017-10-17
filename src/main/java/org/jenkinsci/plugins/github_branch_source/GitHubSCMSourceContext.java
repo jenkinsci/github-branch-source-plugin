@@ -68,13 +68,13 @@ public class GitHubSCMSourceContext
     @NonNull
     private Set<ChangeRequestCheckoutStrategy> forkPRStrategies = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
     /**
+     * Strategy used to notify Github of build status.
+     */
+    private GitHubBuildStatusNotificationStrategy notificationStrategy = new GitHubBuildStatusNotificationStrategy();
+    /**
      * {@code true} if notifications should be disabled in this context.
      */
     private boolean notificationsDisabled;
-    /**
-     * Context label used to notify Github of build status.
-     */
-    private String notificationContext = "";
 
     /**
      * Constructor.
@@ -151,7 +151,13 @@ public class GitHubSCMSourceContext
     public final Set<ChangeRequestCheckoutStrategy> forkPRStrategies() {
         return forkPRStrategies;
     }
-
+    /**
+     * Returns the strategy used to notify Github of build status.
+     * @return the strategy used to notify Github of build status.
+     */
+    public final GitHubBuildStatusNotificationStrategy notificationStrategy() {
+        return notificationStrategy;
+    }
     /**
      * Returns {@code true} if notifications shoule be disabled.
      *
@@ -159,14 +165,6 @@ public class GitHubSCMSourceContext
      */
     public final boolean notificationsDisabled() {
         return notificationsDisabled;
-    }
-
-    /**
-     * Returns the context label used to notify Github of build status.
-     * @return the context label used to notify Github of build status.
-     */
-    public final String getNotificationContext() {
-        return notificationContext;
     }
 
     /**
@@ -244,7 +242,17 @@ public class GitHubSCMSourceContext
         forkPRStrategies.addAll(strategies);
         return this;
     }
-
+    /**
+     * Defines the strategy used to notify Github of build status.
+     *
+     * @param strategy the strategy used to notify Github of build status.
+     * @return {@code this} for method chaining.
+     */
+    @NonNull
+    public final GitHubSCMSourceContext withNotificationStrategy(GitHubBuildStatusNotificationStrategy strategy) {
+        this.notificationStrategy = strategy;
+        return this;
+    }
     /**
      * Defines the notification mode to use in this context.
      *
@@ -254,18 +262,6 @@ public class GitHubSCMSourceContext
     @NonNull
     public final GitHubSCMSourceContext withNotificationsDisabled(boolean disabled) {
         this.notificationsDisabled = disabled;
-        return this;
-    }
-
-    /**
-     * Defines the context label used to notify Github of build status.
-     *
-     * @param context the label used to notify Github of build status.
-     * @return {@code this} for method chaining.
-     */
-    @NonNull
-    public final GitHubSCMSourceContext withNotificationContext(String context) {
-        this.notificationContext = context;
         return this;
     }
 
