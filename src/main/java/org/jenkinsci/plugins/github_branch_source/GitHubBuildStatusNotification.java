@@ -42,6 +42,7 @@ import hudson.scm.SCMRevisionState;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -94,21 +95,22 @@ public class GitHubBuildStatusNotification {
                 GitHub gitHub = lookUpGitHub(build.getParent());
                 try {
                     GHRepository repo = lookUpRepo(gitHub, build.getParent());
+                    boolean ignoreError = false;
                     if (repo != null) {
-                        boolean ignoreError = false;
                         try {
                             Result result = build.getResult();
                             String revisionToNotify = resolveHeadCommit(revision);
                             SCMHead head = revision.getHead();
-                            GitHubBuildStatusNotificationStrategy strat = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
+                            AbstractGitHubNotificationStrategy strat = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
                                     .withTraits(((GitHubSCMSource) src).getTraits()).notificationStrategy();
-                            GitHubBuildStatusNotificationBundle bundle = strat.createNotification(null,build,
-                                    listener, src, head);
-                            if (bundle.getState() == GHCommitState.PENDING) {
-                                ignoreError = true;
+                            GitHubNotificationContext notificationContext = new GitHubNotificationContext(null, build,
+                                    src, head);
+                            List<GitHubNotificationRequest> details = strat.notifications(notificationContext, listener);
+                            for (GitHubNotificationRequest request : details) {
+                                ignoreError = request.isIgnoreError();
+                                repo.createCommitStatus(revisionToNotify, request.getState(), request.getUrl(), request.getMessage(),
+                                    request.getContext());
                             }
-                            repo.createCommitStatus(revisionToNotify, bundle.getState(), bundle.getUrl(), bundle.getMessage(),
-                                    bundle.getContext());
                             if (result != null) {
                                 listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
                             }
@@ -247,11 +249,14 @@ public class GitHubBuildStatusNotification {
                                     // status. JobCheckOutListener is now responsible for setting the pending status.
                                     return;
                                 }
-                                GitHubBuildStatusNotificationStrategy strat = sourceContext.notificationStrategy();
-                                GitHubBuildStatusNotificationBundle bundle = strat.createNotification(job, null,
-                                        null, source, head);
-                                repo.createCommitStatus(hash, bundle.getState(), bundle.getUrl(), bundle.getMessage(),
-                                        bundle.getContext());
+                                AbstractGitHubNotificationStrategy strat = sourceContext.notificationStrategy();
+                                GitHubNotificationContext notificationContext = new GitHubNotificationContext(job, null,
+                                        source, head);
+                                List<GitHubNotificationRequest> details = strat.notifications(notificationContext, null);
+                                for (GitHubNotificationRequest request : details) {
+                                    repo.createCommitStatus(hash, request.getState(), request.getUrl(), request.getMessage(),
+                                            request.getContext());
+                                }
                             }
                         } finally {
                             Connector.release(gitHub);

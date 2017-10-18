@@ -8,16 +8,21 @@ import jenkins.scm.api.*;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.kohsuke.github.GHCommitState;
 
-public class GitHubBuildStatusNotificationStrategy {
-    protected Job<?, ?> job;
-    protected Run<?, ?> build;
-    protected TaskListener listener;
-    protected SCMSource source;
-    protected SCMHead head;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
-    public GitHubBuildStatusNotificationStrategy() {}
+/**
+ * @since TODO
+ */
+public class DefaultGitHubNotificationStrategy extends AbstractGitHubNotificationStrategy {
+    public DefaultGitHubNotificationStrategy() {}
 
-    protected String generateContext() {
+    /**
+     * @since TODO
+     */
+    protected String generateContext(GitHubNotificationContext notificationContext, TaskListener listener) {
+        SCMHead head = notificationContext.getHead();
         if (head instanceof PullRequestSCMHead) {
             if (((PullRequestSCMHead) head).isMerge()) {
                 return "continuous-integration/jenkins/pr-merge";
@@ -29,13 +34,18 @@ public class GitHubBuildStatusNotificationStrategy {
         }
     }
 
-    protected String generateUrl() {
+    /**
+     * @since TODO
+     */
+    protected String generateUrl(GitHubNotificationContext notificationContext, TaskListener listener) {
+        Run<?, ?> build = notificationContext.getBuild();
+        Job<?, ?> job = notificationContext.getJob();
         String url = null;
         try {
             if (null != build) {
                 url = DisplayURLProvider.get().getRunURL(build);
             }
-            else {
+            else if (null != job) {
                 url = DisplayURLProvider.get().getJobURL(job);
             }
         } catch (IllegalStateException e) {
@@ -47,7 +57,11 @@ public class GitHubBuildStatusNotificationStrategy {
         return url;
     }
 
-    protected String generateMessage() {
+    /**
+     * @since TODO
+     */
+    protected String generateMessage(GitHubNotificationContext notificationContext, TaskListener listener) {
+        Run<?, ?> build = notificationContext.getBuild();
         if (null != build) {
             Result result = build.getResult();
             if (Result.SUCCESS.equals(result)) {
@@ -67,7 +81,11 @@ public class GitHubBuildStatusNotificationStrategy {
         return Messages.GitHubBuildStatusNotification_CommitStatus_Queued();
     }
 
-    protected GHCommitState generateState() {
+    /**
+     * @since TODO
+     */
+    protected GHCommitState generateState(GitHubNotificationContext notificationContext, TaskListener listener) {
+        Run<?, ?> build = notificationContext.getBuild();
         if (null != build) {
             Result result = build.getResult();
             if (Result.SUCCESS.equals(result)) {
@@ -85,13 +103,22 @@ public class GitHubBuildStatusNotificationStrategy {
         return GHCommitState.PENDING;
     }
 
-    public final GitHubBuildStatusNotificationBundle createNotification(Job<?, ?> job, Run<?, ?> build, TaskListener listener,
-                                                                        SCMSource source, SCMHead head) {
-        this.job = job;
-        this.build = build;
-        this.listener = listener;
-        this.source = source;
-        this.head = head;
-        return new GitHubBuildStatusNotificationBundle(generateContext(), generateUrl(), generateMessage(), generateState());
+    /**
+     * @since TODO
+     */
+    protected boolean ignoreError(GitHubNotificationContext notificationContext, TaskListener listener) {
+        Run<?, ?> build = notificationContext.getBuild();
+        return null == build || null == build.getResult();
+    }
+
+    /**
+     * @since TODO
+     */
+    public List<GitHubNotificationRequest> notifications(GitHubNotificationContext notificationContext, TaskListener listener) {
+        return new ArrayList<>(Arrays.asList(new GitHubNotificationRequest(generateContext(notificationContext, listener),
+                generateUrl(notificationContext, listener),
+                generateMessage(notificationContext, listener),
+                generateState(notificationContext, listener),
+                ignoreError(notificationContext, listener))));
     }
 }
