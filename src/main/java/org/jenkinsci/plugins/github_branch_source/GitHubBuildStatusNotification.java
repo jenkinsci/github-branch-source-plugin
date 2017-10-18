@@ -95,38 +95,37 @@ public class GitHubBuildStatusNotification {
                 GitHub gitHub = lookUpGitHub(build.getParent());
                 try {
                     GHRepository repo = lookUpRepo(gitHub, build.getParent());
-                    boolean ignoreError = false;
                     if (repo != null) {
-                        try {
-                            Result result = build.getResult();
-                            String revisionToNotify = resolveHeadCommit(revision);
-                            SCMHead head = revision.getHead();
-                            AbstractGitHubNotificationStrategy strat = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
-                                    .withTraits(((GitHubSCMSource) src).getTraits()).notificationStrategy();
-                            GitHubNotificationContext notificationContext = new GitHubNotificationContext(null, build,
-                                    src, head);
-                            List<GitHubNotificationRequest> details = strat.notifications(notificationContext, listener);
-                            for (GitHubNotificationRequest request : details) {
-                                ignoreError = request.isIgnoreError();
+                        Result result = build.getResult();
+                        String revisionToNotify = resolveHeadCommit(revision);
+                        SCMHead head = revision.getHead();
+                        AbstractGitHubNotificationStrategy strat = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
+                                .withTraits(((GitHubSCMSource) src).getTraits()).notificationStrategy();
+                        GitHubNotificationContext notificationContext = new GitHubNotificationContext(null, build,
+                                src, head);
+                        List<GitHubNotificationRequest> details = strat.notifications(notificationContext, listener);
+                        for (GitHubNotificationRequest request : details) {
+                            boolean ignoreError = request.isIgnoreError();
+                            try {
                                 repo.createCommitStatus(revisionToNotify, request.getState(), request.getUrl(), request.getMessage(),
-                                    request.getContext());
-                            }
-                            if (result != null) {
-                                listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
-                            }
-                        } catch (FileNotFoundException fnfe) {
-                            if (!ignoreError) {
-                                listener.getLogger().format("%nCould not update commit status, please check if your scan " +
-                                        "credentials belong to a member of the organization or a collaborator of the " +
-                                        "repository and repo:status scope is selected%n%n");
-                                if (LOGGER.isLoggable(Level.FINE)) {
-                                    LOGGER.log(Level.FINE, "Could not update commit status, for run "
-                                            + build.getFullDisplayName()
-                                            + " please check if your scan "
-                                            + "credentials belong to a member of the organization or a "
-                                            + "collaborator of the repository and repo:status scope is selected", fnfe);
+                                        request.getContext());
+                            } catch (FileNotFoundException fnfe) {
+                                if (!ignoreError) {
+                                    listener.getLogger().format("%nCould not update commit status, please check if your scan " +
+                                            "credentials belong to a member of the organization or a collaborator of the " +
+                                            "repository and repo:status scope is selected%n%n");
+                                    if (LOGGER.isLoggable(Level.FINE)) {
+                                        LOGGER.log(Level.FINE, "Could not update commit status, for run "
+                                                + build.getFullDisplayName()
+                                                + " please check if your scan "
+                                                + "credentials belong to a member of the organization or a "
+                                                + "collaborator of the repository and repo:status scope is selected", fnfe);
+                                    }
                                 }
                             }
+                        }
+                        if (result != null) {
+                            listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
                         }
                     }
                 } finally {
@@ -254,8 +253,17 @@ public class GitHubBuildStatusNotification {
                                         source, head);
                                 List<GitHubNotificationRequest> details = strat.notifications(notificationContext, null);
                                 for (GitHubNotificationRequest request : details) {
-                                    repo.createCommitStatus(hash, request.getState(), request.getUrl(), request.getMessage(),
-                                            request.getContext());
+                                    boolean ignoreErrors = request.isIgnoreError();
+                                    try {
+                                        repo.createCommitStatus(hash, request.getState(), request.getUrl(), request.getMessage(),
+                                                request.getContext());
+                                    } catch (FileNotFoundException e) {
+                                        if (!ignoreErrors) {
+                                            LOGGER.log(Level.WARNING,
+                                                    "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?",
+                                                    LOGGER.isLoggable(Level.FINE) ? e : null);
+                                        }
+                                    }
                                 }
                             }
                         } finally {
