@@ -21,11 +21,15 @@ public final class GitHubNotificationContext {
     /**
      * @since TODO
      */
-    public GitHubNotificationContext(Job<?, ?> job, Run<?, ?> build, SCMSource source, SCMHead head) {
+    private GitHubNotificationContext(Job<?, ?> job, Run<?, ?> build, SCMSource source, SCMHead head) {
         this.job = job;
         this.build = build;
         this.source = source;
         this.head = head;
+    }
+
+    public static GitHubNotificationContext build(Job<?, ?> job, Run<?, ?> build, SCMSource source, SCMHead head) {
+        return new GitHubNotificationContext(job, build, source, head);
     }
 
     /**

@@ -51,7 +51,7 @@ public class DefaultGitHubNotificationStrategy extends AbstractGitHubNotificatio
      * @since TODO
      */
     public List<GitHubNotificationRequest> notifications(GitHubNotificationContext notificationContext, TaskListener listener) {
-        return Collections.singletonList(new GitHubNotificationRequest(generateContext(notificationContext, listener),
+        return Collections.singletonList(GitHubNotificationRequest.build(generateContext(notificationContext, listener),
                 generateUrl(notificationContext, listener),
                 generateMessage(notificationContext, listener),
                 generateState(notificationContext, listener),

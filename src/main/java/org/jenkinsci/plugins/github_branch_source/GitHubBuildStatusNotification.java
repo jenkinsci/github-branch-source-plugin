@@ -101,7 +101,7 @@ public class GitHubBuildStatusNotification {
                         SCMHead head = revision.getHead();
                         AbstractGitHubNotificationStrategy strat = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
                                 .withTraits(((GitHubSCMSource) src).getTraits()).notificationStrategy();
-                        GitHubNotificationContext notificationContext = new GitHubNotificationContext(null, build,
+                        GitHubNotificationContext notificationContext = GitHubNotificationContext.build(null, build,
                                 src, head);
                         List<GitHubNotificationRequest> details = strat.notifications(notificationContext, listener);
                         for (GitHubNotificationRequest request : details) {
@@ -249,7 +249,7 @@ public class GitHubBuildStatusNotification {
                                     return;
                                 }
                                 AbstractGitHubNotificationStrategy strat = sourceContext.notificationStrategy();
-                                GitHubNotificationContext notificationContext = new GitHubNotificationContext(job, null,
+                                GitHubNotificationContext notificationContext = GitHubNotificationContext.build(job, null,
                                         source, head);
                                 List<GitHubNotificationRequest> details = strat.notifications(notificationContext, null);
                                 for (GitHubNotificationRequest request : details) {

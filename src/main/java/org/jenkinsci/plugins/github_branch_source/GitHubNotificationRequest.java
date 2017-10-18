@@ -16,12 +16,16 @@ public class GitHubNotificationRequest {
     /**
      * @since TODO
      */
-    public GitHubNotificationRequest(String context, String url, String message, GHCommitState state, boolean ignoreError) {
+    private GitHubNotificationRequest(String context, String url, String message, GHCommitState state, boolean ignoreError) {
         this.context = context;
         this.url = url;
         this.message = message;
         this.state = state;
         this.ignoreError = ignoreError;
+    }
+
+    public static GitHubNotificationRequest build(String context, String url, String message, GHCommitState state, boolean ignoreError) {
+        return new GitHubNotificationRequest(context, url, message, state, ignoreError);
     }
 
     /**
