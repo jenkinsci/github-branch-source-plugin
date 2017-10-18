@@ -1,9 +1,13 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import hudson.model.Job;
+import hudson.model.Result;
 import hudson.model.Run;
+import hudson.model.TaskListener;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
+import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
+import org.kohsuke.github.GHCommitState;
 
 /**
  * @since TODO
@@ -91,5 +95,95 @@ public final class GitHubNotificationContext {
         result = 31 * result + (source != null ? source.hashCode() : 0);
         result = 31 * result + (head != null ? head.hashCode() : 0);
         return result;
+    }
+
+    public static String getDefaultContext(GitHubNotificationContext notificationContext, TaskListener listener) {
+        SCMHead head = notificationContext.getHead();
+        if (head instanceof PullRequestSCMHead) {
+            if (((PullRequestSCMHead) head).isMerge()) {
+                return "continuous-integration/jenkins/pr-merge";
+            } else {
+                return "continuous-integration/jenkins/pr-head";
+            }
+        } else {
+            return "continuous-integration/jenkins/branch";
+        }
+    }
+
+    /**
+     * @since TODO
+     */
+    public static String getDefaultUrl(GitHubNotificationContext notificationContext, TaskListener listener) {
+        Run<?, ?> build = notificationContext.getBuild();
+        Job<?, ?> job = notificationContext.getJob();
+        String url = null;
+        try {
+            if (null != build) {
+                url = DisplayURLProvider.get().getRunURL(build);
+            }
+            else if (null != job) {
+                url = DisplayURLProvider.get().getJobURL(job);
+            }
+        } catch (IllegalStateException e) {
+            listener.getLogger().println(
+                    "Can not determine Jenkins root URL. Commit status notifications are disabled "
+                            + "until a root URL is"
+                            + " configured in Jenkins global configuration.");
+        }
+        return url;
+    }
+
+    /**
+     * @since TODO
+     */
+    public static String getDefaultMessage(GitHubNotificationContext notificationContext, TaskListener listener) {
+        Run<?, ?> build = notificationContext.getBuild();
+        if (null != build) {
+            Result result = build.getResult();
+            if (Result.SUCCESS.equals(result)) {
+                return Messages.GitHubBuildStatusNotification_CommitStatus_Good();
+            } else if (Result.UNSTABLE.equals(result)) {
+                return Messages.GitHubBuildStatusNotification_CommitStatus_Unstable();
+            } else if (Result.FAILURE.equals(result)) {
+                return Messages.GitHubBuildStatusNotification_CommitStatus_Failure();
+            } else if (Result.ABORTED.equals(result)) {
+                return Messages.GitHubBuildStatusNotification_CommitStatus_Aborted();
+            } else if (result != null) { // NOT_BUILT etc.
+                return Messages.GitHubBuildStatusNotification_CommitStatus_Other();
+            } else {
+                return Messages.GitHubBuildStatusNotification_CommitStatus_Pending();
+            }
+        }
+        return Messages.GitHubBuildStatusNotification_CommitStatus_Queued();
+    }
+
+    /**
+     * @since TODO
+     */
+    public static GHCommitState getDefaultState(GitHubNotificationContext notificationContext, TaskListener listener) {
+        Run<?, ?> build = notificationContext.getBuild();
+        if (null != build) {
+            Result result = build.getResult();
+            if (Result.SUCCESS.equals(result)) {
+                return GHCommitState.SUCCESS;
+            } else if (Result.UNSTABLE.equals(result)) {
+                return GHCommitState.FAILURE;
+            } else if (Result.FAILURE.equals(result)) {
+                return GHCommitState.ERROR;
+            } else if (Result.ABORTED.equals(result)) {
+                return GHCommitState.ERROR;
+            } else if (result != null) { // NOT_BUILT etc.
+                return GHCommitState.ERROR;
+            }
+        }
+        return GHCommitState.PENDING;
+    }
+
+    /**
+     * @since TODO
+     */
+    public static boolean getDefaultIgnoreError(GitHubNotificationContext notificationContext, TaskListener listener) {
+        Run<?, ?> build = notificationContext.getBuild();
+        return null == build || null == build.getResult();
     }
 }
