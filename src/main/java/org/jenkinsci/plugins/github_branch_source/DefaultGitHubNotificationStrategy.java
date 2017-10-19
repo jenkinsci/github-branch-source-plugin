@@ -63,4 +63,9 @@ public class DefaultGitHubNotificationStrategy extends AbstractGitHubNotificatio
         if (this == o) return true;
         return (o == null || getClass() != o.getClass());
     }
+
+    @Override
+    public int hashCode() {
+        return 42;
+    }
 }
