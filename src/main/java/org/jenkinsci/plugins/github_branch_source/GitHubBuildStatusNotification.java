@@ -43,6 +43,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -99,27 +100,30 @@ public class GitHubBuildStatusNotification {
                         Result result = build.getResult();
                         String revisionToNotify = resolveHeadCommit(revision);
                         SCMHead head = revision.getHead();
-                        AbstractGitHubNotificationStrategy strat = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
-                                .withTraits(((GitHubSCMSource) src).getTraits()).notificationStrategy();
-                        GitHubNotificationContext notificationContext = GitHubNotificationContext.build(null, build,
-                                src, head);
-                        List<GitHubNotificationRequest> details = strat.notifications(notificationContext, listener);
-                        for (GitHubNotificationRequest request : details) {
-                            boolean ignoreError = request.isIgnoreError();
-                            try {
-                                repo.createCommitStatus(revisionToNotify, request.getState(), request.getUrl(), request.getMessage(),
-                                        request.getContext());
-                            } catch (FileNotFoundException fnfe) {
-                                if (!ignoreError) {
-                                    listener.getLogger().format("%nCould not update commit status, please check if your scan " +
-                                            "credentials belong to a member of the organization or a collaborator of the " +
-                                            "repository and repo:status scope is selected%n%n");
-                                    if (LOGGER.isLoggable(Level.FINE)) {
-                                        LOGGER.log(Level.FINE, "Could not update commit status, for run "
-                                                + build.getFullDisplayName()
-                                                + " please check if your scan "
-                                                + "credentials belong to a member of the organization or a "
-                                                + "collaborator of the repository and repo:status scope is selected", fnfe);
+                        Set<? extends AbstractGitHubNotificationStrategy> strategies = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
+                                .withTraits(((GitHubSCMSource) src).getTraits()).notificationStrategies();
+                        for (AbstractGitHubNotificationStrategy strategy : strategies) {
+                            // TODO allow strategies to combine/cooperate on a notification
+                            GitHubNotificationContext notificationContext = GitHubNotificationContext.build(null, build,
+                                    src, head);
+                            List<GitHubNotificationRequest> details = strategy.notifications(notificationContext, listener);
+                            for (GitHubNotificationRequest request : details) {
+                                boolean ignoreError = request.isIgnoreError();
+                                try {
+                                    repo.createCommitStatus(revisionToNotify, request.getState(), request.getUrl(), request.getMessage(),
+                                            request.getContext());
+                                } catch (FileNotFoundException fnfe) {
+                                    if (!ignoreError) {
+                                        listener.getLogger().format("%nCould not update commit status, please check if your scan " +
+                                                "credentials belong to a member of the organization or a collaborator of the " +
+                                                "repository and repo:status scope is selected%n%n");
+                                        if (LOGGER.isLoggable(Level.FINE)) {
+                                            LOGGER.log(Level.FINE, "Could not update commit status, for run "
+                                                    + build.getFullDisplayName()
+                                                    + " please check if your scan "
+                                                    + "credentials belong to a member of the organization or a "
+                                                    + "collaborator of the repository and repo:status scope is selected", fnfe);
+                                        }
                                     }
                                 }
                             }
@@ -248,20 +252,23 @@ public class GitHubBuildStatusNotification {
                                     // status. JobCheckOutListener is now responsible for setting the pending status.
                                     return;
                                 }
-                                AbstractGitHubNotificationStrategy strat = sourceContext.notificationStrategy();
-                                GitHubNotificationContext notificationContext = GitHubNotificationContext.build(job, null,
-                                        source, head);
-                                List<GitHubNotificationRequest> details = strat.notifications(notificationContext, null);
-                                for (GitHubNotificationRequest request : details) {
-                                    boolean ignoreErrors = request.isIgnoreError();
-                                    try {
-                                        repo.createCommitStatus(hash, request.getState(), request.getUrl(), request.getMessage(),
-                                                request.getContext());
-                                    } catch (FileNotFoundException e) {
-                                        if (!ignoreErrors) {
-                                            LOGGER.log(Level.WARNING,
-                                                    "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?",
-                                                    LOGGER.isLoggable(Level.FINE) ? e : null);
+                                Set<? extends AbstractGitHubNotificationStrategy> strategies = sourceContext.notificationStrategies();
+                                for (AbstractGitHubNotificationStrategy strategy : strategies) {
+                                    // TODO allow strategies to combine/cooperate on a notification
+                                    GitHubNotificationContext notificationContext = GitHubNotificationContext.build(job, null,
+                                            source, head);
+                                    List<GitHubNotificationRequest> details = strategy.notifications(notificationContext, null);
+                                    for (GitHubNotificationRequest request : details) {
+                                        boolean ignoreErrors = request.isIgnoreError();
+                                        try {
+                                            repo.createCommitStatus(hash, request.getState(), request.getUrl(), request.getMessage(),
+                                                    request.getContext());
+                                        } catch (FileNotFoundException e) {
+                                            if (!ignoreErrors) {
+                                                LOGGER.log(Level.WARNING,
+                                                        "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?",
+                                                        LOGGER.isLoggable(Level.FINE) ? e : null);
+                                            }
                                         }
                                     }
                                 }

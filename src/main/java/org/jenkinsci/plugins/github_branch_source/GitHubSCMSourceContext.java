@@ -26,7 +26,10 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.TaskListener;
+
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Set;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSource;
@@ -69,10 +72,11 @@ public class GitHubSCMSourceContext
     private Set<ChangeRequestCheckoutStrategy> forkPRStrategies = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
     /**
      * Strategy used to notify Github of build status.
+     *
      * @since TODO
      */
     //TODO allow for multiple strategies
-    private AbstractGitHubNotificationStrategy notificationStrategy = new DefaultGitHubNotificationStrategy();
+    private Set<AbstractGitHubNotificationStrategy> notificationStrategies = new HashSet<>();
     /**
      * {@code true} if notifications should be disabled in this context.
      */
@@ -158,8 +162,11 @@ public class GitHubSCMSourceContext
      * @return the strategy used to notify Github of build status.
      * @since TODO
      */
-    public final AbstractGitHubNotificationStrategy notificationStrategy() {
-        return notificationStrategy;
+    public final Set<? extends AbstractGitHubNotificationStrategy> notificationStrategies() {
+        if (notificationStrategies.isEmpty()) {
+            return Collections.singleton(new DefaultGitHubNotificationStrategy());
+        }
+        return notificationStrategies;
     }
     /**
      * Returns {@code true} if notifications shoule be disabled.
@@ -246,15 +253,15 @@ public class GitHubSCMSourceContext
         return this;
     }
     /**
-     * Defines the strategy used to notify Github of build status.
+     * Defines the strategies used to notify Github of build status.
      *
-     * @param strategy the strategy used to notify Github of build status.
+     * @param strategies the strategies used to notify Github of build status.
      * @return {@code this} for method chaining.
      * @since TODO
      */
     @NonNull
-    public final GitHubSCMSourceContext withNotificationStrategy(DefaultGitHubNotificationStrategy strategy) {
-        this.notificationStrategy = strategy;
+    public final GitHubSCMSourceContext withNotificationStrategies(Set<? extends AbstractGitHubNotificationStrategy> strategies) {
+        notificationStrategies.addAll(strategies);
         return this;
     }
     /**
