@@ -258,7 +258,15 @@ public class GitHubSCMSourceContext
      */
     @NonNull
     public final GitHubSCMSourceContext withNotificationStrategies(List<AbstractGitHubNotificationStrategy> strategies) {
-        notificationStrategies.addAll(strategies);
+        notificationStrategies = strategies;
+        return this;
+    }
+
+    @NonNull
+    public final GitHubSCMSourceContext withNotificationStrategy(AbstractGitHubNotificationStrategy strategy) {
+        if (!notificationStrategies.contains(strategy)) {
+            notificationStrategies.add(strategy);
+        }
         return this;
     }
     /**

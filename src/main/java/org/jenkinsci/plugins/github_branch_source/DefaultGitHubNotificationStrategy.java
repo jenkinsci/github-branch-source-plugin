@@ -57,4 +57,10 @@ public class DefaultGitHubNotificationStrategy extends AbstractGitHubNotificatio
                 generateState(notificationContext, listener),
                 ignoreError(notificationContext, listener)));
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        return (o == null || getClass() != o.getClass());
+    }
 }
