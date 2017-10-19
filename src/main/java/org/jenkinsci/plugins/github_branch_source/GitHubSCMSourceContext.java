@@ -27,10 +27,8 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.TaskListener;
 
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
+
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
@@ -75,8 +73,7 @@ public class GitHubSCMSourceContext
      *
      * @since TODO
      */
-    //TODO allow for multiple strategies
-    private Set<AbstractGitHubNotificationStrategy> notificationStrategies = new HashSet<>();
+    private List<AbstractGitHubNotificationStrategy> notificationStrategies = new ArrayList<>();
     /**
      * {@code true} if notifications should be disabled in this context.
      */
@@ -162,9 +159,9 @@ public class GitHubSCMSourceContext
      * @return the strategy used to notify Github of build status.
      * @since TODO
      */
-    public final Set<? extends AbstractGitHubNotificationStrategy> notificationStrategies() {
+    public final List<AbstractGitHubNotificationStrategy> notificationStrategies() {
         if (notificationStrategies.isEmpty()) {
-            return Collections.singleton(new DefaultGitHubNotificationStrategy());
+            return Collections.<AbstractGitHubNotificationStrategy>singletonList(new DefaultGitHubNotificationStrategy());
         }
         return notificationStrategies;
     }
@@ -260,7 +257,7 @@ public class GitHubSCMSourceContext
      * @since TODO
      */
     @NonNull
-    public final GitHubSCMSourceContext withNotificationStrategies(Set<? extends AbstractGitHubNotificationStrategy> strategies) {
+    public final GitHubSCMSourceContext withNotificationStrategies(List<AbstractGitHubNotificationStrategy> strategies) {
         notificationStrategies.addAll(strategies);
         return this;
     }

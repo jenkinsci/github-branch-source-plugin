@@ -43,7 +43,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -100,7 +99,7 @@ public class GitHubBuildStatusNotification {
                         Result result = build.getResult();
                         String revisionToNotify = resolveHeadCommit(revision);
                         SCMHead head = revision.getHead();
-                        Set<? extends AbstractGitHubNotificationStrategy> strategies = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
+                        List<AbstractGitHubNotificationStrategy> strategies = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
                                 .withTraits(((GitHubSCMSource) src).getTraits()).notificationStrategies();
                         for (AbstractGitHubNotificationStrategy strategy : strategies) {
                             // TODO allow strategies to combine/cooperate on a notification
@@ -252,7 +251,7 @@ public class GitHubBuildStatusNotification {
                                     // status. JobCheckOutListener is now responsible for setting the pending status.
                                     return;
                                 }
-                                Set<? extends AbstractGitHubNotificationStrategy> strategies = sourceContext.notificationStrategies();
+                                List<AbstractGitHubNotificationStrategy> strategies = sourceContext.notificationStrategies();
                                 for (AbstractGitHubNotificationStrategy strategy : strategies) {
                                     // TODO allow strategies to combine/cooperate on a notification
                                     GitHubNotificationContext notificationContext = GitHubNotificationContext.build(job, null,
