@@ -1,5 +1,5 @@
 <?jelly escape-by-default='true'?>
-<j:jelly xmlns:j="jelly:core" xmlns:c="/lib/credentials2"
+<j:jelly xmlns:j="jelly:core" xmlns:c="/lib/credentials"
          xmlns:f="/lib/form"
          xmlns:f2="/org/jenkinsci/plugins/github_branch_source/form" xmlns:scm="/jenkins/scm/api/form">
   <j:choose>
