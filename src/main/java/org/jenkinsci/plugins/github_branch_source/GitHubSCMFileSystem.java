@@ -30,14 +30,24 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Item;
+import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.time.FastDateFormat;
+import org.eclipse.jgit.lib.Constants;
+import org.kohsuke.github.GHCommit;
+import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
@@ -87,8 +97,73 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
 
     @Override
     public long lastModified() throws IOException {
-        // TODO figure out how to implement this
-        return 0L;
+        return repo.getCommit(ref).getCommitDate().getTime();
+    }
+
+    @Override
+    public boolean changesSince(SCMRevision revision, @NonNull OutputStream changeLogStream)
+            throws UnsupportedOperationException, IOException, InterruptedException {
+        if (getRevision() == null ? revision == null : getRevision().equals(revision)) {
+            // special case where somebody is asking one of two stupid questions:
+            // 1. what has changed between the latest and the latest
+            // 2. what has changed between the current revision and the current revision
+            return false;
+        }
+        int count = 0;
+        FastDateFormat iso = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ssZ");
+        StringBuilder log = new StringBuilder(1024);
+        String endHash;
+        if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl) {
+            endHash = ((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash().toLowerCase(Locale.ENGLISH);
+        } else {
+            endHash = null;
+        }
+        // this is the format expected by GitSCM, so we need to format each GHCommit with the same format
+        // commit %H%ntree %T%nparent %P%nauthor %aN <%aE> %ai%ncommitter %cN <%cE> %ci%n%n%w(76,4,4)%s%n%n%b
+        for (GHCommit commit: repo.queryCommits().from(ref).pageSize(GitSCM.MAX_CHANGELOG).list()) {
+            if (commit.getSHA1().toLowerCase(Locale.ENGLISH).equals(endHash)) {
+                break;
+            }
+            log.setLength(0);
+            log.append("commit ").append(commit.getSHA1()).append('\n');
+            log.append("tree ").append(commit.getTree().getSha()).append('\n');
+            log.append("parent");
+            for (String parent: commit.getParentSHA1s()) {
+                log.append(' ').append(parent);
+            }
+            log.append('\n');
+            GHCommit.ShortInfo info = commit.getCommitShortInfo();
+            log.append("author ")
+                    .append(info.getAuthor().getName())
+                    .append(" <")
+                    .append(info.getAuthor().getEmail())
+                    .append("> ")
+                    .append(iso.format(info.getAuthoredDate()))
+                    .append('\n');
+            log.append("committer ")
+                    .append(info.getCommitter().getName())
+                    .append(" <")
+                    .append(info.getCommitter().getEmail())
+                    .append("> ")
+                    .append(iso.format(info.getCommitDate()))
+                    .append('\n');
+            log.append('\n');
+            String msg = info.getMessage();
+            if (msg.endsWith("\r\n")) {
+                msg = msg.substring(0, msg.length() - 2);
+            } else  if (msg.endsWith("\n")) {
+                msg = msg.substring(0, msg.length() - 1);
+            }
+            msg = msg.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\n    ");
+            log.append("    ").append(msg).append('\n');
+            changeLogStream.write(log.toString().getBytes(StandardCharsets.UTF_8));
+            changeLogStream.flush();
+            count++;
+            if (count >= GitSCM.MAX_CHANGELOG) {
+                break;
+            }
+        }
+        return count > 0;
     }
 
     @NonNull
