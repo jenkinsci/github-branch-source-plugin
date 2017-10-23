@@ -77,6 +77,7 @@ import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.plugins.git.MergeWithGitSCMExtension;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
 import jenkins.scm.api.SCMHead;
@@ -1014,12 +1015,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                 }
                             }
                             GitHubTagSCMHead head = new GitHubTagSCMHead(tagName, tagDate);
-                            if (request.process(head, new SCMRevisionImpl(head, sha),
-                                    new SCMSourceRequest.ProbeLambda<GitHubTagSCMHead, SCMRevisionImpl>() {
+                            if (request.process(head, new GitTagSCMRevision(head, sha),
+                                    new SCMSourceRequest.ProbeLambda<GitHubTagSCMHead, GitTagSCMRevision>() {
                                         @NonNull
                                         @Override
                                         public SCMSourceCriteria.Probe create(@NonNull GitHubTagSCMHead head,
-                                                                              @Nullable SCMRevisionImpl revisionInfo)
+                                                                              @Nullable GitTagSCMRevision revisionInfo)
                                                 throws IOException, InterruptedException {
                                             return new GitHubSCMProbe(github, ghRepository, head, revisionInfo);
                                         }
@@ -1246,7 +1247,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             // we just need enough of a date value to allow for probing
                         }
                     }
-                    return new SCMRevisionImpl(new GitHubTagSCMHead(headName, tagDate), tagSha);
+                    return new GitTagSCMRevision(new GitHubTagSCMHead(headName, tagDate), tagSha);
                 }
             } catch (FileNotFoundException e) {
                 // ok it doesn't exist
@@ -1363,7 +1364,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     }
                     return new PullRequestSCMRevision(prhead, baseHash, pr.getHead().getSha());
                 } else if (head instanceof GitHubTagSCMHead) {
-                    GHRef tag = ghRepository.getRef("tags/" + head.getName());
+                    GitHubTagSCMHead tagHead = (GitHubTagSCMHead) head;
+                    GHRef tag = ghRepository.getRef("tags/" + tagHead.getName());
                     String sha = tag.getObject().getSha();
                     if ("tag".equalsIgnoreCase(tag.getObject().getType())) {
                         // annotated tag object
@@ -1371,7 +1373,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         // we want the sha of the tagged commit not the tag object
                         sha = tagObject.getObject().getSha();
                     }
-                    return new SCMRevisionImpl(head, sha);
+                    return new GitTagSCMRevision(tagHead, sha);
                 } else {
                     return new SCMRevisionImpl(head, ghRepository.getRef("heads/" + head.getName()).getObject().getSha());
                 }

@@ -33,6 +33,7 @@ import hudson.model.Item;
 import hudson.scm.SCM;
 import java.io.IOException;
 import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
@@ -199,7 +200,16 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                     GHRef ref = repo.getRef(refName);
                     if ("tag".equalsIgnoreCase(ref.getObject().getType())) {
                         GHTagObject tag = repo.getTagObject(ref.getObject().getSha());
-                        rev = new AbstractGitSCMSource.SCMRevisionImpl(head, tag.getObject().getSha());
+                        if (head instanceof GitHubTagSCMHead) {
+                            rev = new GitTagSCMRevision((GitHubTagSCMHead) head, tag.getObject().getSha());
+                        } else {
+                            // we should never get here, but just in case, we have the information to construct
+                            // the correct head, so let's do that
+                            rev = new GitTagSCMRevision(
+                                    new GitHubTagSCMHead(head.getName(),
+                                            tag.getTagger().getDate().getTime()), tag.getObject().getSha()
+                            );
+                        }
                     } else {
                         rev = new AbstractGitSCMSource.SCMRevisionImpl(head, ref.getObject().getSha());
                     }

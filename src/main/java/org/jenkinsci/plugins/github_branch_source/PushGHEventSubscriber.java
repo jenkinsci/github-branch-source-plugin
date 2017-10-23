@@ -41,6 +41,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.scm.api.SCMEvent;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadEvent;
@@ -352,7 +353,7 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                 }
                 if (!excluded) {
                     return Collections.<SCMHead, SCMRevision>singletonMap(head,
-                            new AbstractGitSCMSource.SCMRevisionImpl(head, push.getHead()));
+                            new GitTagSCMRevision(head, push.getHead()));
                 }
             }
             return Collections.emptyMap();

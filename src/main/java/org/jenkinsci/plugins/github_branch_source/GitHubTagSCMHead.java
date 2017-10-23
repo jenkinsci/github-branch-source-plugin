@@ -1,12 +1,10 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import jenkins.scm.api.SCMHead;
+import jenkins.plugins.git.GitTagSCMHead;
 import jenkins.scm.api.mixin.TagSCMHead;
 
-public class GitHubTagSCMHead extends SCMHead implements TagSCMHead {
-
-    private final long timestamp;
+public class GitHubTagSCMHead extends GitTagSCMHead implements TagSCMHead {
 
     /**
      * Constructor.
@@ -15,16 +13,7 @@ public class GitHubTagSCMHead extends SCMHead implements TagSCMHead {
      * @param timestamp the tag timestamp;
      */
     public GitHubTagSCMHead(@NonNull String name, long timestamp) {
-        super(name);
-        this.timestamp = timestamp;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public long getTimestamp() {
-        return timestamp;
+        super(name, timestamp);
     }
 
     /**
