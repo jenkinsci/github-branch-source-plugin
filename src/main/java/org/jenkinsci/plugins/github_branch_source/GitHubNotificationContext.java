@@ -101,8 +101,7 @@ public final class GitHubNotificationContext {
         return result;
     }
 
-    public static String getDefaultContext(GitHubNotificationContext notificationContext, TaskListener listener) {
-        SCMHead head = notificationContext.getHead();
+    public String getDefaultContext(TaskListener listener) {
         if (head instanceof PullRequestSCMHead) {
             if (((PullRequestSCMHead) head).isMerge()) {
                 return "continuous-integration/jenkins/pr-merge";
@@ -117,9 +116,7 @@ public final class GitHubNotificationContext {
     /**
      * @since TODO
      */
-    public static String getDefaultUrl(GitHubNotificationContext notificationContext, TaskListener listener) {
-        Run<?, ?> build = notificationContext.getBuild();
-        Job<?, ?> job = notificationContext.getJob();
+    public String getDefaultUrl(TaskListener listener) {
         String url = null;
         try {
             if (null != build) {
@@ -140,8 +137,7 @@ public final class GitHubNotificationContext {
     /**
      * @since TODO
      */
-    public static String getDefaultMessage(GitHubNotificationContext notificationContext, TaskListener listener) {
-        Run<?, ?> build = notificationContext.getBuild();
+    public String getDefaultMessage(TaskListener listener) {
         if (null != build) {
             Result result = build.getResult();
             if (Result.SUCCESS.equals(result)) {
@@ -164,8 +160,7 @@ public final class GitHubNotificationContext {
     /**
      * @since TODO
      */
-    public static GHCommitState getDefaultState(GitHubNotificationContext notificationContext, TaskListener listener) {
-        Run<?, ?> build = notificationContext.getBuild();
+    public GHCommitState getDefaultState(TaskListener listener) {
         if (null != build) {
             Result result = build.getResult();
             if (Result.SUCCESS.equals(result)) {
@@ -186,8 +181,7 @@ public final class GitHubNotificationContext {
     /**
      * @since TODO
      */
-    public static boolean getDefaultIgnoreError(GitHubNotificationContext notificationContext, TaskListener listener) {
-        Run<?, ?> build = notificationContext.getBuild();
+    public boolean getDefaultIgnoreError(TaskListener listener) {
         return null == build || null == build.getResult();
     }
 }
