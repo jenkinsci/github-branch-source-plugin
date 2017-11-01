@@ -73,7 +73,7 @@ public class GitHubSCMSourceContext
     @NonNull
     private Set<ChangeRequestCheckoutStrategy> forkPRStrategies = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
     /**
-     * Strategy used to notify Github of build status.
+     * Strategies used to notify Github of build status.
      *
      * @since TODO
      */
@@ -159,8 +159,8 @@ public class GitHubSCMSourceContext
         return forkPRStrategies;
     }
     /**
-     * Returns the strategy used to notify Github of build status.
-     * @return the strategy used to notify Github of build status.
+     * Returns the strategies used to notify Github of build status.
+     * @return the strategies used to notify Github of build status.
      * @since TODO
      */
     public final List<AbstractGitHubNotificationStrategy> notificationStrategies() {

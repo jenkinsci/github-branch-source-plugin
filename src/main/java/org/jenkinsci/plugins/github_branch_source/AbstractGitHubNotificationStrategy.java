@@ -30,11 +30,16 @@ import hudson.model.TaskListener;
 import java.util.List;
 
 /**
+ * Represents a strategy for constructing GitHub status notifications
  * @since TODO
  */
 public abstract class AbstractGitHubNotificationStrategy implements ExtensionPoint {
 
     /**
+     * Creates the list of {@link GitHubNotificationRequest} for the given context.
+     * @param notificationContext {@link GitHubNotificationContext} the context details
+     * @param listener the listener
+     * @return a list of notification requests
      * @since TODO
      */
     public abstract List<GitHubNotificationRequest> notifications(GitHubNotificationContext notificationContext, TaskListener listener);

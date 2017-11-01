@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import org.kohsuke.github.GHCommitState;
 
 /**
+ * Details of a GitHub status notification to be sent
  * @since TODO
  */
 public class GitHubNotificationRequest {

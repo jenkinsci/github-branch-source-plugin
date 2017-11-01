@@ -30,13 +30,14 @@ import java.util.Collections;
 import java.util.List;
 
 /**
+ * Default implementation of {@link AbstractGitHubNotificationStrategy}
  * @since TODO
  */
 public final class DefaultGitHubNotificationStrategy extends AbstractGitHubNotificationStrategy {
     public DefaultGitHubNotificationStrategy() {}
 
     /**
-     * @since TODO
+     * {@inheritDoc}
      */
     public List<GitHubNotificationRequest> notifications(GitHubNotificationContext notificationContext, TaskListener listener) {
         return Collections.singletonList(GitHubNotificationRequest.build(notificationContext.getDefaultContext(listener),

@@ -34,6 +34,7 @@ import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.kohsuke.github.GHCommitState;
 
 /**
+ * Parameter object used in notification strategies {@link AbstractGitHubNotificationStrategy}.
  * @since TODO
  */
 public final class GitHubNotificationContext {
@@ -125,6 +126,12 @@ public final class GitHubNotificationContext {
         return result;
     }
 
+    /**
+     * Retrieves default context
+     * @param listener Listener for the build, if any
+     * @return Default notification context
+     * @since TODO
+     */
     public String getDefaultContext(TaskListener listener) {
         if (head instanceof PullRequestSCMHead) {
             if (((PullRequestSCMHead) head).isMerge()) {
@@ -138,6 +145,9 @@ public final class GitHubNotificationContext {
     }
 
     /**
+     * Retrieves default URL
+     * @param listener Listener for the build, if any
+     * @return Default notification URL backref
      * @since TODO
      */
     public String getDefaultUrl(TaskListener listener) {
@@ -159,6 +169,9 @@ public final class GitHubNotificationContext {
     }
 
     /**
+     * Retrieves default notification message
+     * @param listener Listener for the build, if any
+     * @return Default notification message
      * @since TODO
      */
     public String getDefaultMessage(TaskListener listener) {
@@ -182,6 +195,9 @@ public final class GitHubNotificationContext {
     }
 
     /**
+     * Retrieves default notification state
+     * @param listener Listener for the build, if any
+     * @return Default notification state
      * @since TODO
      */
     public GHCommitState getDefaultState(TaskListener listener) {
@@ -203,6 +219,9 @@ public final class GitHubNotificationContext {
     }
 
     /**
+     * Retrieves whether plugin should ignore errors when updating the GitHub status
+     * @param listener Listener for the build, if any
+     * @return Default ignore errors policy
      * @since TODO
      */
     public boolean getDefaultIgnoreError(TaskListener listener) {
