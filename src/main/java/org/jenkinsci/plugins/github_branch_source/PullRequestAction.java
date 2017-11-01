@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.InvisibleAction;
+import java.io.IOException;
 import java.net.URL;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.actions.ChangeRequestAction;
@@ -47,10 +48,11 @@ final class PullRequestAction extends InvisibleAction {
     private final String userLogin;
     private final String baseRef;
 
-    PullRequestAction(GHPullRequest pr) {
+    PullRequestAction(GHPullRequest pr) throws IOException {
         number = pr.getNumber();
         url = pr.getHtmlUrl();
         title = pr.getTitle();
+        // TODO switch to getUserName() once https://github.com/kohsuke/github-api/pull/392 available
         userLogin = pr.getUser().getLogin();
         baseRef = pr.getBase().getRef();
     }

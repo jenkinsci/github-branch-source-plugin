@@ -1723,8 +1723,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                 pr.getHtmlUrl().toExternalForm()
                         )
                 );
-                GHUser user = pr.getUser();
                 try {
+                    GHUser user = pr.getUser();
                     if (users.containsKey(user.getLogin())) {
                         // looked up this user already
                         user = users.get(user.getLogin());

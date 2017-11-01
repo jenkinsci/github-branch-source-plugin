@@ -26,9 +26,11 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.BulkChange;
 import hudson.Extension;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -39,6 +41,8 @@ import java.util.Set;
 import jenkins.model.GlobalConfiguration;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.github.config.GitHubPluginConfig;
+import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.stapler.StaplerRequest;
 
 @Extension public class GitHubConfiguration extends GlobalConfiguration {
@@ -47,10 +51,35 @@ import org.kohsuke.stapler.StaplerRequest;
         return GlobalConfiguration.all().get(GitHubConfiguration.class);
     }
 
-    private List<Endpoint> endpoints;
+    private transient List<Endpoint> endpoints;
 
     public GitHubConfiguration() {
         load();
+        if (endpoints == null) {
+            endpoints = new ProxyList();
+        } else {
+            GitHubPluginConfig config = GitHubPluginConfig.all().get(GitHubPluginConfig.class);
+            BulkChange bc = new BulkChange(config);
+            try {
+                List<Endpoint> legacy = endpoints;
+                endpoints = new ProxyList();
+                legacy.removeAll(endpoints);
+                endpoints.addAll(legacy);
+                boolean needCloud = true;
+                for (Endpoint ep: endpoints) {
+                    if (GitHubServerConfig.GITHUB_URL.equals(ep.getApiUri())) {
+                        needCloud = false;
+                        break;
+                    }
+                }
+                if (needCloud) {
+                    endpoints.add(new Endpoint(GitHubServerConfig.GITHUB_URL, "github.com"));
+                }
+            } finally {
+                // we abort because we do not update config until save by admin
+                bc.abort();
+            }
+        }
     }
 
     @Override public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
@@ -211,6 +240,65 @@ import org.kohsuke.stapler.StaplerRequest;
             }
         }
         return null;
+    }
+
+    private static class ProxyList extends AbstractList<Endpoint> {
+
+        @Override
+        public Endpoint get(int index) {
+            GitHubPluginConfig config = GitHubPluginConfig.all().get(GitHubPluginConfig.class);
+            if (config == null) {
+                throw new IndexOutOfBoundsException();
+            }
+            GitHubServerConfig c = config.getConfigs().get(index);
+            return new Endpoint(c);
+        }
+
+        @Override
+        public int size() {
+            GitHubPluginConfig config = GitHubPluginConfig.all().get(GitHubPluginConfig.class);
+            if (config == null) {
+                throw new IndexOutOfBoundsException();
+            }
+            return config.getConfigs().size();
+        }
+
+        @Override
+        public Endpoint remove(int index) {
+            GitHubPluginConfig config = GitHubPluginConfig.all().get(GitHubPluginConfig.class);
+            if (config == null) {
+                throw new IndexOutOfBoundsException();
+            }
+            GitHubServerConfig c = config.getConfigs().remove(index);
+            if (c != null) {
+                config.save();
+            }
+            return c == null ? null : new Endpoint(c);
+        }
+
+        @Override
+        public void add(int index, Endpoint element) {
+            GitHubPluginConfig config = GitHubPluginConfig.all().get(GitHubPluginConfig.class);
+            if (config == null) {
+                throw new IndexOutOfBoundsException();
+            }
+            config.getConfigs().add(index, element.toGitHubServerConfig());
+            config.save();
+        }
+
+        @Override
+        public Endpoint set(int index, Endpoint element) {
+            GitHubPluginConfig config = GitHubPluginConfig.all().get(GitHubPluginConfig.class);
+            if (config == null) {
+                throw new IndexOutOfBoundsException();
+            }
+            GitHubServerConfig c = config.getConfigs().get(index);
+            Endpoint old = c == null ? null : new Endpoint(c);
+            if (element.update(c)) {
+                config.save();
+            }
+            return old;
+        }
     }
 
 }

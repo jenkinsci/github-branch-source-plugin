@@ -47,6 +47,7 @@ import java.util.logging.Level;
 
 import jenkins.scm.api.SCMName;
 import org.apache.commons.lang.StringUtils;
+import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GitHub;
@@ -81,6 +82,11 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
         }
     }
 
+    public Endpoint(GitHubServerConfig config) {
+        this.apiUri = config.getApiUrl();
+        this.name = config.getName();
+    }
+
     private Object readResolve() throws ObjectStreamException {
         if (!apiUri.equals(GitHubConfiguration.normalizeApiUri(apiUri))) {
             return new Endpoint(apiUri, name);
@@ -107,6 +113,14 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
         return sb.toString();
     }
 
+    public GitHubServerConfig toGitHubServerConfig() {
+        GitHubServerConfig config = new GitHubServerConfig(null);
+        config.setApiUrl(apiUri);
+        config.setName(name);
+        config.setManageHooks(false);
+        return config;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -128,6 +142,19 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
     @Override
     public int hashCode() {
         return apiUri != null ? apiUri.hashCode() : 0;
+    }
+
+    public boolean update(GitHubServerConfig c) {
+        boolean dirty = false;
+        if (!StringUtils.equals(getApiUri(), c.getApiUrl())) {
+            c.setApiUrl(getApiUri());
+            dirty = true;
+        }
+        if (!StringUtils.equals(getName(), c.getName())) {
+            c.setName(getName());
+            dirty = true;
+        }
+        return dirty;
     }
 
     @Extension

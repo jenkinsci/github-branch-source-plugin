@@ -266,7 +266,13 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                 // fake repository name
                 return Collections.emptyMap();
             }
-            String prOwnerName = ghPullRequest.getHead().getUser().getLogin();
+            String prOwnerName;
+            try {
+                prOwnerName = ghPullRequest.getHead().getUser().getLogin();
+            } catch (IOException e) {
+                // TODO switch to getUserName once https://github.com/kohsuke/github-api/pull/392 available
+                return Collections.emptyMap();
+            }
             if (!prOwnerName.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME)) {
                 // fake owner name
                 return Collections.emptyMap();
