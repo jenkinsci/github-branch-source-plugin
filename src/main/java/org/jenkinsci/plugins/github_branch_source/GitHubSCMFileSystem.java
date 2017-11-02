@@ -52,6 +52,9 @@ import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
 
+/**
+ * Implements {@link SCMFileSystem} for GitHub.
+ */
 public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable {
     private final GitHub gitHub;
     private final GHRepository repo;
