@@ -28,7 +28,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.TaskListener;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -78,8 +77,8 @@ public class GitHubSCMSourceContext
      *
      * @since TODO
      */
-    private final List<AbstractGitHubNotificationStrategy> notificationStrategies = new ArrayList<AbstractGitHubNotificationStrategy>(
-            Arrays.asList(new DefaultGitHubNotificationStrategy()));
+    private final List<AbstractGitHubNotificationStrategy> notificationStrategies = new ArrayList<>(
+            Collections.<AbstractGitHubNotificationStrategy>singletonList(new DefaultGitHubNotificationStrategy()));
 
     /**
      * Constructor.
