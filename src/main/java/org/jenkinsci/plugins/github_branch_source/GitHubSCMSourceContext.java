@@ -28,6 +28,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.TaskListener;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
@@ -77,11 +78,8 @@ public class GitHubSCMSourceContext
      *
      * @since TODO
      */
-    private List<AbstractGitHubNotificationStrategy> notificationStrategies = new ArrayList<>();
-    /**
-     * {@code true} if notifications should be disabled in this context.
-     */
-    private boolean notificationsDisabled;
+    private final List<AbstractGitHubNotificationStrategy> notificationStrategies = new ArrayList<AbstractGitHubNotificationStrategy>(
+            Arrays.asList(new DefaultGitHubNotificationStrategy()));
 
     /**
      * Constructor.
@@ -164,18 +162,15 @@ public class GitHubSCMSourceContext
      * @since TODO
      */
     public final List<AbstractGitHubNotificationStrategy> notificationStrategies() {
-        if (notificationStrategies.isEmpty()) {
-            return Collections.<AbstractGitHubNotificationStrategy>singletonList(new DefaultGitHubNotificationStrategy());
-        }
-        return notificationStrategies;
+        return Collections.unmodifiableList(notificationStrategies);
     }
     /**
-     * Returns {@code true} if notifications shoule be disabled.
+     * Returns {@code true} if notifications should be disabled.
      *
-     * @return {@code true} if notifications shoule be disabled.
+     * @return {@code true} if notifications should be disabled.
      */
     public final boolean notificationsDisabled() {
-        return notificationsDisabled;
+        return notificationStrategies.isEmpty();
     }
 
     /**
@@ -254,7 +249,7 @@ public class GitHubSCMSourceContext
         return this;
     }
     /**
-     * Defines the strategies used to notify Github of build status.
+     * Replaces the list of strategies used to notify Github of build status.
      *
      * @param strategies the strategies used to notify Github of build status.
      * @return {@code this} for method chaining.
@@ -262,10 +257,21 @@ public class GitHubSCMSourceContext
      */
     @NonNull
     public final GitHubSCMSourceContext withNotificationStrategies(List<AbstractGitHubNotificationStrategy> strategies) {
-        notificationStrategies = strategies;
+        notificationStrategies.clear();
+        for (AbstractGitHubNotificationStrategy strategy : strategies) {
+            if (!notificationStrategies.contains(strategy)) {
+                notificationStrategies.add(strategy);
+            }
+        }
         return this;
     }
 
+    /**
+     * Add a strategy used to notify Github of build status.
+     * @param strategy a strategy used to notify Github of build status.
+     * @return {@code this} for method chaining.
+     * @since TODO
+     */
     @NonNull
     public final GitHubSCMSourceContext withNotificationStrategy(AbstractGitHubNotificationStrategy strategy) {
         if (!notificationStrategies.contains(strategy)) {
@@ -273,6 +279,7 @@ public class GitHubSCMSourceContext
         }
         return this;
     }
+
     /**
      * Defines the notification mode to use in this context.
      *
@@ -281,7 +288,15 @@ public class GitHubSCMSourceContext
      */
     @NonNull
     public final GitHubSCMSourceContext withNotificationsDisabled(boolean disabled) {
-        this.notificationsDisabled = disabled;
+        if (disabled) {
+            if (!notificationStrategies.isEmpty()) {
+                notificationStrategies.clear();
+            }
+        } else {
+            if (notificationStrategies.isEmpty()) {
+                notificationStrategies.add(new DefaultGitHubNotificationStrategy());
+            }
+        }
         return this;
     }
 

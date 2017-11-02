@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.Job;
 import hudson.model.Result;
 import hudson.model.Run;
@@ -35,6 +36,9 @@ import org.kohsuke.github.GHCommitState;
 
 /**
  * Parameter object used in notification strategies {@link AbstractGitHubNotificationStrategy}.
+ * When creating a new point of notification (e.g. on build completion), populate this object with
+ * the the relevant details accessible at that point.
+ * When implementing a notification strategy, be aware that some details may be absent depending on the point of notification.
  * @since TODO
  */
 public final class GitHubNotificationContext {
@@ -53,11 +57,13 @@ public final class GitHubNotificationContext {
         this.head = head;
     }
 
-    public static GitHubNotificationContext build(Job<?, ?> job, Run<?, ?> build, SCMSource source, SCMHead head) {
+    public static GitHubNotificationContext build(@Nullable Job<?, ?> job, @Nullable Run<?, ?> build, SCMSource source, SCMHead head) {
         return new GitHubNotificationContext(job, build, source, head);
     }
 
     /**
+     * Returns the job, if any, associated with the planned notification event
+     * @return Job
      * @since TODO
      */
     public Job<?, ?> getJob() {
@@ -65,6 +71,8 @@ public final class GitHubNotificationContext {
     }
 
     /**
+     * Returns the run, if any, associated with the planned notification event
+     * @return Run
      * @since TODO
      */
     public Run<?, ?> getBuild() {
@@ -72,6 +80,8 @@ public final class GitHubNotificationContext {
     }
 
     /**
+     * Returns the SCMSource associated with the planned notification event
+     * @return SCMSource
      * @since TODO
      */
     public SCMSource getSource() {
@@ -79,6 +89,8 @@ public final class GitHubNotificationContext {
     }
 
     /**
+     * Returns the SCMHead associated with the planned notification event
+     * @return SCMHead
      * @since TODO
      */
     public SCMHead getHead() {
@@ -86,7 +98,7 @@ public final class GitHubNotificationContext {
     }
 
     /**
-     * @since TODO
+     * {@inheritDoc}
      */
     @Override
     public String toString() {
@@ -99,7 +111,7 @@ public final class GitHubNotificationContext {
     }
 
     /**
-     * @since TODO
+     * {@inheritDoc}
      */
     @Override
     public boolean equals(Object o) {
@@ -115,7 +127,7 @@ public final class GitHubNotificationContext {
     }
 
     /**
-     * @since TODO
+     * {@inheritDoc}
      */
     @Override
     public int hashCode() {

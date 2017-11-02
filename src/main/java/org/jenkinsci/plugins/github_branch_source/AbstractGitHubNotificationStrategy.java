@@ -44,7 +44,13 @@ public abstract class AbstractGitHubNotificationStrategy implements ExtensionPoi
      */
     public abstract List<GitHubNotificationRequest> notifications(GitHubNotificationContext notificationContext, TaskListener listener);
 
+    /**
+     * {@inheritDoc}
+     */
     public abstract boolean equals(Object o);
 
+    /**
+     * {@inheritDoc}
+     */
     public abstract int hashCode();
 }

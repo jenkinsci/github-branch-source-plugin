@@ -27,7 +27,12 @@ package org.jenkinsci.plugins.github_branch_source;
 import org.kohsuke.github.GHCommitState;
 
 /**
- * Details of a GitHub status notification to be sent
+ * Details of a GitHub status notification to be sent.
+ * One GitHubNotificationRequest represents one notification. A strategy supplies a list of these to request one or more
+ * notifications.
+ * Notifications are differentiated by their Context label. If two notification requests with the same Context label are
+ * provided, one will override the other.
+ * See {@linktourl https://developer.github.com/v3/repos/statuses/} for details of the purpose of each notification field.
  * @since TODO
  */
 public class GitHubNotificationRequest {
@@ -54,6 +59,8 @@ public class GitHubNotificationRequest {
     }
 
     /**
+     * Returns the context label to be used for a notification
+     * @return context
      * @since TODO
      */
     public String getContext() {
@@ -61,6 +68,8 @@ public class GitHubNotificationRequest {
     }
 
     /**
+     * Returns the URL to be supplied with a notification
+     * @return url
      * @since TODO
      */
     public String getUrl() {
@@ -68,6 +77,8 @@ public class GitHubNotificationRequest {
     }
 
     /**
+     * Returns the message for a notification
+     * @return message
      * @since TODO
      */
     public String getMessage() {
@@ -75,6 +86,8 @@ public class GitHubNotificationRequest {
     }
 
     /**
+     * Returns the commit state of a notification
+     * @return state
      * @since TODO
      */
     public GHCommitState getState() {
@@ -82,6 +95,8 @@ public class GitHubNotificationRequest {
     }
 
     /**
+     * Returns whether the notification processor should ignore errors when interacting with GitHub
+     * @return ignoreError
      * @since TODO
      */
     public boolean isIgnoreError() {
@@ -89,7 +104,7 @@ public class GitHubNotificationRequest {
     }
 
     /**
-     * @since TODO
+     * {@inheritDoc}
      */
     @Override
     public String toString() {
@@ -103,7 +118,7 @@ public class GitHubNotificationRequest {
     }
 
     /**
-     * @since TODO
+     * {@inheritDoc}
      */
     @Override
     public boolean equals(Object o) {
@@ -120,7 +135,7 @@ public class GitHubNotificationRequest {
     }
 
     /**
-     * @since TODO
+     * {@inheritDoc}
      */
     @Override
     public int hashCode() {

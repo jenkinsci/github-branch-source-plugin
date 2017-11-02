@@ -34,7 +34,6 @@ import java.util.List;
  * @since TODO
  */
 public final class DefaultGitHubNotificationStrategy extends AbstractGitHubNotificationStrategy {
-    public DefaultGitHubNotificationStrategy() {}
 
     /**
      * {@inheritDoc}
@@ -47,12 +46,18 @@ public final class DefaultGitHubNotificationStrategy extends AbstractGitHubNotif
                 notificationContext.getDefaultIgnoreError(listener)));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         return (o == null || getClass() != o.getClass());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public int hashCode() {
         return 42;
