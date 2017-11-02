@@ -51,7 +51,7 @@ public final class DefaultGitHubNotificationStrategy extends AbstractGitHubNotif
      */
     @Override
     public boolean equals(Object o) {
-        return o instanceof DefaultGitHubNotificationStrategy;
+        return this == o || (o != null && getClass() == o.getClass());
     }
 
     /**
