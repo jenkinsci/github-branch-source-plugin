@@ -81,6 +81,9 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void close() throws IOException {
         synchronized (this) {
@@ -92,16 +95,25 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
         Connector.release(gitHub);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public synchronized boolean isOpen() {
         return open;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public long lastModified() throws IOException {
         return repo.getCommit(ref).getCommitDate().getTime();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean changesSince(SCMRevision revision, @NonNull OutputStream changeLogStream)
             throws UnsupportedOperationException, IOException, InterruptedException {
@@ -168,6 +180,9 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
         return count > 0;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @NonNull
     @Override
     public SCMFile getRoot() {
@@ -177,22 +192,34 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
     @Extension
     public static class BuilderImpl extends SCMFileSystem.Builder {
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public boolean supports(SCM source) {
             // TODO implement a GitHubSCM so we can work for those
             return false;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public boolean supports(SCMSource source) {
             return source instanceof GitHubSCMSource;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public SCMFileSystem build(@NonNull Item owner, @NonNull SCM scm, @CheckForNull SCMRevision rev) {
             return null;
         }
 
+        /**
+         * {@inheritDoc}
+         */
         @Override
         public SCMFileSystem build(@NonNull SCMSource source, @NonNull SCMHead head, @CheckForNull SCMRevision rev)
                 throws IOException, InterruptedException {
