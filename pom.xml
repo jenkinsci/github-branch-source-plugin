@@ -8,7 +8,7 @@
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
-    <version>2.2.6-SNAPSHOT</version>
+    <version>2.2.6</version>
     <packaging>hpi</packaging>
     <name>GitHub Branch Source Plugin</name>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/GitHub+Branch+Source+Plugin</url>
@@ -30,7 +30,7 @@
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-        <tag>HEAD</tag>
+        <tag>github-branch-source-2.2.6</tag>
     </scm>
     <dependencies>
         <dependency>
