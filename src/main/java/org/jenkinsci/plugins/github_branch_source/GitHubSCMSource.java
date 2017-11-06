@@ -1943,7 +1943,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 if (prs != null && prs.size() == 1) {
                     Integer number = prs.iterator().next();
                     request.listener().getLogger().format("%n  Getting remote pull request #%d...%n", number);
-                    return new CacheUdatingIterable(Collections.singletonList(repo.getPullRequest(number)));
+                    GHPullRequest pullRequest = repo.getPullRequest(number);
+                    if (pullRequest.getState() != GHIssueState.OPEN) {
+                        return Collections.emptyList();
+                    }
+                    return new CacheUdatingIterable(Collections.singletonList(pullRequest));
                 }
                 Set<String> branchNames = request.getRequestedOriginBranchNames();
                 if (branchNames != null && branchNames.size() == 1) { // TODO flag to check PRs are all origin PRs
