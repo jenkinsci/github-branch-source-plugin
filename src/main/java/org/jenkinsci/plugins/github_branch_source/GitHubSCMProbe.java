@@ -36,6 +36,8 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMProbe;
 import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMRevision;
+import org.apache.commons.lang.StringUtils;
+import org.eclipse.jgit.lib.Constants;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHRef;
@@ -59,9 +61,11 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
         this.name = head.getName();
         if (head instanceof PullRequestSCMHead) {
             PullRequestSCMHead pr = (PullRequestSCMHead) head;
-            this.ref = "refs/pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
+            this.ref = "pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
+        } else if (head instanceof GitHubTagSCMHead){
+            this.ref = "tags/" + head.getName();
         } else {
-            this.ref = "refs/heads/" + head.getName();
+            this.ref = "heads/" + head.getName();
         }
     }
 
@@ -128,7 +132,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
         checkOpen();
         try {
             int index = path.lastIndexOf('/') + 1;
-            List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), ref);
+            List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), Constants.R_REFS + ref);
             for (GHContent content : directoryContent) {
                 if (content.getPath().equals(path)) {
                     if (content.isFile()) {

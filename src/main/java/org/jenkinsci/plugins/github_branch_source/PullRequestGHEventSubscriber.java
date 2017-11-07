@@ -60,6 +60,7 @@ import org.kohsuke.github.GHEvent;
 import org.kohsuke.github.GHEventPayload;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 
 import static com.google.common.collect.Sets.immutableEnumSet;
@@ -266,7 +267,14 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                 // fake repository name
                 return Collections.emptyMap();
             }
-            String prOwnerName = ghPullRequest.getHead().getUser().getLogin();
+            GHUser user;
+            try {
+                user = ghPullRequest.getHead().getUser();
+            } catch (IOException e) {
+                // fake owner name
+                return Collections.emptyMap();
+            }
+            String prOwnerName = user.getLogin();
             if (!prOwnerName.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME)) {
                 // fake owner name
                 return Collections.emptyMap();
