@@ -36,4 +36,26 @@ public class GitHubNotificationTest {
         assertThat(ctx.notificationStrategies().size(), is(0));
         assertThat(ctx.notificationsDisabled(), is(true));
     }
+
+    @Test
+    public void given__defaultStrategy__when__emptyStrategyList__then__strategyAdded() throws Exception {
+        GitHubSCMSourceContext ctx = new GitHubSCMSourceContext(null, SCMHeadObserver.none());
+        assumeThat(ctx.notificationStrategies().size(), is(1));
+        assumeThat(ctx.notificationsDisabled(), is(false));
+        ctx.withNotificationStrategies(Collections.<AbstractGitHubNotificationStrategy>emptyList());
+        assertThat(ctx.notificationStrategies().size(), is(0));
+        ctx.withNotificationStrategy(new DefaultGitHubNotificationStrategy());
+        assertThat(ctx.notificationStrategies().size(), is(1));
+    }
+
+    @Test
+    public void given__defaultStrategyList__when__emptyStrategyList__then__strategyAdded() throws Exception {
+        GitHubSCMSourceContext ctx = new GitHubSCMSourceContext(null, SCMHeadObserver.none());
+        assumeThat(ctx.notificationStrategies().size(), is(1));
+        assumeThat(ctx.notificationsDisabled(), is(false));
+        ctx.withNotificationStrategies(Collections.<AbstractGitHubNotificationStrategy>emptyList());
+        assertThat(ctx.notificationStrategies().size(), is(0));
+        ctx.withNotificationStrategies(Collections.<AbstractGitHubNotificationStrategy>singletonList(new DefaultGitHubNotificationStrategy()));
+        assertThat(ctx.notificationStrategies().size(), is(1));
+    }
 }
