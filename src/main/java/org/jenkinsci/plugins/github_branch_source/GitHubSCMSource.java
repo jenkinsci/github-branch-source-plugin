@@ -1218,7 +1218,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             try {
                 GHBranch branch = ghRepository.getBranch(headName);
-                if (branch != null && context.wantBranches()) {
+                if (branch != null) {
                     return new SCMRevisionImpl(new BranchSCMHead(headName), branch.getSHA1());
                 }
             } catch (FileNotFoundException e) {
@@ -1226,7 +1226,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             try {
                 GHRef tag = ghRepository.getRef("tags/" + headName);
-                if (tag != null && context.wantTags()) {
+                if (tag != null) {
                     long tagDate = 0L;
                     String tagSha = tag.getObject().getSha();
                     if ("tag".equalsIgnoreCase(tag.getObject().getType())) {
