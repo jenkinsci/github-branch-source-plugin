@@ -136,7 +136,10 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                     return;
                 }
 
-                if (p.isCreated()) {
+                if (isIgnoredCommitter(p.getPusher().getName())) {
+                    LOGGER.info("Ignoring this push as it is by an ignored Git user: "
+                            + p.getPusher().getName());
+                } else if (p.isCreated()) {
                     fireAfterDelay(new SCMHeadEventImpl(
                             SCMEvent.Type.CREATED,
                             event.getTimestamp(),
@@ -152,9 +155,6 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                             changedRepository,
                             event.getOrigin()
                     ));
-                } else if (isIgnoredCommitter(p.getPusher().getName())) {
-                    LOGGER.info("Ignoring this push as it is by an ignored Git user: "
-                            + p.getPusher().getName());
                 } else {
                     fireAfterDelay(new SCMHeadEventImpl(
                             SCMEvent.Type.UPDATED,
