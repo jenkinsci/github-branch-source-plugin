@@ -65,6 +65,7 @@ import org.kohsuke.stapler.StaplerRequest;
 
     public synchronized void setUsersToIgnore(@CheckForNull String usersToIgnore) {
         this.usersToIgnore = usersToIgnore;
+        save();
     }
 
     @NonNull
