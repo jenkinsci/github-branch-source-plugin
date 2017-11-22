@@ -10,5 +10,10 @@
                 </f:entry>
             </f:repeatableProperty>
         </f:entry>
+        <f:entry>
+                <f:entry title="Don't trigger builds for pushes by certain Git users (comma-delimited list)" field="usersToIgnore">
+                    <f:textbox/>
+                </f:entry>
+        </f:entry>
     </f:section>
 </j:jelly>

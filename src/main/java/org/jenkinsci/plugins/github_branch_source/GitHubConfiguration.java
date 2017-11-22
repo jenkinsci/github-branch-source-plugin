@@ -29,13 +29,10 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import jenkins.model.GlobalConfiguration;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
@@ -47,7 +44,10 @@ import org.kohsuke.stapler.StaplerRequest;
         return GlobalConfiguration.all().get(GitHubConfiguration.class);
     }
 
+    private static final Logger LOGGER = Logger.getLogger(GitHubConfiguration.class.getName());
+
     private List<Endpoint> endpoints;
+    private String usersToIgnore = "";
 
     public GitHubConfiguration() {
         load();
@@ -56,6 +56,35 @@ import org.kohsuke.stapler.StaplerRequest;
     @Override public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
         req.bindJSON(this, json);
         return true;
+    }
+
+    @NonNull
+    public synchronized String getUsersToIgnore() {
+        return this.usersToIgnore;
+    }
+
+    public synchronized void setUsersToIgnore(@CheckForNull String usersToIgnore) {
+        this.usersToIgnore = usersToIgnore;
+    }
+
+    @NonNull
+    public List<String> getUsersToIgnoreList() {
+        List<String> list = new ArrayList<>();
+
+        if (null != usersToIgnore && !usersToIgnore.isEmpty()) {
+            try {
+                for (String user : usersToIgnore.split(",")) {
+                    list.add(user.trim());
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE,
+                        "Error parsing users to ignore pushes for. Not ignoring any. String was: "
+                        + usersToIgnore,
+                        e);
+            }
+        }
+
+        return list;
     }
 
     @NonNull
@@ -212,5 +241,7 @@ import org.kohsuke.stapler.StaplerRequest;
         }
         return null;
     }
+
+
 
 }

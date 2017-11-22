@@ -25,6 +25,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import jenkins.model.GlobalConfiguration;
 import jenkins.scm.api.SCMEvent;
 import jenkins.scm.api.SCMEvents;
 import jenkins.scm.api.SCMHeadEvent;
@@ -99,6 +100,30 @@ public class EventsTest {
         firedEventType = SCMEvent.Type.UPDATED;
         ghEvent = callOnEvent(subscriber, "EventsTest/pushEventUpdated.json");
         waitAndAssertReceived(true);
+    }
+
+    @Test
+    public void given_ghPushEventUpdated_pusherOnIgnoreList_then_updatedHeadEventNotFired() throws Exception {
+        GitHubConfiguration config = GlobalConfiguration.all().get(GitHubConfiguration.class);
+        config.setUsersToIgnore("baxterthehacker");
+
+        PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
+
+        firedEventType = SCMEvent.Type.UPDATED;
+        ghEvent = callOnEvent(subscriber, "EventsTest/pushEventUpdated.json");
+        waitAndAssertReceived(false);
+    }
+
+    @Test
+    public void given_ghPushEventUpdated_pusherOnMultipleIgnoreList_then_updatedHeadEventNotFired() throws Exception {
+        GitHubConfiguration config = GlobalConfiguration.all().get(GitHubConfiguration.class);
+        config.setUsersToIgnore("joe,john,bob,baxterthehacker,alison,jenny");
+
+        PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
+
+        firedEventType = SCMEvent.Type.UPDATED;
+        ghEvent = callOnEvent(subscriber, "EventsTest/pushEventUpdated.json");
+        waitAndAssertReceived(false);
     }
 
     @Test

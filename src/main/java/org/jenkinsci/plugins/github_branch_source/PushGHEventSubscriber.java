@@ -40,6 +40,8 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
+
+import jenkins.model.GlobalConfiguration;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.scm.api.SCMEvent;
@@ -121,9 +123,11 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             final GHEventPayload.Push p = GitHub.offline()
                     .parseEventPayload(new StringReader(event.getPayload()), GHEventPayload.Push.class);
             String repoUrl = p.getRepository().getHtmlUrl().toExternalForm();
-            LOGGER.log(Level.INFO, "Received {0} for {1} from {2}",
-                    new Object[]{event.getGHEvent(), repoUrl, event.getOrigin()}
+            LOGGER.log(Level.INFO, "Received {0} for {1} from {2} by user ({3}, {4})",
+                    new Object[]{event.getGHEvent(), repoUrl, event.getOrigin(),
+                            p.getPusher().getName(), p.getPusher().getEmail()}
             );
+
             Matcher matcher = REPOSITORY_NAME_PATTERN.matcher(repoUrl);
             if (matcher.matches()) {
                 final GitHubRepositoryName changedRepository = GitHubRepositoryName.create(repoUrl);
@@ -148,6 +152,9 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                             changedRepository,
                             event.getOrigin()
                     ));
+                } else if (isIgnoredCommitter(p.getPusher().getName())) {
+                    LOGGER.info("Ignoring this push as it is by an ignored Git user: "
+                            + p.getPusher().getName());
                 } else {
                     fireAfterDelay(new SCMHeadEventImpl(
                             SCMEvent.Type.UPDATED,
@@ -170,6 +177,23 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
         }
     }
 
+    private boolean isIgnoredCommitter(String username) {
+        GitHubConfiguration config = GlobalConfiguration.all().get(GitHubConfiguration.class);
+
+        if (null == config) {
+            LOGGER.severe("GitHubConfiguration was null. Ignoring git users won't work!");
+            return false;
+        }
+
+        for (String user : config.getUsersToIgnoreList()) {
+            if (username.equals(user)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private void fireAfterDelay(final SCMHeadEventImpl e) {
         SCMHeadEvent.fireLater(e, GitHubSCMSource.getEventDelaySeconds(), TimeUnit.SECONDS);
     }
@@ -180,13 +204,17 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
         private final String repoHost;
         private final String repoOwner;
         private final String repository;
+        private final String pusherName;
+        private final String pusherEmail;
 
-        public SCMHeadEventImpl(Type type, long timestamp, GHEventPayload.Push pullRequest, GitHubRepositoryName repo,
+        public SCMHeadEventImpl(Type type, long timestamp, GHEventPayload.Push push, GitHubRepositoryName repo,
                                 String origin) {
-            super(type, timestamp, pullRequest, origin);
+            super(type, timestamp, push, origin);
             this.repoHost = repo.getHost();
-            this.repoOwner = pullRequest.getRepository().getOwnerName();
-            this.repository = pullRequest.getRepository().getName();
+            this.repoOwner = push.getRepository().getOwnerName();
+            this.repository = push.getRepository().getName();
+            this.pusherName = push.getPusher().getName();
+            this.pusherEmail = push.getPusher().getEmail();
         }
 
         private boolean isApiMatch(String apiUri) {
@@ -210,12 +238,14 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             String ref = getPayload().getRef();
             if (ref.startsWith(R_TAGS)) {
                 ref = ref.substring(R_TAGS.length());
-                return "Push event for tag " + ref + " in repository " + repository;
+                return "Push event for tag " + ref + " in repository " + repository
+                        + " by user (" + pusherName + ", " + pusherEmail + ")";
             }
             if (ref.startsWith(R_HEADS)) {
                 ref = ref.substring(R_HEADS.length());
             }
-            return "Push event to branch " + ref + " in repository " + repository;
+            return "Push event to branch " + ref + " in repository " + repository
+                    + " by user (" + pusherName + ", " + pusherEmail + ")";
         }
 
         /**
@@ -226,12 +256,14 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             String ref = getPayload().getRef();
             if (ref.startsWith(R_TAGS)) {
                 ref = ref.substring(R_TAGS.length());
-                return "Push event for tag " + ref;
+                return "Push event for tag " + ref
+                        + " by user (" + pusherName + ", " + pusherEmail + ")";
             }
             if (ref.startsWith(R_HEADS)) {
                 ref = ref.substring(R_HEADS.length());
             }
-            return "Push event to branch " + ref;
+            return "Push event to branch " + ref
+                    + " by user (" + pusherName + ", " + pusherEmail + ")";
         }
 
         /**
@@ -242,12 +274,14 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             String ref = getPayload().getRef();
             if (ref.startsWith(R_TAGS)) {
                 ref = ref.substring(R_TAGS.length());
-                return "Push event for tag " + ref + " in repository " + repoOwner + "/" + repository;
+                return "Push event for tag " + ref + " in repository " + repoOwner + "/" + repository
+                        + " by user (" + pusherName + ", " + pusherEmail + ")";
             }
             if (ref.startsWith(R_HEADS)) {
                 ref = ref.substring(R_HEADS.length());
             }
-            return "Push event to branch " + ref + " in repository " + repoOwner + "/" + repository;
+            return "Push event to branch " + ref + " in repository " + repoOwner + "/" + repository
+                    + " by user (" + pusherName + ", " + pusherEmail + ")";
         }
 
         /**
