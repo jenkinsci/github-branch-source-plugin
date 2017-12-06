@@ -92,12 +92,21 @@ public class GitHubBuildStatusNotification {
         if (revision != null) { // only notify if we have a revision to notify
             try {
                 GitHub gitHub = lookUpGitHub(build.getParent());
+                boolean hideUrl = false;
+                if (src instanceof GitHubSCMSource) {
+                    hideUrl = makeContext((GitHubSCMSource)src).hideUrlInNotifications();
+                }
+
                 try {
                     GHRepository repo = lookUpRepo(gitHub, build.getParent());
                     if (repo != null) {
                         String url = null;
                         try {
-                            url = DisplayURLProvider.get().getRunURL(build);
+                            if (hideUrl) {
+                                url = Messages.GitHubBuildStatusNotification_HiddenUrl();
+                            } else {
+                                url = DisplayURLProvider.get().getRunURL(build);
+                            }
                         } catch (IllegalStateException e) {
                             listener.getLogger().println(
                                     "Can not determine Jenkins root URL. Commit status notifications are disabled "
@@ -178,6 +187,11 @@ public class GitHubBuildStatusNotification {
         return null;
     }
 
+    private static GitHubSCMSourceContext makeContext(GitHubSCMSource source) {
+        return new GitHubSCMSourceContext(null, SCMHeadObserver.none())
+                .withTraits(source.getTraits());
+    }
+
     /**
      * Returns the GitHub Repository associated to a Job.
      *
@@ -191,9 +205,7 @@ public class GitHubBuildStatusNotification {
         SCMSource src = SCMSource.SourceByItem.findSource(job);
         if (src instanceof GitHubSCMSource) {
             GitHubSCMSource source = (GitHubSCMSource) src;
-            if (new GitHubSCMSourceContext(null, SCMHeadObserver.none())
-                    .withTraits(source.getTraits())
-                    .notificationsDisabled()) {
+            if (makeContext(source).notificationsDisabled()) {
                 return null;
             }
             if (source.getScanCredentialsId() != null) {
@@ -229,9 +241,8 @@ public class GitHubBuildStatusNotification {
             if (!(head instanceof PullRequestSCMHead)) {
                 return;
             }
-            if (new GitHubSCMSourceContext(null, SCMHeadObserver.none())
-                    .withTraits(((GitHubSCMSource) source).getTraits())
-                    .notificationsDisabled()) {
+            final GitHubSCMSourceContext ctx = makeContext((GitHubSCMSource)source);
+            if (ctx.notificationsDisabled()) {
                 return;
             }
             // prevent delays in the queue when updating github
@@ -240,7 +251,11 @@ public class GitHubBuildStatusNotification {
                 public void run() {
                     String url;
                     try {
-                        url = DisplayURLProvider.get().getJobURL(job);
+                        if (ctx.hideUrlInNotifications()) {
+                            url = Messages.GitHubBuildStatusNotification_HiddenUrl();
+                        } else {
+                            url = DisplayURLProvider.get().getJobURL(job);
+                        }
                     } catch (IllegalStateException e) {
                         // no root url defined, cannot notify, let's get out of here
                         return;

@@ -73,6 +73,11 @@ public class GitHubSCMSourceContext
     private boolean notificationsDisabled;
 
     /**
+     * {@code true} if Jenkins URL should be hidden in this context.
+     */
+    private boolean hideUrlInNotifications;
+
+    /**
      * Constructor.
      *
      * @param criteria (optional) criteria.
@@ -156,6 +161,16 @@ public class GitHubSCMSourceContext
     public final boolean notificationsDisabled() {
         return notificationsDisabled;
     }
+
+    /**
+     * Returns {@code true} if Jenkins url should be hidden in notifications
+     *
+     * @return {@code true} if Jenkins url should be hidden in notifications
+     */
+    public final boolean hideUrlInNotifications() {
+        return hideUrlInNotifications;
+    }
+
 
     /**
      * Adds a requirement for branch details to any {@link GitHubSCMSourceRequest} for this context.
@@ -244,6 +259,20 @@ public class GitHubSCMSourceContext
         this.notificationsDisabled = disabled;
         return this;
     }
+
+
+    /**
+     * Defines the notification mode to use in this context.
+     *
+     * @param hide {@code true} to hide our jenkins url in notifications
+     * @return {@code this} for method chaining.
+     */
+    @NonNull
+    public final GitHubSCMSourceContext withHideUrlInNotifications(boolean hide) {
+        this.hideUrlInNotifications = hide;
+        return this;
+    }
+
 
     /**
      * {@inheritDoc}
