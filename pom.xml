@@ -68,11 +68,6 @@
             <artifactId>display-url-api</artifactId>
             <version>0.2</version>
         </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>branch-api</artifactId>
-            <version>2.0.16</version>
-        </dependency>
         <!-- Currently just here for interactive testing via hpi:run: -->
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -91,6 +86,12 @@
             <artifactId>scm-api</artifactId>
             <version>${scm-api.version}</version>
             <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>branch-api</artifactId>
+            <version>2.0.11</version>
             <scope>test</scope>
         </dependency>
         <dependency>

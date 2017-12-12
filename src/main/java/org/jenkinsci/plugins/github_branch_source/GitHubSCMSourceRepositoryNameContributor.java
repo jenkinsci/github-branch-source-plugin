@@ -4,7 +4,7 @@ import com.cloudbees.jenkins.GitHubRepositoryName;
 import com.cloudbees.jenkins.GitHubRepositoryNameContributor;
 import hudson.Extension;
 import hudson.model.Item;
-import jenkins.branch.MultiBranchProject;
+import jenkins.scm.api.SCMSourceOwner;
 
 import java.util.Collection;
 
@@ -13,8 +13,8 @@ public class GitHubSCMSourceRepositoryNameContributor extends GitHubRepositoryNa
 
     @Override
     public void parseAssociatedNames(Item item, Collection<GitHubRepositoryName> result) {
-        if (item instanceof MultiBranchProject) {
-            MultiBranchProject mp = (MultiBranchProject) item;
+        if (item instanceof SCMSourceOwner) {
+            SCMSourceOwner mp = (SCMSourceOwner) item;
             for (Object o : mp.getSCMSources()) {
                 if (o instanceof GitHubSCMSource) {
                     GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) o;
