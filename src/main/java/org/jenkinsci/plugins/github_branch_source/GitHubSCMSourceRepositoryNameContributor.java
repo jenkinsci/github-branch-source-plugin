@@ -32,6 +32,12 @@ import jenkins.scm.api.SCMSourceOwner;
 
 import java.util.Collection;
 
+/**
+ * Finds the repository name(s) associated with a {@link SCMSourceOwner}'s {@link GitHubSCMSource}s.
+ *
+ * @see GitHubRepositoryNameContributor#parseAssociatedNames(Item)
+ * @see org.jenkinsci.plugins.github.webhook.WebhookManager#registerFor(Item)
+ */
 @Extension
 public class GitHubSCMSourceRepositoryNameContributor extends GitHubRepositoryNameContributor {
 
