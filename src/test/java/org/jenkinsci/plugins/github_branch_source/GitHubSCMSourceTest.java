@@ -38,6 +38,7 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.ExtensionList;
 import hudson.model.Action;
+import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.model.User;
@@ -176,6 +177,31 @@ public class GitHubSCMSourceTest {
                 hasProperty("userName", equalTo("cloudbeers")),
                 hasProperty("repositoryName", equalTo("yolo"))
         )));
+    }
+
+    @Test
+    @Issue("JENKINS-48035")
+    public void testGitHubRepositoryNameContributor_When_not_GitHub() throws IOException {
+        WorkflowMultiBranchProject job = r.createProject(WorkflowMultiBranchProject.class);
+        job.setSourcesList(Arrays.asList(new BranchSource(new GitSCMSource("file://tmp/something"))));
+        Collection<GitHubRepositoryName> names = GitHubRepositoryNameContributor.parseAssociatedNames(job);
+        assertThat(names, Matchers.<GitHubRepositoryName>empty());
+        //And specifically...
+        names = new ArrayList<>();
+        ExtensionList.lookup(GitHubRepositoryNameContributor.class).get(GitHubSCMSourceRepositoryNameContributor.class).parseAssociatedNames(job, names);
+        assertThat(names, Matchers.<GitHubRepositoryName>empty());
+    }
+
+    @Test
+    @Issue("JENKINS-48035")
+    public void testGitHubRepositoryNameContributor_When_not_MultiBranch() throws IOException {
+        FreeStyleProject job = r.createProject(FreeStyleProject.class);
+        Collection<GitHubRepositoryName> names = GitHubRepositoryNameContributor.parseAssociatedNames((Item) job);
+        assertThat(names, Matchers.<GitHubRepositoryName>empty());
+        //And specifically...
+        names = new ArrayList<>();
+        ExtensionList.lookup(GitHubRepositoryNameContributor.class).get(GitHubSCMSourceRepositoryNameContributor.class).parseAssociatedNames((Item) job, names);
+        assertThat(names, Matchers.<GitHubRepositoryName>empty());
     }
 
     @Test
