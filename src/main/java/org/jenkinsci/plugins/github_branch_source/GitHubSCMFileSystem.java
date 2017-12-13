@@ -33,13 +33,18 @@ import hudson.model.Item;
 import hudson.scm.SCM;
 import java.io.IOException;
 import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
+import org.apache.commons.lang.StringUtils;
+import org.eclipse.jgit.lib.Constants;
+import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHUser;
+import org.kohsuke.github.GHTagObject;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
 
@@ -49,7 +54,16 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
     private final String ref;
     private boolean open;
 
-    protected GitHubSCMFileSystem(GitHub gitHub, GHRepository repo, String ref, @CheckForNull SCMRevision rev) throws IOException {
+    /**
+     * Constructor.
+     *
+     * @param gitHub the {@link GitHub}
+     * @param repo the {@link GHRepository}
+     * @param refName the ref name, e.g. {@code heads/branchName}, {@code tags/tagName}, {@code pull/N/head} or the SHA.
+     * @param rev the optional revision.
+     * @throws IOException if I/O errors occur.
+     */
+    protected GitHubSCMFileSystem(GitHub gitHub, GHRepository repo, String refName, @CheckForNull SCMRevision rev) throws IOException {
         super(rev);
         this.gitHub = gitHub;
         this.open = true;
@@ -62,10 +76,10 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
             } else if (rev instanceof AbstractGitSCMSource.SCMRevisionImpl) {
                 this.ref = ((AbstractGitSCMSource.SCMRevisionImpl) rev).getHash();
             } else {
-                this.ref = ref;
+                this.ref = refName;
             }
         } else {
-            this.ref = ref;
+            this.ref = refName;
         }
     }
 
@@ -134,9 +148,11 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                             apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
                     throw new IOException(message);
                 }
-                String ref;
+                String refName;
                 if (head instanceof BranchSCMHead) {
-                    ref = head.getName();
+                    refName = "heads/" + head.getName();
+                } else if (head instanceof GitHubTagSCMHead) {
+                    refName = "tags/" + head.getName();
                 } else if (head instanceof PullRequestSCMHead) {
                     PullRequestSCMHead pr = (PullRequestSCMHead) head;
                     if (!pr.isMerge() && pr.getSourceRepo() != null) {
@@ -181,9 +197,24 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                     return null;
                 }
                 if (rev == null) {
-                    rev = new AbstractGitSCMSource.SCMRevisionImpl((BranchSCMHead) head, repo.getBranch(ref).getSHA1());
+                    GHRef ref = repo.getRef(refName);
+                    if ("tag".equalsIgnoreCase(ref.getObject().getType())) {
+                        GHTagObject tag = repo.getTagObject(ref.getObject().getSha());
+                        if (head instanceof GitHubTagSCMHead) {
+                            rev = new GitTagSCMRevision((GitHubTagSCMHead) head, tag.getObject().getSha());
+                        } else {
+                            // we should never get here, but just in case, we have the information to construct
+                            // the correct head, so let's do that
+                            rev = new GitTagSCMRevision(
+                                    new GitHubTagSCMHead(head.getName(),
+                                            tag.getTagger().getDate().getTime()), tag.getObject().getSha()
+                            );
+                        }
+                    } else {
+                        rev = new AbstractGitSCMSource.SCMRevisionImpl(head, ref.getObject().getSha());
+                    }
                 }
-                return new GitHubSCMFileSystem(github, repo, ref, rev);
+                return new GitHubSCMFileSystem(github, repo, refName, rev);
             } catch (IOException | RuntimeException e) {
                 Connector.release(github);
                 throw e;
