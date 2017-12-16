@@ -173,7 +173,7 @@ public final class GitHubNotificationContext {
             }
         } catch (IllegalStateException e) {
             listener.getLogger().println(
-                    "Can not determine Jenkins root URL. Commit status notifications are disabled "
+                    "Can not determine Jenkins root URL. Commit status notifications are sent without URL "
                             + "until a root URL is"
                             + " configured in Jenkins global configuration.");
         }
