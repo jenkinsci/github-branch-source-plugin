@@ -1,0 +1,50 @@
+= Implementation Guide
+
+== Extension Points
+
+=== AbstractGitHubNotificationStrategy
+This extension points allows traits to modify the contents of a Github status notification for a build.
+There are currently 3 points in a build lifecycle where notifications are sent:
+
+* On entering the queue
+
+* On checkout
+
+* On completion
+
+
+To add or modify a status notification at these points you should implement an `AbstractGithubNotificationStrategy`.
+This class will use a method, `notifications`, to create and return a list of one or more notifications to be made.
+The notification strategy must also implement `equals()` and `hashCode()`.
+
+A `GitHubNotificationContext` object supplies build related information to this method depending on which of the above
+events has triggered. In all cases, the `SCMSource` and `SCMHead` are available. On entering the queue, the `Job` of the
+build is available. On checkout and completion, the `Run` of the build is available.
+
+A Github status notification has 4 parts: the `context`, `url`, `message` and `state`.
+
+The `notifications` method returns a `List<GitHubNotificationRequests>` which each contain the 4 parts of a Github
+notification and a boolean to indicate if errors should be ignored when sending that notification.
+
+The default implementation for any of these parts can be accessed in the `GitHubNotificationContext` object. This is
+useful for strategies which are only replacing a single part and want to retain the defaults for the rest.
+
+The strategy or strategies are applied through a `trait`, like many other branch api extension points.
+Create a class extending `SCMSourceTrait` and override the `decorateContext` to apply the strategy. `GitHubSCMSourceContext`
+has two methods for applying strategies:
+
+* `withNotificationStrategies` takes a list of `AbstractGitHubNotificationStrategy` and overwrites any existing strategies with
+this list.
+
+* `withNotificationStrategy` takes a single strategy and adds it to a list.
+
+The default notification will not be sent if any strategy has been added to the `GitHubSCMSourceContext`. If your trait/strategy
+sends an entirely different kind of notification and you want the default notification to be sent alongside it, you should
+explicitly apply a `DefaultGitHubNotificationStrategy` to the source context in your trait.
+
+Duplicate (by equality) strategies are ignored when applied to the source context.
+
+==== Implementations:
+https://github.com/steven-foster/github-scm-trait-notification-context[github-scm-trait-notification-context]
+
+
