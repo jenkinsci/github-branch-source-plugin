@@ -73,12 +73,15 @@ public class GitHubSCMSourceContext
     @NonNull
     private Set<ChangeRequestCheckoutStrategy> forkPRStrategies = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
     /**
+     * {@code true} if notifications should be disabled in this context.
+     */
+    private boolean notificationsDisabled;
+    /**
      * Strategies used to notify Github of build status.
      *
      * @since TODO
      */
-    private final List<AbstractGitHubNotificationStrategy> notificationStrategies = new ArrayList<>(
-            Collections.<AbstractGitHubNotificationStrategy>singletonList(new DefaultGitHubNotificationStrategy()));
+    private final List<AbstractGitHubNotificationStrategy> notificationStrategies = new ArrayList<>();
 
     /**
      * Constructor.
@@ -161,6 +164,9 @@ public class GitHubSCMSourceContext
      * @since TODO
      */
     public final List<AbstractGitHubNotificationStrategy> notificationStrategies() {
+        if (notificationStrategies.isEmpty()) {
+            return Collections.<AbstractGitHubNotificationStrategy>singletonList(new DefaultGitHubNotificationStrategy());
+        }
         return Collections.unmodifiableList(notificationStrategies);
     }
     /**
@@ -169,7 +175,7 @@ public class GitHubSCMSourceContext
      * @return {@code true} if notifications should be disabled.
      */
     public final boolean notificationsDisabled() {
-        return notificationStrategies.isEmpty();
+        return notificationsDisabled;
     }
 
     /**
@@ -287,15 +293,7 @@ public class GitHubSCMSourceContext
      */
     @NonNull
     public final GitHubSCMSourceContext withNotificationsDisabled(boolean disabled) {
-        if (disabled) {
-            if (!notificationStrategies.isEmpty()) {
-                notificationStrategies.clear();
-            }
-        } else {
-            if (notificationStrategies.isEmpty()) {
-                notificationStrategies.add(new DefaultGitHubNotificationStrategy());
-            }
-        }
+        notificationsDisabled = disabled;
         return this;
     }
 
