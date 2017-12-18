@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
+import java.util.Objects;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.scm.api.SCMFile;
@@ -128,7 +129,7 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
     @Override
     public boolean changesSince(SCMRevision revision, @NonNull OutputStream changeLogStream)
             throws UnsupportedOperationException, IOException, InterruptedException {
-        if (getRevision() == null ? revision == null : getRevision().equals(revision)) {
+        if (Objects.equals(getRevision(), revision)) {
             // special case where somebody is asking one of two stupid questions:
             // 1. what has changed between the latest and the latest
             // 2. what has changed between the current revision and the current revision
