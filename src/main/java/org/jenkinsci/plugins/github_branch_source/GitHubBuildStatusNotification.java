@@ -69,24 +69,6 @@ public class GitHubBuildStatusNotification {
 
     private static final Logger LOGGER = Logger.getLogger(GitHubBuildStatusNotification.class.getName());
 
-    @Deprecated
-    private static void createCommitStatus(@NonNull GHRepository repo, @NonNull String revision,
-                                           @NonNull GHCommitState state, @NonNull String url, @NonNull String message,
-                                           @NonNull SCMHead head) throws IOException {
-        LOGGER.log(Level.FINE, "{0}/commit/{1} {2} from {3}", new Object[] {repo.getHtmlUrl(), revision, state, url});
-        String context;
-        if (head instanceof PullRequestSCMHead) {
-            if (((PullRequestSCMHead) head).isMerge()) {
-                context = "continuous-integration/jenkins/pr-merge";
-            } else {
-                context = "continuous-integration/jenkins/pr-head";
-            }
-        } else {
-            context = "continuous-integration/jenkins/branch";
-        }
-        repo.createCommitStatus(revision, state, url, message, context);
-    }
-
     private static void createBuildCommitStatus(Run<?, ?> build, TaskListener listener) {
         SCMSource src = SCMSource.SourceByItem.findSource(build.getParent());
         SCMRevision revision = src != null ? SCMRevisionAction.getRevision(src, build) : null;
