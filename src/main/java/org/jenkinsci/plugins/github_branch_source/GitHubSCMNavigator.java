@@ -1324,6 +1324,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
          *
          * @param context the context.
          * @param apiUri  the end-point.
+         * @param credentialsId the existing selection;
          * @return the drop-down list.
          * @since 2.2.0
          */

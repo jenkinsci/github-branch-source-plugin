@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2016 CloudBees, Inc.
+ * Copyright 2016-2017 CloudBees, Inc., Steven Foster
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,6 +42,7 @@ import hudson.scm.SCMRevisionState;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -51,7 +52,6 @@ import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
-import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.kohsuke.github.GHCommitState;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
@@ -69,23 +69,6 @@ public class GitHubBuildStatusNotification {
 
     private static final Logger LOGGER = Logger.getLogger(GitHubBuildStatusNotification.class.getName());
 
-    private static void createCommitStatus(@NonNull GHRepository repo, @NonNull String revision,
-                                           @NonNull GHCommitState state, @NonNull String url, @NonNull String message,
-                                           @NonNull SCMHead head) throws IOException {
-        LOGGER.log(Level.FINE, "{0}/commit/{1} {2} from {3}", new Object[] {repo.getHtmlUrl(), revision, state, url});
-        String context;
-        if (head instanceof PullRequestSCMHead) {
-            if (((PullRequestSCMHead) head).isMerge()) {
-                context = "continuous-integration/jenkins/pr-merge";
-            } else {
-                context = "continuous-integration/jenkins/pr-head";
-            }
-        } else {
-            context = "continuous-integration/jenkins/branch";
-        }
-        repo.createCommitStatus(revision, state, url, message, context);
-    }
-
     private static void createBuildCommitStatus(Run<?, ?> build, TaskListener listener) {
         SCMSource src = SCMSource.SourceByItem.findSource(build.getParent());
         SCMRevision revision = src != null ? SCMRevisionAction.getRevision(src, build) : null;
@@ -95,51 +78,39 @@ public class GitHubBuildStatusNotification {
                 try {
                     GHRepository repo = lookUpRepo(gitHub, build.getParent());
                     if (repo != null) {
-                        String url = null;
-                        try {
-                            url = DisplayURLProvider.get().getRunURL(build);
-                        } catch (IllegalStateException e) {
-                            listener.getLogger().println(
-                                    "Can not determine Jenkins root URL. Commit status notifications are disabled "
-                                            + "until a root URL is"
-                                            + " configured in Jenkins global configuration.");
-                            return;
-                        }
-                        boolean ignoreError = false;
-                        try {
-                            Result result = build.getResult();
-                            String revisionToNotify = resolveHeadCommit(revision);
-                            SCMHead head = revision.getHead();
-                            if (Result.SUCCESS.equals(result)) {
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.SUCCESS, url, Messages.GitHubBuildStatusNotification_CommitStatus_Good(), head);
-                            } else if (Result.UNSTABLE.equals(result)) {
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.FAILURE, url, Messages.GitHubBuildStatusNotification_CommitStatus_Unstable(), head);
-                            } else if (Result.FAILURE.equals(result)) {
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Failure(), head);
-                            } else if (Result.ABORTED.equals(result)) {
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Aborted(), head);
-                            } else if (result != null) { // NOT_BUILT etc.
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.ERROR, url, Messages.GitHubBuildStatusNotification_CommitStatus_Other(), head);
-                            } else {
-                                ignoreError = true;
-                                createCommitStatus(repo, revisionToNotify, GHCommitState.PENDING, url, Messages.GitHubBuildStatusNotification_CommitStatus_Pending(), head);
-                            }
-                            if (result != null) {
-                                listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
-                            }
-                        } catch (FileNotFoundException fnfe) {
-                            if (!ignoreError) {
-                                listener.getLogger().format("%nCould not update commit status, please check if your scan " +
-                                        "credentials belong to a member of the organization or a collaborator of the " +
-                                        "repository and repo:status scope is selected%n%n");
-                                if (LOGGER.isLoggable(Level.FINE)) {
-                                    LOGGER.log(Level.FINE, "Could not update commit status, for run "
-                                            + build.getFullDisplayName()
-                                            + " please check if your scan "
-                                            + "credentials belong to a member of the organization or a "
-                                            + "collaborator of the repository and repo:status scope is selected", fnfe);
+                        Result result = build.getResult();
+                        String revisionToNotify = resolveHeadCommit(revision);
+                        SCMHead head = revision.getHead();
+                        List<AbstractGitHubNotificationStrategy> strategies = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
+                                .withTraits(((GitHubSCMSource) src).getTraits()).notificationStrategies();
+                        for (AbstractGitHubNotificationStrategy strategy : strategies) {
+                            // TODO allow strategies to combine/cooperate on a notification
+                            GitHubNotificationContext notificationContext = GitHubNotificationContext.build(null, build,
+                                    src, head);
+                            List<GitHubNotificationRequest> details = strategy.notifications(notificationContext, listener);
+                            for (GitHubNotificationRequest request : details) {
+                                boolean ignoreError = request.isIgnoreError();
+                                try {
+                                    repo.createCommitStatus(revisionToNotify, request.getState(), request.getUrl(), request.getMessage(),
+                                            request.getContext());
+                                } catch (FileNotFoundException fnfe) {
+                                    if (!ignoreError) {
+                                        listener.getLogger().format("%nCould not update commit status, please check if your scan " +
+                                                "credentials belong to a member of the organization or a collaborator of the " +
+                                                "repository and repo:status scope is selected%n%n");
+                                        if (LOGGER.isLoggable(Level.FINE)) {
+                                            LOGGER.log(Level.FINE, "Could not update commit status, for run "
+                                                    + build.getFullDisplayName()
+                                                    + " please check if your scan "
+                                                    + "credentials belong to a member of the organization or a "
+                                                    + "collaborator of the repository and repo:status scope is selected", fnfe);
+                                        }
+                                    }
                                 }
                             }
+                        }
+                        if (result != null) {
+                            listener.getLogger().format("%n" + Messages.GitHubBuildStatusNotification_CommitStatusSet() + "%n%n");
                         }
                     }
                 } finally {
@@ -229,22 +200,15 @@ public class GitHubBuildStatusNotification {
             if (!(head instanceof PullRequestSCMHead)) {
                 return;
             }
-            if (new GitHubSCMSourceContext(null, SCMHeadObserver.none())
-                    .withTraits(((GitHubSCMSource) source).getTraits())
-                    .notificationsDisabled()) {
+            final GitHubSCMSourceContext sourceContext = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
+                    .withTraits(((GitHubSCMSource) source).getTraits());
+            if (sourceContext.notificationsDisabled()) {
                 return;
             }
             // prevent delays in the queue when updating github
             Computer.threadPoolForRemoting.submit(new Runnable() {
                 @Override
                 public void run() {
-                    String url;
-                    try {
-                        url = DisplayURLProvider.get().getJobURL(job);
-                    } catch (IllegalStateException e) {
-                        // no root url defined, cannot notify, let's get out of here
-                        return;
-                    }
                     GitHub gitHub = null;
                     try {
                         gitHub = lookUpGitHub(job);
@@ -269,8 +233,26 @@ public class GitHubBuildStatusNotification {
                                     // status. JobCheckOutListener is now responsible for setting the pending status.
                                     return;
                                 }
-                                createCommitStatus(repo, hash, GHCommitState.PENDING, url,
-                                        Messages.GitHubBuildStatusNotification_CommitStatus_Queued(), head);
+                                List<AbstractGitHubNotificationStrategy> strategies = sourceContext.notificationStrategies();
+                                for (AbstractGitHubNotificationStrategy strategy : strategies) {
+                                    // TODO allow strategies to combine/cooperate on a notification
+                                    GitHubNotificationContext notificationContext = GitHubNotificationContext.build(job, null,
+                                            source, head);
+                                    List<GitHubNotificationRequest> details = strategy.notifications(notificationContext, null);
+                                    for (GitHubNotificationRequest request : details) {
+                                        boolean ignoreErrors = request.isIgnoreError();
+                                        try {
+                                            repo.createCommitStatus(hash, request.getState(), request.getUrl(), request.getMessage(),
+                                                    request.getContext());
+                                        } catch (FileNotFoundException e) {
+                                            if (!ignoreErrors) {
+                                                LOGGER.log(Level.WARNING,
+                                                        "Could not update commit status to PENDING. Valid scan credentials? Valid scopes?",
+                                                        LOGGER.isLoggable(Level.FINE) ? e : null);
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         } finally {
                             Connector.release(gitHub);

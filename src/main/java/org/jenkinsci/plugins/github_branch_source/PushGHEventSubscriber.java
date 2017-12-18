@@ -41,6 +41,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import javax.annotation.Nullable;
 import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.scm.api.SCMEvent;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadEvent;
@@ -174,6 +175,8 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
     }
 
     private static class SCMHeadEventImpl extends SCMHeadEvent<GHEventPayload.Push> {
+        private static final String R_HEADS = "refs/heads/";
+        private static final String R_TAGS = "refs/tags/";
         private final String repoHost;
         private final String repoOwner;
         private final String repository;
@@ -205,8 +208,12 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
         @Override
         public String descriptionFor(@NonNull SCMNavigator navigator) {
             String ref = getPayload().getRef();
-            if (ref.startsWith("refs/heads/")) {
-                ref = ref.substring("refs/heads/".length());
+            if (ref.startsWith(R_TAGS)) {
+                ref = ref.substring(R_TAGS.length());
+                return "Push event for tag " + ref + " in repository " + repository;
+            }
+            if (ref.startsWith(R_HEADS)) {
+                ref = ref.substring(R_HEADS.length());
             }
             return "Push event to branch " + ref + " in repository " + repository;
         }
@@ -217,8 +224,12 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
         @Override
         public String descriptionFor(SCMSource source) {
             String ref = getPayload().getRef();
-            if (ref.startsWith("refs/heads/")) {
-                ref = ref.substring("refs/heads/".length());
+            if (ref.startsWith(R_TAGS)) {
+                ref = ref.substring(R_TAGS.length());
+                return "Push event for tag " + ref;
+            }
+            if (ref.startsWith(R_HEADS)) {
+                ref = ref.substring(R_HEADS.length());
             }
             return "Push event to branch " + ref;
         }
@@ -229,8 +240,12 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
         @Override
         public String description() {
             String ref = getPayload().getRef();
-            if (ref.startsWith("refs/heads/")) {
-                ref = ref.substring("refs/heads/".length());
+            if (ref.startsWith(R_TAGS)) {
+                ref = ref.substring(R_TAGS.length());
+                return "Push event for tag " + ref + " in repository " + repoOwner + "/" + repository;
+            }
+            if (ref.startsWith(R_HEADS)) {
+                ref = ref.substring(R_HEADS.length());
             }
             return "Push event to branch " + ref + " in repository " + repoOwner + "/" + repository;
         }
@@ -286,13 +301,13 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
 
             GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
                     .withTraits(src.getTraits());
-            if (context.wantBranches()) {
+            String ref = push.getRef();
+            if (context.wantBranches() && !ref.startsWith(R_TAGS)) {
                 // we only want the branch details if the branch is actually built!
-                String ref = push.getRef();
                 BranchSCMHead head;
-                if (ref.startsWith("refs/heads/")) {
+                if (ref.startsWith(R_HEADS)) {
                     // GitHub is consistent in inconsistency, this ref is the full ref... other refs are not!
-                    head = new BranchSCMHead(ref.substring("refs/heads/".length()));
+                    head = new BranchSCMHead(ref.substring(R_HEADS.length()));
                 } else {
                     head = new BranchSCMHead(ref);
                 }
@@ -306,6 +321,39 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                 if (!excluded) {
                     return Collections.<SCMHead, SCMRevision>singletonMap(head,
                             new AbstractGitSCMSource.SCMRevisionImpl(head, push.getHead()));
+                }
+            }
+            if (context.wantTags() && ref.startsWith(R_TAGS)) {
+                // NOTE: GitHub provides the timestamp of the head commit, but if this is an annotated tag
+                // then that would be an incorrect timestamp, so we have to assume we are going to have the
+                // wrong timestamp for everything except lightweight tags.
+                //
+                // Now in any case, this actually does not matter.
+                //
+                // Event consumers are supposed to *not* trust the details reported by an event, it's just a hint.
+                // All we really want is that we report enough of a head to provide the head.getName()
+                // then the event consumer is supposed to turn arround and do a fetch(..., event, ...)
+                // and as GitHubSCMSourceRequest strips out the timestamp in calculating the requested
+                // tag names, we have a winner.
+                //
+                // So let's make the assumption that tags are not pushed a long time after their creation and
+                // use the event timestamp. This may cause issues if anyone has a pre-filter that filters
+                // out tags that are less than X seconds old, but as such a filter would be incompatible with events
+                // discovering tags, no harm... the key part is that a pre-filter that removes tags older than X days
+                // will not strip the tag *here* (because it will always be only a few seconds "old"), but when
+                // the fetch call actually has the real tag date the pre-filter will apply at that point in time.
+
+                GitHubTagSCMHead head = new GitHubTagSCMHead(ref.substring(R_TAGS.length()), getTimestamp());
+                boolean excluded = false;
+                for (SCMHeadPrefilter prefilter : context.prefilters()) {
+                    if (prefilter.isExcluded(source, head)) {
+                        excluded = true;
+                        break;
+                    }
+                }
+                if (!excluded) {
+                    return Collections.<SCMHead, SCMRevision>singletonMap(head,
+                            new GitTagSCMRevision(head, push.getHead()));
                 }
             }
             return Collections.emptyMap();

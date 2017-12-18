@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2017, CloudBees, Inc.
+ * Copyright (c) 2017, CloudBees, Inc., Steven Foster
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,8 +26,13 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.TaskListener;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
+
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceCriteria;
@@ -71,6 +76,12 @@ public class GitHubSCMSourceContext
      * {@code true} if notifications should be disabled in this context.
      */
     private boolean notificationsDisabled;
+    /**
+     * Strategies used to notify Github of build status.
+     *
+     * @since TODO
+     */
+    private final List<AbstractGitHubNotificationStrategy> notificationStrategies = new ArrayList<>();
 
     /**
      * Constructor.
@@ -147,11 +158,21 @@ public class GitHubSCMSourceContext
     public final Set<ChangeRequestCheckoutStrategy> forkPRStrategies() {
         return forkPRStrategies;
     }
-
     /**
-     * Returns {@code true} if notifications shoule be disabled.
+     * Returns the strategies used to notify Github of build status.
+     * @return the strategies used to notify Github of build status.
+     * @since TODO
+     */
+    public final List<AbstractGitHubNotificationStrategy> notificationStrategies() {
+        if (notificationStrategies.isEmpty()) {
+            return Collections.<AbstractGitHubNotificationStrategy>singletonList(new DefaultGitHubNotificationStrategy());
+        }
+        return Collections.unmodifiableList(notificationStrategies);
+    }
+    /**
+     * Returns {@code true} if notifications should be disabled.
      *
-     * @return {@code true} if notifications shoule be disabled.
+     * @return {@code true} if notifications should be disabled.
      */
     public final boolean notificationsDisabled() {
         return notificationsDisabled;
@@ -232,6 +253,37 @@ public class GitHubSCMSourceContext
         forkPRStrategies.addAll(strategies);
         return this;
     }
+    /**
+     * Replaces the list of strategies used to notify Github of build status.
+     *
+     * @param strategies the strategies used to notify Github of build status.
+     * @return {@code this} for method chaining.
+     * @since TODO
+     */
+    @NonNull
+    public final GitHubSCMSourceContext withNotificationStrategies(List<AbstractGitHubNotificationStrategy> strategies) {
+        notificationStrategies.clear();
+        for (AbstractGitHubNotificationStrategy strategy : strategies) {
+            if (!notificationStrategies.contains(strategy)) {
+                notificationStrategies.add(strategy);
+            }
+        }
+        return this;
+    }
+
+    /**
+     * Add a strategy used to notify Github of build status.
+     * @param strategy a strategy used to notify Github of build status.
+     * @return {@code this} for method chaining.
+     * @since TODO
+     */
+    @NonNull
+    public final GitHubSCMSourceContext withNotificationStrategy(AbstractGitHubNotificationStrategy strategy) {
+        if (!notificationStrategies.contains(strategy)) {
+            notificationStrategies.add(strategy);
+        }
+        return this;
+    }
 
     /**
      * Defines the notification mode to use in this context.
@@ -241,7 +293,7 @@ public class GitHubSCMSourceContext
      */
     @NonNull
     public final GitHubSCMSourceContext withNotificationsDisabled(boolean disabled) {
-        this.notificationsDisabled = disabled;
+        notificationsDisabled = disabled;
         return this;
     }
 

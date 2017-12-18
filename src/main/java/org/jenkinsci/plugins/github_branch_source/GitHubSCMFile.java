@@ -33,6 +33,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import jenkins.scm.api.SCMFile;
+import org.eclipse.jgit.lib.Constants;
 import org.kohsuke.github.GHContent;
 import org.kohsuke.github.GHRepository;
 
@@ -88,28 +89,29 @@ class GitHubSCMFile extends SCMFile {
             try {
                 switch (info) {
                     case DIRECTORY_ASSUMED:
-                        metadata = repo.getDirectoryContent(getPath(), ref);
+                        metadata = repo.getDirectoryContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                         info = TypeInfo.DIRECTORY_CONFIRMED;
                         resolved = true;
                         break;
                     case DIRECTORY_CONFIRMED:
-                        metadata = repo.getDirectoryContent(getPath(), ref);
+                        metadata = repo.getDirectoryContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                         resolved = true;
                         break;
                     case NON_DIRECTORY_CONFIRMED:
-                        metadata = repo.getFileContent(getPath(), ref);
+                        metadata = repo.getFileContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                         resolved = true;
                         break;
                     case UNRESOLVED:
                         checkOpen();
                         try {
-                            metadata = repo.getFileContent(getPath(), ref);
+                            metadata = repo.getFileContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                             info = TypeInfo.NON_DIRECTORY_CONFIRMED;
                             resolved = true;
                         } catch (IOException e) {
                             if (e.getCause() instanceof IOException
                                     && e.getCause().getCause() instanceof JsonMappingException) {
-                                metadata = repo.getDirectoryContent(getPath(), ref);
+                                metadata = repo.getDirectoryContent(getPath(),
+                                        ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                                 info = TypeInfo.DIRECTORY_CONFIRMED;
                                 resolved = true;
                             } else {
@@ -136,7 +138,7 @@ class GitHubSCMFile extends SCMFile {
     @Override
     public Iterable<SCMFile> children() throws IOException {
         checkOpen();
-        List<GHContent> content = repo.getDirectoryContent(getPath(), ref);
+        List<GHContent> content = repo.getDirectoryContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
         List<SCMFile> result = new ArrayList<>(content.size());
         for (GHContent c : content) {
             result.add(new GitHubSCMFile(this, c.getName(), c));
