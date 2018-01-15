@@ -23,6 +23,8 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
+import org.jenkinsci.plugins.github_branch_source.WhitelistGlobalConfiguration;
+import com.google.inject.Inject;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.util.ListBoxModel;
@@ -304,6 +306,57 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
             @Override
             public String getDisplayName() {
                 return Messages.ForkPullRequestDiscoveryTrait_contributorsDisplayName();
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+
+        }
+    }
+
+    /**
+     * An {@link SCMHeadAuthority} that trusts contributors to the repository as well as those on a whitelist.
+     */
+    public static class TrustContributorsAndWhitelist extends TrustContributors {
+
+        private WhitelistSource whitelist;
+
+        /**
+         * Constructor.
+         */
+        @Inject
+        @DataBoundConstructor
+        public TrustContributorsAndWhitelist(WhitelistSource whitelist) {
+           this.whitelist = whitelist;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head) {
+            boolean isContributor = super.checkTrusted(request, head);
+            boolean isWhitelisted = whitelist.contains(head.getSourceOwner());
+            return isContributor || isWhitelisted;
+        }
+
+        /**
+         * Our descriptor.
+         */
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public String getDisplayName() {
+                return Messages.ForkPullRequestDiscoveryTrait_contributorsAndWhitelistDisplayName();
             }
 
             /**
