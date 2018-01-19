@@ -26,7 +26,6 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import org.jenkinsci.plugins.github_branch_source.WhitelistSource;
 import java.util.Arrays;
-import java.util.ListIterator;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
@@ -55,9 +54,9 @@ public class WhitelistGlobalConfiguration extends GlobalConfiguration implements
         return GlobalConfiguration.all().get(WhitelistGlobalConfiguration.class);
     }
 
-    private String whitelist;
+    private String pullRequestWhitelist;
 
-    private List<String> userIds;
+    private Set<String> userIds;
 
     public WhitelistGlobalConfiguration() {
         load();
@@ -67,23 +66,23 @@ public class WhitelistGlobalConfiguration extends GlobalConfiguration implements
     public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
         req.bindJSON(this, json);
         userIds = getUserIds();
-        sanitizeUserIds();
+        sanitizeUserIds(userIds);
         return true;
     }
 
     @NonNull
     public synchronized String getWhitelist() {
-        return whitelist;
+        return pullRequestWhitelist;
     }
 
-    public synchronized void setWhitelist(@CheckForNull String whitelist) {
-        this.whitelist = whitelist;
+    public synchronized void setPullRequestWhitelist(@CheckForNull String whitelist) {
+        this.pullRequestWhitelist = whitelist;
         save();
     }
 
     @Override
-    public List<String> getUserIds() {
-        return new ArrayList<String>(whitelist == null ? Collections.<String>emptyList() : Arrays.asList(whitelist.split("\\s+")));
+    public Set<String> getUserIds() {
+        return new HashSet<String>(pullRequestWhitelist == null ? Collections.<String>emptySet() : Arrays.asList(pullRequestWhitelist.split("\\s+")));
     }
 
     @Override
@@ -91,11 +90,13 @@ public class WhitelistGlobalConfiguration extends GlobalConfiguration implements
         return userIds.contains(userId);
     }
 
-    private void sanitizeUserIds() {
-        ListIterator<String> iterator = userIds.listIterator();
-        while (iterator.hasNext()) {
-            iterator.set(iterator.next().toLowerCase().trim());
+    private void sanitizeUserIds(Set<String> userIds) {
+        String[] stringsArray = userIds.toArray(new String[0]);
+        for (int i = 0; i < stringsArray.length; ++i) {
+            stringsArray[i] = stringsArray[i].toLowerCase().trim();
         }
+        userIds.clear();
+        userIds.addAll(Arrays.asList(stringsArray));
     }
 
 }
