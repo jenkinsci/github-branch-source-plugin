@@ -332,7 +332,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         @Inject
         @DataBoundConstructor
         public TrustContributorsAndWhitelist(WhitelistSource whitelist) {
-           this.whitelist = whitelist;
+            this.whitelist = whitelist;
         }
 
         /**
@@ -357,6 +357,57 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
             @Override
             public String getDisplayName() {
                 return Messages.ForkPullRequestDiscoveryTrait_contributorsAndWhitelistDisplayName();
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+
+        }
+    }
+
+    /**
+     * An {@link SCMHeadAuthority} that trusts a whitelist of users.
+     */
+    public static class TrustWhitelist
+            extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+
+        private WhitelistSource whitelist;
+
+        /**
+         * Constructor.
+         */
+        @Inject
+        @DataBoundConstructor
+        public TrustWhitelist(WhitelistSource whitelist) {
+            this.whitelist = whitelist;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head) {
+            return !head.getOrigin().equals(SCMHeadOrigin.DEFAULT)
+                    && whitelist.contains(head.getSourceOwner());
+        }
+
+        /**
+         * Our descriptor.
+         */
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public String getDisplayName() {
+                return Messages.ForkPullRequestDiscoveryTrait_whitelistDisplayName();
             }
 
             /**

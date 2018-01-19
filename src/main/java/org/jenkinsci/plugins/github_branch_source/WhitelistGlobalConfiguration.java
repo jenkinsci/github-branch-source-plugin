@@ -44,6 +44,10 @@ import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.StaplerRequest;
 
+/**
+ * A configuration entry in the central Jenkins configuration page for defining a global trusted
+ * pull request author whitelist.
+ */
 @Extension
 public class WhitelistGlobalConfiguration extends GlobalConfiguration implements WhitelistSource {
 
@@ -84,13 +88,13 @@ public class WhitelistGlobalConfiguration extends GlobalConfiguration implements
 
     @Override
     public boolean contains(String userId) {
-       return userIds.contains(userId);
+        return userIds.contains(userId);
     }
 
     private void sanitizeUserIds() {
         ListIterator<String> iterator = userIds.listIterator();
         while (iterator.hasNext()) {
-            iterator.set(iterator.next().toLowerCase());
+            iterator.set(iterator.next().toLowerCase().trim());
         }
     }
 

@@ -26,11 +26,15 @@
             query the list of contributors to the origin repository then only the origin account will be treated
             as trusted - i.e. this will fall back to <code>Nobody</code>.
         </dd>
+        <dt>Whitelist</dt>
+        <dd>
+            Pull request forks will be treated as trusted if and only if the fork owner is on the trusted whitelist.
+            Useful for when certain developers need to be able to modify trusted files (e.g. <code>Jenkinsfile</code>)
+            but they are not necessarily collaborators on the origin repository.
+        </dd>
         <dt>Contributors & Whitelist</dt>
         <dd>
             Same as contributors with an additional check to see if the pull request author is on a whitelist.
-            Useful for when certain developers need to be able to modify trusted files (e.g. <code>Jenkinsfile</code>)
-            but they are not necessarily collaborators on the origin repository.
         </dd>
         <dt>Everyone</dt>
         <dd>
