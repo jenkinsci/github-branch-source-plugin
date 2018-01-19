@@ -23,27 +23,17 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
-import org.jenkinsci.plugins.github_branch_source.WhitelistGlobalConfiguration;
 import com.google.inject.Inject;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.util.ListBoxModel;
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
-import jenkins.scm.api.trait.SCMHeadAuthority;
-import jenkins.scm.api.trait.SCMHeadAuthorityDescriptor;
-import jenkins.scm.api.trait.SCMSourceContext;
-import jenkins.scm.api.trait.SCMSourceRequest;
-import jenkins.scm.api.trait.SCMSourceTrait;
-import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
+import jenkins.scm.api.trait.*;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.trait.Discovery;
 import org.kohsuke.accmod.Restricted;
@@ -51,12 +41,21 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Logger;
+
 /**
  * A {@link Discovery} trait for GitHub that will discover pull requests from forks of the repository.
  *
  * @since 2.2.0
  */
 public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
+
+    private static final Logger LOGGER = Logger.getLogger(ForkPullRequestDiscoveryTrait.class.getName());
+
     /**
      * The strategy encoded as a bit-field.
      */

@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 CloudBees, Inc.
+ * Copyright (c) 2017, CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,28 +24,23 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import org.jenkinsci.plugins.github_branch_source.WhitelistSource;
-import java.util.Arrays;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
-import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
 import jenkins.model.GlobalConfiguration;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.StaplerRequest;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.Iterator;
 
 /**
  * A configuration entry in the central Jenkins configuration page for defining a global trusted
  * pull request author whitelist.
+ *
+ * @since 2.3.2
  */
 @Extension
 public class WhitelistGlobalConfiguration extends GlobalConfiguration implements WhitelistSource {
@@ -65,13 +60,11 @@ public class WhitelistGlobalConfiguration extends GlobalConfiguration implements
     @Override
     public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
         req.bindJSON(this, json);
-        userIds = getUserIds();
-        sanitizeUserIds(userIds);
+        userIds = extractUserIds(getPullRequestWhitelist());
         return true;
     }
 
-    @NonNull
-    public synchronized String getWhitelist() {
+    public synchronized String getPullRequestWhitelist() {
         return pullRequestWhitelist;
     }
 
@@ -81,22 +74,27 @@ public class WhitelistGlobalConfiguration extends GlobalConfiguration implements
     }
 
     @Override
-    public Set<String> getUserIds() {
-        return new HashSet<String>(pullRequestWhitelist == null ? Collections.<String>emptySet() : Arrays.asList(pullRequestWhitelist.split("\\s+")));
+    public synchronized Set<String> getUserIds() {
+        return extractUserIds(pullRequestWhitelist);
     }
 
     @Override
-    public boolean contains(String userId) {
-        return userIds.contains(userId);
+    public synchronized boolean contains(String userId) {
+        // GitHub user IDs are case-insensitive
+        return getUserIds().contains(userId.toLowerCase().trim());
     }
 
-    private void sanitizeUserIds(Set<String> userIds) {
-        String[] stringsArray = userIds.toArray(new String[0]);
-        for (int i = 0; i < stringsArray.length; ++i) {
-            stringsArray[i] = stringsArray[i].toLowerCase().trim();
+    private Set<String> extractUserIds(String whitelist) {
+        Set<String> userIds = new HashSet<String>(whitelist == null ? Collections.<String>emptySet() : Arrays.asList(whitelist.split("\\s+")));
+        Iterator<String> iterator = userIds.iterator();
+        Set<String> sanitizedSet = new HashSet<String>();
+        while (iterator.hasNext()) {
+            String sanitizedString = iterator.next().toLowerCase().trim();
+            if (!sanitizedString.isEmpty()) {
+                sanitizedSet.add(sanitizedString);
+            }
         }
-        userIds.clear();
-        userIds.addAll(Arrays.asList(stringsArray));
+        return sanitizedSet;
     }
 
 }

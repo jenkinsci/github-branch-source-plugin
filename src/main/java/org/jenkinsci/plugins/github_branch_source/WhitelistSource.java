@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 package org.jenkinsci.plugins.github_branch_source;
 
 import java.util.Set;
@@ -30,12 +31,18 @@ import java.util.Set;
  * permissions. Different whitelist sources may be defined, for example, a list of user IDs
  * defined in a text field in the Jenkins UI.
  *
- * @since 2.2.0
+ * @since 2.3.2
  */
 interface WhitelistSource {
 
+    /*
+     * @return The list of user IDs from the whitelist.
+     */
     public Set<String> getUserIds();
 
+    /*
+     * @return True if and only if the user ID is on the whitelist.
+     */
     public boolean contains(String userId);
 
 }

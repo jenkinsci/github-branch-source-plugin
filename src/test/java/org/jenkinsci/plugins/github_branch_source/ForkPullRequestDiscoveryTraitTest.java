@@ -1,16 +1,11 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import hudson.util.XStream2;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.Arrays;
 import jenkins.scm.api.SCMHeadObserver;
+import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMHeadFilter;
 import jenkins.scm.api.trait.SCMHeadPrefilter;
-import jenkins.scm.api.SCMHeadOrigin;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -18,15 +13,14 @@ import org.junit.runner.RunWith;
 import org.powermock.core.classloader.annotations.PrepareForTest;
 import org.powermock.modules.junit4.PowerMockRunner;
 
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import java.util.*;
+
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
-import static org.powermock.api.mockito.PowerMockito.mock;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.when;
+import static org.powermock.api.mockito.PowerMockito.mock;
 
 @RunWith(PowerMockRunner.class)
 @PrepareForTest(GitHubSCMSourceRequest.class)
