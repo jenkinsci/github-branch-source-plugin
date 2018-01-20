@@ -46,6 +46,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.logging.Level;
 
 /**
  * A {@link Discovery} trait for GitHub that will discover pull requests from forks of the repository.
