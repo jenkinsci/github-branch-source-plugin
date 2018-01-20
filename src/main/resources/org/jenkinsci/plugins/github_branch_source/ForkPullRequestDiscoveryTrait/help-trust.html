@@ -30,11 +30,13 @@
         <dd>
             Pull request forks will be treated as trusted if and only if the fork owner is on the trusted whitelist.
             Useful for when certain developers need to be able to modify trusted files (e.g. <code>Jenkinsfile</code>)
-            but they are not necessarily collaborators on the origin repository.
+            but they are not necessarily collaborators on the origin repository. The global whitelist can be configured
+            on the global Jenkins configuration page.
         </dd>
         <dt>Contributors & Whitelist</dt>
         <dd>
-            Same as contributors with an additional check to see if the pull request author is on a whitelist.
+            Same as contributors with an additional check to see if the pull request author is on a whitelist. The global
+            whitelist can be configured on the global Jenkins configuration page.
         </dd>
         <dt>Everyone</dt>
         <dd>

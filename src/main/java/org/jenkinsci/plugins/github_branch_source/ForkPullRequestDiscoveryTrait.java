@@ -341,6 +341,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head) {
             boolean isContributor = super.checkTrusted(request, head);
             boolean isWhitelisted = whitelist.contains(head.getSourceOwner());
+            LOGGER.log(Level.INFO, "Pull request author {0} whitelisted? {1}", head.getSourceOwner(), isWhitelisted);
             return isContributor || isWhitelisted;
         }
 
@@ -391,8 +392,9 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
          */
         @Override
         protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head) {
-            return !head.getOrigin().equals(SCMHeadOrigin.DEFAULT)
-                    && whitelist.contains(head.getSourceOwner());
+            boolean isWhitelisted = whitelist.contains(head.getSourceOwner());
+            LOGGER.log(Level.INFO, "Pull request author {0} whitelisted? {1}", head.getSourceOwner(), isWhitelisted);
+            return !head.getOrigin().equals(SCMHeadOrigin.DEFAULT) && isWhitelisted;
         }
 
         /**
