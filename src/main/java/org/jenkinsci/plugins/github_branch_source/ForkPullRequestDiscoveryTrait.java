@@ -23,25 +23,17 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
+import com.google.inject.Inject;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.util.ListBoxModel;
-import java.io.IOException;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Set;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
-import jenkins.scm.api.trait.SCMHeadAuthority;
-import jenkins.scm.api.trait.SCMHeadAuthorityDescriptor;
-import jenkins.scm.api.trait.SCMSourceContext;
-import jenkins.scm.api.trait.SCMSourceRequest;
-import jenkins.scm.api.trait.SCMSourceTrait;
-import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
+import jenkins.scm.api.trait.*;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.trait.Discovery;
 import org.kohsuke.accmod.Restricted;
@@ -49,12 +41,22 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.stapler.DataBoundConstructor;
 
+import java.io.IOException;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Logger;
+import java.util.logging.Level;
+
 /**
  * A {@link Discovery} trait for GitHub that will discover pull requests from forks of the repository.
  *
  * @since 2.2.0
  */
 public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
+
+    private static final Logger LOGGER = Logger.getLogger(ForkPullRequestDiscoveryTrait.class.getName());
+
     /**
      * The strategy encoded as a bit-field.
      */
@@ -304,6 +306,111 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
             @Override
             public String getDisplayName() {
                 return Messages.ForkPullRequestDiscoveryTrait_contributorsDisplayName();
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+
+        }
+    }
+
+    /**
+     * An {@link SCMHeadAuthority} that trusts contributors to the repository as well as those on a whitelist.
+     */
+    public static class TrustContributorsAndWhitelist extends TrustContributors {
+
+        private WhitelistSource whitelist;
+
+        /**
+         * Constructor.
+         */
+        @Inject
+        @DataBoundConstructor
+        public TrustContributorsAndWhitelist(WhitelistSource whitelist) {
+            super();
+            this.whitelist = whitelist;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head) {
+            boolean isContributor = super.checkTrusted(request, head);
+            boolean isWhitelisted = whitelist.contains(head.getSourceOwner());
+            LOGGER.log(Level.INFO, "Pull request author {0} whitelisted? {1}", new Object[]{head.getSourceOwner(), String.valueOf(isWhitelisted)});
+            return isContributor || isWhitelisted;
+        }
+
+        /**
+         * Our descriptor.
+         */
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public String getDisplayName() {
+                return Messages.ForkPullRequestDiscoveryTrait_contributorsAndWhitelistDisplayName();
+            }
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+
+        }
+    }
+
+    /**
+     * An {@link SCMHeadAuthority} that trusts a whitelist of users.
+     */
+    public static class TrustWhitelist
+            extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+
+        private WhitelistSource whitelist;
+
+        /**
+         * Constructor.
+         */
+        @Inject
+        @DataBoundConstructor
+        public TrustWhitelist(WhitelistSource whitelist) {
+            this.whitelist = whitelist;
+        }
+
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head) {
+            boolean isWhitelisted = whitelist.contains(head.getSourceOwner());
+            LOGGER.log(Level.INFO, "Pull request author {0} whitelisted? {1}", new Object[]{head.getSourceOwner(), String.valueOf(isWhitelisted)});
+            return !head.getOrigin().equals(SCMHeadOrigin.DEFAULT) && isWhitelisted;
+        }
+
+        /**
+         * Our descriptor.
+         */
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+
+            /**
+             * {@inheritDoc}
+             */
+            @Override
+            public String getDisplayName() {
+                return Messages.ForkPullRequestDiscoveryTrait_whitelistDisplayName();
             }
 
             /**
