@@ -332,6 +332,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         @Inject
         @DataBoundConstructor
         public TrustContributorsAndWhitelist(WhitelistSource whitelist) {
+            super();
             this.whitelist = whitelist;
         }
 
