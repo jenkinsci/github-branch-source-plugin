@@ -45,6 +45,7 @@ import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -317,9 +318,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
      *
      * @param traits the new behavioural traits.
      */
+    @SuppressWarnings("unchecked")
     @DataBoundSetter
-    public void setTraits(@CheckForNull List<SCMTrait<? extends SCMTrait<?>>> traits) {
-        this.traits = traits != null ? new ArrayList<>(traits) : new ArrayList<SCMTrait<? extends SCMTrait<?>>>();
+    public void setTraits(@CheckForNull List<SCMTrait> traits) {
+        // the reduced generics in the method signature are a workaround for JENKINS-26535
+        this.traits = traits != null ? new ArrayList<>((Collection) traits) : new ArrayList<SCMTrait<? extends SCMTrait<?>>>();
     }
 
     /**
@@ -1283,10 +1286,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
         /**
          * {@inheritDoc}
          */
+        @SuppressWarnings("unchecked")
         @Override
         public SCMNavigator newInstance(String name) {
             GitHubSCMNavigator navigator = new GitHubSCMNavigator(name);
-            navigator.setTraits(getTraitsDefaults());
+            navigator.setTraits((List) getTraitsDefaults());
             return navigator;
         }
 
