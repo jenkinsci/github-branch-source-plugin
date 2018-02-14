@@ -213,7 +213,7 @@ public final class GitHubNotificationContext {
      * @since TODO
      */
     public GHCommitState getDefaultState(TaskListener listener) {
-        if (null != build) {
+        if (null != build && !build.isBuilding()) {
             Result result = build.getResult();
             if (Result.SUCCESS.equals(result)) {
                 return GHCommitState.SUCCESS;
