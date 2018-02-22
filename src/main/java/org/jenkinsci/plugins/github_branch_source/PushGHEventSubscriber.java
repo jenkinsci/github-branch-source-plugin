@@ -121,7 +121,7 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             final GHEventPayload.Push p = GitHub.offline()
                     .parseEventPayload(new StringReader(event.getPayload()), GHEventPayload.Push.class);
             String repoUrl = p.getRepository().getHtmlUrl().toExternalForm();
-            LOGGER.log(Level.INFO, "Received {0} for {1} from {2}",
+            LOGGER.log(Level.DEBUG, "Received {0} for {1} from {2}",
                     new Object[]{event.getGHEvent(), repoUrl, event.getOrigin()}
             );
             Matcher matcher = REPOSITORY_NAME_PATTERN.matcher(repoUrl);
