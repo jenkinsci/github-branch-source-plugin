@@ -25,6 +25,7 @@
             Note that if credentials used by Jenkins for scanning the repository does not have permission to
             query the list of contributors to the origin repository then only the origin account will be treated
             as trusted - i.e. this will fall back to <code>Nobody</code>.
+            <strong>NOTE:</strong> all collaborators are trusted, even if they are only members of team with read permission.
         </dd>
         <dt>Everyone</dt>
         <dd>
@@ -35,6 +36,7 @@
         <dd>
             Pull requests forks will be treated as trusted if and only if the fork owner has either Admin or Write
             permissions on the origin repository.
+            This is the recommended policy.
             Note that this strategy requires the
             <a href="https://developer.github.com/v3/repos/collaborators/#review-a-users-permission-level">Review
             a user's permission level</a> API, as a result on GitHub Enterprise Server versions before 2.12 this
