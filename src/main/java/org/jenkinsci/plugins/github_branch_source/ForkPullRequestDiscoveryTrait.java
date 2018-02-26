@@ -222,7 +222,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         @NonNull
         @SuppressWarnings("unused") // stapler
         public SCMHeadAuthority<?, ?, ?> getDefaultTrust() {
-            return new TrustContributors();
+            return new TrustPermission();
         }
     }
 
