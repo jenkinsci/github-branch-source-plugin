@@ -78,7 +78,7 @@ public class GitHubSCMSourceTraitsTest {
                         + "$OriginPullRequestDiscoveryTrait(strategyId=1), "
                         + "$ForkPullRequestDiscoveryTrait("
                         + "strategyId=2,"
-                        + "trust=$TrustContributors()), "
+                        + "trust=$TrustPermission()), "
                         + "@headWildcardFilter$WildcardSCMHeadFilterTrait(excludes=production,includes=i*)])")
         );
     }
@@ -125,7 +125,7 @@ public class GitHubSCMSourceTraitsTest {
                         Matchers.<SCMSourceTrait>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(1)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         )
                 )
         );
@@ -166,7 +166,7 @@ public class GitHubSCMSourceTraitsTest {
                         Matchers.<SCMSourceTrait>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(2)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         )
                 )
         );
@@ -207,7 +207,7 @@ public class GitHubSCMSourceTraitsTest {
                         Matchers.<SCMSourceTrait>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(2)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         ),
                         Matchers.<SCMSourceTrait>allOf(
                                 Matchers.instanceOf(SSHCheckoutTrait.class),
@@ -253,7 +253,7 @@ public class GitHubSCMSourceTraitsTest {
                         Matchers.<SCMSourceTrait>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(2)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         )
                 )
         );
@@ -290,7 +290,7 @@ public class GitHubSCMSourceTraitsTest {
                         Matchers.<SCMSourceTrait>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(1)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         ),
                         Matchers.<SCMSourceTrait>allOf(
                                 instanceOf(WildcardSCMHeadFilterTrait.class),
@@ -332,7 +332,7 @@ public class GitHubSCMSourceTraitsTest {
                         Matchers.<SCMSourceTrait>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(1)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         ),
                         Matchers.<SCMSourceTrait>allOf(
                                 instanceOf(WildcardSCMHeadFilterTrait.class),
@@ -374,7 +374,7 @@ public class GitHubSCMSourceTraitsTest {
                         Matchers.<SCMSourceTrait>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(1)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         ),
                         Matchers.<SCMSourceTrait>allOf(
                                 Matchers.instanceOf(SSHCheckoutTrait.class),
@@ -413,7 +413,7 @@ public class GitHubSCMSourceTraitsTest {
                         Matchers.<SCMSourceTrait>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategies", is(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE))),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         )
                 )
         );
@@ -449,7 +449,7 @@ public class GitHubSCMSourceTraitsTest {
                         Matchers.<SCMSourceTrait>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategies", is(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE))),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         ),
                         Matchers.<SCMSourceTrait>allOf(
                                 Matchers.instanceOf(SSHCheckoutTrait.class),
