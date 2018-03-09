@@ -122,7 +122,6 @@ import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GHTag;
 import org.kohsuke.github.GHTagObject;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
@@ -131,9 +130,9 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import static hudson.model.Items.XSTREAM2;
-import org.kohsuke.stapler.interceptor.RequirePOST;
 
 public class GitHubSCMSource extends AbstractGitSCMSource {
 
@@ -1158,25 +1157,42 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             String fullName = repoOwner + "/" + repository;
             ghRepository = github.getRepository(fullName);
             final GHRepository ghRepository = this.ghRepository;
+            listener.getLogger().format("Examining %s%n",
+                    HyperlinkNote.encodeTo(ghRepository.getHtmlUrl().toString(), fullName));
             GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, SCMHeadObserver.none())
                     .withTraits(traits);
-            Matcher prMatcher = Pattern.compile("^PR-(\\d+)(-.*)?$").matcher(headName);
+            Matcher prMatcher = Pattern.compile("^PR-(\\d+)(?:-(.*))?$").matcher(headName);
             if (prMatcher.matches()) {
                 // it's a looking very much like a PR
                 int number = Integer.parseInt(prMatcher.group(1));
+                listener.getLogger().format("Attempting to resolve %s as pull request %d%n", headName, number);
                 try {
                     GHPullRequest pr = ghRepository.getPullRequest(number);
-                    if (pr != null && context.wantPRs()) {
+                    if (pr != null) {
                         boolean fork = !ghRepository.getOwner().equals(pr.getHead().getUser());
-                        Set<ChangeRequestCheckoutStrategy> strategies = fork
-                                ? context.forkPRStrategies()
-                                : context.originPRStrategies();
+                        Set<ChangeRequestCheckoutStrategy> strategies;
+                        if (context.wantPRs()) {
+                            strategies = fork
+                                            ? context.forkPRStrategies()
+                                            : context.originPRStrategies();
+                        } else {
+                            // if not configured, we go with merge
+                            strategies = EnumSet.of(ChangeRequestCheckoutStrategy.MERGE);
+                        }
                         ChangeRequestCheckoutStrategy strategy;
                         if (prMatcher.group(2) == null) {
                             if (strategies.size() == 1) {
                                 strategy = strategies.iterator().next();
                             } else {
                                 // invalid name
+                                listener.getLogger().format(
+                                        "Resolved %s as pull request %d but indeterminate checkout strategy, "
+                                                + "please try %s or %s%n",
+                                        headName,
+                                        number,
+                                        headName + "-" + ChangeRequestCheckoutStrategy.HEAD.name(),
+                                        headName + "-" + ChangeRequestCheckoutStrategy.MERGE.name()
+                                );
                                 return null;
                             }
                         } else {
@@ -1189,6 +1205,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             }
                             if (strategy == null) {
                                 // invalid name;
+                                listener.getLogger().format(
+                                        "Resolved %s as pull request %d but unknown checkout strategy %s, "
+                                                + "please try %s or %s%n",
+                                        headName,
+                                        number,
+                                        prMatcher.group(2),
+                                        headName + "-" + ChangeRequestCheckoutStrategy.HEAD.name(),
+                                        headName + "-" + ChangeRequestCheckoutStrategy.MERGE.name()
+                                );
                                 return null;
                             }
                         }
@@ -1201,30 +1226,54 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                 GHRef mergeRef = ghRepository.getRef(
                                         "heads/" + pr.getBase().getRef()
                                 );
+                                listener.getLogger().format(
+                                        "Resolved %s as pull request %d at revision %s merged onto %s%n",
+                                        headName,
+                                        number,
+                                        pr.getHead().getSha(),
+                                        pr.getBase().getSha()
+                                );
                                 return new PullRequestSCMRevision(head,
                                         mergeRef.getObject().getSha(),
                                         pr.getHead().getSha());
                             default:
+                                listener.getLogger().format(
+                                                "Resolved %s as pull request %d at revision %s%n",
+                                                headName,
+                                                number,
+                                                pr.getHead().getSha()
+                                        );
                                 return new PullRequestSCMRevision(head, pr.getBase().getSha(),
                                         pr.getHead().getSha());
                         }
-
                     } else {
-                        return null;
+                        listener.getLogger().format(
+                                "Could not resolve %s as pull request %d%n",
+                                headName,
+                                number
+                        );
                     }
                 } catch (FileNotFoundException e) {
                     // maybe some ****er created a branch or a tag called PR-_
+                    listener.getLogger().format(
+                            "Could not resolve %s as pull request %d%n",
+                            headName,
+                            number
+                    );
                 }
             }
             try {
+                listener.getLogger().format("Attempting to resolve %s as a branch%n", headName);
                 GHBranch branch = ghRepository.getBranch(headName);
                 if (branch != null) {
+                    listener.getLogger().format("Resolved %s as branch %s at revision %s%n", headName, branch.getName(), branch.getSHA1());
                     return new SCMRevisionImpl(new BranchSCMHead(headName), branch.getSHA1());
                 }
             } catch (FileNotFoundException e) {
                 // maybe it's a tag
             }
             try {
+                listener.getLogger().format("Attempting to resolve %s as a tag%n", headName);
                 GHRef tag = ghRepository.getRef("tags/" + headName);
                 if (tag != null) {
                     long tagDate = 0L;
@@ -1247,11 +1296,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             // we just need enough of a date value to allow for probing
                         }
                     }
+                    listener.getLogger().format("Resolved %s as tag %s at revision %s%n", headName, headName,
+                            tagSha);
                     return new GitTagSCMRevision(new GitHubTagSCMHead(headName, tagDate), tagSha);
                 }
             } catch (FileNotFoundException e) {
                 // ok it doesn't exist
             }
+            listener.error("Could not resolve %s", headName);
+
+            // TODO try and resolve as a revision, but right now we'd need to know what branch the revision belonged to
+            // once GitSCMSource has support for arbitrary refs, we could just use that... but given that
+            // GitHubSCMBuilder constructs the refspec based on the branch name, without a specific "arbitrary ref"
+            // SCMHead subclass we cannot do anything here
             return null;
         } finally {
             Connector.release(github);
