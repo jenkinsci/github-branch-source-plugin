@@ -10,7 +10,7 @@ To run the demo:
   1. Create an organization or user account (or use an existing one)
   1. Fork [multibranch-demo](https://github.com/cloudbeers/multibranch-demo) to your own account or organization
 1. Log in with the random administrative password printed to the Docker log. Skip the rest of the setup wizard (close the dialog).
-1. Go to _Credentials » GitHub_ and add a username/password pair using an access token generated [here](https://github.com/settings/tokens):
+1. Go to _Credentials » GitHub_ and add a username/password pair using an access token generated [here](https://github.com/settings/tokens).
   1. Configure a personal access token with these scopes: `repo:status` and `public_repo` 
 1. Create a new item, selecting _GitHub Organization_ as the type, and setting the name to your account or organization name (for example, `cloudbeers`).
 1. Select your credentials token under _Scan Credentials_
