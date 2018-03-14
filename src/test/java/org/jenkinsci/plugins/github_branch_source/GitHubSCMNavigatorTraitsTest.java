@@ -82,7 +82,7 @@ public class GitHubSCMNavigatorTraitsTest {
                         Matchers.<SCMTrait<?>>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(2)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         )
                 )
         );
@@ -126,7 +126,7 @@ public class GitHubSCMNavigatorTraitsTest {
                         Matchers.<SCMTrait<?>>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(2)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         ),
                         Matchers.<SCMTrait<?>>allOf(
                                 Matchers.instanceOf(SSHCheckoutTrait.class),
@@ -174,7 +174,7 @@ public class GitHubSCMNavigatorTraitsTest {
                         Matchers.<SCMTrait<?>>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(2)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         ),
                         Matchers.<SCMTrait<?>>allOf(
                                 Matchers.instanceOf(SSHCheckoutTrait.class),
@@ -225,7 +225,7 @@ public class GitHubSCMNavigatorTraitsTest {
                         Matchers.<SCMTrait<?>>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(2)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         )
                 )
         );
@@ -266,7 +266,7 @@ public class GitHubSCMNavigatorTraitsTest {
                         Matchers.<SCMTrait<?>>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(2)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         ),
                         Matchers.<SCMTrait<?>>allOf(
                                 Matchers.instanceOf(SSHCheckoutTrait.class),
@@ -307,7 +307,7 @@ public class GitHubSCMNavigatorTraitsTest {
                         Matchers.<SCMTrait<?>>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(2)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         ),
                         Matchers.<SCMTrait<?>>allOf(
                                 instanceOf(WildcardSCMHeadFilterTrait.class),
@@ -344,7 +344,7 @@ public class GitHubSCMNavigatorTraitsTest {
                         Matchers.<SCMTrait<?>>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategyId", is(2)),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         ),
                         Matchers.<SCMTrait<?>>allOf(
                                 instanceOf(WildcardSCMHeadFilterTrait.class),
@@ -1581,7 +1581,7 @@ public class GitHubSCMNavigatorTraitsTest {
                         Matchers.<SCMTrait<?>>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategies", is(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE))),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         )
                 )
         );
@@ -1614,7 +1614,7 @@ public class GitHubSCMNavigatorTraitsTest {
                         Matchers.<SCMTrait<?>>allOf(
                                 instanceOf(ForkPullRequestDiscoveryTrait.class),
                                 hasProperty("strategies", is(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE))),
-                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class))
+                                hasProperty("trust", instanceOf(ForkPullRequestDiscoveryTrait.TrustPermission.class))
                         ),
                         Matchers.<SCMTrait<?>>allOf(
                                 Matchers.instanceOf(SSHCheckoutTrait.class),

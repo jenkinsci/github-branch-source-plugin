@@ -326,7 +326,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // legacy constructor means legacy defaults
         this.traits = new ArrayList<>();
         this.traits.add(new BranchDiscoveryTrait(true, true));
-        this.traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustContributors()));
+        this.traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustPermission()));
         if (!DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
             traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
         }
@@ -456,7 +456,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 if (buildForkPRHead) {
                     s.add(ChangeRequestCheckoutStrategy.HEAD);
                 }
-                traits.add(new ForkPullRequestDiscoveryTrait(s, new ForkPullRequestDiscoveryTrait.TrustContributors()));
+                traits.add(new ForkPullRequestDiscoveryTrait(s, new ForkPullRequestDiscoveryTrait.TrustPermission()));
             }
             if (!"*".equals(includes) || !"".equals(excludes)) {
                 traits.add(new WildcardSCMHeadFilterTrait(includes, excludes));
@@ -779,7 +779,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         if (buildForkPRMerge) {
             traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
-                    new ForkPullRequestDiscoveryTrait.TrustContributors()));
+                    new ForkPullRequestDiscoveryTrait.TrustPermission()));
         }
     }
 
@@ -818,7 +818,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         if (buildForkPRHead) {
             traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.HEAD),
-                    new ForkPullRequestDiscoveryTrait.TrustContributors()));
+                    new ForkPullRequestDiscoveryTrait.TrustPermission()));
         }
     }
 
@@ -1964,7 +1964,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return Arrays.asList( // TODO finalize
                     new BranchDiscoveryTrait(true, false),
                     new OriginPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE)),
-                    new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustContributors())
+                    new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustPermission())
             );
         }
 

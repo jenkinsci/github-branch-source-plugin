@@ -222,7 +222,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         @NonNull
         @SuppressWarnings("unused") // stapler
         public SCMHeadAuthority<?, ?, ?> getDefaultTrust() {
-            return new TrustContributors();
+            return new TrustPermission();
         }
     }
 
@@ -318,7 +318,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     }
 
     /**
-     * An {@link SCMHeadAuthority} that trusts contributors to the repository.
+     * An {@link SCMHeadAuthority} that trusts those with write permission to the repository.
      */
     public static class TrustPermission
             extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {

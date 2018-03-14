@@ -114,7 +114,7 @@ public class TagDiscoveryTrait extends SCMSourceTrait {
     }
 
     /**
-     * Trusts branches from the origin repository.
+     * Trusts tags from the origin repository.
      */
     public static class TagSCMHeadAuthority extends SCMHeadAuthority<SCMSourceRequest, GitHubTagSCMHead, GitTagSCMRevision> {
         /**

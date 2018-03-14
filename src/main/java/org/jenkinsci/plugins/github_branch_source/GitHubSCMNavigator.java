@@ -236,7 +236,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         this.traits = new ArrayList<>();
         this.traits.add(new BranchDiscoveryTrait(true, true));
         this.traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
-                new ForkPullRequestDiscoveryTrait.TrustContributors()));
+                new ForkPullRequestDiscoveryTrait.TrustPermission()));
         if (!GitHubSCMSource.DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
             traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
         }
@@ -360,7 +360,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 if (buildForkPRHead) {
                     s.add(ChangeRequestCheckoutStrategy.HEAD);
                 }
-                traits.add(new ForkPullRequestDiscoveryTrait(s, new ForkPullRequestDiscoveryTrait.TrustContributors()));
+                traits.add(new ForkPullRequestDiscoveryTrait(s, new ForkPullRequestDiscoveryTrait.TrustPermission()));
             }
             if (checkoutCredentialsId != null
                     && !DescriptorImpl.SAME.equals(checkoutCredentialsId)
@@ -739,7 +739,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
         if (buildForkPRMerge) {
             traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
-                    new ForkPullRequestDiscoveryTrait.TrustContributors()));
+                    new ForkPullRequestDiscoveryTrait.TrustPermission()));
         }
     }
 
@@ -790,7 +790,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
         if (buildForkPRHead) {
             traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.HEAD),
-                    new ForkPullRequestDiscoveryTrait.TrustContributors()));
+                    new ForkPullRequestDiscoveryTrait.TrustPermission()));
         }
     }
 
