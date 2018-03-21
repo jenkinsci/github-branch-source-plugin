@@ -64,7 +64,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
      */
     private transient Metadata metadata;
 
-    PullRequestSCMHead(PullRequestSCMHead copy) {
+    public PullRequestSCMHead(PullRequestSCMHead copy) {
         super(copy.getName());
         this.merge = copy.merge;
         this.number = copy.number;
@@ -76,7 +76,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         this.metadata = copy.metadata;
     }
 
-    PullRequestSCMHead(GHPullRequest pr, String name, boolean merge) {
+    public PullRequestSCMHead(GHPullRequest pr, String name, boolean merge) {
         super(name);
         // the merge flag is encoded into the name, so safe to store here
         this.merge = merge;
