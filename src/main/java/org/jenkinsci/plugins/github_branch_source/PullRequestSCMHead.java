@@ -64,7 +64,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
      */
     private transient Metadata metadata;
 
-    public PullRequestSCMHead(PullRequestSCMHead copy) {
+    PullRequestSCMHead(PullRequestSCMHead copy) {
         super(copy.getName());
         this.merge = copy.merge;
         this.number = copy.number;
@@ -76,7 +76,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         this.metadata = copy.metadata;
     }
 
-    public PullRequestSCMHead(GHPullRequest pr, String name, boolean merge) {
+    PullRequestSCMHead(GHPullRequest pr, String name, boolean merge) {
         super(name);
         // the merge flag is encoded into the name, so safe to store here
         this.merge = merge;
@@ -92,7 +92,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
                 : new SCMHeadOrigin.Fork(this.sourceOwner);
     }
 
-    PullRequestSCMHead(@NonNull String name, String sourceOwner, String sourceRepo, String sourceBranch, int number,
+    public PullRequestSCMHead(@NonNull String name, String sourceOwner, String sourceRepo, String sourceBranch, int number,
                        BranchSCMHead target, SCMHeadOrigin origin, ChangeRequestCheckoutStrategy strategy) {
         super(name);
         this.merge = ChangeRequestCheckoutStrategy.MERGE == strategy;
