@@ -30,6 +30,7 @@ import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
+import org.kohsuke.stapler.export.Exported;
 
 /**
  * Revision of a pull request.
@@ -74,6 +75,7 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
      *
      * @return The commit hash of the head of the pull request branch
      */
+    @Exported
     @NonNull
     public String getPullHash() {
         return pullHash;
