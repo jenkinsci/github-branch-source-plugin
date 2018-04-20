@@ -133,6 +133,7 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import static hudson.model.Items.XSTREAM2;
+import org.kohsuke.stapler.export.Exported;
 
 public class GitHubSCMSource extends AbstractGitSCMSource {
 
@@ -380,6 +381,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * Gets the repository owner.
      * @return the repository owner.
      */
+    @Exported
     @NonNull
     public String getRepoOwner() {
         return repoOwner;
@@ -389,6 +391,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * Gets the repository name.
      * @return the repository name.
      */
+    @Exported
     @NonNull
     public String getRepository() {
         return repository;
