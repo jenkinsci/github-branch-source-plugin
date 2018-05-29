@@ -74,7 +74,7 @@ public class GitHubSCMSourceTraitsTest {
                         + "repoOwner=repo-owner,"
                         + "repository=repo,"
                         + "traits=["
-                        + "$org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait(strategyId=1), "
+                        + "@gitHubBranchDiscovery$org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait(strategyId=1), "
                         + "$OriginPullRequestDiscoveryTrait(strategyId=1), "
                         + "$ForkPullRequestDiscoveryTrait("
                         + "strategyId=2,"
