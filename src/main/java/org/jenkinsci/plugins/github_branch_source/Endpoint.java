@@ -45,6 +45,7 @@ import java.util.Locale;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
+import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMName;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
@@ -52,6 +53,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * @author Stephen Connolly
@@ -140,8 +142,10 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
             return "";
         }
 
+        @RequirePOST
         @Restricted(NoExternalUse.class)
         public FormValidation doCheckApiUri(@QueryParameter String apiUri) {
+            Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
             if (Util.fixEmptyAndTrim(apiUri) == null) {
                 return FormValidation.warning("You must specify the API URL");
             }
