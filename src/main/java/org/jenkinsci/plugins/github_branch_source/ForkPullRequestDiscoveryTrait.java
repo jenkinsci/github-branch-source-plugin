@@ -252,6 +252,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         /**
          * Our descriptor.
          */
+        @Symbol("gitHubTrustNobody")
         @Extension
         public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
 
@@ -297,6 +298,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         /**
          * Our descriptor.
          */
+        @Symbol("gitHubTrustContributors")
         @Extension
         public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
 
@@ -353,6 +355,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         /**
          * Our descriptor.
          */
+        @Symbol("gitHubTrustPermissions")
         @Extension
         public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
             /**
@@ -395,6 +398,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         /**
          * Our descriptor.
          */
+        @Symbol("gitHubTrustEveryone")
         @Extension
         public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
 
