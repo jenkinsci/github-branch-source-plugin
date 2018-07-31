@@ -78,7 +78,7 @@ public class GitHubSCMSourceTraitsTest {
                         + "$OriginPullRequestDiscoveryTrait(strategyId=1), "
                         + "@gitHubForkDiscovery$ForkPullRequestDiscoveryTrait("
                         + "strategyId=2,"
-                        + "trust=$TrustPermission()), "
+                        + "trust=@gitHubTrustPermissions$TrustPermission()), "
                         + "@headWildcardFilter$WildcardSCMHeadFilterTrait(excludes=production,includes=i*)])")
         );
     }
