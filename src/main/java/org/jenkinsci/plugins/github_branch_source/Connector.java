@@ -54,6 +54,7 @@ import java.net.Proxy;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -74,6 +75,8 @@ import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.OkHttpConnector;
 
+import static java.util.logging.Level.FINE;
+
 /**
  * Utilities that could perhaps be moved into {@code github-api}.
  */
@@ -83,6 +86,14 @@ public class Connector {
     private static final Map<Details, GitHub> githubs = new HashMap<>();
     private static final Map<GitHub, Integer> usage = new HashMap<>();
     private static final Map<TaskListener, Map<GitHub,Void>> checked = new WeakHashMap<>();
+    private static final long API_URL_REVALIDATE_MILLIS = TimeUnit.MINUTES.toMillis(5);
+    private static final Map<String,Long> apiUrlValid = new LinkedHashMap<String,Long>(){
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String,Long> eldest) {
+            Long t = eldest.getValue();
+            return t == null || t < System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS;
+        }
+    };
     private static final double MILLIS_PER_HOUR = TimeUnit.HOURS.toMillis(1);
     private static final Random ENTROPY = new Random();
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
@@ -177,9 +188,9 @@ public class Connector {
                 try {
                     GitHub connector = Connector.connect(apiUri, credentials);
                     try {
-                        if (connector.isCredentialValid()) {
-                            return FormValidation.ok();
-                        } else {
+                        try {
+                            return FormValidation.ok("User %s", connector.getMyself().getLogin());
+                        } catch (IOException e){
                             return FormValidation.error("Invalid credentials");
                         }
                     } finally {
@@ -280,6 +291,28 @@ public class Connector {
                 githubDomainRequirements(apiUri),
                 GitClient.CREDENTIALS_MATCHER
         );
+    }
+
+    public static void checkApiUrlValidity(@Nonnull GitHub gitHub, @CheckForNull StandardCredentials credentials) throws IOException {
+        String hash;
+        if (credentials == null) {
+            hash = "anonymous";
+        } else if (credentials instanceof StandardUsernamePasswordCredentials) {
+            StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
+            hash = Util.getDigestOf(c.getPassword().getPlainText() + SALT);
+        } else {
+            // TODO OAuth support
+            throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
+        }
+        String key = gitHub.getApiUrl() + "::" + hash;
+        synchronized (apiUrlValid) {
+            Long last = apiUrlValid.get(key);
+            if (last != null && last > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
+                return;
+            }
+            gitHub.checkApiUrlValidity();
+            apiUrlValid.put(key, System.currentTimeMillis());
+        }
     }
 
     public static @Nonnull GitHub connect(@CheckForNull String apiUri, @CheckForNull StandardCredentials credentials) throws IOException {
@@ -413,6 +446,29 @@ public class Connector {
 
     };
 
+    /**
+     * Alternative to {@link GitHub#isCredentialValid()} that relies on the cached user object in the {@link GitHub}
+     * instance and hence reduced rate limit consumption.
+     *
+     * @param gitHub the instance to check.
+     * @return {@code true} if the credentials are valid.
+     */
+    static boolean isCredentialValid(GitHub gitHub) {
+        if (gitHub.isAnonymous()) {
+            return true;
+        } else {
+            try {
+                gitHub.getMyself();
+                return true;
+            } catch (IOException e) {
+                if (LOGGER.isLoggable(FINE)) {
+                    LOGGER.log(FINE, "Exception validating credentials on " + gitHub.getApiUrl(), e);
+                }
+                return false;
+            }
+        }
+    }
+
     /*package*/ static void checkConnectionValidity(String apiUri, @NonNull TaskListener listener,
                                                     StandardCredentials credentials,
                                                     GitHub github)
@@ -429,7 +485,7 @@ public class Connector {
             }
             hubs.put(github, null);
         }
-        if (credentials != null && !github.isCredentialValid()) {
+        if (credentials != null && !isCredentialValid(github)) {
             String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
                     CredentialsNameProvider.name(credentials), apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
             throw new AbortException(message);
