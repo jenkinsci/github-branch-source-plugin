@@ -369,7 +369,7 @@ public class Connector {
 
             int cacheSize = GitHubSCMSource.getCacheSize();
             Jenkins jenkins = Jenkins.getInstance();
-            if (cacheSize > 0 || jenkins == null) {
+            if (cacheSize > 0 && jenkins != null) {
                 File cacheBase = new File(jenkins.getRootDir(),
                         GitHubSCMProbe.class.getName() + ".cache");
                 File cacheDir = null;
