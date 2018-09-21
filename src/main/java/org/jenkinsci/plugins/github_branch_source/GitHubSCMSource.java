@@ -152,6 +152,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     private static /*mostly final*/ int eventDelaySeconds =
             Math.min(300, Math.max(0, Integer.getInteger(GitHubSCMSource.class.getName() + ".eventDelaySeconds", 5)));
     /**
+     * How big (in megabytes) an on-disk cache to keep of GitHub API responses. Cache is per repo, per credentials.
+     */
+    private static /*mostly final*/ int cacheSize =
+            Math.min(1024, Math.max(0, Integer.getInteger(GitHubSCMSource.class.getName() + ".cacheSize", 20)));
+    /**
      * Lock to guard access to the {@link #pullRequestSourceMap} field and prevent concurrent GitHub queries during
      * a 1.x to 2.2.0+ upgrade.
      *
@@ -498,6 +503,26 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Restricted(NoExternalUse.class) // to allow configuration from system groovy console
     public static void setEventDelaySeconds(int eventDelaySeconds) {
         GitHubSCMSource.eventDelaySeconds = Math.min(300, Math.max(0, eventDelaySeconds));
+    }
+
+    /**
+     * Returns how many megabytes of on-disk cache to maintain per GitHub API URL per credentials.
+     *
+     * @return how many megabytes of on-disk cache to maintain per GitHub API URL per credentials.
+     */
+    public static int getCacheSize() {
+        return cacheSize;
+    }
+
+    /**
+     * Sets how long to delay events received from GitHub in order to allow the API caches to sync.
+     *
+     * @param cacheSize how many megabytes of on-disk cache to maintain per GitHub API URL per credentials,
+     * will be restricted into a value within the range {@code [0,1024]} inclusive.
+     */
+    @Restricted(NoExternalUse.class) // to allow configuration from system groovy console
+    public static void setCacheSize(int cacheSize) {
+        GitHubSCMSource.cacheSize = Math.min(1024, Math.max(0, cacheSize));
     }
 
     /**

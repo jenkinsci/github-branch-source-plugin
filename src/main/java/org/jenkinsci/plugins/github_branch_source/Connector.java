@@ -35,6 +35,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.squareup.okhttp.Cache;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -49,11 +50,15 @@ import hudson.model.queue.Tasks;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -70,8 +75,10 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSourceOwner;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
+import org.jenkinsci.plugins.github.GitHubPlugin;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
@@ -359,6 +366,31 @@ public class Connector {
             gb.withRateLimitHandler(CUSTOMIZED);
 
             OkHttpClient client = new OkHttpClient().setProxy(getProxy(host));
+
+            int cacheSize = GitHubSCMSource.getCacheSize();
+            Jenkins jenkins = Jenkins.getInstance();
+            if (cacheSize > 0 || jenkins == null) {
+                File cacheBase = new File(jenkins.getRootDir(),
+                        GitHubSCMProbe.class.getName() + ".cache");
+                File cacheDir = null;
+                try {
+                    MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+                    sha256.update(apiUrl.getBytes(StandardCharsets.UTF_8));
+                    sha256.update("::".getBytes(StandardCharsets.UTF_8));
+                    if (username != null) {
+                        sha256.update(username.getBytes(StandardCharsets.UTF_8));
+                    }
+                    sha256.update("::".getBytes(StandardCharsets.UTF_8));
+                    sha256.update(hash.getBytes(StandardCharsets.UTF_8));
+                    cacheDir = new File(cacheBase, Base64.encodeBase64URLSafeString(sha256.digest()));
+                } catch (NoSuchAlgorithmException e) {
+                    // no cache for you mr non-spec compliant JVM
+                }
+                if (cacheDir != null) {
+                    Cache cache = new Cache(cacheDir, cacheSize * 1024L * 1024L);
+                    client.setCache(cache);
+                }
+            }
 
             gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
 
