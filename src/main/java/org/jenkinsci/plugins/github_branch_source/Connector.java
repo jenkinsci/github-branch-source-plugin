@@ -39,8 +39,10 @@ import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
+import hudson.Extension;
 import hudson.Util;
 import hudson.model.Item;
+import hudson.model.PeriodicWork;
 import hudson.model.Queue;
 import hudson.model.TaskListener;
 import hudson.model.queue.Tasks;
@@ -52,6 +54,7 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -59,6 +62,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.WeakHashMap;
+import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -83,6 +87,7 @@ import static java.util.logging.Level.FINE;
 public class Connector {
     private static final Logger LOGGER = Logger.getLogger(Connector.class.getName());
 
+    private static final Map<GitHub,Long> lastUsed = new HashMap<>();
     private static final Map<Details, GitHub> githubs = new HashMap<>();
     private static final Map<GitHub, Integer> usage = new HashMap<>();
     private static final Map<TaskListener, Map<GitHub,Void>> checked = new WeakHashMap<>();
@@ -364,6 +369,7 @@ public class Connector {
             hub = gb.build();
             githubs.put(details, hub);
             usage.put(hub, 1);
+            lastUsed.remove(hub);
             return hub;
         }
     }
@@ -380,6 +386,25 @@ public class Connector {
             }
             if (count <= 1) {
                 // exclusive
+                usage.put(hub, 0);
+                lastUsed.put(hub, System.currentTimeMillis());
+            } else {
+                // shared
+                usage.put(hub, count - 1);
+            }
+        }
+    }
+
+    private static void unused(@Nonnull GitHub hub) {
+        synchronized (githubs) {
+            Integer count = usage.get(hub);
+            if (count == null) {
+                // it was untracked, forget about it
+                return;
+            }
+            if (count <= 1) {
+                // only remove if it is actually unused now
+                // exclusive
                 usage.remove(hub);
                 // we could use multiple maps, but we expect only a handful of entries and mostly the shared path
                 // so we can just walk the forward map
@@ -391,9 +416,6 @@ public class Connector {
                         break;
                     }
                 }
-            } else {
-                // shared
-                usage.put(hub, count - 1);
             }
         }
     }
@@ -589,6 +611,32 @@ public class Connector {
                                 "GitHub API Usage: Still sleeping, now only %s remaining.",
                                 Util.getTimeSpanString(expiration - now)
                         )));
+                    }
+                }
+            }
+        }
+    }
+
+    @Extension
+    public static class UnusedConnectionDestroyer extends PeriodicWork {
+
+        @Override
+        public long getRecurrencePeriod() {
+            return TimeUnit.SECONDS.toMillis(15);
+        }
+
+        @Override
+        protected void doRun() throws Exception {
+            // free any connection unused for the last 5 minutes
+            long threshold = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5);
+            synchronized (githubs) {
+                for (Iterator<Map.Entry<GitHub, Long>> iterator = lastUsed.entrySet().iterator();
+                     iterator.hasNext(); ) {
+                    Map.Entry<GitHub, Long> entry = iterator.next();
+                    Long lastUse = entry.getValue();
+                    if (lastUse == null || lastUse < threshold) {
+                        iterator.remove();
+                        unused(entry.getKey());
                     }
                 }
             }
