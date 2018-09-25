@@ -72,7 +72,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
             trust;
 
     /**
-     * TODO
+     * How to handle untrusted pull requests.
      */
     private int untrustedHandling;
 
@@ -142,14 +142,18 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     }
 
     /**
-     * TODO
+     * Gets the strategy id to use for untrusted pull requests
+     *
+     * @return the strategy id
      */
     public int getUntrustedHandling() {
         return untrustedHandling;
     }
 
     /**
-     * TODO
+     * Sets the strategy id to use for untrusted pull requests
+     *
+     * @param untrustedHandling The strategy id
      */
     @DataBoundSetter
     public void setUntrustedHandling(int untrustedHandling) {
@@ -232,7 +236,9 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         }
 
         /**
-         * TODO
+         * Populates the untrusted PR handling options.
+         *
+         * @return the untrusted PR handling options.
          */
         public ListBoxModel doFillUntrustedHandlingItems() {
             ListBoxModel result = new ListBoxModel();
@@ -270,7 +276,8 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     }
 
     /**
-     * TODO
+     * An {@link SCMHeadFilter} to exclude branches from untrusted pull requests. Used when {@link #untrustedHandling}
+     * is set to {@code 1}.
      */
     public static class ExcludeUntrustedPRsSCMHeadFilter extends SCMHeadFilter {
         /**
@@ -282,7 +289,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
                 try {
                     return !request.isTrusted(head);
                 } catch (IOException | InterruptedException e) {
-                    // TODO: Do we just return true here assuming that if something went wrong, we don't want it?
+                    // If there was an issue determining whether the PR is trusted, just treat it as untrusted.
                     return true;
                 }
             }
