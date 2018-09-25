@@ -30,6 +30,8 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+
+import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
@@ -38,6 +40,7 @@ import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
 import jenkins.scm.api.trait.SCMHeadAuthority;
 import jenkins.scm.api.trait.SCMHeadAuthorityDescriptor;
+import jenkins.scm.api.trait.SCMHeadFilter;
 import jenkins.scm.api.trait.SCMSourceContext;
 import jenkins.scm.api.trait.SCMSourceRequest;
 import jenkins.scm.api.trait.SCMSourceTrait;
@@ -48,6 +51,7 @@ import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * A {@link Discovery} trait for GitHub that will discover pull requests from forks of the repository.
@@ -66,6 +70,11 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     private final SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends
             SCMRevision>
             trust;
+
+    /**
+     * TODO
+     */
+    private int untrustedHandling;
 
     /**
      * Constructor for stapler.
@@ -133,6 +142,21 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     }
 
     /**
+     * TODO
+     */
+    public int getUntrustedHandling() {
+        return untrustedHandling;
+    }
+
+    /**
+     * TODO
+     */
+    @DataBoundSetter
+    public void setUntrustedHandling(int untrustedHandling) {
+        this.untrustedHandling = untrustedHandling;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -141,6 +165,15 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         ctx.wantForkPRs(true);
         ctx.withAuthority(trust);
         ctx.withForkPRStrategies(getStrategies());
+        switch (untrustedHandling) {
+            case 1:
+                // 1 means we filter out untrusted PRs completely.
+                ctx.withFilter(new ExcludeUntrustedPRsSCMHeadFilter());
+                break;
+            default:
+                // 0 is the default behavior of using the base Jenkinsfile for untrusted PRs.
+                break;
+        }
     }
 
     /**
@@ -199,6 +232,16 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         }
 
         /**
+         * TODO
+         */
+        public ListBoxModel doFillUntrustedHandlingItems() {
+            ListBoxModel result = new ListBoxModel();
+            result.add(Messages.ForkPullRequestDiscoveryTrait_untrustedJenkinsfile(), "0");
+            result.add(Messages.ForkPullRequestDiscoveryTrait_untrustedPR(), "1");
+            return result;
+        }
+
+        /**
          * Returns the list of appropriate {@link SCMHeadAuthorityDescriptor} instances.
          *
          * @return the list of appropriate {@link SCMHeadAuthorityDescriptor} instances.
@@ -226,6 +269,26 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         }
     }
 
+    /**
+     * TODO
+     */
+    public static class ExcludeUntrustedPRsSCMHeadFilter extends SCMHeadFilter {
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public boolean isExcluded(@NonNull SCMSourceRequest request, @NonNull SCMHead head) {
+            if (head instanceof PullRequestSCMHead && request instanceof GitHubSCMSourceRequest) {
+                try {
+                    return !request.isTrusted(head);
+                } catch (IOException | InterruptedException e) {
+                    // TODO: Do we just return true here assuming that if something went wrong, we don't want it?
+                    return true;
+                }
+            }
+            return true;
+        }
+    }
 
     /**
      * An {@link SCMHeadAuthority} that trusts nothing.

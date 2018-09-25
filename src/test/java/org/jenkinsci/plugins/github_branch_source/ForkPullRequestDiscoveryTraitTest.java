@@ -128,4 +128,32 @@ public class ForkPullRequestDiscoveryTraitTest {
                 instanceOf(ForkPullRequestDiscoveryTrait.TrustEveryone.class)
         ));
     }
+
+    @Test
+    public void given__nonDefaultTrust__excludingUntrusted__when__appliedToContext__then__authoritiesCorrect() throws Exception {
+        GitHubSCMSourceContext ctx = new GitHubSCMSourceContext(null, SCMHeadObserver.none());
+        assumeThat(ctx.wantBranches(), is(false));
+        assumeThat(ctx.wantPRs(), is(false));
+        assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
+        assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
+        assumeThat(ctx.authorities(), not((Matcher) hasItem(
+                instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class)
+        )));
+        ForkPullRequestDiscoveryTrait instance = new ForkPullRequestDiscoveryTrait(
+                EnumSet.allOf(ChangeRequestCheckoutStrategy.class),
+                new ForkPullRequestDiscoveryTrait.TrustEveryone()
+        );
+        instance.setUntrustedHandling(1);
+        instance.decorateContext(ctx);
+        assertThat(ctx.wantBranches(), is(false));
+        assertThat(ctx.wantPRs(), is(true));
+        assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
+        assertThat(ctx.filters(), (Matcher) hasItem(
+                instanceOf(ForkPullRequestDiscoveryTrait.ExcludeUntrustedPRsSCMHeadFilter.class)));
+        assertThat(ctx.forkPRStrategies(),
+                Matchers.<Set<ChangeRequestCheckoutStrategy>>is(EnumSet.allOf(ChangeRequestCheckoutStrategy.class)));
+        assertThat(ctx.authorities(), (Matcher) hasItem(
+                instanceOf(ForkPullRequestDiscoveryTrait.TrustEveryone.class)
+        ));
+    }
 }

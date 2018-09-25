@@ -5,6 +5,9 @@
   <f:entry title="${%Strategy}" field="strategyId">
     <f:select default="1"/>
   </f:entry>
+  <f:entry title="${%Handling of Untrusted Pull Requests}" field="untrustedHandling">
+    <f:select default="0" />
+  </f:entry>
   <f:dropdownDescriptorSelector field="trust" title="${%Trust}" default="${descriptor.defaultTrust}"
                                 descriptors="${descriptor.trustDescriptors}"/>
 </j:jelly>

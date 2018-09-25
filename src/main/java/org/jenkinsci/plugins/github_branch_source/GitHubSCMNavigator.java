@@ -326,7 +326,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @DataBoundSetter
     public void setTraits(@CheckForNull List<SCMTrait<? extends SCMTrait<?>>> traits) {
         // the reduced generics in the method signature are a workaround for JENKINS-26535
-        this.traits = traits != null ? new ArrayList<>(traits) : new ArrayList<SCMTrait<? extends SCMTrait<?>>>();
+        this.traits = traits != null ? new ArrayList<SCMTrait<? extends SCMTrait<?>>>(traits) : new ArrayList<SCMTrait<? extends SCMTrait<?>>>();
     }
 
     /**
