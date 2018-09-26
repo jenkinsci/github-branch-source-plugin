@@ -59,7 +59,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -67,7 +66,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.WeakHashMap;
-import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -78,7 +76,6 @@ import jenkins.scm.api.SCMSourceOwner;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
-import org.jenkinsci.plugins.github.GitHubPlugin;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
@@ -333,15 +330,20 @@ public class Connector {
         String username;
         String password;
         String hash;
+        String authHash;
+        Jenkins jenkins = Jenkins.getInstance();
+        assert jenkins != null;
         if (credentials == null) {
             username = null;
             password = null;
             hash = "anonymous";
+            authHash = "anonymous";
         } else if (credentials instanceof StandardUsernamePasswordCredentials) {
             StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
             username = c.getUsername();
             password = c.getPassword().getPlainText();
             hash = Util.getDigestOf(password + SALT); // want to ensure pooling by credential
+            authHash = Util.getDigestOf(password + "::" + jenkins.getLegacyInstanceId());
         } else {
             // TODO OAuth support
             throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
@@ -368,8 +370,7 @@ public class Connector {
             OkHttpClient client = new OkHttpClient().setProxy(getProxy(host));
 
             int cacheSize = GitHubSCMSource.getCacheSize();
-            Jenkins jenkins = Jenkins.getInstance();
-            if (cacheSize > 0 && jenkins != null) {
+            if (cacheSize > 0) {
                 File cacheBase = new File(jenkins.getRootDir(),
                         GitHubSCMProbe.class.getName() + ".cache");
                 File cacheDir = null;
@@ -381,7 +382,7 @@ public class Connector {
                         sha256.update(username.getBytes(StandardCharsets.UTF_8));
                     }
                     sha256.update("::".getBytes(StandardCharsets.UTF_8));
-                    sha256.update(hash.getBytes(StandardCharsets.UTF_8));
+                    sha256.update(authHash.getBytes(StandardCharsets.UTF_8));
                     cacheDir = new File(cacheBase, Base64.encodeBase64URLSafeString(sha256.digest()));
                 } catch (NoSuchAlgorithmException e) {
                     // no cache for you mr non-spec compliant JVM
