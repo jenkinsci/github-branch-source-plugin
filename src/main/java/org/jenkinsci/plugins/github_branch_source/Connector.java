@@ -36,6 +36,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.squareup.okhttp.Cache;
+import com.squareup.okhttp.CacheControl;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -80,6 +81,7 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.HttpConnector;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.OkHttpConnector;
 
@@ -393,7 +395,11 @@ public class Connector {
                 }
             }
 
-            gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
+            if (client.getCache() != null) {
+                gb.withConnector(new ForceValidationOkHttpConnector(new OkUrlFactory(client)));
+            } else {
+                gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
+            }
 
             if (username != null) {
                 gb.withPassword(username, password);
@@ -717,4 +723,27 @@ public class Connector {
 
     }
 
+    /**
+     * A {@link HttpConnector} that uses {@link OkHttpConnector} but starts with the {@code Cache-Control} header
+     * configured to always revalidate requests against the remote server using conditional GET requests.
+     */
+    private static class ForceValidationOkHttpConnector implements HttpConnector {
+        private static final String FORCE_VALIDATION = new CacheControl.Builder()
+                .maxAge(0, TimeUnit.SECONDS)
+                .build()
+                .toString();
+        private static final String HEADER_NAME = "Cache-Control";
+        private final OkHttpConnector delegate;
+
+        public ForceValidationOkHttpConnector(OkUrlFactory okUrlFactory) {
+            this.delegate = new OkHttpConnector(okUrlFactory);
+        }
+
+        @Override
+        public HttpURLConnection connect(URL url) throws IOException {
+            HttpURLConnection connection = delegate.connect(url);
+            connection.setRequestProperty(HEADER_NAME, FORCE_VALIDATION);
+            return connection;
+        }
+    }
 }
