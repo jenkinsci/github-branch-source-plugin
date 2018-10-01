@@ -1506,7 +1506,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * Retained to migrate legacy configuration.
      * @deprecated use {@link MergeWithGitSCMExtension}.
      */
-    @Restricted(DoNotUse.class)
+    @Restricted(NoExternalUse.class)
     @RestrictedSince("2.2.0")
     @Deprecated
     private static class MergeWith extends GitSCMExtension {
