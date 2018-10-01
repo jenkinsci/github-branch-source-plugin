@@ -1632,14 +1632,14 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__instance__when__setTraits_empty__then__traitsEmpty() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Collections.<SCMTrait>emptyList());
+        instance.setTraits(Collections.<SCMTrait<? extends SCMTrait<?>>>emptyList());
         assertThat(instance.getTraits(), is(Collections.<SCMTrait<?>>emptyList()));
     }
 
     @Test
     public void given__instance__when__setTraits__then__traitsSet() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Arrays.<SCMTrait>asList(new BranchDiscoveryTrait(1),
+        instance.setTraits(Arrays.<SCMTrait<? extends SCMTrait<?>>>asList(new BranchDiscoveryTrait(1),
                 new SSHCheckoutTrait(null)));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
@@ -1701,7 +1701,7 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode__when__setPattern_default__then__patternSetAndTraitRemoved() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Arrays.<SCMTrait>asList(new BranchDiscoveryTrait(true, false), new RegexSCMSourceFilterTrait("job.*"),
+        instance.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, false), new RegexSCMSourceFilterTrait("job.*"),
                 new SSHCheckoutTrait("dummy")));
         assertThat(instance.getPattern(), is("job.*"));
         assertThat(instance.getTraits(), Matchers.<SCMTrait<?>>hasItem(instanceOf(RegexSCMSourceFilterTrait.class)));
@@ -1716,7 +1716,7 @@ public class GitHubSCMNavigatorTraitsTest {
     public void given__legacyCode__when__setPattern_custom__then__patternSetAndTraitAdded() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(
-                Arrays.<SCMTrait>asList(new BranchDiscoveryTrait(true, false), new SSHCheckoutTrait("dummy")));
+                Arrays.<SCMTrait<? extends SCMTrait<?>>>asList(new BranchDiscoveryTrait(true, false), new SSHCheckoutTrait("dummy")));
         assertThat(instance.getPattern(), is(".*"));
         assertThat(instance.getTraits(),
                 not(Matchers.<SCMTrait<?>>hasItem(instanceOf(RegexSCMSourceFilterTrait.class))));
@@ -1730,7 +1730,7 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode__when__setPattern_custom__then__patternSetAndTraitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Arrays.<SCMTrait>asList(new BranchDiscoveryTrait(true, false), new RegexSCMSourceFilterTrait("job.*"),
+        instance.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, false), new RegexSCMSourceFilterTrait("job.*"),
                 new SSHCheckoutTrait("dummy")));
         assertThat(instance.getPattern(), is("job.*"));
         assertThat(instance.getTraits(), Matchers.<SCMTrait<?>>hasItem(instanceOf(RegexSCMSourceFilterTrait.class)));
@@ -1784,7 +1784,7 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode_withoutExcludes__when__setIncludes_default__then__traitRemoved() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Arrays.<SCMTrait>asList(
+        instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new RegexSCMSourceFilterTrait("job.*"),
                 new WildcardSCMHeadFilterTrait("feature/*", "")
@@ -1807,7 +1807,7 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode_withoutExcludes__when__setIncludes_value__then__traitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Arrays.<SCMTrait>asList(
+        instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new RegexSCMSourceFilterTrait("job.*"),
                 new WildcardSCMHeadFilterTrait("feature/*", "")
@@ -1832,7 +1832,7 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode_withoutTrait__when__setIncludes_value__then__traitAdded() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Arrays.<SCMTrait>asList(
+        instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new RegexSCMSourceFilterTrait("job.*")
         ));
@@ -1854,7 +1854,7 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode_withExcludes__when__setIncludes_default__then__traitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Arrays.<SCMTrait>asList(
+        instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new RegexSCMSourceFilterTrait("job.*"),
                 new WildcardSCMHeadFilterTrait("feature/*", "feature/ignore")
@@ -1879,7 +1879,7 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode_withExcludes__when__setIncludes_value__then__traitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Arrays.<SCMTrait>asList(
+        instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new RegexSCMSourceFilterTrait("job.*"),
                 new WildcardSCMHeadFilterTrait("feature/*", "feature/ignore")
@@ -1904,7 +1904,7 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode_withoutIncludes__when__setExcludes_default__then__traitRemoved() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Arrays.<SCMTrait>asList(
+        instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new RegexSCMSourceFilterTrait("job.*"),
                 new WildcardSCMHeadFilterTrait("*", "feature/ignore")
@@ -1927,7 +1927,7 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode_withoutIncludes__when__setExcludes_value__then__traitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Arrays.<SCMTrait>asList(
+        instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new RegexSCMSourceFilterTrait("job.*"),
                 new WildcardSCMHeadFilterTrait("*", "feature/ignore")
@@ -1952,7 +1952,7 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode_withoutTrait__when__setExcludes_value__then__traitAdded() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Arrays.<SCMTrait>asList(
+        instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new RegexSCMSourceFilterTrait("job.*")
         ));
@@ -1974,7 +1974,7 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode_withIncludes__when__setExcludes_default__then__traitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Arrays.<SCMTrait>asList(
+        instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new RegexSCMSourceFilterTrait("job.*"),
                 new WildcardSCMHeadFilterTrait("feature/*", "feature/ignore")
@@ -1999,7 +1999,7 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode_withIncludes__when__setExcludes_value__then__traitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Arrays.<SCMTrait>asList(
+        instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new RegexSCMSourceFilterTrait("job.*"),
                 new WildcardSCMHeadFilterTrait("feature/*", "")
@@ -2024,7 +2024,7 @@ public class GitHubSCMNavigatorTraitsTest {
     @Test
     public void given__legacyCode__when__setBuildOriginBranch__then__traitsMaintained() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
-        instance.setTraits(Collections.<SCMTrait>emptyList());
+        instance.setTraits(Collections.<SCMTrait<? extends SCMTrait<?>>>emptyList());
         assertThat(instance.getTraits(), is(Collections.<SCMTrait<?>>emptyList()));
         instance.setBuildOriginBranch(true);
         assertThat(instance.getTraits(), contains(instanceOf(BranchDiscoveryTrait.class)));

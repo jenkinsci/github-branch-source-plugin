@@ -306,6 +306,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      *
      * @return the behavioural traits.
      */
+    @Override
     @NonNull
     public List<SCMTrait<? extends SCMTrait<?>>> getTraits() {
         return Collections.unmodifiableList(traits);
@@ -319,10 +320,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
      * @param traits the new behavioural traits.
      */
     @SuppressWarnings("unchecked")
+    @Override
     @DataBoundSetter
-    public void setTraits(@CheckForNull List<SCMTrait> traits) {
+    public void setTraits(@CheckForNull List<SCMTrait<? extends SCMTrait<?>>> traits) {
         // the reduced generics in the method signature are a workaround for JENKINS-26535
-        this.traits = traits != null ? new ArrayList<>((Collection) traits) : new ArrayList<SCMTrait<? extends SCMTrait<?>>>();
+        this.traits = traits != null ? new ArrayList<>(traits) : new ArrayList<SCMTrait<? extends SCMTrait<?>>>();
     }
 
     /**
@@ -1412,6 +1414,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         @SuppressWarnings("unused") // jelly
+        @Override
         public List<SCMTrait<? extends SCMTrait<?>>> getTraitsDefaults() {
             List<SCMTrait<? extends SCMTrait<?>>> result = new ArrayList<>();
             result.addAll(delegate.getTraitsDefaults());

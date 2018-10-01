@@ -25,7 +25,7 @@
         <changelist>-SNAPSHOT</changelist>
         <jenkins.version>2.7.3</jenkins.version>
         <workflow.version>1.14.2</workflow.version>
-        <scm-api.version>2.2.3</scm-api.version>
+        <scm-api.version>2.2.8</scm-api.version>
         <java.level>7</java.level>
     </properties>
 
