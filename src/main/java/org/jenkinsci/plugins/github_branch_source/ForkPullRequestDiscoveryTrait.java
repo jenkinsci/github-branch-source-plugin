@@ -72,11 +72,6 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
             trust;
 
     /**
-     * How to handle untrusted pull requests.
-     */
-    private int untrustedHandling;
-
-    /**
      * Constructor for stapler.
      *
      * @param strategyId the strategy id.
@@ -142,25 +137,6 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     }
 
     /**
-     * Gets the strategy id to use for untrusted pull requests
-     *
-     * @return the strategy id
-     */
-    public int getUntrustedHandling() {
-        return untrustedHandling;
-    }
-
-    /**
-     * Sets the strategy id to use for untrusted pull requests
-     *
-     * @param untrustedHandling The strategy id
-     */
-    @DataBoundSetter
-    public void setUntrustedHandling(int untrustedHandling) {
-        this.untrustedHandling = untrustedHandling;
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override
@@ -169,15 +145,6 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         ctx.wantForkPRs(true);
         ctx.withAuthority(trust);
         ctx.withForkPRStrategies(getStrategies());
-        switch (untrustedHandling) {
-            case 1:
-                // 1 means we filter out untrusted PRs completely.
-                ctx.withFilter(new ExcludeUntrustedPRsSCMHeadFilter());
-                break;
-            default:
-                // 0 is the default behavior of using the base Jenkinsfile for untrusted PRs.
-                break;
-        }
     }
 
     /**
@@ -276,28 +243,6 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     }
 
     /**
-     * An {@link SCMHeadFilter} to exclude branches from untrusted pull requests. Used when {@link #untrustedHandling}
-     * is set to {@code 1}.
-     */
-    public static class ExcludeUntrustedPRsSCMHeadFilter extends SCMHeadFilter {
-        /**
-         * {@inheritDoc}
-         */
-        @Override
-        public boolean isExcluded(@NonNull SCMSourceRequest request, @NonNull SCMHead head) {
-            if (head instanceof PullRequestSCMHead && request instanceof GitHubSCMSourceRequest) {
-                try {
-                    return !request.isTrusted(head);
-                } catch (IOException | InterruptedException e) {
-                    // If there was an issue determining whether the PR is trusted, just treat it as untrusted.
-                    return true;
-                }
-            }
-            return true;
-        }
-    }
-
-    /**
      * An {@link SCMHeadAuthority} that trusts nothing.
      */
     public static class TrustNobody extends SCMHeadAuthority<SCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
@@ -309,6 +254,14 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         public TrustNobody() {
         }
 
+        /**
+         * Overriding because we will always not discover untrusted PRs with trust nobody enabled.
+         */
+        @Override
+        public boolean isDiscoverUntrusted() {
+            return false;
+        }
+        
         /**
          * {@inheritDoc}
          */
@@ -346,11 +299,34 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
      */
     public static class TrustContributors
             extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+
+        private boolean discoverUntrusted;
+
         /**
          * Constructor.
          */
         @DataBoundConstructor
         public TrustContributors() {
+        }
+
+        /**
+         * Set whether untrusted PRs should be discovered.
+         *
+         * @param discoverUntrusted
+         */
+        @DataBoundSetter
+        public void setDiscoverUntrusted(boolean discoverUntrusted) {
+            this.discoverUntrusted = discoverUntrusted;
+        }
+
+        /**
+         * Return whether untrusted PRs should be discovered.
+         *
+         * @return boolean
+         */
+        @Override
+        public boolean isDiscoverUntrusted() {
+            return discoverUntrusted;
         }
 
         /**
@@ -393,11 +369,33 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     public static class TrustPermission
             extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
 
+        private boolean discoverUntrusted;
+
         /**
          * Constructor.
          */
         @DataBoundConstructor
         public TrustPermission() {
+        }
+
+        /**
+         * Set whether untrusted PRs should be discovered.
+         *
+         * @param discoverUntrusted
+         */
+        @DataBoundSetter
+        public void setDiscoverUntrusted(boolean discoverUntrusted) {
+            this.discoverUntrusted = discoverUntrusted;
+        }
+
+        /**
+         * Return whether untrusted PRs should be discovered.
+         *
+         * @return boolean
+         */
+        @Override
+        public boolean isDiscoverUntrusted() {
+            return discoverUntrusted;
         }
 
         /**

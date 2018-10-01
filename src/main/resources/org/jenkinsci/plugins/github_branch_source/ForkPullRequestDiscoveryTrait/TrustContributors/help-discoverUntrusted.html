@@ -1,0 +1,12 @@
+<div>
+    Whether untrusted pull requests should be discovered and jobs created for them.
+    <dl>
+        <dt>False</dt>
+        <dd>Default behavior - if a pull request is untrusted, it will not be built at all.
+        </dd>
+        <dt>True</dt>
+        <dd>Untrusted pull requests will be discovered and built. The base <code>Jenkinsfile</code> will still be used
+            for untrusted pull requests, rather than the <code>Jenkinsfile</code> from the untrusted pull request.
+        </dd>
+    </dl>
+</div>
