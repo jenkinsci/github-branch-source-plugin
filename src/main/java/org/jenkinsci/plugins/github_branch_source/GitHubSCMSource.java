@@ -133,6 +133,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
+import static hudson.Functions.isWindows;
 import static hudson.model.Items.XSTREAM2;
 import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
 
@@ -155,7 +156,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * How big (in megabytes) an on-disk cache to keep of GitHub API responses. Cache is per repo, per credentials.
      */
     private static /*mostly final*/ int cacheSize =
-            Math.min(1024, Math.max(0, Integer.getInteger(GitHubSCMSource.class.getName() + ".cacheSize", 20)));
+            Math.min(1024, Math.max(0, Integer.getInteger(GitHubSCMSource.class.getName() + ".cacheSize", isWindows() ? 0 : 20)));
     /**
      * Lock to guard access to the {@link #pullRequestSourceMap} field and prevent concurrent GitHub queries during
      * a 1.x to 2.2.0+ upgrade.
