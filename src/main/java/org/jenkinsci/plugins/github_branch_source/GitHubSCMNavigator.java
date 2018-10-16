@@ -102,6 +102,8 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
+import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
+
 public class GitHubSCMNavigator extends SCMNavigator {
 
     /**
@@ -901,7 +903,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             Connector.checkApiRateLimit(listener, github);
 
             // Input data validation
-            if (credentials != null && !github.isCredentialValid()) {
+            if (credentials != null && !isCredentialValid(github)) {
                 String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
                         CredentialsNameProvider.name(credentials),
                         apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
@@ -1030,7 +1032,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         GitHub github = Connector.connect(apiUri, credentials);
         try {
             try {
-                github.checkApiUrlValidity();
+                Connector.checkApiUrlValidity(github, credentials);
             } catch (HttpException e) {
                 String message = String.format("It seems %s is unreachable",
                         apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
@@ -1038,7 +1040,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
 
             // Input data validation
-            if (credentials != null && !github.isCredentialValid()) {
+            if (credentials != null && !isCredentialValid(github)) {
                 String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
                         CredentialsNameProvider.name(credentials),
                         apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
@@ -1056,7 +1058,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     listener.getLogger()
                             .format("Connecting to %s using %s%n", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri,
                                     CredentialsNameProvider.name(credentials));
-                    GHMyself myself = null;
+                    GHMyself myself;
                     try {
                         // Requires an authenticated access
                         myself = github.getMyself();

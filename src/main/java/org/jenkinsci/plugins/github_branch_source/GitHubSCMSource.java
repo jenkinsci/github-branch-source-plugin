@@ -58,6 +58,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -132,7 +133,10 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
+import static hudson.Functions.isWindows;
 import static hudson.model.Items.XSTREAM2;
+import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
+
 import org.kohsuke.stapler.export.Exported;
 
 public class GitHubSCMSource extends AbstractGitSCMSource {
@@ -148,6 +152,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     private static /*mostly final*/ int eventDelaySeconds =
             Math.min(300, Math.max(0, Integer.getInteger(GitHubSCMSource.class.getName() + ".eventDelaySeconds", 5)));
+    /**
+     * How big (in megabytes) an on-disk cache to keep of GitHub API responses. Cache is per repo, per credentials.
+     */
+    private static /*mostly final*/ int cacheSize =
+            Math.min(1024, Math.max(0, Integer.getInteger(GitHubSCMSource.class.getName() + ".cacheSize", isWindows() ? 0 : 20)));
     /**
      * Lock to guard access to the {@link #pullRequestSourceMap} field and prevent concurrent GitHub queries during
      * a 1.x to 2.2.0+ upgrade.
@@ -498,6 +507,26 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     /**
+     * Returns how many megabytes of on-disk cache to maintain per GitHub API URL per credentials.
+     *
+     * @return how many megabytes of on-disk cache to maintain per GitHub API URL per credentials.
+     */
+    public static int getCacheSize() {
+        return cacheSize;
+    }
+
+    /**
+     * Sets how long to delay events received from GitHub in order to allow the API caches to sync.
+     *
+     * @param cacheSize how many megabytes of on-disk cache to maintain per GitHub API URL per credentials,
+     * will be restricted into a value within the range {@code [0,1024]} inclusive.
+     */
+    @Restricted(NoExternalUse.class) // to allow configuration from system groovy console
+    public static void setCacheSize(int cacheSize) {
+        GitHubSCMSource.cacheSize = Math.min(1024, Math.max(0, cacheSize));
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -834,7 +863,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
         try {
-            checkApiUrlValidity(github);
+            checkApiUrlValidity(github, credentials);
             Connector.checkApiRateLimit(listener, github);
 
             try {
@@ -1057,7 +1086,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
         try {
-            checkApiUrlValidity(github);
+            checkApiUrlValidity(github, credentials);
             Connector.checkApiRateLimit(listener, github);
             Set<String> result = new TreeSet<>();
 
@@ -1150,7 +1179,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
         try {
-            checkApiUrlValidity(github);
+            checkApiUrlValidity(github, credentials);
             Connector.checkApiRateLimit(listener, github);
             // Input data validation
             if (StringUtils.isBlank(repository)) {
@@ -1346,9 +1375,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    private void checkApiUrlValidity(GitHub github) throws IOException {
+    private void checkApiUrlValidity(GitHub github, StandardCredentials credentials) throws IOException {
         try {
-            github.checkApiUrlValidity();
+            Connector.checkApiUrlValidity(github, credentials);
         } catch (HttpException e) {
             String message = String.format("It seems %s is unreachable", apiUri == null ? GITHUB_URL : apiUri);
             throw new IOException(message, e);
@@ -1401,7 +1430,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         try {
-            checkApiUrlValidity(github);
+            checkApiUrlValidity(github, credentials);
 
             try {
                 Connector.checkConnectionValidity(apiUri, listener, credentials, github);
@@ -1472,7 +1501,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     try {
                         GitHub github = Connector.connect(apiUri, credentials);
                         try {
-                            checkApiUrlValidity(github);
+                            checkApiUrlValidity(github, credentials);
                             Connector.checkApiRateLimit(listener, github);
                             ghRepository = github.getRepository(fullName);
                             LOGGER.log(Level.INFO, "Got remote pull requests from {0}", fullName);
@@ -1830,7 +1859,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 try {
 
                     if (!github.isAnonymous()) {
-                        GHMyself myself = null;
+                        GHMyself myself;
                         try {
                             myself = github.getMyself();
                         } catch (IllegalStateException e) {
@@ -2124,7 +2153,22 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     }
                 }
                 request.listener().getLogger().format("%n  Getting remote branches...%n");
-                return repo.getBranches().values();
+                // local optimization: always try the default branch first in any search
+                List<GHBranch> values = new ArrayList<>(repo.getBranches().values());
+                final String defaultBranch = StringUtils.defaultIfBlank(repo.getDefaultBranch(), "master");
+                Collections.sort(values, new Comparator<GHBranch>() {
+                    @Override
+                    public int compare(GHBranch o1, GHBranch o2) {
+                        if (defaultBranch.equals(o1.getName())) {
+                            return -1;
+                        }
+                        if (defaultBranch.equals(o2.getName())) {
+                            return 1;
+                        }
+                        return 0;
+                    }
+                });
+                return values;
             } catch (IOException | InterruptedException e) {
                 throw new GitHubSCMSource.WrappedException(e);
             }
@@ -2320,7 +2364,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             try {
                 GitHub github = Connector.connect(apiUri, credentials);
                 try {
-                    checkApiUrlValidity(github);
+                    checkApiUrlValidity(github, credentials);
                     Connector.checkApiRateLimit(listener, github);
 
                     // Input data validation
@@ -2330,7 +2374,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             credentials == null
                                     ? "anonymous access"
                                     : CredentialsNameProvider.name(credentials);
-                    if (credentials != null && !github.isCredentialValid()) {
+                    if (credentials != null && !isCredentialValid(github)) {
                         listener.getLogger().format("Invalid scan credentials %s to connect to %s, "
                                         + "assuming no trusted collaborators%n",
                                 credentialsName, apiUri == null ? GITHUB_URL : apiUri);

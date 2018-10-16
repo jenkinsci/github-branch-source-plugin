@@ -244,7 +244,7 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
             GitHub github = Connector.connect(apiUri, credentials);
             try {
                 try {
-                    github.checkApiUrlValidity();
+                    Connector.checkApiUrlValidity(github, credentials);
                 } catch (HttpException e) {
                     String message = String.format("It seems %s is unreachable",
                             apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
