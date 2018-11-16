@@ -115,6 +115,7 @@ import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHBranch;
 import org.kohsuke.github.GHCommit;
+import org.kohsuke.github.GHException;
 import org.kohsuke.github.GHFileNotFoundException;
 import org.kohsuke.github.GHIssueState;
 import org.kohsuke.github.GHMyself;
@@ -2216,28 +2217,51 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             throw e;
                         }
                         return new Iterator<GHRef>() {
+                            boolean hadAtLeastOne;
+                            boolean hasNone;
+
                             @Override
                             public boolean hasNext() {
                                 try {
-                                    return iterator.hasNext();
+                                    boolean hasNext = iterator.hasNext();
+                                    hadAtLeastOne = hadAtLeastOne || hasNext;
+                                    return hasNext;
                                 } catch (Error e) {
+                                    // pre https://github.com/kohsuke/github-api/commit
+                                    // /a17ce04552ddd3f6bd8210c740184e6c7ad13ae4
+                                    // we at least got the cause, even if wrapped in an Error
                                     if (e.getCause() instanceof GHFileNotFoundException) {
                                         return false;
                                     }
                                     throw e;
+                                } catch (GHException e) {
+                                    // JENKINS-52397 I have no clue why https://github.com/kohsuke/github-api/commit
+                                    // /a17ce04552ddd3f6bd8210c740184e6c7ad13ae4 does what it does, but it makes
+                                    // it rather difficult to distinguish between a network outage and the file
+                                    // not found.
+                                    if (hadAtLeastOne) {
+                                        throw e;
+                                    }
+                                    try {
+                                        hasNone = hasNone || repo.getRefs("tags").length == 0;
+                                        if (hasNone) return false;
+                                        throw e;
+                                    } catch (FileNotFoundException e1) {
+                                        hasNone = true;
+                                        return false;
+                                    } catch (IOException e1) {
+                                        e.addSuppressed(e1);
+                                        throw e;
+                                    }
                                 }
                             }
 
                             @Override
                             public GHRef next() {
-                                try {
-                                    return iterator.next();
-                                } catch (Error e) {
-                                    if (e.getCause() instanceof GHFileNotFoundException) {
-                                        throw new NoSuchElementException();
-                                    }
-                                    throw e;
+                                if (!hasNext()) {
+                                    throw new NoSuchElementException();
                                 }
+                                return iterator.next();
                             }
 
                             @Override
