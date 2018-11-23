@@ -42,7 +42,7 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
     private final @NonNull String baseHash;
     private final @NonNull String pullHash;
 
-    PullRequestSCMRevision(@NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash) {
+    public PullRequestSCMRevision(@NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash) {
         super(head, new AbstractGitSCMSource.SCMRevisionImpl(head.getTarget(), baseHash));
         this.baseHash = baseHash;
         this.pullHash = pullHash;
