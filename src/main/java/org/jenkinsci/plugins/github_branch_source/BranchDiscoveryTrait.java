@@ -205,6 +205,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
         /**
          * Out descriptor.
          */
+        @Symbol("gitHubBranchHeadAuthority")
         @Extension
         public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
             /**
