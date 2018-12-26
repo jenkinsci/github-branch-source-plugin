@@ -36,9 +36,12 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.squareup.okhttp.Cache;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
 import com.squareup.okhttp.CacheControl;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
+import com.squareup.okhttp.Interceptor;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.Extension;
@@ -370,7 +373,33 @@ public class Connector {
             gb.withEndpoint(apiUrl);
             gb.withRateLimitHandler(CUSTOMIZED);
 
+
+            Interceptor interceptor = new Interceptor() {
+                @Override
+                public Response intercept(Chain chain) throws IOException {
+                    Request request = chain.request();
+
+                    // okhttp caches the tag response even if the tag object is not found.
+                    // tags are mutable, therefore we should not cache the references
+                    // https://issues.jenkins-ci.org/browse/JENKINS-55330
+                    Response originalResponse = chain.proceed(request);
+
+                    if (request.url().getPath().contains("git/refs/tags")) {
+                        return originalResponse.newBuilder()
+                            .removeHeader("Expires")
+                            .removeHeader("Pragma")
+                            .removeHeader("Cache-Control")
+                            .header("Cache-Control", "no-cache")
+                            .build();
+                    }
+                    return originalResponse;
+                }
+            };
+
             OkHttpClient client = new OkHttpClient().setProxy(getProxy(host));
+            // client.interceptors().add(interceptor);
+            client.networkInterceptors().add(interceptor);
+            client.setProxy(getProxy(host));
 
             int cacheSize = GitHubSCMSource.getCacheSize();
             if (cacheSize > 0) {
