@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.33</version>
+        <version>3.33</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
@@ -21,7 +21,8 @@
     </licenses>
 
     <properties>
-        <jenkins.version>1.642.3</jenkins.version>
+        <jenkins.version>2.60.3</jenkins.version>
+        <java.level>8</java.level>
         <workflow.version>1.14.2</workflow.version>
         <scm-api.version>2.2.3</scm-api.version>
     </properties>
@@ -68,6 +69,12 @@
             <artifactId>display-url-api</artifactId>
             <version>0.2</version>
         </dependency>
+        <dependency> <!-- RequireUpperBoundDeps -->
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.7</version>
+        </dependency>
+
         <!-- Currently just here for interactive testing via hpi:run: -->
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
