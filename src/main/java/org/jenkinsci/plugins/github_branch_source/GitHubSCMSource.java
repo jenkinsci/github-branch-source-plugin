@@ -1989,7 +1989,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             .anyOf(NamedArrayList.withAnnotation(Discovery.class),
                                     NamedArrayList.withAnnotation(Selection.class)),
                     true, result);
-            NamedArrayList.select(all, "Additional", null, true, result);
+            NamedArrayList.select(all, "General", null, true, result);
             return result;
         }
 
