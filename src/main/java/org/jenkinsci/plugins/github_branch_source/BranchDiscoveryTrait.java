@@ -40,6 +40,7 @@ import jenkins.scm.api.trait.SCMSourceRequest;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.trait.Discovery;
+import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHPullRequest;
@@ -143,6 +144,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
     /**
      * Our descriptor.
      */
+    @Symbol("gitHubBranchDiscovery")
     @Extension
     @Discovery
     public static class DescriptorImpl extends SCMSourceTraitDescriptor {
@@ -203,6 +205,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
         /**
          * Out descriptor.
          */
+        @Symbol("gitHubBranchHeadAuthority")
         @Extension
         public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
             /**

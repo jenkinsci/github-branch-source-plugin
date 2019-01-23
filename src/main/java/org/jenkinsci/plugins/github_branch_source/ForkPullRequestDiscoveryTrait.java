@@ -44,6 +44,7 @@ import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.trait.Discovery;
+import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHPermissionType;
@@ -154,6 +155,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     /**
      * Our descriptor.
      */
+    @Symbol("gitHubForkDiscovery")
     @Extension
     @Discovery
     public static class DescriptorImpl extends SCMSourceTraitDescriptor {
@@ -250,6 +252,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         /**
          * Our descriptor.
          */
+        @Symbol("gitHubTrustNobody")
         @Extension
         public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
 
@@ -295,6 +298,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         /**
          * Our descriptor.
          */
+        @Symbol("gitHubTrustContributors")
         @Extension
         public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
 
@@ -351,6 +355,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         /**
          * Our descriptor.
          */
+        @Symbol("gitHubTrustPermissions")
         @Extension
         public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
             /**
@@ -393,6 +398,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         /**
          * Our descriptor.
          */
+        @Symbol("gitHubTrustEveryone")
         @Extension
         public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
 

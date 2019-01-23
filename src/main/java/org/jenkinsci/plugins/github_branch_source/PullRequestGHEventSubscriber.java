@@ -132,7 +132,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                             changedRepository,
                             event.getOrigin()
                     ));
-                } else if ("reopened".equals(action) || "synchronize".equals(action)) {
+                } else if ("reopened".equals(action) || "synchronize".equals(action) || "edited".equals(action)) {
                     fireAfterDelay(new SCMHeadEventImpl(
                             SCMEvent.Type.UPDATED,
                             event.getTimestamp(),

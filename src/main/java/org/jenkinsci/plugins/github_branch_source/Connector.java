@@ -35,25 +35,34 @@ import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.squareup.okhttp.Cache;
+import com.squareup.okhttp.CacheControl;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
+import hudson.Extension;
 import hudson.Util;
 import hudson.model.Item;
+import hudson.model.PeriodicWork;
 import hudson.model.Queue;
 import hudson.model.TaskListener;
 import hudson.model.queue.Tasks;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.Proxy;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -65,14 +74,18 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSourceOwner;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.HttpConnector;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.OkHttpConnector;
+
+import static java.util.logging.Level.FINE;
 
 /**
  * Utilities that could perhaps be moved into {@code github-api}.
@@ -80,9 +93,18 @@ import org.kohsuke.github.extras.OkHttpConnector;
 public class Connector {
     private static final Logger LOGGER = Logger.getLogger(Connector.class.getName());
 
+    private static final Map<GitHub,Long> lastUsed = new HashMap<>();
     private static final Map<Details, GitHub> githubs = new HashMap<>();
     private static final Map<GitHub, Integer> usage = new HashMap<>();
     private static final Map<TaskListener, Map<GitHub,Void>> checked = new WeakHashMap<>();
+    private static final long API_URL_REVALIDATE_MILLIS = TimeUnit.MINUTES.toMillis(5);
+    private static final Map<String,Long> apiUrlValid = new LinkedHashMap<String,Long>(){
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String,Long> eldest) {
+            Long t = eldest.getValue();
+            return t == null || t < System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS;
+        }
+    };
     private static final double MILLIS_PER_HOUR = TimeUnit.HOURS.toMillis(1);
     private static final Random ENTROPY = new Random();
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
@@ -177,9 +199,9 @@ public class Connector {
                 try {
                     GitHub connector = Connector.connect(apiUri, credentials);
                     try {
-                        if (connector.isCredentialValid()) {
-                            return FormValidation.ok();
-                        } else {
+                        try {
+                            return FormValidation.ok("User %s", connector.getMyself().getLogin());
+                        } catch (IOException e){
                             return FormValidation.error("Invalid credentials");
                         }
                     } finally {
@@ -282,21 +304,48 @@ public class Connector {
         );
     }
 
+    public static void checkApiUrlValidity(@Nonnull GitHub gitHub, @CheckForNull StandardCredentials credentials) throws IOException {
+        String hash;
+        if (credentials == null) {
+            hash = "anonymous";
+        } else if (credentials instanceof StandardUsernamePasswordCredentials) {
+            StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
+            hash = Util.getDigestOf(c.getPassword().getPlainText() + SALT);
+        } else {
+            // TODO OAuth support
+            throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
+        }
+        String key = gitHub.getApiUrl() + "::" + hash;
+        synchronized (apiUrlValid) {
+            Long last = apiUrlValid.get(key);
+            if (last != null && last > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
+                return;
+            }
+            gitHub.checkApiUrlValidity();
+            apiUrlValid.put(key, System.currentTimeMillis());
+        }
+    }
+
     public static @Nonnull GitHub connect(@CheckForNull String apiUri, @CheckForNull StandardCredentials credentials) throws IOException {
         String apiUrl = Util.fixEmptyAndTrim(apiUri);
         apiUrl = apiUrl != null ? apiUrl : GitHubServerConfig.GITHUB_URL;
         String username;
         String password;
         String hash;
+        String authHash;
+        Jenkins jenkins = Jenkins.getInstance();
+        assert jenkins != null;
         if (credentials == null) {
             username = null;
             password = null;
             hash = "anonymous";
+            authHash = "anonymous";
         } else if (credentials instanceof StandardUsernamePasswordCredentials) {
             StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
             username = c.getUsername();
             password = c.getPassword().getPlainText();
             hash = Util.getDigestOf(password + SALT); // want to ensure pooling by credential
+            authHash = Util.getDigestOf(password + "::" + jenkins.getLegacyInstanceId());
         } else {
             // TODO OAuth support
             throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
@@ -322,7 +371,35 @@ public class Connector {
 
             OkHttpClient client = new OkHttpClient().setProxy(getProxy(host));
 
-            gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
+            int cacheSize = GitHubSCMSource.getCacheSize();
+            if (cacheSize > 0) {
+                File cacheBase = new File(jenkins.getRootDir(),
+                        GitHubSCMProbe.class.getName() + ".cache");
+                File cacheDir = null;
+                try {
+                    MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+                    sha256.update(apiUrl.getBytes(StandardCharsets.UTF_8));
+                    sha256.update("::".getBytes(StandardCharsets.UTF_8));
+                    if (username != null) {
+                        sha256.update(username.getBytes(StandardCharsets.UTF_8));
+                    }
+                    sha256.update("::".getBytes(StandardCharsets.UTF_8));
+                    sha256.update(authHash.getBytes(StandardCharsets.UTF_8));
+                    cacheDir = new File(cacheBase, Base64.encodeBase64URLSafeString(sha256.digest()));
+                } catch (NoSuchAlgorithmException e) {
+                    // no cache for you mr non-spec compliant JVM
+                }
+                if (cacheDir != null) {
+                    Cache cache = new Cache(cacheDir, cacheSize * 1024L * 1024L);
+                    client.setCache(cache);
+                }
+            }
+
+            if (client.getCache() != null) {
+                gb.withConnector(new ForceValidationOkHttpConnector(new OkUrlFactory(client)));
+            } else {
+                gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
+            }
 
             if (username != null) {
                 gb.withPassword(username, password);
@@ -331,6 +408,7 @@ public class Connector {
             hub = gb.build();
             githubs.put(details, hub);
             usage.put(hub, 1);
+            lastUsed.remove(hub);
             return hub;
         }
     }
@@ -347,6 +425,25 @@ public class Connector {
             }
             if (count <= 1) {
                 // exclusive
+                usage.put(hub, 0);
+                lastUsed.put(hub, System.currentTimeMillis());
+            } else {
+                // shared
+                usage.put(hub, count - 1);
+            }
+        }
+    }
+
+    private static void unused(@Nonnull GitHub hub) {
+        synchronized (githubs) {
+            Integer count = usage.get(hub);
+            if (count == null) {
+                // it was untracked, forget about it
+                return;
+            }
+            if (count <= 1) {
+                // only remove if it is actually unused now
+                // exclusive
                 usage.remove(hub);
                 // we could use multiple maps, but we expect only a handful of entries and mostly the shared path
                 // so we can just walk the forward map
@@ -358,9 +455,6 @@ public class Connector {
                         break;
                     }
                 }
-            } else {
-                // shared
-                usage.put(hub, count - 1);
             }
         }
     }
@@ -413,6 +507,29 @@ public class Connector {
 
     };
 
+    /**
+     * Alternative to {@link GitHub#isCredentialValid()} that relies on the cached user object in the {@link GitHub}
+     * instance and hence reduced rate limit consumption.
+     *
+     * @param gitHub the instance to check.
+     * @return {@code true} if the credentials are valid.
+     */
+    static boolean isCredentialValid(GitHub gitHub) {
+        if (gitHub.isAnonymous()) {
+            return true;
+        } else {
+            try {
+                gitHub.getMyself();
+                return true;
+            } catch (IOException e) {
+                if (LOGGER.isLoggable(FINE)) {
+                    LOGGER.log(FINE, "Exception validating credentials on " + gitHub.getApiUrl(), e);
+                }
+                return false;
+            }
+        }
+    }
+
     /*package*/ static void checkConnectionValidity(String apiUri, @NonNull TaskListener listener,
                                                     StandardCredentials credentials,
                                                     GitHub github)
@@ -429,7 +546,7 @@ public class Connector {
             }
             hubs.put(github, null);
         }
-        if (credentials != null && !github.isCredentialValid()) {
+        if (credentials != null && !isCredentialValid(github)) {
             String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
                     CredentialsNameProvider.name(credentials), apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
             throw new AbortException(message);
@@ -539,6 +656,32 @@ public class Connector {
         }
     }
 
+    @Extension
+    public static class UnusedConnectionDestroyer extends PeriodicWork {
+
+        @Override
+        public long getRecurrencePeriod() {
+            return TimeUnit.SECONDS.toMillis(15);
+        }
+
+        @Override
+        protected void doRun() throws Exception {
+            // free any connection unused for the last 5 minutes
+            long threshold = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5);
+            synchronized (githubs) {
+                for (Iterator<Map.Entry<GitHub, Long>> iterator = lastUsed.entrySet().iterator();
+                     iterator.hasNext(); ) {
+                    Map.Entry<GitHub, Long> entry = iterator.next();
+                    Long lastUse = entry.getValue();
+                    if (lastUse == null || lastUse < threshold) {
+                        iterator.remove();
+                        unused(entry.getKey());
+                    }
+                }
+            }
+        }
+    }
+
     private static class Details {
         private final String apiUrl;
         private final String credentialsHash;
@@ -580,4 +723,27 @@ public class Connector {
 
     }
 
+    /**
+     * A {@link HttpConnector} that uses {@link OkHttpConnector} but starts with the {@code Cache-Control} header
+     * configured to always revalidate requests against the remote server using conditional GET requests.
+     */
+    private static class ForceValidationOkHttpConnector implements HttpConnector {
+        private static final String FORCE_VALIDATION = new CacheControl.Builder()
+                .maxAge(0, TimeUnit.SECONDS)
+                .build()
+                .toString();
+        private static final String HEADER_NAME = "Cache-Control";
+        private final OkHttpConnector delegate;
+
+        public ForceValidationOkHttpConnector(OkUrlFactory okUrlFactory) {
+            this.delegate = new OkHttpConnector(okUrlFactory);
+        }
+
+        @Override
+        public HttpURLConnection connect(URL url) throws IOException {
+            HttpURLConnection connection = delegate.connect(url);
+            connection.setRequestProperty(HEADER_NAME, FORCE_VALIDATION);
+            return connection;
+        }
+    }
 }
