@@ -145,6 +145,8 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
                         return SCMProbeStat.fromType(SCMFile.Type.OTHER);
                     }
                 }
+            }
+            for (GHContent content : directoryContent) {
                 if (content.getPath().equalsIgnoreCase(path)) {
                     return SCMProbeStat.fromAlternativePath(content.getPath());
                 }
