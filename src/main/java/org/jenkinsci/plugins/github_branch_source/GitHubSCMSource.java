@@ -1839,6 +1839,39 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return !GitHubConfiguration.get().getEndpoints().isEmpty();
         }
 
+
+        @RequirePOST
+        public ListBoxModel doFillOrganizationItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri,
+                                                    @QueryParameter String credentialsId) throws IOException {
+            if (credentialsId == null) {
+                return new ListBoxModel();
+            }
+            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+                    context != null && !context.hasPermission(Item.EXTENDED_READ)) {
+                return new ListBoxModel(); // not supposed to be seeing this form
+            }
+            if (context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
+                return new ListBoxModel(); // not permitted to try connecting with these credentials
+            }
+            try {
+                StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, credentialsId);
+                GitHub github = Connector.connect(apiUri, credentials);
+                if (!github.isAnonymous()) {
+                    ListBoxModel model = new ListBoxModel();
+                    for (Map.Entry<String,GHOrganization> entry : github.getMyOrganizations().entrySet()) {
+                        model.add(entry.getKey(), entry.getValue().getAvatarUrl());
+                    }
+                    return model;
+                }
+            }
+             catch (FillErrorResponse e) {
+                throw e;
+            } catch (Throwable e) {
+                LOGGER.log(Level.SEVERE, e.getMessage(), e);
+                throw new FillErrorResponse(e.getMessage(), false);
+            }
+            throw new FillErrorResponse(Messages.GitHubSCMSource_CouldNotConnectionGithub(credentialsId),true);
+        }
         @RequirePOST
         public ListBoxModel doFillRepositoryItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri,
                 @QueryParameter String credentialsId, @QueryParameter String repoOwner) throws IOException {
