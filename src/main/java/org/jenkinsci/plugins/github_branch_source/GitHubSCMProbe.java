@@ -130,8 +130,8 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
     @Override
     public SCMProbeStat stat(@NonNull String path) throws IOException {
         checkOpen();
+        int index = path.lastIndexOf('/') + 1;
         try {
-            int index = path.lastIndexOf('/') + 1;
             List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), Constants.R_REFS + ref);
             for (GHContent content : directoryContent) {
                 if (content.getPath().equals(path)) {
@@ -152,7 +152,19 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
                 }
             }
         } catch (FileNotFoundException fnf) {
-            // means that does not exist and this is handled below this try/catch block.
+            if (index == 0 || index == 1) {
+                // the revision does not exist, we should complain.
+                throw fnf;
+            } else {
+                try {
+                    repo.getDirectoryContent("/", Constants.R_REFS + ref);
+                } catch (IOException e) {
+                    // this must be an issue with the revision, so complain
+                    fnf.addSuppressed(e);
+                    throw fnf;
+                }
+                // means that does not exist and this is handled below this try/catch block.
+            }
         }
         return SCMProbeStat.fromType(SCMFile.Type.NONEXISTENT);
     }
