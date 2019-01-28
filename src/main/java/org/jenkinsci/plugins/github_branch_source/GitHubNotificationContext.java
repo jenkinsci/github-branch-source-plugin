@@ -37,7 +37,7 @@ import org.kohsuke.github.GHCommitState;
 /**
  * Parameter object used in notification strategies {@link AbstractGitHubNotificationStrategy}.
  * When creating a new point of notification (e.g. on build completion), populate this object with
- * the the relevant details accessible at that point.
+ * the relevant details accessible at that point.
  * When implementing a notification strategy, be aware that some details may be absent depending on the point of notification.
  * @since TODO
  */
