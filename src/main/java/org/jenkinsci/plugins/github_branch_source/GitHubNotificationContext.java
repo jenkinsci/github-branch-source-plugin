@@ -145,14 +145,15 @@ public final class GitHubNotificationContext {
      * @since TODO
      */
     public String getDefaultContext(TaskListener listener) {
+        String system = System.getProperty("OVERRIDE_GITHUB_CONTEXT", "jenkins");
         if (head instanceof PullRequestSCMHead) {
             if (((PullRequestSCMHead) head).isMerge()) {
-                return "continuous-integration/jenkins/pr-merge";
+                return "continuous-integration/" + system + "/pr-merge";
             } else {
-                return "continuous-integration/jenkins/pr-head";
+                return "continuous-integration/" + system + "/pr-head";
             }
         } else {
-            return "continuous-integration/jenkins/branch";
+            return "continuous-integration/" + system + "/branch";
         }
     }
 
