@@ -37,6 +37,8 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Objects;
+
+import hudson.scm.SCMDescriptor;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.scm.api.SCMFile;
@@ -44,6 +46,7 @@ import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.SCMSourceDescriptor;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.FastDateFormat;
 import org.eclipse.jgit.lib.Constants;
@@ -213,12 +216,23 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
             return false;
         }
 
+        @Override
+        protected boolean supportsDescriptor(SCMDescriptor scmDescriptor) {
+            // TODO implement a GitHubSCM so we can work for those
+            return false;
+        }
+
         /**
          * {@inheritDoc}
          */
         @Override
         public boolean supports(SCMSource source) {
             return source instanceof GitHubSCMSource;
+        }
+
+        @Override
+        protected boolean supportsDescriptor(SCMSourceDescriptor scmSourceDescriptor) {
+            return scmSourceDescriptor instanceof GitHubSCMSource.DescriptorImpl;
         }
 
         /**

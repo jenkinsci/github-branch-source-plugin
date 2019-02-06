@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>2.33</version>
+        <version>3.37</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
@@ -21,9 +21,9 @@
     </licenses>
 
     <properties>
-        <jenkins.version>1.642.3</jenkins.version>
-        <workflow.version>1.14.2</workflow.version>
-        <scm-api.version>2.2.3</scm-api.version>
+        <java.level>8</java.level>
+        <jenkins.version>2.121.3</jenkins.version>
+        <scm-api.version>2.3.0</scm-api.version>
     </properties>
 
     <scm>
@@ -36,7 +36,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
-            <version>1.10</version>
+            <version>1.17</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -46,39 +46,39 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
-            <version>3.6.0</version>
+            <version>3.9.3</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.90</version>
+            <version>1.95</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>credentials</artifactId>
-            <version>2.1.15</version>
+            <version>2.1.18</version>
         </dependency>
         <dependency>
             <groupId>com.coravy.hudson.plugins.github</groupId>
             <artifactId>github</artifactId>
-            <version>1.26.0</version>
+            <version>1.29.3</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>display-url-api</artifactId>
-            <version>0.2</version>
+            <version>2.0</version>
         </dependency>
         <!-- Currently just here for interactive testing via hpi:run: -->
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>junit</artifactId>
-            <version>1.6</version>
+            <version>1.26.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>script-security</artifactId>
-            <version>1.16</version>
+            <version>1.51</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -91,19 +91,61 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>branch-api</artifactId>
-            <version>2.0.11</version>
+            <version>2.1.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>pipeline-build-step</artifactId>
+            <version>2.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
-            <artifactId>workflow-aggregator</artifactId>
-            <version>${workflow.version}</version>
+            <artifactId>workflow-api</artifactId>
+            <version>2.30</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-basic-steps</artifactId>
+            <version>2.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-cps</artifactId>
+            <version>2.61</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-job</artifactId>
+            <version>2.26</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-scm-step</artifactId>
+            <version>2.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-step-api</artifactId>
+            <version>2.17</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-support</artifactId>
+            <version>2.21</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-multibranch</artifactId>
-            <version>${workflow.version}</version>
+            <version>2.20</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -131,6 +173,30 @@
             </exclusions>
         </dependency>
     </dependencies>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.jenkins-ci</groupId>
+                <artifactId>annotation-indexer</artifactId>
+                <version>1.12</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jenkins-ci.plugins</groupId>
+                <artifactId>cloudbees-folder</artifactId>
+                <version>6.5.1</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.7</version>
+            </dependency>
+            <dependency>
+                <groupId>org.jenkins-ci.plugins</groupId>
+                <artifactId>token-macro</artifactId>
+                <version>2.6</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
