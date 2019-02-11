@@ -45,6 +45,7 @@ import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -54,6 +55,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
@@ -322,9 +324,27 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @SuppressWarnings("unchecked")
     @DataBoundSetter
-    public void setTraits(@CheckForNull List<SCMTrait> traits) {
+    public void setTraits(@CheckForNull SCMTrait[] traits) {
         // the reduced generics in the method signature are a workaround for JENKINS-26535
-        this.traits = traits != null ? new ArrayList<>((Collection) traits) : new ArrayList<SCMTrait<? extends SCMTrait<?>>>();
+        this.traits = new ArrayList<>();
+        if (traits != null) {
+            for (SCMTrait trait : traits) {
+                this.traits.add(trait);
+            }
+        }
+    }
+
+    /**
+     * Sets the behavioural traits that are applied to this navigator and any {@link GitHubSCMSource} instances it
+     * discovers. The new traits will take affect on the next navigation through any of the
+     * {@link #visitSources(SCMSourceObserver)} overloads or {@link #visitSource(String, SCMSourceObserver)}.
+     *
+     * @param traits the new behavioural traits.
+     */
+    @Override
+    public void setTraits(@CheckForNull List<SCMTrait<? extends SCMTrait<?>>> traits) {
+        this.traits = traits != null ? new ArrayList<>(traits) : new ArrayList<SCMTrait<? extends SCMTrait<?>>>();
+
     }
 
     /**
