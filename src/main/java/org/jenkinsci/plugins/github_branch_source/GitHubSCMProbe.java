@@ -27,22 +27,24 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.List;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMProbe;
 import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMRevision;
-import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
+import org.kohsuke.github.GHFileNotFoundException;
 import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+
 
 @SuppressFBWarnings("SE_TRANSIENT_FIELD_NOT_RESTORED")
 class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
@@ -151,19 +153,38 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
                     return SCMProbeStat.fromAlternativePath(content.getPath());
                 }
             }
-        } catch (FileNotFoundException fnf) {
+        } catch (GHFileNotFoundException fnf) {
+            boolean finicky = false;
             if (index == 0 || index == 1) {
-                // the revision does not exist, we should complain.
-                throw fnf;
+                // the revision does not exist, we should complain unless JENKINS-54126.
+                finicky = true;
             } else {
                 try {
                     repo.getDirectoryContent("/", Constants.R_REFS + ref);
                 } catch (IOException e) {
-                    // this must be an issue with the revision, so complain
+                    // this must be an issue with the revision, so complain unless JENKINS-54126
                     fnf.addSuppressed(e);
-                    throw fnf;
+                    finicky = true;
                 }
                 // means that does not exist and this is handled below this try/catch block.
+            }
+            if (finicky) {
+                final Optional<List<String>> status = Optional.ofNullable(fnf.getResponseHeaderFields() != null ? fnf.getResponseHeaderFields().get(null) : null);
+                if (GitHubSCMSource.getCacheSize() > 0
+                        && gitHub.getConnector() instanceof Connector.ForceValidationOkHttpConnector
+                        && status.isPresent() && status.get().stream().anyMatch((s) -> s.contains("40"))) { //Any status >= 400 is a FNF in okhttp
+                    //JENKINS-54126 try again without cache headers
+                    final Connector.ForceValidationOkHttpConnector oldConnector = (Connector.ForceValidationOkHttpConnector) gitHub.getConnector();
+                    try {
+                        //TODO I'm not sure we are alone in using this connector so maybe concurrent modification problems
+                        gitHub.setConnector(oldConnector.getDelegate());
+                        return stat(path);
+                    } finally {
+                        gitHub.setConnector(oldConnector);
+                    }
+                } else {
+                    throw fnf;
+                }
             }
         }
         return SCMProbeStat.fromType(SCMFile.Type.NONEXISTENT);

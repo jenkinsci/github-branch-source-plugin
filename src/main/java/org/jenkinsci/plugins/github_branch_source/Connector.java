@@ -78,6 +78,8 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
@@ -333,8 +335,7 @@ public class Connector {
         String password;
         String hash;
         String authHash;
-        Jenkins jenkins = Jenkins.getInstance();
-        assert jenkins != null;
+        Jenkins jenkins = Jenkins.get();
         if (credentials == null) {
             username = null;
             password = null;
@@ -727,7 +728,8 @@ public class Connector {
      * A {@link HttpConnector} that uses {@link OkHttpConnector} but starts with the {@code Cache-Control} header
      * configured to always revalidate requests against the remote server using conditional GET requests.
      */
-    private static class ForceValidationOkHttpConnector implements HttpConnector {
+    @Restricted(NoExternalUse.class)
+    /*package*/ static class ForceValidationOkHttpConnector implements HttpConnector {
         private static final String FORCE_VALIDATION = new CacheControl.Builder()
                 .maxAge(0, TimeUnit.SECONDS)
                 .build()
@@ -737,6 +739,10 @@ public class Connector {
 
         public ForceValidationOkHttpConnector(OkUrlFactory okUrlFactory) {
             this.delegate = new OkHttpConnector(okUrlFactory);
+        }
+
+        /*package*/ OkHttpConnector getDelegate() {
+            return delegate;
         }
 
         @Override

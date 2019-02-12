@@ -1,7 +1,9 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import org.junit.Before;
@@ -68,6 +70,22 @@ public class GitHubSCMProbeTest {
                         .withHeader("Content-Type", "application/json")
                         .withBodyFile("body-yolo-contents-8rd37.json")));
         assertFalse(probe.stat("subdir/Jenkinsfile").exists());
+    }
+
+    @Issue("JENKINS-54126")
+    @Test
+    public void statWhenRootIs404AndCacheOnThenOff() throws Exception {
+        GitHubSCMSource.setCacheSize(10);
+        githubApi.stubFor(get(urlPathEqualTo("/repos/cloudbeers/yolo/contents/")).withHeader("Cache-Control", containing("max-age")).willReturn(aResponse().withStatus(404)));
+        githubApi.stubFor(get(urlPathEqualTo("/repos/cloudbeers/yolo/contents/")).withHeader("Cache-Control", absent())
+                .willReturn(aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBodyFile("body-yolo-contents-8rd37.json")));
+
+        assertTrue(probe.stat("README.md").exists());
+        githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/")).withHeader("Cache-Control", containing("max-age")));
+        githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/")).withHeader("Cache-Control", absent()));
     }
 
 }
