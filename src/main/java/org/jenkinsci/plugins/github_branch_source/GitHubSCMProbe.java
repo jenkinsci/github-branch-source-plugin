@@ -33,6 +33,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMProbe;
 import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMRevision;
+import jenkins.util.SystemProperties;
 import org.eclipse.jgit.lib.Constants;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
@@ -50,6 +51,8 @@ import java.util.Optional;
 @SuppressFBWarnings("SE_TRANSIENT_FIELD_NOT_RESTORED")
 class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
     private static final long serialVersionUID = 1L;
+    private static /*mostly final*/ boolean JENKINS_54126_WORKAROUND = Boolean.parseBoolean(System.getProperty(GitHubSCMProbe.class.getName() + ".JENKINS_54126_WORKAROUND", Boolean.TRUE.toString()));
+    private static /*mostly final*/ boolean STAT_RETHROW_API_FNF = Boolean.parseBoolean(System.getProperty(GitHubSCMProbe.class.getName() + ".STAT_RETHROW_API_FNF", Boolean.TRUE.toString()));
     private final SCMRevision revision;
     private final transient GitHub gitHub;
     private final transient GHRepository repo;
@@ -169,8 +172,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
                 }
                 // means that does not exist and this is handled below this try/catch block.
             }
-            if (finicky) {
-
+            if (finicky && JENKINS_54126_WORKAROUND) {
                 final Optional<List<String>> status;
                 final Map<String, List<String>> responseHeaderFields = fnf.getResponseHeaderFields();
                 if (responseHeaderFields != null) {
@@ -191,7 +193,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
                     } finally {
                         gitHub.setConnector(oldConnector);
                     }
-                } else {
+                } else if (STAT_RETHROW_API_FNF){
                     throw fnf;
                 }
             }
