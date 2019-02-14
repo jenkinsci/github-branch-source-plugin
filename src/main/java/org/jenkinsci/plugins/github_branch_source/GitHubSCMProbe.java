@@ -43,6 +43,7 @@ import org.kohsuke.github.GitHub;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 
@@ -169,7 +170,15 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
                 // means that does not exist and this is handled below this try/catch block.
             }
             if (finicky) {
-                final Optional<List<String>> status = Optional.ofNullable(fnf.getResponseHeaderFields() != null ? fnf.getResponseHeaderFields().get(null) : null);
+
+                final Optional<List<String>> status;
+                final Map<String, List<String>> responseHeaderFields = fnf.getResponseHeaderFields();
+                if (responseHeaderFields != null) {
+                    status = Optional.ofNullable(responseHeaderFields.get(null));
+                } else {
+                    status = Optional.empty();
+                }
+
                 if (GitHubSCMSource.getCacheSize() > 0
                         && gitHub.getConnector() instanceof Connector.ForceValidationOkHttpConnector
                         && status.isPresent() && status.get().stream().anyMatch((s) -> s.contains("40"))) { //Any status >= 400 is a FNF in okhttp
