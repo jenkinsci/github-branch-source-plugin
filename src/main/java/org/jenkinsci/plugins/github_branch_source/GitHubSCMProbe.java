@@ -46,11 +46,14 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 @SuppressFBWarnings("SE_TRANSIENT_FIELD_NOT_RESTORED")
 class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
     private static final long serialVersionUID = 1L;
+    private static final Logger LOG = Logger.getLogger(GitHubSCMProbe.class.getName());
     private static /*mostly final*/ boolean JENKINS_54126_WORKAROUND = Boolean.parseBoolean(System.getProperty(GitHubSCMProbe.class.getName() + ".JENKINS_54126_WORKAROUND", Boolean.TRUE.toString()));
     private static /*mostly final*/ boolean STAT_RETHROW_API_FNF = Boolean.parseBoolean(System.getProperty(GitHubSCMProbe.class.getName() + ".STAT_RETHROW_API_FNF", Boolean.TRUE.toString()));
     private final SCMRevision revision;
@@ -173,6 +176,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
                 // means that does not exist and this is handled below this try/catch block.
             }
             if (finicky && JENKINS_54126_WORKAROUND) {
+                LOG.log(Level.FINE, String.format("JENKINS-54126 Received finacky response from GitHub %s : %s", repo.getFullName(), ref), fnf);
                 final Optional<List<String>> status;
                 final Map<String, List<String>> responseHeaderFields = fnf.getResponseHeaderFields();
                 if (responseHeaderFields != null) {
@@ -185,6 +189,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
                         && gitHub.getConnector() instanceof Connector.ForceValidationOkHttpConnector
                         && status.isPresent() && status.get().stream().anyMatch((s) -> s.contains("40"))) { //Any status >= 400 is a FNF in okhttp
                     //JENKINS-54126 try again without cache headers
+                    LOG.log(Level.FINE, "JENKINS-54126 Attempting the request again with workaround.");
                     final Connector.ForceValidationOkHttpConnector oldConnector = (Connector.ForceValidationOkHttpConnector) gitHub.getConnector();
                     try {
                         //TODO I'm not sure we are alone in using this connector so maybe concurrent modification problems
@@ -195,6 +200,8 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
                     }
                 } else if (STAT_RETHROW_API_FNF){
                     throw fnf;
+                } else {
+                    LOG.log(Level.FINE, "JENKINS-54126 silently ignoring the problem.");
                 }
             }
         }
