@@ -62,7 +62,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
     /**
      * Singleton instance of {@link HttpsRepositoryUriResolver}.
      */
-    public static final HttpsRepositoryUriResolver HTTPS = new HttpsRepositoryUriResolver();
+    static final HttpsRepositoryUriResolver HTTPS = new HttpsRepositoryUriResolver();
     /**
      * Singleton instance of {@link SshRepositoryUriResolver}.
      */
