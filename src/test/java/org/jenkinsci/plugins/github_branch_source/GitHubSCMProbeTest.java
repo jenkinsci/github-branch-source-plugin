@@ -30,6 +30,8 @@ public class GitHubSCMProbeTest {
 
     @Before
     public void setUp() throws Exception {
+        GitHubSCMProbe.JENKINS_54126_WORKAROUND = true;
+        GitHubSCMProbe.STAT_RETHROW_API_FNF = true;
         final GitHub github = Connector.connect("http://localhost:" + githubApi.port(), null);
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo"))
@@ -50,6 +52,15 @@ public class GitHubSCMProbeTest {
     public void statWhenRootIs404() throws Exception {
         githubApi.stubFor(get(urlPathEqualTo("/repos/cloudbeers/yolo/contents/")).willReturn(aResponse().withStatus(404)));
         probe.stat("Jenkinsfile").exists();
+    }
+
+    @Issue("JENKINS-54126")
+    @Test
+    public void statWhenRootIs404WorkaroundOff() throws Exception {
+        GitHubSCMProbe.JENKINS_54126_WORKAROUND = false;
+        GitHubSCMProbe.STAT_RETHROW_API_FNF = false;
+        githubApi.stubFor(get(urlPathEqualTo("/repos/cloudbeers/yolo/contents/")).willReturn(aResponse().withStatus(404)));
+        assertFalse(probe.stat("README.md").exists());
     }
 
     @Issue("JENKINS-54126")
