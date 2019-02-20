@@ -190,7 +190,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         return uriResolver;
     }
 
-        /**
+    /**
      * Configures the {@link IdCredentials#getId()} of the {@link Credentials} to use when connecting to the
      * {@link #remote()}
      *
