@@ -62,11 +62,11 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
     /**
      * Singleton instance of {@link HttpsRepositoryUriResolver}.
      */
-    private static final HttpsRepositoryUriResolver HTTPS = new HttpsRepositoryUriResolver();
+    static final HttpsRepositoryUriResolver HTTPS = new HttpsRepositoryUriResolver();
     /**
      * Singleton instance of {@link SshRepositoryUriResolver}.
      */
-    private static final SshRepositoryUriResolver SSH = new SshRepositoryUriResolver();
+    static final SshRepositoryUriResolver SSH = new SshRepositoryUriResolver();
     /**
      * The GitHub API suffix for GitHub Server.
      */
@@ -96,6 +96,11 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
      */
     @CheckForNull
     private final URL repositoryUrl;
+    /**
+     * The repository name.
+     */
+    @NonNull
+    private RepositoryUriResolver uriResolver = GitHubSCMBuilder.HTTPS;
 
     /**
      * Constructor.
@@ -131,6 +136,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         if (repoUrl != null) {
             withBrowser(new GithubWeb(repoUrl));
         }
+        withCredentials(credentialsId(), null);
     }
 
     /**
@@ -181,8 +187,29 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
      */
     @NonNull
     public final RepositoryUriResolver uriResolver() {
-        String credentialsId = credentialsId();
-        return uriResolver(context, apiUri, credentialsId);
+        return uriResolver;
+    }
+
+    /**
+     * Configures the {@link IdCredentials#getId()} of the {@link Credentials} to use when connecting to the
+     * {@link #remote()}
+     *
+     * @param credentialsId the {@link IdCredentials#getId()} of the {@link Credentials} to use when connecting to
+     *                      the {@link #remote()} or {@code null} to let the git client choose between providing its own
+     *                      credentials or connecting anonymously.
+     * @param uriResolver the {@link RepositoryUriResolver} of the {@link Credentials} to use or {@code null}
+     *                 to detect the the protocol based on the credentialsId. Defaults to HTTP if credentials are
+     *                 {@code null}.  Enables support for blank SSH credentials.
+     * @return {@code this} for method chaining.
+     */
+    @NonNull
+    public GitHubSCMBuilder withCredentials(String credentialsId, RepositoryUriResolver uriResolver) {
+        if (uriResolver == null) {
+            uriResolver = uriResolver(context, apiUri, credentialsId);
+        }
+
+        this.uriResolver = uriResolver;
+        return withCredentials(credentialsId);
     }
 
     /**
@@ -193,6 +220,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
      * @param credentialsId the credentials.
      * @return a {@link RepositoryUriResolver}
      */
+    @NonNull
     public static RepositoryUriResolver uriResolver(@CheckForNull Item context, @NonNull String apiUri,
                                                     @CheckForNull String credentialsId) {
         if (credentialsId == null) {
