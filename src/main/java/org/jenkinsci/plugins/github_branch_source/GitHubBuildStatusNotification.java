@@ -69,14 +69,16 @@ public class GitHubBuildStatusNotification {
 
     private static final Logger LOGGER = Logger.getLogger(GitHubBuildStatusNotification.class.getName());
 
+
     private static void createBuildCommitStatus(Run<?, ?> build, TaskListener listener) {
-        SCMSource src = SCMSource.SourceByItem.findSource(build.getParent());
+        Job<?, ?> job = build.getParent();
+        SCMSource src = SCMSource.SourceByItem.findSource(job);
         SCMRevision revision = src != null ? SCMRevisionAction.getRevision(src, build) : null;
         if (revision != null) { // only notify if we have a revision to notify
             try {
-                GitHub gitHub = lookUpGitHub(build.getParent());
+                GitHub gitHub = lookUpGitHub(job);
                 try {
-                    GHRepository repo = lookUpRepo(gitHub, build.getParent());
+                    GHRepository repo = lookUpRepo(gitHub, job);
                     if (repo != null) {
                         Result result = build.getResult();
                         String revisionToNotify = resolveHeadCommit(revision);
@@ -85,7 +87,7 @@ public class GitHubBuildStatusNotification {
                                 .withTraits(((GitHubSCMSource) src).getTraits()).notificationStrategies();
                         for (AbstractGitHubNotificationStrategy strategy : strategies) {
                             // TODO allow strategies to combine/cooperate on a notification
-                            GitHubNotificationContext notificationContext = GitHubNotificationContext.build(null, build,
+                            GitHubNotificationContext notificationContext = GitHubNotificationContext.build(job, build,
                                     src, head);
                             List<GitHubNotificationRequest> details = strategy.notifications(notificationContext, listener);
                             for (GitHubNotificationRequest request : details) {

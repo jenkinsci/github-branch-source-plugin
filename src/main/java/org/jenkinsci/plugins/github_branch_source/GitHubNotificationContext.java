@@ -26,11 +26,15 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.Job;
+
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
+import jenkins.branch.MultiBranchProject;
+import jenkins.branch.BranchProperty;
+
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.kohsuke.github.GHCommitState;
 
@@ -138,6 +142,30 @@ public final class GitHubNotificationContext {
         return result;
     }
 
+
+    public String getContextPrefix(TaskListener listener) {
+        listener.getLogger().println("Checking if branch property is configured...");
+        if (job != null) {
+            if ((job.getParent() instanceof MultiBranchProject)) {
+                for (BranchProperty prop : ((MultiBranchProject) job.getParent()).getProjectFactory().getBranch(job).getProperties()) {
+                    if (!(prop instanceof GitHubBuildStatusContextBranchProperty)) {
+                        continue;
+                    }
+                    GitHubBuildStatusContextBranchProperty contextProperty = (GitHubBuildStatusContextBranchProperty) prop;
+
+                    String context = contextProperty.getContext();
+
+                    if (!context.equals("")) {
+                        listener.getLogger().println("GitHubBuildStatusContextBranchProperty is configured, using context prefix from property.");
+                        return contextProperty.getContext();
+                    }
+                }
+            }
+        }
+        listener.getLogger().println("BranchProperty is not configured, using default context prefix...");
+        return "continuous-integration/jenkins";
+    }
+
     /**
      * Retrieves default context
      * @param listener Listener for the build, if any
@@ -145,15 +173,14 @@ public final class GitHubNotificationContext {
      * @since TODO
      */
     public String getDefaultContext(TaskListener listener) {
+        String contextPrefix = getContextPrefix(listener);
         if (head instanceof PullRequestSCMHead) {
             if (((PullRequestSCMHead) head).isMerge()) {
-                return "continuous-integration/jenkins/pr-merge";
-            } else {
-                return "continuous-integration/jenkins/pr-head";
+                return contextPrefix + "/pr-merge";
             }
-        } else {
-            return "continuous-integration/jenkins/branch";
+            return contextPrefix + "/pr-head";
         }
+        return contextPrefix + "/branch";
     }
 
     /**
