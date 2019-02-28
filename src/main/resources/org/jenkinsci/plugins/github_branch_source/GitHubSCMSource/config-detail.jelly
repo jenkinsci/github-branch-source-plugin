@@ -1,7 +1,7 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:c="/lib/credentials"
          xmlns:f="/lib/form"
-         xmlns:f2="/org/jenkinsci/plugins/github_branch_source/form" xmlns:scm="/jenkins/scm/api/form">
+         xmlns:scm="/jenkins/scm/api/form">
   <j:choose>
     <j:when test="${descriptor.apiUriSelectable}">
     <f:entry title="${%API endpoint}" field="apiUri">
@@ -21,8 +21,7 @@
     <f:textbox/>
   </f:entry>
   <f:entry title="${%Repository}" field="repository">
-    <!-- TODO switch back to f:select once Jenkins core has JENKINS-42443 -->
-    <f2:select/>
+    <f:select/>
   </f:entry>
   <f:entry title="${%Behaviours}">
     <scm:traits field="traits"/>
