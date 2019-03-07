@@ -982,22 +982,21 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                             public SCMRevision create(@NonNull PullRequestSCMHead head,
                                                                       @Nullable Void ignored)
                                                     throws IOException, InterruptedException {
-                                                String baseHash = pr.getBase().getSha();
-                                                String mergeHash = null;
-
                                                 switch (strategy) {
                                                     case MERGE:
                                                         request.checkApiRateLimit();
-                                                        baseHash = ghRepository.getRef("heads/" + head.getTarget().getName()).getObject().getSha();
-                                                        mergeHash = pr.getMergeCommitSha();
-                                                        break;
+                                                        GHRef mergeRef = ghRepository.getRef(
+                                                                "heads/" + pr.getBase().getRef()
+                                                        );
+                                                        return new PullRequestSCMRevision(head,
+                                                                mergeRef.getObject().getSha(),
+                                                                pr.getHead().getSha(),
+                                                                pr.getMergeCommitSha());
                                                     default:
-                                                        break;
+                                                        return new PullRequestSCMRevision(head, pr.getBase().getSha(),
+                                                                pr.getHead().getSha(),
+                                                                null);
                                                 }
-                                                return new PullRequestSCMRevision(head,
-                                                    baseHash,
-                                                    pr.getHead().getSha(),
-                                                    mergeHash);
                                             }
                                         },
                                         new MergabilityWitness(pr, strategy, listener),
