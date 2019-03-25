@@ -42,13 +42,13 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
 
     private final @NonNull String baseHash;
     private final @NonNull String pullHash;
-    private final @CheckForNull String mergeHash;
+    private final String mergeHash;
 
     public PullRequestSCMRevision(@NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash) {
         this(head, baseHash, pullHash, null);
     }
 
-    public PullRequestSCMRevision(@NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash, @CheckForNull String mergeHash) {
+    public PullRequestSCMRevision(@NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash, String mergeHash) {
         super(head, new AbstractGitSCMSource.SCMRevisionImpl(head.getTarget(), baseHash));
         this.baseHash = baseHash;
         this.pullHash = pullHash;
@@ -114,7 +114,7 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
 
     @Override
     public String toString() {
-        return getHead() instanceof PullRequestSCMHead && ((PullRequestSCMHead) getHead()).isMerge() ? pullHash + "+" + baseHash + " - " + mergeHash : pullHash;
+        return getHead() instanceof PullRequestSCMHead && ((PullRequestSCMHead) getHead()).isMerge() ? pullHash + "+" + baseHash + " (" + mergeHash + ")" : pullHash;
     }
 
 }

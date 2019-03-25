@@ -28,6 +28,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.AbortException;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.plugins.git.GitSCM;
@@ -35,6 +36,7 @@ import hudson.scm.SCM;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -83,11 +85,16 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
         this.repo = repo;
         if (rev != null) {
             if (rev.getHead() instanceof PullRequestSCMHead) {
-                PullRequestSCMHead pr = (PullRequestSCMHead) rev.getHead();
+                PullRequestSCMRevision prRev = (PullRequestSCMRevision) rev;
+                PullRequestSCMHead pr = (PullRequestSCMHead) prRev.getHead();
                 if (pr.isMerge()) {
-                    this.ref = ((PullRequestSCMRevision) rev).getMergeHash();
+                    this.ref = prRev.getMergeHash();
+                    List<String> parents = repo.getCommit(this.ref).getParentSHA1s();
+                    if (parents.size() != 2 || !parents.contains(prRev.getBaseHash()) || !parents.contains(prRev.getPullHash())) {
+                        throw new AbortException("Merge commit does not match base and head commits for pull request " + pr.getNumber() + ".");
+                    }
                 } else {
-                    this.ref = ((PullRequestSCMRevision) rev).getPullHash();
+                    this.ref = prRev.getPullHash();
                 }
             } else if (rev instanceof AbstractGitSCMSource.SCMRevisionImpl) {
                 this.ref = ((AbstractGitSCMSource.SCMRevisionImpl) rev).getHash();

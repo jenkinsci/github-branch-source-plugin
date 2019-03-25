@@ -982,21 +982,20 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                             public SCMRevision create(@NonNull PullRequestSCMHead head,
                                                                       @Nullable Void ignored)
                                                     throws IOException, InterruptedException {
+                                                String prHeadHash = pr.getHead().getSha();
+                                                String baseHash = pr.getBase().getSha();
+                                                String mergeHash = null;
+
                                                 switch (strategy) {
                                                     case MERGE:
                                                         request.checkApiRateLimit();
-                                                        GHRef mergeRef = ghRepository.getRef(
-                                                                "heads/" + pr.getBase().getRef()
-                                                        );
-                                                        return new PullRequestSCMRevision(head,
-                                                                mergeRef.getObject().getSha(),
-                                                                pr.getHead().getSha(),
-                                                                pr.getMergeCommitSha());
+                                                        baseHash = ghRepository.getRef("heads/" + pr.getBase().getRef()).getObject().getSha();
+                                                        mergeHash = pr.getMergeCommitSha();
+                                                        break;
                                                     default:
-                                                        return new PullRequestSCMRevision(head, pr.getBase().getSha(),
-                                                                pr.getHead().getSha(),
-                                                                null);
+                                                        break;
                                                 }
+                                                return new PullRequestSCMRevision(head, baseHash, prHeadHash, mergeHash);
                                             }
                                         },
                                         new MergabilityWitness(pr, strategy, listener),
@@ -1256,6 +1255,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         PullRequestSCMHead head = new PullRequestSCMHead(
                                 pr, headName, strategy == ChangeRequestCheckoutStrategy.MERGE
                         );
+                        String prHeadHash = pr.getHead().getSha();
                         String baseHash = pr.getBase().getSha();
                         String mergeHash = null;
 
@@ -1271,14 +1271,22 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                         number);
                                     return null;
                                 }
+                                List<String> parents = ghRepository.getCommit(mergeHash).getParentSHA1s();
+                                if (parents.size() != 2 || !parents.contains(baseHash) || !parents.contains(prHeadHash)) {
+                                    listener.getLogger().format("Resolved %s as pull request %d:  Merge commit does not match base and head.%n%n",
+                                        headName,
+                                        number);
+                                    return null;
+
+                                }
 
                                 listener.getLogger().format(
                                         "Resolved %s as pull request %d at revision %s merged onto %s as %s%n",
                                         headName,
                                         number,
-                                        pr.getHead().getSha(),
-                                        pr.getBase().getSha(),
-                                        pr.getMergeCommitSha()
+                                        prHeadHash,
+                                        baseHash,
+                                        mergeHash
                                 );
                                 break;
                             default:
@@ -1286,13 +1294,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                                 "Resolved %s as pull request %d at revision %s%n",
                                                 headName,
                                                 number,
-                                                pr.getHead().getSha()
+                                                prHeadHash
                                         );
                                 break;
                         }
                         return new PullRequestSCMRevision(head,
                             baseHash,
-                            pr.getHead().getSha(),
+                            prHeadHash,
                             mergeHash);
                     } else {
                         listener.getLogger().format(
@@ -1457,8 +1465,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 repositoryUrl = ghRepository.getHtmlUrl();
                 if (head instanceof PullRequestSCMHead) {
                     PullRequestSCMHead prhead = (PullRequestSCMHead) head;
+
                     GHPullRequest pr = getDetailedGHPullRequest(prhead.getNumber(), listener, github, ghRepository);
                     String baseHash = pr.getBase().getSha();
+                    String prHeadHash = pr.getHead().getSha();
                     String mergeHash = null;
                     switch (prhead.getCheckoutStrategy()) {
                         case MERGE:
@@ -1466,13 +1476,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             if (Boolean.FALSE.equals(pr.getMergeable())) {
                                 throw new AbortException("Pull request " + prhead.getNumber() + " is not mergeable.");
                             }
-                            baseHash = ghRepository.getRef("heads/" + prhead.getTarget().getName()).getObject().getSha();
+                            baseHash = ghRepository.getRef("heads/" +  pr.getBase().getRef()).getObject().getSha();
                             mergeHash = pr.getMergeCommitSha();
+                            List<String> parents = ghRepository.getCommit(mergeHash).getParentSHA1s();
+                            if (parents.size() != 2 || !parents.contains(baseHash) || !parents.contains(prHeadHash)) {
+                                throw new AbortException("Merge commit does not match base and head commits for pull request " + prhead.getNumber() + ".");
+                            }
                             break;
                         default:
                             break;
                     }
-                    return new PullRequestSCMRevision(prhead, baseHash, pr.getHead().getSha(), mergeHash);
+                    return new PullRequestSCMRevision(prhead, baseHash, prHeadHash, mergeHash);
                 } else if (head instanceof GitHubTagSCMHead) {
                     GitHubTagSCMHead tagHead = (GitHubTagSCMHead) head;
                     GHRef tag = ghRepository.getRef("tags/" + tagHead.getName());
