@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jenkins.plugins.git.AbstractGitSCMSource;
@@ -36,16 +37,22 @@ import org.kohsuke.stapler.export.Exported;
  * Revision of a pull request.
  */
 public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequestSCMHead> {
-    
+
     private static final long serialVersionUID = 1L;
 
     private final @NonNull String baseHash;
     private final @NonNull String pullHash;
+    private final String mergeHash;
 
     public PullRequestSCMRevision(@NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash) {
+        this(head, baseHash, pullHash, null);
+    }
+
+    public PullRequestSCMRevision(@NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash, String mergeHash) {
         super(head, new AbstractGitSCMSource.SCMRevisionImpl(head.getTarget(), baseHash));
         this.baseHash = baseHash;
         this.pullHash = pullHash;
+        this.mergeHash = mergeHash;
     }
 
     @SuppressFBWarnings({"SE_PRIVATE_READ_RESOLVE_NOT_INHERITED", "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"})
@@ -81,6 +88,16 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
         return pullHash;
     }
 
+    /**
+     * The commit hash of the head of the pull request branch.
+     *
+     * @return The commit hash of the head of the pull request branch
+     */
+    @CheckForNull
+    public String getMergeHash() {
+        return mergeHash;
+    }
+
     @Override
     public boolean equivalent(ChangeRequestSCMRevision<?> o) {
         if (!(o instanceof PullRequestSCMRevision)) {
@@ -97,7 +114,7 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
 
     @Override
     public String toString() {
-        return getHead() instanceof PullRequestSCMHead && ((PullRequestSCMHead) getHead()).isMerge() ? pullHash + "+" + baseHash : pullHash;
+        return getHead() instanceof PullRequestSCMHead && ((PullRequestSCMHead) getHead()).isMerge() ? pullHash + "+" + baseHash + " (" + mergeHash + ")" : pullHash;
     }
 
 }
