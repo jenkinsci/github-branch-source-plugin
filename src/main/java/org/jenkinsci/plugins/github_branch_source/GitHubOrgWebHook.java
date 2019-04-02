@@ -46,7 +46,7 @@ import org.kohsuke.github.GitHub;
 public class GitHubOrgWebHook {
 
     private static final Logger LOGGER = Logger.getLogger(GitHubOrgWebHook.class.getName());
-    private static final List<GHEvent> EVENTS = Arrays.asList(GHEvent.REPOSITORY, GHEvent.PUSH, GHEvent.PULL_REQUEST);
+    private static final List<GHEvent> EVENTS = Arrays.asList(GHEvent.REPOSITORY, GHEvent.PUSH, GHEvent.PULL_REQUEST, GHEvent.PULL_REQUEST_REVIEW_COMMENT);
 
     /**
      * Verify if exists a webhook by its URL.
