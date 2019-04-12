@@ -1,0 +1,33 @@
+{
+  "request" : {
+    "url" : "/orgs/cloudbeers/repos?per_page=0",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "body-cloudbeers-repos-v3FBW.json",
+    "headers" : {
+      "Server" : "GitHub.com",
+      "Date" : "Wed, 07 Dec 2016 23:37:43 GMT",
+      "Content-Type" : "application/json; charset=utf-8",
+      "Transfer-Encoding" : "chunked",
+      "Status" : "200 OK",
+      "X-RateLimit-Limit" : "60",
+      "X-RateLimit-Remaining" : "55",
+      "X-RateLimit-Reset" : "1481156493",
+      "Cache-Control" : "public, max-age=60, s-maxage=60",
+      "Vary" : [ "Accept", "Accept-Encoding" ],
+      "ETag" : "W/\"a3efdf39a963bcef1d9fae6934e0727d\"",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "Access-Control-Expose-Headers" : "ETag, Link, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval",
+      "Access-Control-Allow-Origin" : "*",
+      "Content-Security-Policy" : "default-src 'none'",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "X-Content-Type-Options" : "nosniff",
+      "X-Frame-Options" : "deny",
+      "X-XSS-Protection" : "1; mode=block",
+      "X-Served-By" : "4c8b2d4732c413f4b9aefe394bd65569",
+      "X-GitHub-Request-Id" : "BC8D23FA:55CF:52CC61:58489D47"
+    }
+  }
+}

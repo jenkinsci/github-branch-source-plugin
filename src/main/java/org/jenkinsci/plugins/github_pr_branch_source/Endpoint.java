@@ -25,6 +25,9 @@
 package org.jenkinsci.plugins.github_pr_branch_source;
 
 import com.fasterxml.jackson.core.JsonParseException;
+import com.google.common.net.InternetDomainName;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
@@ -33,34 +36,66 @@ import hudson.util.FormValidation;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.ObjectStreamException;
 import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Locale;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
+import jenkins.model.Jenkins;
+import jenkins.scm.api.SCMName;
+import org.apache.commons.lang.StringUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
  * @author Stephen Connolly
  */
 public class Endpoint extends AbstractDescribableImpl<Endpoint> {
+    /**
+     * Common prefixes that we should remove when inferring a display name.
+     */
+    private static final String[] COMMON_PREFIX_HOSTNAMES = {
+            "git.",
+            "github.",
+            "vcs.",
+            "scm.",
+            "source."
+    };
+
     private final String name;
     private final String apiUri;
 
     @DataBoundConstructor
     public Endpoint(String apiUri, String name) {
-        this.apiUri = Util.fixEmptyAndTrim(apiUri);
-        this.name = Util.fixEmptyAndTrim(name);
+        this.apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmptyAndTrim(apiUri));
+        if (StringUtils.isBlank(name)) {
+            this.name = SCMName.fromUrl(this.apiUri, COMMON_PREFIX_HOSTNAMES);
+        } else {
+            this.name = name.trim();
+        }
     }
 
+    private Object readResolve() throws ObjectStreamException {
+        if (!apiUri.equals(GitHubConfiguration.normalizeApiUri(apiUri))) {
+            return new Endpoint(apiUri, name);
+        }
+        return this;
+    }
+
+    @NonNull
     public String getApiUri() {
         return apiUri;
     }
 
+    @CheckForNull
     public String getName() {
         return name;
     }
@@ -107,8 +142,10 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
             return "";
         }
 
+        @RequirePOST
         @Restricted(NoExternalUse.class)
         public FormValidation doCheckApiUri(@QueryParameter String apiUri) {
+            Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
             if (Util.fixEmptyAndTrim(apiUri) == null) {
                 return FormValidation.warning("You must specify the API URL");
             }
@@ -144,7 +181,7 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
         @Restricted(NoExternalUse.class)
         public FormValidation doCheckName(@QueryParameter String name) {
             if (Util.fixEmptyAndTrim(name) == null) {
-                return FormValidation.warning("You must specify the name");
+                return FormValidation.warning("A name is recommended to help differentiate similar endpoints");
             }
             return FormValidation.ok();
         }

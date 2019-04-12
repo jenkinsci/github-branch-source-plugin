@@ -25,10 +25,13 @@
 package org.jenkinsci.plugins.github_pr_branch_source;
 
 /**
- * @author Stephen Connolly
+ * A {@link RepositoryUriResolver} that resolves HTTP git URLs.
  */
 public class HttpsRepositoryUriResolver extends RepositoryUriResolver {
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getRepositoryUri(String apiUri, String owner, String repository) {
         if (apiUri == null || apiUri.startsWith("https://")) {
