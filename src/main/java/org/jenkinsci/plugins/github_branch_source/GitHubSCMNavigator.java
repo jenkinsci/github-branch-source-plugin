@@ -970,7 +970,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
                     listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                             "Looking up repositories of organization %s", repoOwner)));
-                    if (StringUtils.isNotEmpty(gitHubSCMNavigatorContext.getTeamSlug())) {
+                    if (StringUtils.isNotBlank(gitHubSCMNavigatorContext.getTeamSlug())) {
                         listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                 "Looking up repositories for team %s", gitHubSCMNavigatorContext.getTeamSlug())));
                         for (GHRepository repo : org.getTeamBySlug(gitHubSCMNavigatorContext.getTeamSlug()).listRepositories().withPageSize(100)) {
