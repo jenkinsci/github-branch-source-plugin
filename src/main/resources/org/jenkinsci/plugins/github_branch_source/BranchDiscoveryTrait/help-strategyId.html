@@ -3,13 +3,14 @@
     <dl>
         <dt>Exclude branches that are also filed as PRs</dt>
         <dd>
-            If you are discovering origin pull requests, it may not make sense to discover the same changes both as a
-            pull request and as a branch.
+            If you are discovering origin pull requests, you may not want to also build the source branches
+            for those pull requests.
         </dd>
         <dt>Only branches that are also filed as PRs</dt>
         <dd>
-            This option exists to preserve legacy behaviour when upgrading from older versions of the plugin.
-            NOTE: If you have an actual use case for this option please file a pull request against this text.
+            Similar to discovering origin pull requests, but discovers the branch rather than the pull request. 
+            This means <code>env.GIT_BRANCH</code> will be set to the branch name rather than <code>PR-#</code>.
+            Also, status notifications for these builds will only be applied to the commit and not to the pull request.
         </dd>
         <dt>All branches</dt>
         <dd>
