@@ -155,6 +155,13 @@ public class EventsTest {
     }
 
     @Test
+    public void given_ghDeploymentEventCreated_then_createdDeploymentEventFired() throws Exception {
+        DeploymentGHEventSubscriber subscriber = new DeploymentGHEventSubscriber();
+        ghEvent = callOnEvent(subscriber, "EventsTest/deploymentEventCreated.json");
+        waitAndAssertReceived(true);
+    }
+
+    @Test
     public void given_ghRepositoryEventWrongAction_then_noSourceEventFired() throws Exception {
         GitHubRepositoryEventSubscriber subscriber = new GitHubRepositoryEventSubscriber();
 
@@ -162,6 +169,11 @@ public class EventsTest {
         waitAndAssertReceived(false);
     }
 
+    private GHSubscriberEvent callOnEvent(DeploymentGHEventSubscriber subscriber, String eventPayloadFile) throws IOException {
+        GHSubscriberEvent event = createEvent(eventPayloadFile);
+        subscriber.onEvent(event);
+        return event;
+    }
     private GHSubscriberEvent callOnEvent(PushGHEventSubscriber subscriber, String eventPayloadFile) throws IOException {
         GHSubscriberEvent event = createEvent(eventPayloadFile);
         subscriber.onEvent(event);
