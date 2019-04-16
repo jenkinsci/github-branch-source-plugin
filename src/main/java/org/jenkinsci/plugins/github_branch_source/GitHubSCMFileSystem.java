@@ -88,11 +88,8 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                 PullRequestSCMRevision prRev = (PullRequestSCMRevision) rev;
                 PullRequestSCMHead pr = (PullRequestSCMHead) prRev.getHead();
                 if (pr.isMerge()) {
+                    prRev.validateMergeHash(repo);
                     this.ref = prRev.getMergeHash();
-                    List<String> parents = repo.getCommit(this.ref).getParentSHA1s();
-                    if (parents.size() != 2 || !parents.contains(prRev.getBaseHash()) || !parents.contains(prRev.getPullHash())) {
-                        throw new AbortException("Merge commit does not match base and head commits for pull request " + pr.getNumber() + ".");
-                    }
                 } else {
                     this.ref = prRev.getPullHash();
                 }
