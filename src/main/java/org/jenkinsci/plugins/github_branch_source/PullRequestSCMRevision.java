@@ -27,10 +27,18 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import hudson.AbortException;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
+
+import java.io.IOException;
+import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
+
+import org.kohsuke.github.GHRepository;
 import org.kohsuke.stapler.export.Exported;
 
 /**
@@ -48,7 +56,7 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
         this(head, baseHash, pullHash, null);
     }
 
-    public PullRequestSCMRevision(@NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash, String mergeHash) {
+    PullRequestSCMRevision(@NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash, String mergeHash) {
         super(head, new AbstractGitSCMSource.SCMRevisionImpl(head.getTarget(), baseHash));
         this.baseHash = baseHash;
         this.pullHash = pullHash;
@@ -98,23 +106,31 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
         return mergeHash;
     }
 
+    void validateMergeHash(GHRepository repo) throws IOException {
+        if (this.mergeHash != null) {
+            List<String> parents = repo.getCommit(this.mergeHash).getParentSHA1s();
+            if (parents.size() != 2 || !parents.contains(this.getBaseHash()) || !parents.contains(this.getPullHash())) {
+                throw new AbortException("Head and base commits do match merge commit for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : " + this.toString() );
+            }
+        }
+    }
+
     @Override
     public boolean equivalent(ChangeRequestSCMRevision<?> o) {
         if (!(o instanceof PullRequestSCMRevision)) {
             return false;
         }
         PullRequestSCMRevision other = (PullRequestSCMRevision) o;
-        return getHead().equals(other.getHead()) && pullHash.equals(other.pullHash);
+        return getHead().equals(other.getHead()) && pullHash.equals(other.pullHash) && StringUtils.equals(getMergeHash(), other.getMergeHash());
     }
 
     @Override
     public int _hashCode() {
-        return pullHash.hashCode();
+        return pullHash.hashCode() + ((mergeHash == null) ? 0 : mergeHash.hashCode());
     }
 
     @Override
     public String toString() {
         return getHead() instanceof PullRequestSCMHead && ((PullRequestSCMHead) getHead()).isMerge() ? pullHash + "+" + baseHash + " (" + mergeHash + ")" : pullHash;
     }
-
 }

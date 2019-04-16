@@ -222,7 +222,9 @@ public class GitHubSCMSourceTest {
         assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
         assertThat(revByName.get("PR-2"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-2")),
                 "8f1314fc3c8284d8c6d5886d473db98f2126071c",
-                "c0e024f89969b976da165eecaa71e09dc60c3da1"
+                "c0e024f89969b976da165eecaa71e09dc60c3da1",
+                "38814ca33833ff5583624c29f305be9133f27a40"
+
         )));
 
         assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
