@@ -1,35 +1,35 @@
 {
-  "request" : {
-    "url" : "/cloudbeers/yolo/c0e024f89969b976da165eecaa71e09dc60c3da1/foo/manchu.txt",
-    "method" : "GET"
+  "request": {
+    "url": "/cloudbeers/yolo/c0e024f89969b976da165eecaa71e09dc60c3da1/foo/manchu.txt",
+    "method": "GET"
   },
-  "response" : {
-    "status" : 200,
-    "bodyFileName" : "body-foo-manchu.txt-PKdJT.txt",
-    "headers" : {
-      "Content-Security-Policy" : "default-src 'none'; style-src 'unsafe-inline'",
-      "Strict-Transport-Security" : "max-age=31536000",
-      "X-Content-Type-Options" : "nosniff",
-      "X-Frame-Options" : "deny",
-      "X-XSS-Protection" : "1; mode=block",
-      "ETag" : "\"1ca6c352e40c0e025c589db4de9e8875e95580a9\"",
-      "Content-Type" : "text/plain; charset=utf-8",
-      "Cache-Control" : "max-age=300",
-      "X-Geo-Block-List" : "",
-      "X-GitHub-Request-Id" : "B91F131C:595D:DFBA44C:5846D3C8",
-      "Accept-Ranges" : "bytes",
-      "Date" : "Tue, 06 Dec 2016 15:10:09 GMT",
-      "Via" : "1.1 varnish",
-      "Connection" : "keep-alive",
-      "X-Served-By" : "cache-lhr6350-LHR",
-      "X-Cache" : "HIT",
-      "X-Cache-Hits" : "1",
-      "X-Timer" : "S1481037009.506896,VS0,VE0",
-      "Vary" : "Authorization,Accept-Encoding",
-      "Access-Control-Allow-Origin" : "*",
-      "X-Fastly-Request-ID" : "ab8ae7255acfad54beb14a8f5fc2d159af91a191",
-      "Expires" : "Tue, 06 Dec 2016 15:15:09 GMT",
-      "Source-Age" : "264"
+  "response": {
+    "status": 200,
+    "bodyFileName": "body-foo-manchu.txt-PKdJT.txt",
+    "headers": {
+      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
+      "Strict-Transport-Security": "max-age=31536000",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "deny",
+      "X-XSS-Protection": "1; mode=block",
+      "ETag": "\"1ca6c352e40c0e025c589db4de9e8875e95580a9\"",
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "max-age=300",
+      "X-Geo-Block-List": "",
+      "X-GitHub-Request-Id": "B91F131C:595D:DFBA44C:5846D3C8",
+      "Accept-Ranges": "bytes",
+      "Date": "Tue, 06 Dec 2016 15:10:09 GMT",
+      "Via": "1.1 varnish",
+      "Connection": "keep-alive",
+      "X-Served-By": "cache-lhr6350-LHR",
+      "X-Cache": "HIT",
+      "X-Cache-Hits": "1",
+      "X-Timer": "S1481037009.506896,VS0,VE0",
+      "Vary": "Authorization,Accept-Encoding",
+      "Access-Control-Allow-Origin": "*",
+      "X-Fastly-Request-ID": "ab8ae7255acfad54beb14a8f5fc2d159af91a191",
+      "Expires": "Tue, 06 Dec 2016 15:15:09 GMT",
+      "Source-Age": "264"
     }
   }
 }
