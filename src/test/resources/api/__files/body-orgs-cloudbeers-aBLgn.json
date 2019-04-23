@@ -1,1 +1,26 @@
-{"login":"cloudbeers","id":4181899,"url":"https://api.github.com/orgs/cloudbeers","repos_url":"https://api.github.com/orgs/cloudbeers/repos","events_url":"https://api.github.com/orgs/cloudbeers/events","hooks_url":"https://api.github.com/orgs/cloudbeers/hooks","issues_url":"https://api.github.com/orgs/cloudbeers/issues","members_url":"https://api.github.com/orgs/cloudbeers/members{/member}","public_members_url":"https://api.github.com/orgs/cloudbeers/public_members{/member}","avatar_url":"https://avatars.githubusercontent.com/u/4181899?v=3","description":null,"name":"CloudBeers, Inc.","company":null,"blog":"cloudbeers.github.io","location":null,"email":null,"public_repos":13,"public_gists":0,"followers":0,"following":0,"html_url":"https://github.com/cloudbeers","created_at":"2013-04-17T13:52:33Z","updated_at":"2016-02-27T07:57:23Z","type":"Organization"}
+{
+  "login": "cloudbeers",
+  "id": 4181899,
+  "url": "https://api.github.com/orgs/cloudbeers",
+  "repos_url": "https://api.github.com/orgs/cloudbeers/repos",
+  "events_url": "https://api.github.com/orgs/cloudbeers/events",
+  "hooks_url": "https://api.github.com/orgs/cloudbeers/hooks",
+  "issues_url": "https://api.github.com/orgs/cloudbeers/issues",
+  "members_url": "https://api.github.com/orgs/cloudbeers/members{/member}",
+  "public_members_url": "https://api.github.com/orgs/cloudbeers/public_members{/member}",
+  "avatar_url": "https://avatars.githubusercontent.com/u/4181899?v=3",
+  "description": null,
+  "name": "CloudBeers, Inc.",
+  "company": null,
+  "blog": "cloudbeers.github.io",
+  "location": null,
+  "email": null,
+  "public_repos": 13,
+  "public_gists": 0,
+  "followers": 0,
+  "following": 0,
+  "html_url": "https://github.com/cloudbeers",
+  "created_at": "2013-04-17T13:52:33Z",
+  "updated_at": "2016-02-27T07:57:23Z",
+  "type": "Organization"
+}

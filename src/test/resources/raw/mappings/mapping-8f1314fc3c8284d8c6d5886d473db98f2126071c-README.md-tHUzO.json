@@ -1,35 +1,35 @@
 {
-  "request" : {
-    "url" : "/cloudbeers/yolo/8f1314fc3c8284d8c6d5886d473db98f2126071c/README.md",
-    "method" : "GET"
+  "request": {
+    "url": "/cloudbeers/yolo/8f1314fc3c8284d8c6d5886d473db98f2126071c/README.md",
+    "method": "GET"
   },
-  "response" : {
-    "status" : 200,
-    "bodyFileName" : "body-8f1314fc3c8284d8c6d5886d473db98f2126071c-README.md-tHUzO.txt",
-    "headers" : {
-      "Content-Security-Policy" : "default-src 'none'; style-src 'unsafe-inline'",
-      "Strict-Transport-Security" : "max-age=31536000",
-      "X-Content-Type-Options" : "nosniff",
-      "X-Frame-Options" : "deny",
-      "X-XSS-Protection" : "1; mode=block",
-      "ETag" : "\"a39fed575990e3dec86cdbe8dae8a9a7ec0ab3ae\"",
-      "Content-Type" : "text/plain; charset=utf-8",
-      "Cache-Control" : "max-age=300",
-      "X-Geo-Block-List" : "",
-      "X-GitHub-Request-Id" : "B91F121F:156D8:1C0B05BA:5846EF97",
-      "Accept-Ranges" : "bytes",
-      "Date" : "Tue, 06 Dec 2016 17:04:23 GMT",
-      "Via" : "1.1 varnish",
-      "Connection" : "keep-alive",
-      "X-Served-By" : "cache-lcy1150-LCY",
-      "X-Cache" : "MISS",
-      "X-Cache-Hits" : "0",
-      "X-Timer" : "S1481043863.573347,VS0,VE111",
-      "Vary" : "Authorization,Accept-Encoding",
-      "Access-Control-Allow-Origin" : "*",
-      "X-Fastly-Request-ID" : "8b53422627680870374c25571630752a1a446ec1",
-      "Expires" : "Tue, 06 Dec 2016 17:09:23 GMT",
-      "Source-Age" : "0"
+  "response": {
+    "status": 200,
+    "bodyFileName": "body-8f1314fc3c8284d8c6d5886d473db98f2126071c-README.md-tHUzO.txt",
+    "headers": {
+      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
+      "Strict-Transport-Security": "max-age=31536000",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "deny",
+      "X-XSS-Protection": "1; mode=block",
+      "ETag": "\"a39fed575990e3dec86cdbe8dae8a9a7ec0ab3ae\"",
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "max-age=300",
+      "X-Geo-Block-List": "",
+      "X-GitHub-Request-Id": "B91F121F:156D8:1C0B05BA:5846EF97",
+      "Accept-Ranges": "bytes",
+      "Date": "Tue, 06 Dec 2016 17:04:23 GMT",
+      "Via": "1.1 varnish",
+      "Connection": "keep-alive",
+      "X-Served-By": "cache-lcy1150-LCY",
+      "X-Cache": "MISS",
+      "X-Cache-Hits": "0",
+      "X-Timer": "S1481043863.573347,VS0,VE111",
+      "Vary": "Authorization,Accept-Encoding",
+      "Access-Control-Allow-Origin": "*",
+      "X-Fastly-Request-ID": "8b53422627680870374c25571630752a1a446ec1",
+      "Expires": "Tue, 06 Dec 2016 17:09:23 GMT",
+      "Source-Age": "0"
     }
   }
 }
