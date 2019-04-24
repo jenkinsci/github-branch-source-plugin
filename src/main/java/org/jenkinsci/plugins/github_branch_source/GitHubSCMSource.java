@@ -1072,8 +1072,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @NonNull
     @Override
-    protected Set<String> retrieveRevisions(@NonNull TaskListener listener) throws IOException, InterruptedException {
-        StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), apiUri, credentialsId);
+    protected Set<String> retrieveRevisions(@NonNull TaskListener listener, Item retrieveContext) throws IOException, InterruptedException {
+        StandardCredentials credentials = Connector.lookupScanCredentials(retrieveContext, apiUri, credentialsId);
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
         try {
@@ -1164,9 +1164,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     @Override
-    protected SCMRevision retrieve(@NonNull String headName, @NonNull TaskListener listener)
+    protected SCMRevision retrieve(@NonNull String headName, @NonNull TaskListener listener, Item retrieveContext)
             throws IOException, InterruptedException {
-        StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), apiUri, credentialsId);
+        StandardCredentials credentials = Connector.lookupScanCredentials(retrieveContext, apiUri, credentialsId);
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
         try {
