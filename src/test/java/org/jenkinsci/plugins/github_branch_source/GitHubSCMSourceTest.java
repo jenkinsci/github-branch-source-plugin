@@ -36,6 +36,7 @@ import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.AbortException;
 import hudson.ExtensionList;
 import hudson.model.Action;
 import hudson.model.FreeStyleProject;
@@ -77,6 +78,8 @@ import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -139,6 +142,9 @@ public class GitHubSCMSourceTest {
                     })
     );
     private GitHubSCMSource source;
+    private GitHub github;
+    private GHRepository repo;
+
 
     @Before
     public void prepareMockGitHub() throws Exception {
@@ -157,6 +163,8 @@ public class GitHubSCMSourceTest {
         source = new GitHubSCMSource("cloudbeers", "yolo");
         source.setApiUri("http://localhost:" + githubApi.port());
         source.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, true), new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustContributors())));
+        github = Connector.connect("http://localhost:" + githubApi.port(), null);
+        repo = github.getRepository("stephenc/yolo");
     }
 
     @Test
@@ -218,14 +226,32 @@ public class GitHubSCMSourceTest {
             byName.put(h.getKey().getName(), h.getKey());
             revByName.put(h.getKey().getName(), h.getValue());
         }
-        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "master", "stephenc-patch-1"));
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "master", "stephenc-patch-1"));
+
         assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-2")).isMerge(), is(true));
         assertThat(revByName.get("PR-2"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-2")),
                 "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                 "c0e024f89969b976da165eecaa71e09dc60c3da1",
                 "38814ca33833ff5583624c29f305be9133f27a40"
-
         )));
+        ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash(repo);
+
+        assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(true));
+        assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c0e024f89969b976da165eecaa71e09dc60c3da1"
+        )));
+
+        // validation should fail for this PR.
+        Exception abort = null;
+        try {
+            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash(repo);
+        } catch (Exception e) {
+            abort = e;
+        }
+        assertThat(abort, instanceOf(AbortException.class));
 
         assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
         assertThat(revByName.get("master"),
@@ -256,9 +282,26 @@ public class GitHubSCMSourceTest {
             byName.put(h.getKey().getName(), h.getKey());
             revByName.put(h.getKey().getName(), h.getValue());
         }
-        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "master", "stephenc-patch-1"));
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "master", "stephenc-patch-1"));
         assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-2")).isMerge(), is(false));
         assertThat(revByName.get("PR-2"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-2")),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c0e024f89969b976da165eecaa71e09dc60c3da1"
+        )));
+
+        // validation should fail for this PR.
+        Exception abort = null;
+        try {
+            ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash(repo);
+        } catch (Exception e) {
+            abort = e;
+        }
+        assertThat(abort, instanceOf(AbortException.class));
+
+        assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(false));
+        assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
                 "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                 "c0e024f89969b976da165eecaa71e09dc60c3da1"
         )));

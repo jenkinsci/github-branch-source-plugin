@@ -41,9 +41,11 @@ import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
+import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -53,6 +55,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.JenkinsRule;
 
+import hudson.AbortException;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
@@ -61,6 +65,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 
@@ -75,6 +80,30 @@ public class GitHubSCMFileSystemTest {
     public static WireMockRuleFactory factory = new WireMockRuleFactory();
     public static SCMHead master = new BranchSCMHead("master");
     private final SCMRevision revision;
+
+    public static PullRequestSCMHead prHead = new PullRequestSCMHead("PR-2", "stephenc", "yolo", "master", 2, (BranchSCMHead) master,
+        SCMHeadOrigin.Fork.DEFAULT, ChangeRequestCheckoutStrategy.HEAD);
+    public static PullRequestSCMRevision prHeadRevision = new PullRequestSCMRevision(
+        prHead,
+        "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+        "c0e024f89969b976da165eecaa71e09dc60c3da1");
+
+
+    public static PullRequestSCMHead prMerge = new PullRequestSCMHead("PR-2", "stephenc", "yolo", "master", 2, (BranchSCMHead) master,
+        SCMHeadOrigin.Fork.DEFAULT, ChangeRequestCheckoutStrategy.MERGE);
+    public static PullRequestSCMRevision prMergeRevision = new PullRequestSCMRevision(
+        prMerge,
+        "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+        "c0e024f89969b976da165eecaa71e09dc60c3da1",
+        "38814ca33833ff5583624c29f305be9133f27a40");
+
+    public static PullRequestSCMRevision prMergeInvalidRevision = new PullRequestSCMRevision(
+        prMerge,
+        "INVALIDc3c8284d8c6d5886d473db98f2126071c",
+        "c0e024f89969b976da165eecaa71e09dc60c3da1",
+        "38814ca33833ff5583624c29f305be9133f27a40");
+
+
     @Rule
     public WireMockRule githubRaw = factory.getRule(WireMockConfiguration.options()
             .dynamicPort()
@@ -210,6 +239,50 @@ public class GitHubSCMFileSystemTest {
         SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
         assertThat(fs.getRoot().child("fu").children(),
                 hasItem(Matchers.<SCMFile>hasProperty("name", is("manchu.txt"))));
+    }
+
+    @Test
+    public void resolveDirPRHead() throws Exception {
+        assumeThat(revision, nullValue());
+
+        assertThat(prHeadRevision.isMerge(), is(false));
+
+        SCMFileSystem fs = SCMFileSystem.of(source, prHead, prHeadRevision);
+        assertThat(fs, instanceOf(GitHubSCMFileSystem.class));
+
+        // We can't check the sha, but we can check last modified
+        // which are different for head or merge
+        assertThat(((GitHubSCMFileSystem)fs).lastModified(),
+            is(1480691047000L));
+
+        assertThat(fs.getRoot().child("fu").getType(), is(SCMFile.Type.DIRECTORY));
+    }
+
+    @Test
+    public void resolveDirPRMerge() throws Exception {
+        assumeThat(revision, nullValue());
+
+        assertThat(prMergeRevision.isMerge(), is(true));
+
+        SCMFileSystem fs = SCMFileSystem.of(source, prMerge, prMergeRevision);
+        assertThat(fs, instanceOf(GitHubSCMFileSystem.class));
+
+        // We can't check the sha, but we can check last modified
+        // which are different for head or merge
+        assertThat(((GitHubSCMFileSystem)fs).lastModified(),
+            is(1480777447000L));
+
+        assertThat(fs.getRoot().child("fu").getType(), is(SCMFile.Type.DIRECTORY));
+    }
+
+    @Test(expected = AbortException.class)
+    public void resolveDirPRInvalidMerge() throws Exception {
+        assumeThat(revision, nullValue());
+
+        assertThat(prMergeInvalidRevision.isMerge(), is(true));
+
+        SCMFileSystem fs = SCMFileSystem.of(source, prMerge, prMergeInvalidRevision);
+        assertThat(fs, instanceOf(GitHubSCMFileSystem.class));
     }
 
 }
