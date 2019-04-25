@@ -106,11 +106,15 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
         return mergeHash;
     }
 
-    void validateMergeHash(GHRepository repo) throws IOException {
-        if (this.mergeHash != null) {
+    void validateMergeHash(@NonNull GHRepository repo) throws IOException {
+        if (!isMerge()) {
+            throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Not a merge head.");
+        } else if (this.mergeHash == null) {
+            throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Not mergeable or connection failure " + this.toString());
+        } else {
             List<String> parents = repo.getCommit(this.mergeHash).getParentSHA1s();
             if (parents.size() != 2 || !parents.contains(this.getBaseHash()) || !parents.contains(this.getPullHash())) {
-                throw new AbortException("Head and base commits do match merge commit for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : " + this.toString() );
+                throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Head and base commits do match merge commit " + this.toString() );
             }
         }
     }
@@ -131,6 +135,6 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
 
     @Override
     public String toString() {
-        return getHead() instanceof PullRequestSCMHead && ((PullRequestSCMHead) getHead()).isMerge() ? pullHash + "+" + baseHash + " (" + mergeHash + ")" : pullHash;
+        return getHead() instanceof PullRequestSCMHead && ((PullRequestSCMHead) getHead()).isMerge() ? pullHash + "+" + baseHash + " (" + StringUtils.defaultIfEmpty(mergeHash, "null")  + ")" : pullHash;
     }
 }
