@@ -60,6 +60,7 @@ import hudson.AbortException;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
@@ -165,6 +166,14 @@ public class GitHubSCMFileSystemTest {
                 new SingleRootFileSource("src/test/resources/api/__files"));
         githubRaw.enableRecordMappings(new SingleRootFileSource("src/test/resources/raw/mappings"),
                 new SingleRootFileSource("src/test/resources/raw/__files"));
+
+        githubApi.stubFor(
+            get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
+            .willReturn(
+                aResponse()
+                .withHeader("Content-Type", "application/json; charset=utf-8")
+                .withBodyFile("body-yolo-pulls-2-mergeable-true.json")));
+
         githubApi.stubFor(
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)

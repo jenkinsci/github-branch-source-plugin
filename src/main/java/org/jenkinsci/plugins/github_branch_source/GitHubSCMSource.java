@@ -1475,7 +1475,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             case MERGE:
                 Connector.checkApiRateLimit(listener, github);
                 baseHash = ghRepository.getRef("heads/" +  pr.getBase().getRef()).getObject().getSha();
-                mergeHash = Boolean.TRUE.equals(pr.getMergeable()) ? pr.getMergeCommitSha() : null;
+                if (pr.getMergeable() != null) {
+                    mergeHash = Boolean.TRUE.equals(pr.getMergeable()) ? pr.getMergeCommitSha() : PullRequestSCMRevision.NOT_MERGEABLE_HASH;
+                }
                 break;
             default:
                 break;

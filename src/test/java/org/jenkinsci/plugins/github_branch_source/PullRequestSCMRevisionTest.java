@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2016 CloudBees, Inc.
+ * Copyright (c) 2019 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,27 +34,14 @@ import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import jenkins.plugins.git.AbstractGitSCMSource;
-import jenkins.scm.api.SCMFile;
-import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadOrigin;
-import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 
-import org.antlr.v4.runtime.misc.NotNull;
-import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang.StringUtils;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
@@ -65,12 +52,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class PullRequestSCMRevisionTest {
     /**
@@ -198,11 +184,39 @@ public class PullRequestSCMRevisionTest {
     public void createMergewithNullMergeRevision() throws Exception {
         PullRequestSCMRevision prRevision = new PullRequestSCMRevision(
             prMerge, "master-revision", "pr-branch-revision");
-        assertThat(prRevision.toString(), is("pr-branch-revision+master-revision (null)"));
+        assertThat(prRevision.toString(), is("pr-branch-revision+master-revision (UNKNOWN_MERGE_STATE)"));
 
         // equality
         assertThat(prRevision,
             is(new PullRequestSCMRevision(prMerge, "master-revision", "pr-branch-revision", null)));
+        assertThat(prRevision,
+            not(is(new PullRequestSCMRevision(prMerge, "master-revision", "pr-branch-revision", ""))));
+        assertThat(prRevision,
+            not(is(new PullRequestSCMRevision(prMerge, "master-revision", "pr-branch-revision", "pr-merge-revision"))));
+
+        assertThat(prRevision,
+            not(is(new PullRequestSCMRevision(prHead, "master-revision", "pr-branch-revision", null))));
+
+        // validation should fail for this PR.
+        Exception abort = null;
+        try {
+            prRevision.validateMergeHash(repo);
+        } catch (Exception e) {
+            abort = e;
+        }
+        assertThat(abort, instanceOf(AbortException.class));
+        assertThat(abort.getMessage(), containsString("Unknown merge state"));
+    }
+
+    @Test
+    public void createMergewithNotMergeableRevision() throws Exception {
+        PullRequestSCMRevision prRevision = new PullRequestSCMRevision(
+            prMerge, "master-revision", "pr-branch-revision", PullRequestSCMRevision.NOT_MERGEABLE_HASH);
+        assertThat(prRevision.toString(), is("pr-branch-revision+master-revision (NOT_MERGEABLE)"));
+
+        // equality
+        assertThat(prRevision,
+            not(is(new PullRequestSCMRevision(prMerge, "master-revision", "pr-branch-revision", null))));
         assertThat(prRevision,
             not(is(new PullRequestSCMRevision(prMerge, "master-revision", "pr-branch-revision", ""))));
         assertThat(prRevision,
@@ -249,7 +263,11 @@ public class PullRequestSCMRevisionTest {
             "38814ca33833ff5583624c29f305be9133f27a40");
 
         assertThat(prRevision.toString(), is("c0e024f89969b976da165eecaa71e09dc60c3da1+8f1314fc3c8284d8c6d5886d473db98f2126071c (38814ca33833ff5583624c29f305be9133f27a40)"));
-        prRevision.validateMergeHash(repo);
+        try {
+            prRevision.validateMergeHash(repo);
+        } catch (AbortException e) {
+            fail("Validation should succeed, but: " + e.getMessage());
+        }
     }
 
     @Test
