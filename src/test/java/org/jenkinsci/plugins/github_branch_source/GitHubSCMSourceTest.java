@@ -35,7 +35,10 @@ import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.stubbing.Scenario;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
+import hudson.AbortException;
 import hudson.ExtensionList;
 import hudson.model.Action;
 import hudson.model.FreeStyleProject;
@@ -77,14 +80,18 @@ import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import java.util.EnumSet;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.hasSize;
@@ -139,6 +146,9 @@ public class GitHubSCMSourceTest {
                     })
     );
     private GitHubSCMSource source;
+    private GitHub github;
+    private GHRepository repo;
+
 
     @Before
     public void prepareMockGitHub() throws Exception {
@@ -150,6 +160,37 @@ public class GitHubSCMSourceTest {
                 new SingleRootFileSource("src/test/resources/api/__files"));
         githubRaw.enableRecordMappings(new SingleRootFileSource("src/test/resources/raw/mappings"),
                 new SingleRootFileSource("src/test/resources/raw/__files"));
+
+        githubApi.stubFor(
+            get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
+            .inScenario("Pull Request Merge Hash")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(
+                aResponse()
+                .withHeader("Content-Type", "application/json; charset=utf-8")
+                .withBodyFile("body-yolo-pulls-2-mergeable-null.json"))
+            .willSetStateTo("Pull Request Merge Hash - retry 1"));
+
+        githubApi.stubFor(
+            get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
+            .inScenario("Pull Request Merge Hash")
+            .whenScenarioStateIs("Pull Request Merge Hash - retry 1")
+            .willReturn(
+                aResponse()
+                .withHeader("Content-Type", "application/json; charset=utf-8")
+                .withBodyFile("body-yolo-pulls-2-mergeable-null.json"))
+            .willSetStateTo("Pull Request Merge Hash - retry 2"));
+
+        githubApi.stubFor(
+            get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
+            .inScenario("Pull Request Merge Hash")
+            .whenScenarioStateIs("Pull Request Merge Hash - retry 2")
+            .willReturn(
+                aResponse()
+                .withHeader("Content-Type", "application/json; charset=utf-8")
+                .withBodyFile("body-yolo-pulls-2-mergeable-true.json"))
+            .willSetStateTo("Pull Request Merge Hash - retry 2"));
+
         githubApi.stubFor(
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
@@ -157,6 +198,8 @@ public class GitHubSCMSourceTest {
         source = new GitHubSCMSource("cloudbeers", "yolo");
         source.setApiUri("http://localhost:" + githubApi.port());
         source.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, true), new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustContributors())));
+        github = Connector.connect("http://localhost:" + githubApi.port(), null);
+        repo = github.getRepository("stephenc/yolo");
     }
 
     @Test
@@ -218,14 +261,34 @@ public class GitHubSCMSourceTest {
             byName.put(h.getKey().getName(), h.getKey());
             revByName.put(h.getKey().getName(), h.getValue());
         }
-        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "master", "stephenc-patch-1"));
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "master", "stephenc-patch-1"));
+
         assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-2")).isMerge(), is(true));
         assertThat(revByName.get("PR-2"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-2")),
                 "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                 "c0e024f89969b976da165eecaa71e09dc60c3da1",
                 "38814ca33833ff5583624c29f305be9133f27a40"
-
         )));
+        ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash(repo);
+
+        assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(true));
+        assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c0e024f89969b976da165eecaa71e09dc60c3da1",
+                PullRequestSCMRevision.NOT_MERGEABLE_HASH
+        )));
+
+        // validation should fail for this PR.
+        Exception abort = null;
+        try {
+            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash(repo);
+        } catch (Exception e) {
+            abort = e;
+        }
+        assertThat(abort, instanceOf(AbortException.class));
+        assertThat(abort.getMessage(), containsString("Not mergeable"));
 
         assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
         assertThat(revByName.get("master"),
@@ -235,6 +298,53 @@ public class GitHubSCMSourceTest {
         assertThat(revByName.get("stephenc-patch-1"),
                 hasProperty("hash", is("095e69602bb95a278505e937e41d505ac3cdd263")
                 ));
+    }
+
+    @Test
+    public void fetchSmokesUnknownMergeable() throws Exception {
+        // make it so PR-2 always returns mergeable = null
+        githubApi.stubFor(
+            get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
+            .inScenario("Pull Request Merge Hash")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(
+                aResponse()
+                .withHeader("Content-Type", "application/json; charset=utf-8")
+                .withBodyFile("body-yolo-pulls-2-mergeable-null.json")));
+
+        SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
+        source.fetch(new SCMSourceCriteria() {
+            @Override
+            public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
+                return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
+            }
+        }, collector, null, null);
+        Map<String,SCMHead> byName = new HashMap<>();
+        Map<String,SCMRevision> revByName = new HashMap<>();
+        for (Map.Entry<SCMHead, SCMRevision> h: collector.result().entrySet())  {
+            byName.put(h.getKey().getName(), h.getKey());
+            revByName.put(h.getKey().getName(), h.getValue());
+        }
+
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "master", "stephenc-patch-1"));
+
+        assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-2")).isMerge(), is(true));
+        assertThat(revByName.get("PR-2"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-2")),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c0e024f89969b976da165eecaa71e09dc60c3da1",
+                null
+        )));
+
+        // validation should fail for this PR.
+        Exception abort = null;
+        try {
+            ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash(repo);
+        } catch (Exception e) {
+            abort = e;
+        }
+        assertThat(abort, instanceOf(AbortException.class));
+        assertThat(abort.getMessage(), containsString("Unknown merge state"));
     }
 
     @Test
@@ -256,9 +366,28 @@ public class GitHubSCMSourceTest {
             byName.put(h.getKey().getName(), h.getKey());
             revByName.put(h.getKey().getName(), h.getValue());
         }
-        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "master", "stephenc-patch-1"));
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "master", "stephenc-patch-1"));
         assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-2")).isMerge(), is(false));
         assertThat(revByName.get("PR-2"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-2")),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c0e024f89969b976da165eecaa71e09dc60c3da1"
+        )));
+
+        // validation should fail for this PR.
+        Exception abort = null;
+        try {
+            ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash(repo);
+        } catch (Exception e) {
+            abort = e;
+        }
+        assertThat(abort, instanceOf(AbortException.class));
+        assertThat(abort.getMessage(), containsString("Not a merge head"));
+
+
+        assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(false));
+        assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
                 "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                 "c0e024f89969b976da165eecaa71e09dc60c3da1"
         )));

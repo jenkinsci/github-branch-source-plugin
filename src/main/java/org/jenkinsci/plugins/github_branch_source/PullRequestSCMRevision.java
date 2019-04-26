@@ -47,6 +47,7 @@ import org.kohsuke.stapler.export.Exported;
 public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequestSCMHead> {
 
     private static final long serialVersionUID = 1L;
+    static final String NOT_MERGEABLE_HASH = "NOT_MERGEABLE";
 
     private final @NonNull String baseHash;
     private final @NonNull String pullHash;
@@ -106,11 +107,17 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
         return mergeHash;
     }
 
-    void validateMergeHash(GHRepository repo) throws IOException {
-        if (this.mergeHash != null) {
+    void validateMergeHash(@NonNull GHRepository repo) throws IOException {
+        if (!isMerge()) {
+            throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Not a merge head");
+        } else if (this.mergeHash == null) {
+            throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Unknown merge state " + this.toString());
+        } else if (this.mergeHash == NOT_MERGEABLE_HASH) {
+            throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Not mergeable " + this.toString());
+        } else {
             List<String> parents = repo.getCommit(this.mergeHash).getParentSHA1s();
             if (parents.size() != 2 || !parents.contains(this.getBaseHash()) || !parents.contains(this.getPullHash())) {
-                throw new AbortException("Head and base commits do match merge commit for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : " + this.toString() );
+                throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Head and base commits do match merge commit " + this.toString() );
             }
         }
     }
@@ -131,6 +138,11 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
 
     @Override
     public String toString() {
-        return getHead() instanceof PullRequestSCMHead && ((PullRequestSCMHead) getHead()).isMerge() ? pullHash + "+" + baseHash + " (" + mergeHash + ")" : pullHash;
+        String result = pullHash;
+        if (getHead() instanceof PullRequestSCMHead && ((PullRequestSCMHead) getHead()).isMerge()) {
+            result += "+" + baseHash +
+                " (" + StringUtils.defaultIfBlank(mergeHash, "UNKNOWN_MERGE_STATE") + ")";
+        }
+        return result;
     }
 }
