@@ -33,6 +33,7 @@ import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.google.common.collect.Sets;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.Action;
@@ -49,6 +50,7 @@ import jenkins.scm.api.SCMNavigatorOwner;
 import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
+import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.impl.NoOpProjectObserver;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -61,7 +63,11 @@ import org.jvnet.hudson.test.MockFolder;
 import org.mockito.Mockito;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -71,6 +77,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 public class GitHubSCMNavigatorTest {
@@ -139,37 +146,45 @@ public class GitHubSCMNavigatorTest {
 
     @Test
     public void fetchSmokes() throws Exception {
-        final LogTaskListener listener = new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO);
-        final Set<String> names = new HashSet<>();
-        final SCMSourceOwner owner = Mockito.mock(SCMSourceOwner.class);
-        SCMSourceObserver observer = new SCMSourceObserver() {
-            @NonNull
-            @Override
-            public SCMSourceOwner getContext() {
-                return owner;
-            }
+        final Set<String> projectNames = new HashSet<>();
+        SCMSourceObserver observer = getObserver(projectNames);
 
-            @NonNull
-            @Override
-            public TaskListener getListener() {
-                return listener;
-            }
-
-            @NonNull
-            @Override
-            public ProjectObserver observe(@NonNull String projectName) throws IllegalArgumentException {
-                names.add(projectName);
-                return new NoOpProjectObserver();
-            }
-
-            @Override
-            public void addAttribute(@NonNull String key, @Nullable Object value)
-                    throws IllegalArgumentException, ClassCastException {
-
-            }
-        };
         navigator.visitSources(SCMSourceObserver.filter(observer, "yolo"));
-        assertThat(names, Matchers.contains("yolo"));
+
+        assertThat(projectNames, Matchers.contains("yolo"));
+    }
+
+    @Test
+    public void fetchReposFromTeamSlug() throws Exception {
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        List<SCMTrait<? extends SCMTrait<?>>> traits = new ArrayList<>(navigator.getTraits());
+        traits.add(new TeamSlugTrait("justice-league"));
+        navigator.setTraits(traits);
+        navigator.visitSources(SCMSourceObserver.filter(observer, "Hello-World", "github-branch-source-plugin"));
+
+        assertEquals(projectNames, Sets.newHashSet("Hello-World", "github-branch-source-plugin"));
+    }
+
+    @Test
+    public void fetchReposWithOrg() throws Exception {
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(SCMSourceObserver.filter(observer, "Hello-World", "github-branch-source-plugin"));
+
+        assertEquals(projectNames, Sets.newHashSet("Hello-World", "github-branch-source-plugin"));
+    }
+
+    @Test
+    public void appliesFilters() throws Exception {
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(SCMSourceObserver.filter(observer, "Hello-World", "other-repo"));
+
+        assertEquals(projectNames, Collections.singleton("Hello-World"));
     }
 
     @Test
@@ -242,4 +257,34 @@ public class GitHubSCMNavigatorTest {
             r.jenkins.remove(dummy);
         }
     }
+
+    private SCMSourceObserver getObserver(Collection<String> names){
+        return new SCMSourceObserver() {
+            @NonNull
+            @Override
+            public SCMSourceOwner getContext() {
+                return Mockito.mock(SCMSourceOwner.class);
+            }
+
+            @NonNull
+            @Override
+            public TaskListener getListener() {
+                return new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO);
+            }
+
+            @NonNull
+            @Override
+            public ProjectObserver observe(@NonNull String projectName) throws IllegalArgumentException {
+                names.add(projectName);
+                return new NoOpProjectObserver();
+            }
+
+            @Override
+            public void addAttribute(@NonNull String key, @Nullable Object value)
+                    throws IllegalArgumentException, ClassCastException {
+
+            }
+        };
+    }
+
 }
