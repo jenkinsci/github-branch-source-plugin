@@ -1,11 +1,11 @@
 {
   "request" : {
-    "url" : "/repos/cloudbeers/yolo/commits/38814ca33833ff5583624c29f305be9133f27a40",
+    "url" : "/repos/cloudbeers/yolo/commits/c0e024f89969b976da165eecaa71e09dc60c3da1",
     "method" : "GET"
   },
   "response" : {
     "status" : 200,
-    "bodyFileName" : "body-commits-38814ca33833ff5583624c29f305be9133f27a40-s9LlH.json",
+    "bodyFileName" : "body-commits-cloudbeers-c0e024f89969b976da165eecaa71e09dc60c3da1-ay5DS.json",
     "headers": {
       "Server": "GitHub.com",
       "Date": "Tue, 06 Dec 2016 15:06:25 GMT",

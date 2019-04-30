@@ -123,7 +123,7 @@ public class PullRequestSCMRevisionTest {
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
         github = Connector.connect("http://localhost:" + githubApi.port(), null);
-        repo = github.getRepository("stephenc/yolo");
+        repo = github.getRepository("cloudbeers/yolo");
     }
 
     public static SCMHead master = new BranchSCMHead("master");

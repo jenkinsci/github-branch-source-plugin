@@ -199,7 +199,7 @@ public class GitHubSCMSourceTest {
         source.setApiUri("http://localhost:" + githubApi.port());
         source.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, true), new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustContributors())));
         github = Connector.connect("http://localhost:" + githubApi.port(), null);
-        repo = github.getRepository("stephenc/yolo");
+        repo = github.getRepository("cloudbeers/yolo");
     }
 
     @Test

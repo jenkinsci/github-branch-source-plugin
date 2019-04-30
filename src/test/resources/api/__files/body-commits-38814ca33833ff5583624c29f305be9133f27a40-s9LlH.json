@@ -15,9 +15,9 @@
       "message": "Amending",
       "tree": {
         "sha": "af35eba21463ee720a3d0727750abf9ea093edae",
-        "url": "https://api.github.com/repos/stephenc/yolo/git/trees/af35eba21463ee720a3d0727750abf9ea093edae"
+        "url": "https://api.github.com/repos/cloudbeers/yolo/git/trees/af35eba21463ee720a3d0727750abf9ea093edae"
       },
-      "url": "https://api.github.com/repos/stephenc/yolo/git/commits/38814ca33833ff5583624c29f305be9133f27a40",
+      "url": "https://api.github.com/repos/cloudbeers/yolo/git/commits/38814ca33833ff5583624c29f305be9133f27a40",
       "comment_count": 0,
       "verification": {
         "verified": false,
@@ -26,9 +26,9 @@
         "payload": null
       }
     },
-    "url": "https://api.github.com/repos/stephenc/yolo/commits/38814ca33833ff5583624c29f305be9133f27a40",
-    "html_url": "https://github.com/stephenc/yolo/commit/38814ca33833ff5583624c29f305be9133f27a40",
-    "comments_url": "https://api.github.com/repos/stephenc/yolo/commits/38814ca33833ff5583624c29f305be9133f27a40/comments",
+    "url": "https://api.github.com/repos/cloudbeers/yolo/commits/38814ca33833ff5583624c29f305be9133f27a40",
+    "html_url": "https://github.com/cloudbeers/yolo/commit/38814ca33833ff5583624c29f305be9133f27a40",
+    "comments_url": "https://api.github.com/repos/cloudbeers/yolo/commits/38814ca33833ff5583624c29f305be9133f27a40/comments",
     "author": {
         "login": "stephenc",
         "id": 209336,
@@ -49,7 +49,7 @@
         "site_admin": false
     },
     "committer": {
-        "login": "stephenc",
+        "login": "github",
         "id": 209336,
         "avatar_url": "https://avatars.githubusercontent.com/u/209336?v=3",
         "gravatar_id": "",
@@ -70,13 +70,13 @@
     "parents": [
       {
         "sha": "8f1314fc3c8284d8c6d5886d473db98f2126071c",
-        "url": "https://api.github.com/repos/stephenc/yolo/commits/8f1314fc3c8284d8c6d5886d473db98f2126071c",
-        "html_url": "https://github.com/stephenc/yolo/commit/8f1314fc3c8284d8c6d5886d473db98f2126071c"
+        "url": "https://api.github.com/repos/cloudbeers/yolo/commits/8f1314fc3c8284d8c6d5886d473db98f2126071c",
+        "html_url": "https://github.com/cloudbeers/yolo/commit/8f1314fc3c8284d8c6d5886d473db98f2126071c"
       },
       {
         "sha": "c0e024f89969b976da165eecaa71e09dc60c3da1",
-        "url": "https://api.github.com/repos/stephenc/yolo/commits/c0e024f89969b976da165eecaa71e09dc60c3da1",
-        "html_url": "https://github.com/stephenc/yolo/commit/c0e024f89969b976da165eecaa71e09dc60c3da1"
+        "url": "https://api.github.com/repos/cloudbeers/yolo/commits/c0e024f89969b976da165eecaa71e09dc60c3da1",
+        "html_url": "https://github.com/cloudbeers/yolo/commit/c0e024f89969b976da165eecaa71e09dc60c3da1"
       }
     ],
     "stats": {
@@ -90,30 +90,30 @@
             "path": "fu/bar.txt",
             "sha": "01b51e6ac5e39d1eb2fec3143437c6f117a58f03",
             "size": 10,
-            "url": "https://api.github.com/repos/stephenc/yolo/contents/fu/bar.txt?ref=38814ca33833ff5583624c29f305be9133f27a40",
-            "html_url": "https://github.com/stephenc/yolo/blob/38814ca33833ff5583624c29f305be9133f27a40/fu/bar.txt",
-            "git_url": "https://api.github.com/repos/stephenc/yolo/git/blobs/01b51e6ac5e39d1eb2fec3143437c6f117a58f03",
-            "download_url": "https://raw.githubusercontent.com/stephenc/yolo/38814ca33833ff5583624c29f305be9133f27a40/fu/bar.txt",
+            "url": "https://api.github.com/repos/cloudbeers/yolo/contents/fu/bar.txt?ref=38814ca33833ff5583624c29f305be9133f27a40",
+            "html_url": "https://github.com/cloudbeers/yolo/blob/38814ca33833ff5583624c29f305be9133f27a40/fu/bar.txt",
+            "git_url": "https://api.github.com/repos/cloudbeers/yolo/git/blobs/01b51e6ac5e39d1eb2fec3143437c6f117a58f03",
+            "download_url": "https://raw.githubusercontent.com/cloudbeers/yolo/38814ca33833ff5583624c29f305be9133f27a40/fu/bar.txt",
             "type": "file",
             "_links": {
-              "self": "https://api.github.com/repos/stephenc/yolo/contents/fu/bar.txt?ref=38814ca33833ff5583624c29f305be9133f27a40",
-              "git": "https://api.github.com/repos/stephenc/yolo/git/blobs/01b51e6ac5e39d1eb2fec3143437c6f117a58f03",
-              "html": "https://github.com/stephenc/yolo/blob/38814ca33833ff5583624c29f305be9133f27a40/fu/bar.txt"
+              "self": "https://api.github.com/repos/cloudbeers/yolo/contents/fu/bar.txt?ref=38814ca33833ff5583624c29f305be9133f27a40",
+              "git": "https://api.github.com/repos/cloudbeers/yolo/git/blobs/01b51e6ac5e39d1eb2fec3143437c6f117a58f03",
+              "html": "https://github.com/cloudbeers/yolo/blob/38814ca33833ff5583624c29f305be9133f27a40/fu/bar.txt"
             }
           }, {
             "name": "manchu.txt",
             "path": "fu/manchu.txt",
             "sha": "513024055b65c362bf3ac1e7d5f22ce464fc2453",
             "size": 17,
-            "url": "https://api.github.com/repos/stephenc/yolo/contents/fu/manchu.txt?ref=38814ca33833ff5583624c29f305be9133f27a40",
-            "html_url": "https://github.com/stephenc/yolo/blob/38814ca33833ff5583624c29f305be9133f27a40/fu/manchu.txt",
-            "git_url": "https://api.github.com/repos/stephenc/yolo/git/blobs/513024055b65c362bf3ac1e7d5f22ce464fc2453",
-            "download_url": "https://raw.githubusercontent.com/stephenc/yolo/38814ca33833ff5583624c29f305be9133f27a40/fu/manchu.txt",
+            "url": "https://api.github.com/repos/cloudbeers/yolo/contents/fu/manchu.txt?ref=38814ca33833ff5583624c29f305be9133f27a40",
+            "html_url": "https://github.com/cloudbeers/yolo/blob/38814ca33833ff5583624c29f305be9133f27a40/fu/manchu.txt",
+            "git_url": "https://api.github.com/repos/cloudbeers/yolo/git/blobs/513024055b65c362bf3ac1e7d5f22ce464fc2453",
+            "download_url": "https://raw.githubusercontent.com/cloudbeers/yolo/38814ca33833ff5583624c29f305be9133f27a40/fu/manchu.txt",
             "type": "file",
             "_links": {
-              "self": "https://api.github.com/repos/stephenc/yolo/contents/fu/manchu.txt?ref=38814ca33833ff5583624c29f305be9133f27a40",
-              "git": "https://api.github.com/repos/stephenc/yolo/git/blobs/513024055b65c362bf3ac1e7d5f22ce464fc2453",
-              "html": "https://github.com/stephenc/yolo/blob/38814ca33833ff5583624c29f305be9133f27a40/fu/manchu.txt"
+              "self": "https://api.github.com/repos/cloudbeers/yolo/contents/fu/manchu.txt?ref=38814ca33833ff5583624c29f305be9133f27a40",
+              "git": "https://api.github.com/repos/cloudbeers/yolo/git/blobs/513024055b65c362bf3ac1e7d5f22ce464fc2453",
+              "html": "https://github.com/cloudbeers/yolo/blob/38814ca33833ff5583624c29f305be9133f27a40/fu/manchu.txt"
             }
           }
     ]
