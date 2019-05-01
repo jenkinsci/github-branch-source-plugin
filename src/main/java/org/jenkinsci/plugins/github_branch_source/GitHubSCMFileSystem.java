@@ -272,35 +272,18 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                     throw new IOException(message);
                 }
                 String refName;
+
                 if (head instanceof BranchSCMHead) {
                     refName = "heads/" + head.getName();
                 } else if (head instanceof GitHubTagSCMHead) {
                     refName = "tags/" + head.getName();
                 } else if (head instanceof PullRequestSCMHead) {
-                    PullRequestSCMHead pr = (PullRequestSCMHead) head;
-                    if (pr.getSourceRepo() != null) {
-                        GHUser user = github.getUser(pr.getSourceOwner());
-                        if (user == null) {
-                            // we need to release here as we are not throwing an exception or transferring
-                            // responsibility to FS
-                            Connector.release(github);
-                            return null;
-                        }
-                        GHRepository repo = user.getRepository(pr.getSourceRepo());
-                        if (repo == null) {
-                            // we need to release here as we are not throwing an exception or transferring
-                            // responsibility to FS
-                            Connector.release(github);
-                            return null;
-                        }
-                        return new GitHubSCMFileSystem(
-                                github, repo,
-                                null,
-                                rev);
+                    refName = null;
+                    if (rev == null) {
+                        // we need to release here as we are not throwing an exception or transferring responsibility to FS
+                        Connector.release(github);
+                        return null;
                     }
-                    // we need to release here as we are not throwing an exception or transferring responsibility to FS
-                    Connector.release(github);
-                    return null;
                 } else {
                     // we need to release here as we are not throwing an exception or transferring responsibility to FS
                     Connector.release(github);
@@ -319,6 +302,8 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                     Connector.release(github);
                     return null;
                 }
+
+
                 if (rev == null) {
                     GHRef ref = repo.getRef(refName);
                     if ("tag".equalsIgnoreCase(ref.getObject().getType())) {
