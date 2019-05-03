@@ -110,6 +110,8 @@ import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
+import org.jenkinsci.plugins.github_branch_source.PullRequestSCMHead;
+import org.jenkinsci.plugins.github_branch_source.PullRequestSCMRevision;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -935,71 +937,34 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     if (request.isFetchPRs() && !request.isComplete()) {
                         listener.getLogger().format("%n  Checking pull-requests...%n");
                         int count = 0;
+                        int errorCount = 0;
                         Map<Boolean, Set<ChangeRequestCheckoutStrategy>> strategies = request.getPRStrategies();
-                        PRs: for (final GHPullRequest pr : request.getPullRequests()) {
-                            int number = pr.getNumber();
-                            boolean fork = !ghRepository.getOwner().equals(pr.getHead().getUser());
-                            listener.getLogger().format("%n    Checking pull request %s%n",
-                                    HyperlinkNote.encodeTo(pr.getHtmlUrl().toString(), "#" + number));
-                            if (strategies.get(fork).isEmpty()) {
-                                if (fork) {
-                                    listener.getLogger().format("    Submitted from fork, skipping%n%n");
-                                } else {
-                                    listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
-                                }
-                                continue;
-                            }
-                            for (final ChangeRequestCheckoutStrategy strategy : strategies.get(fork)) {
-                                final String branchName;
-                                if (strategies.get(fork).size() == 1) {
-                                    branchName = "PR-" + number;
-                                } else {
-                                    branchName = "PR-" + number + "-" + strategy.name().toLowerCase(Locale.ENGLISH);
-                                }
-                                count++;
-                                ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
-                                if (request.process(new PullRequestSCMHead(
-                                                pr, branchName, strategy == ChangeRequestCheckoutStrategy.MERGE
-                                        ),
-                                        null,
-                                        new SCMSourceRequest.ProbeLambda<PullRequestSCMHead, Void>() {
-                                            @NonNull
-                                            @Override
-                                            public SCMSourceCriteria.Probe create(@NonNull PullRequestSCMHead head,
-                                                                                  @Nullable Void revisionInfo)
-                                                    throws IOException, InterruptedException {
-                                                boolean trusted = request.isTrusted(head);
-                                                if (!trusted) {
-                                                    listener.getLogger().format("    (not from a trusted source)%n");
-                                                }
-                                                return new GitHubSCMProbe(github, ghRepository,
-                                                        trusted ? head : head.getTarget(), null);
-                                            }
-                                        },
-                                        new SCMSourceRequest.LazyRevisionLambda<PullRequestSCMHead, SCMRevision, Void>() {
-                                            @NonNull
-                                            @Override
-                                            public SCMRevision create(@NonNull PullRequestSCMHead head,
-                                                                      @Nullable Void ignored)
-                                                    throws IOException, InterruptedException {
 
-                                                return createPullRequestSCMRevision(pr, head, listener, github, ghRepository);
-                                            }
-                                        },
-                                        new MergabilityWitness(pr, strategy, listener),
-                                        new CriteriaWitness(listener)
-                                )) {
-                                    listener.getLogger().format(
-                                            "%n  %d pull requests were processed (query completed)%n",
-                                            count
-                                    );
-                                    break PRs;
-                                } else {
-                                    request.checkApiRateLimit();
-                                }
+                        // JENKINS-56996
+                        // PRs are one the most error prone areas for scans
+                        // Branches and tags are contained only the current repo, PRs go across forks
+                        // FileNotFoundException can occur in a number of situations
+                        // When this happens, it is not ideal behavior but it is better to let the PR be orphaned
+                        // and the the orphan stratgy control the result than for this error to stop scanning
+                        // (For Org scanning this is particularly important.)
+                        // If some more general IO exception is thrown, we will still fail.
+
+                        validatePullRequests(request);
+                        for (final GHPullRequest pr : request.getPullRequests()) {
+                            int number = pr.getNumber();
+                            try {
+                                retrievePullRequest(github, ghRepository, pr, strategies, request, listener);
+                            } catch (FileNotFoundException e) {
+                                listener.getLogger().format("%n  Error while processing pull request %d%n", number);
+                                listener.getLogger().format("%n  Reason: %s%n", e);
+                                errorCount++;
                             }
+                            count++;
                         }
                         listener.getLogger().format("%n  %d pull requests were processed%n", count);
+                        if (errorCount > 0 ) {
+                            listener.getLogger().format("%n  %d pull requests encountered errors and were orphaned.%n", count);
+                        }
                     }
                     if (request.isFetchTags() && !request.isComplete()) {
                         listener.getLogger().format("%n  Checking tags...%n");
@@ -1061,7 +1026,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             } catch (WrappedException e) {
                 try {
                     e.unwrap();
-            } catch (RateLimitExceededException rle) {
+                } catch (RateLimitExceededException rle) {
                     throw new AbortException(rle.getMessage());
                 }
             }
@@ -1069,6 +1034,102 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             Connector.release(github);
         }
     }
+
+    private static void validatePullRequests(GitHubSCMSourceRequest request) {
+        // JENKINS-56996
+        // This method handles the case where there would be an error
+        // while finding a user inside the PR iterator.
+        // Once this is done future iterations over PR use a cached list.
+        // We could do this at the same time as processing each PR, but
+        // this is clearer and safer.
+        Iterator<GHPullRequest> iterator = request.getPullRequests().iterator();
+        while (iterator.hasNext()) {
+            try {
+                try {
+                    iterator.next();
+                } catch (NoSuchElementException e) {
+                    break;
+                } catch (WrappedException wrapped) {
+                    wrapped.unwrap();
+                }
+            } catch (FileNotFoundException e) {
+                // File not found exceptions are ignorable
+            } catch (IOException | InterruptedException e) {
+                throw new WrappedException(e);
+            }
+        }
+    }
+
+    private static void retrievePullRequest(
+        @NonNull final GitHub github,
+        @NonNull final GHRepository ghRepository,
+        @NonNull final GHPullRequest pr,
+        @NonNull final Map<Boolean, Set<ChangeRequestCheckoutStrategy>> strategies,
+        @NonNull final GitHubSCMSourceRequest request,
+        @NonNull final TaskListener listener)
+        throws IOException, InterruptedException {
+
+        int number = pr.getNumber();
+        listener.getLogger().format("%n    Checking pull request %s%n",
+        HyperlinkNote.encodeTo(pr.getHtmlUrl().toString(), "#" + number));
+        boolean fork = !ghRepository.getOwner().equals(pr.getHead().getUser());
+        if (strategies.get(fork).isEmpty()) {
+            if (fork) {
+                listener.getLogger().format("    Submitted from fork, skipping%n%n");
+            } else {
+                listener.getLogger().format("    Submitted from origin repository, skipping%n%n");
+            }
+            return;
+        }
+        ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
+        for (final ChangeRequestCheckoutStrategy strategy : strategies.get(fork)) {
+            final String branchName;
+            if (strategies.get(fork).size() == 1) {
+                branchName = "PR-" + number;
+            } else {
+                branchName = "PR-" + number + "-" + strategy.name().toLowerCase(Locale.ENGLISH);
+            }
+            if (request.process(new PullRequestSCMHead(
+                            pr, branchName, strategy == ChangeRequestCheckoutStrategy.MERGE
+                    ),
+                    null,
+                    new SCMSourceRequest.ProbeLambda<PullRequestSCMHead, Void>() {
+                        @NonNull
+                        @Override
+                        public SCMSourceCriteria.Probe create(@NonNull PullRequestSCMHead head,
+                                                            @Nullable Void revisionInfo)
+                                throws IOException, InterruptedException {
+                            boolean trusted = request.isTrusted(head);
+                            if (!trusted) {
+                                listener.getLogger().format("    (not from a trusted source)%n");
+                            }
+                            return new GitHubSCMProbe(github, ghRepository,
+                                    trusted ? head : head.getTarget(), null);
+                        }
+                    },
+                    new SCMSourceRequest.LazyRevisionLambda<PullRequestSCMHead, SCMRevision, Void>() {
+                        @NonNull
+                        @Override
+                        public SCMRevision create(@NonNull PullRequestSCMHead head,
+                                                @Nullable Void ignored)
+                                throws IOException, InterruptedException {
+
+                            return createPullRequestSCMRevision(pr, head, listener, github, ghRepository);
+                        }
+                    },
+                    new MergabilityWitness(pr, strategy, listener),
+                    new CriteriaWitness(listener)
+            )) {
+                listener.getLogger().format(
+                        "%n  Pull request %d processed (query completed)%n",
+                        number
+                );
+            } else {
+                request.checkApiRateLimit();
+            }
+        }
+    }
+
 
     @NonNull
     @Override
@@ -1467,7 +1528,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    private PullRequestSCMRevision createPullRequestSCMRevision(GHPullRequest pr, PullRequestSCMHead prhead, TaskListener listener, GitHub github, GHRepository ghRepository) throws IOException, InterruptedException {
+    private static PullRequestSCMRevision createPullRequestSCMRevision(GHPullRequest pr, PullRequestSCMHead prhead, TaskListener listener, GitHub github, GHRepository ghRepository) throws IOException, InterruptedException {
         String baseHash = pr.getBase().getSha();
         String prHeadHash = pr.getHead().getSha();
         String mergeHash = null;
@@ -1486,14 +1547,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
 
-    private GHPullRequest getDetailedGHPullRequest(int number, TaskListener listener, GitHub github, GHRepository ghRepository) throws IOException, InterruptedException {
+    private static GHPullRequest getDetailedGHPullRequest(int number, TaskListener listener, GitHub github, GHRepository ghRepository) throws IOException, InterruptedException {
         Connector.checkApiRateLimit(listener, github);
         GHPullRequest pr = ghRepository.getPullRequest(number);
         ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
         return pr;
     }
 
-    private void ensureDetailedGHPullRequest(GHPullRequest pr, TaskListener listener, GitHub github, GHRepository ghRepository) throws IOException, InterruptedException {
+    private static void ensureDetailedGHPullRequest(GHPullRequest pr, TaskListener listener, GitHub github, GHRepository ghRepository) throws IOException, InterruptedException {
         final long sleep = 1000;
         int retryCountdown = 4;
 
@@ -2160,15 +2221,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             @Override
             public void observe(GHPullRequest pr) {
                 int number = pr.getNumber();
-                pullRequestMetadataCache.put(number,
-                        new ObjectMetadataAction(
-                                pr.getTitle(),
-                                pr.getBody(),
-                                pr.getHtmlUrl().toExternalForm()
-                        )
-                );
+                GHUser user = null;
                 try {
-                    GHUser user = pr.getUser();
+                    user = pr.getUser();
                     if (users.containsKey(user.getLogin())) {
                         // looked up this user already
                         user = users.get(user.getLogin());
@@ -2176,16 +2231,29 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         // going to be making a request to populate the user record
                         request.checkApiRateLimit();
                     }
-                    pullRequestContributorCache.put(number, new ContributorMetadataAction(
-                            user.getLogin(),
-                            user.getName(),
-                            user.getEmail()
-                    ));
+                    ContributorMetadataAction contributor = new ContributorMetadataAction(
+                        user.getLogin(),
+                        user.getName(),
+                        user.getEmail());
+                    pullRequestContributorCache.put(number, contributor);
                     // store the populated user record now that we have it
                     users.put(user.getLogin(), user);
+                } catch (FileNotFoundException e) {
+                    // If file not found for user, warn but keep going
+                    request.listener().getLogger().format("%n  Could not find user %s for pull request %d.%n",
+                       user == null ? "null" : user.getLogin(), number);
+                    throw new WrappedException(e);
                 } catch (IOException | InterruptedException e) {
                     throw new WrappedException(e);
                 }
+
+                pullRequestMetadataCache.put(number,
+                    new ObjectMetadataAction(
+                            pr.getTitle(),
+                            pr.getBody(),
+                            pr.getHtmlUrl().toExternalForm()
+                            )
+                    );
                 pullRequestMetadataKeys.add(number);
             }
 

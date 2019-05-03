@@ -1,23 +1,24 @@
 {
   "request": {
-    "url": "/repos/cloudbeers/yolo/pulls/2",
+    "url": "/users/notauser",
     "method": "GET"
   },
   "response": {
-    "status": 200,
-    "bodyFileName": "body-yolo-pulls-2.json",
+    "status": 404,
+    "bodyFileName": "body-users-notauser.json",
     "headers": {
       "Server": "GitHub.com",
-      "Date": "Tue, 06 Dec 2016 17:32:19 GMT",
+      "Date": "Tue, 06 Dec 2016 15:06:25 GMT",
       "Content-Type": "application/json; charset=utf-8",
       "Transfer-Encoding": "chunked",
       "Status": "200 OK",
       "X-RateLimit-Limit": "60",
-      "X-RateLimit-Remaining": "55",
-      "X-RateLimit-Reset": "1481048932",
+      "X-RateLimit-Remaining": "60",
+      "X-RateLimit-Reset": "1481039662",
       "Cache-Control": "public, max-age=60, s-maxage=60",
       "Vary": ["Accept", "Accept-Encoding"],
-      "ETag": "W/\"a466888c00a5eaf3354ccabe37f75dd9\"",
+      "ETag": "W/\"91482e12d1cde431b38e0238d74dfa7b\"",
+      "Last-Modified": "Sat, 27 Feb 2016 07:57:23 GMT",
       "X-GitHub-Media-Type": "github.v3; format=json",
       "Access-Control-Expose-Headers": "ETag, Link, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval",
       "Access-Control-Allow-Origin": "*",
@@ -26,8 +27,8 @@
       "X-Content-Type-Options": "nosniff",
       "X-Frame-Options": "deny",
       "X-XSS-Protection": "1; mode=block",
-      "X-Served-By": "88531cdcf1929112ec480e1806d44a33",
-      "X-GitHub-Request-Id": "BC8D23FA:31E4:269B4E33:5846F623"
+      "X-Served-By": "d256f86292c6dde5d09d15d926ec67a3",
+      "X-GitHub-Request-Id": "B2A7FE77:629C:AF96C1F:5846D3F0"
     }
   }
 }

@@ -301,6 +301,146 @@ public class GitHubSCMSourceTest {
     }
 
     @Test
+    public void fetchSmokes_badUser() throws Exception {
+        // make it so PR-2 returns a file not found for user
+        githubApi.stubFor(
+            get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
+            .inScenario("Pull Request Merge Hash")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(
+                aResponse()
+                .withHeader("Content-Type", "application/json; charset=utf-8")
+                .withBodyFile("body-yolo-pulls-2-bad-user.json")));
+        githubApi.stubFor(
+            get(urlEqualTo("/repos/cloudbeers/yolo/pulls?state=open"))
+            .inScenario("Pull Request Merge Hash")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(
+                aResponse()
+                .withHeader("Content-Type", "application/json; charset=utf-8")
+                .withBodyFile("body-yolo-pulls-bad-user.json")));
+
+
+        SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
+        source.fetch(new SCMSourceCriteria() {
+            @Override
+            public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
+                return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
+            }
+        }, collector, null, null);
+        Map<String,SCMHead> byName = new HashMap<>();
+        Map<String,SCMRevision> revByName = new HashMap<>();
+        for (Map.Entry<SCMHead, SCMRevision> h: collector.result().entrySet())  {
+            byName.put(h.getKey().getName(), h.getKey());
+            revByName.put(h.getKey().getName(), h.getValue());
+        }
+        assertThat(byName.keySet(), containsInAnyOrder("PR-3", "master", "stephenc-patch-1"));
+
+        // PR-2 fails to find user and throws file not found for user.
+        // Caught and handled by removing PR-2 but scan continues.
+
+        assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(true));
+        assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c0e024f89969b976da165eecaa71e09dc60c3da1",
+                PullRequestSCMRevision.NOT_MERGEABLE_HASH
+        )));
+
+        // validation should fail for this PR.
+        Exception abort = null;
+        try {
+            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash(repo);
+        } catch (Exception e) {
+            abort = e;
+        }
+        assertThat(abort, instanceOf(AbortException.class));
+        assertThat(abort.getMessage(), containsString("Not mergeable"));
+
+        assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
+        assertThat(revByName.get("master"),
+                hasProperty("hash", is("8f1314fc3c8284d8c6d5886d473db98f2126071c")
+                ));
+        assertThat(byName.get("stephenc-patch-1"), instanceOf(BranchSCMHead.class));
+        assertThat(revByName.get("stephenc-patch-1"),
+                hasProperty("hash", is("095e69602bb95a278505e937e41d505ac3cdd263")
+                ));
+    }
+
+    @Test
+    public void fetchSmokes_badTarget() throws Exception {
+        // make it so refs/heads/master returns 404 for first call
+        // Causes PR 2 to fail.
+        githubApi.stubFor(
+            get(urlEqualTo("/repos/cloudbeers/yolo/git/refs/heads/master"))
+            .inScenario("PR 2 Master 404")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(
+                aResponse()
+                .withStatus(404)
+                .withHeader("Content-Type", "application/json; charset=utf-8")
+                .withBodyFile("body-heads-master-notfound.json"))
+            .willSetStateTo("Master 200"));
+
+        githubApi.stubFor(
+            get(urlEqualTo("/repos/cloudbeers/yolo/git/refs/heads/master"))
+            .inScenario("PR 2 Master 404")
+            .whenScenarioStateIs("Master 200")
+            .willReturn(
+                aResponse()
+                .withStatus(200)
+                .withHeader("Content-Type", "application/json; charset=utf-8")
+                .withBodyFile("body-heads-master.json"))
+            .willSetStateTo("Master 200"));
+
+
+        SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
+        source.fetch(new SCMSourceCriteria() {
+            @Override
+            public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
+                return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
+            }
+        }, collector, null, null);
+        Map<String,SCMHead> byName = new HashMap<>();
+        Map<String,SCMRevision> revByName = new HashMap<>();
+        for (Map.Entry<SCMHead, SCMRevision> h: collector.result().entrySet())  {
+            byName.put(h.getKey().getName(), h.getKey());
+            revByName.put(h.getKey().getName(), h.getValue());
+        }
+        assertThat(byName.keySet(), containsInAnyOrder("PR-3", "master", "stephenc-patch-1"));
+
+        // PR-2 fails to find master and throws file not found for master.
+        // Caught and handled by removing PR-2 but scan continues.
+
+        assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(true));
+        assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c0e024f89969b976da165eecaa71e09dc60c3da1",
+                PullRequestSCMRevision.NOT_MERGEABLE_HASH
+        )));
+
+        // validation should fail for this PR.
+        Exception abort = null;
+        try {
+            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash(repo);
+        } catch (Exception e) {
+            abort = e;
+        }
+        assertThat(abort, instanceOf(AbortException.class));
+        assertThat(abort.getMessage(), containsString("Not mergeable"));
+
+        assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
+        assertThat(revByName.get("master"),
+                hasProperty("hash", is("8f1314fc3c8284d8c6d5886d473db98f2126071c")
+                ));
+        assertThat(byName.get("stephenc-patch-1"), instanceOf(BranchSCMHead.class));
+        assertThat(revByName.get("stephenc-patch-1"),
+                hasProperty("hash", is("095e69602bb95a278505e937e41d505ac3cdd263")
+                ));
+    }
+
+    @Test
     public void fetchSmokesUnknownMergeable() throws Exception {
         // make it so PR-2 always returns mergeable = null
         githubApi.stubFor(
@@ -345,6 +485,34 @@ public class GitHubSCMSourceTest {
         }
         assertThat(abort, instanceOf(AbortException.class));
         assertThat(abort.getMessage(), containsString("Unknown merge state"));
+
+        assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(true));
+        assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c0e024f89969b976da165eecaa71e09dc60c3da1",
+                PullRequestSCMRevision.NOT_MERGEABLE_HASH
+        )));
+
+        // validation should fail for this PR.
+        abort = null;
+        try {
+            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash(repo);
+        } catch (Exception e) {
+            abort = e;
+        }
+        assertThat(abort, instanceOf(AbortException.class));
+        assertThat(abort.getMessage(), containsString("Not mergeable"));
+
+        assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
+        assertThat(revByName.get("master"),
+                hasProperty("hash", is("8f1314fc3c8284d8c6d5886d473db98f2126071c")
+                ));
+        assertThat(byName.get("stephenc-patch-1"), instanceOf(BranchSCMHead.class));
+        assertThat(revByName.get("stephenc-patch-1"),
+                hasProperty("hash", is("095e69602bb95a278505e937e41d505ac3cdd263")
+                ));
+
     }
 
     @Test
