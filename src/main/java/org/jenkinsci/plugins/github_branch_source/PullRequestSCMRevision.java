@@ -28,16 +28,15 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.List;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
-
-import java.io.IOException;
-import java.util.List;
-
 import org.apache.commons.lang.StringUtils;
-
+import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.stapler.export.Exported;
 
@@ -115,7 +114,16 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
         } else if (this.mergeHash == NOT_MERGEABLE_HASH) {
             throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Not mergeable " + this.toString());
         } else {
-            List<String> parents = repo.getCommit(this.mergeHash).getParentSHA1s();
+            GHCommit commit = null;
+            try {
+                commit = repo.getCommit(this.mergeHash);
+            } catch (FileNotFoundException e) {
+                throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : commit not found (" + this.mergeHash + "). Close and reopen the PR to reset its merge hash.");
+            } catch (IOException e) {
+                throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : " + e.toString());
+            }
+            assert(commit != null);
+            List<String> parents = commit.getParentSHA1s();
             if (parents.size() != 2 || !parents.contains(this.getBaseHash()) || !parents.contains(this.getPullHash())) {
                 throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Head and base commits do match merge commit " + this.toString() );
             }
