@@ -118,7 +118,7 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
             try {
                 commit = repo.getCommit(this.mergeHash);
             } catch (FileNotFoundException e) {
-                throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : commit not found (" + this.mergeHash + "). Try close and reopen this PR to reset merge hash.");
+                throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : commit not found (" + this.mergeHash + "). Close and reopen the PR to reset its merge hash.");
             } catch (IOException e) {
                 throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : " + e.toString());
             }
