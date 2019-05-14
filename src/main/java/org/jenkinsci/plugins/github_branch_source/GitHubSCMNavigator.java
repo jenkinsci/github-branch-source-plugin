@@ -39,24 +39,8 @@ import hudson.console.HyperlinkNote;
 import hudson.model.Action;
 import hudson.model.Item;
 import hudson.model.TaskListener;
-import hudson.plugins.git.GitSCM;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.stream.Collectors;
-import javax.inject.Inject;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
 import jenkins.scm.api.SCMNavigator;
@@ -73,7 +57,6 @@ import jenkins.scm.api.trait.SCMNavigatorRequest;
 import jenkins.scm.api.trait.SCMNavigatorTrait;
 import jenkins.scm.api.trait.SCMNavigatorTraitDescriptor;
 import jenkins.scm.api.trait.SCMSourceTrait;
-import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.api.trait.SCMTraitDescriptor;
 import jenkins.scm.impl.UncategorizedSCMSourceCategory;
@@ -103,6 +86,19 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
+
+import javax.inject.Inject;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
 
@@ -955,6 +951,13 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             if (!repo.getOwnerName().equals(repoOwner)) {
                                 continue; // ignore repos in other orgs when using GHMyself
                             }
+
+                            if (repo.isArchived()) {
+                                witness.record(repo.getName(), false);
+
+                                continue;
+                            }
+
                             if (request.process(repo.getName(), sourceFactory, null, witness)) {
                                 listener.getLogger()
                                         .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -983,6 +986,13 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     )));
                     for (GHRepository repo : org.listRepositories(100)) {
                         Connector.checkApiRateLimit(listener, github);
+
+                        if (repo.isArchived()) {
+                            witness.record(repo.getName(), false);
+
+                            continue;
+                        }
+
                         if (request.process(repo.getName(), sourceFactory, null, witness)) {
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -1009,6 +1019,13 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     Connector.checkApiRateLimit(listener, github);
                     for (GHRepository repo : user.listRepositories(100)) {
                         Connector.checkApiRateLimit(listener, github);
+
+                        if (repo.isArchived()) {
+                            witness.record(repo.getName(), false);
+
+                            continue;
+                        }
+
                         if (request.process(repo.getName(), sourceFactory, null, witness)) {
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -1119,7 +1136,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             .format("Looking up %s repository of organization %s%n%n", sourceName, repoOwner);
                     GHRepository repo = org.getRepository(sourceName);
                     if (repo != null) {
-                        if (request.process(repo.getName(), sourceFactory, null, witness)) {
+                        if (repo.isArchived()) {
+                            witness.record(repo.getName(), false);
+                        } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                             "%d repositories were processed (query completed)", witness.getCount()
@@ -1144,7 +1163,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     listener.getLogger().format("Looking up %s repository of user %s%n%n", sourceName, repoOwner);
                     GHRepository repo = user.getRepository(sourceName);
                     if (repo != null) {
-                        if (request.process(repo.getName(), sourceFactory, null, witness)) {
+                        if (repo.isArchived()) {
+                            witness.record(repo.getName(), false);
+                        } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                             "%d repositories were processed (query completed)", witness.getCount()

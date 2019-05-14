@@ -179,6 +179,42 @@ public class GitHubSCMNavigatorTest {
     }
 
     @Test
+    public void fetchRepositories() throws Exception {
+        final LogTaskListener listener = new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO);
+        final Set<String> names = new HashSet<>();
+        final SCMSourceOwner owner = Mockito.mock(SCMSourceOwner.class);
+        SCMSourceObserver observer = new SCMSourceObserver() {
+            @NonNull
+            @Override
+            public SCMSourceOwner getContext() {
+                return owner;
+            }
+
+            @NonNull
+            @Override
+            public TaskListener getListener() {
+                return listener;
+            }
+
+            @NonNull
+            @Override
+            public ProjectObserver observe(@NonNull String projectName) throws IllegalArgumentException {
+                names.add(projectName);
+                return new NoOpProjectObserver();
+            }
+
+            @Override
+            public void addAttribute(@NonNull String key, @Nullable Object value)
+                throws IllegalArgumentException, ClassCastException {
+
+            }
+        };
+        navigator.visitSources(SCMSourceObserver.filter(observer, "basic", "advanced"));
+        assertThat(names, Matchers.contains("basic"));
+        assertThat(names, Matchers.not(Matchers.contains("advanced")));
+    }
+
+    @Test
     public void fetchActions() throws Exception {
         assertThat(navigator.fetchActions(Mockito.mock(SCMNavigatorOwner.class), null, null), Matchers.<Action>containsInAnyOrder(
                 Matchers.<Action>is(
