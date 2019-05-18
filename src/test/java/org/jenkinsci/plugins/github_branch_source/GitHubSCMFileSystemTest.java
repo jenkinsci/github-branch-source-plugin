@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.plugins.git.GitSCMFileSystem;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
@@ -47,6 +48,7 @@ import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.Matchers;
+import org.hamcrest.core.IsNull;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -68,6 +70,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 
 @RunWith(Parameterized.class)
@@ -100,9 +103,15 @@ public class GitHubSCMFileSystemTest {
 
     public static PullRequestSCMRevision prMergeInvalidRevision = new PullRequestSCMRevision(
         prMerge,
-        "INVALIDc3c8284d8c6d5886d473db98f2126071c",
+        "8f1314fc3c8284d8c6d5886d473db98f2126071c",
         "c0e024f89969b976da165eecaa71e09dc60c3da1",
-        "38814ca33833ff5583624c29f305be9133f27a40");
+        null);
+
+    public static PullRequestSCMRevision prMergeNotMergeableRevision = new PullRequestSCMRevision(
+        prMerge,
+        "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+        "c0e024f89969b976da165eecaa71e09dc60c3da1",
+        PullRequestSCMRevision.NOT_MERGEABLE_HASH);
 
 
     @Rule
@@ -284,14 +293,24 @@ public class GitHubSCMFileSystemTest {
         assertThat(fs.getRoot().child("fu").getType(), is(SCMFile.Type.DIRECTORY));
     }
 
-    @Test(expected = AbortException.class)
+    @Test
     public void resolveDirPRInvalidMerge() throws Exception {
         assumeThat(revision, nullValue());
 
         assertThat(prMergeInvalidRevision.isMerge(), is(true));
 
         SCMFileSystem fs = SCMFileSystem.of(source, prMerge, prMergeInvalidRevision);
-        assertThat(fs, instanceOf(GitHubSCMFileSystem.class));
+        assertThat(fs, nullValue());
+    }
+
+    @Test(expected = AbortException.class)
+    public void resolveDirPRNotMergeable() throws Exception {
+        assumeThat(revision, nullValue());
+
+        assertThat(prMergeNotMergeableRevision.isMerge(), is(true));
+
+        SCMFileSystem fs = SCMFileSystem.of(source, prMerge, prMergeNotMergeableRevision);
+        fail();
     }
 
 }

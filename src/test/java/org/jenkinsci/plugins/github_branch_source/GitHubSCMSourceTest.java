@@ -75,6 +75,7 @@ import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.Issue;
@@ -270,7 +271,7 @@ public class GitHubSCMSourceTest {
                 "c0e024f89969b976da165eecaa71e09dc60c3da1",
                 "38814ca33833ff5583624c29f305be9133f27a40"
         )));
-        ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash(repo);
+        ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash();
 
         assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
         assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(true));
@@ -283,7 +284,76 @@ public class GitHubSCMSourceTest {
         // validation should fail for this PR.
         Exception abort = null;
         try {
-            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash(repo);
+            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash();
+        } catch (Exception e) {
+            abort = e;
+        }
+        assertThat(abort, instanceOf(AbortException.class));
+        assertThat(abort.getMessage(), containsString("Not mergeable"));
+
+        assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
+        assertThat(revByName.get("master"),
+                hasProperty("hash", is("8f1314fc3c8284d8c6d5886d473db98f2126071c")
+                ));
+        assertThat(byName.get("stephenc-patch-1"), instanceOf(BranchSCMHead.class));
+        assertThat(revByName.get("stephenc-patch-1"),
+                hasProperty("hash", is("095e69602bb95a278505e937e41d505ac3cdd263")
+                ));
+    }
+
+    @Test
+    public void fetchSmokes_badMergeCommit() throws Exception {
+        // make it so the merge commit is not found returns 404
+        // Causes PR 2 to fall back to null merge_commit_sha
+
+        githubApi.stubFor(
+            get(urlEqualTo("/repos/cloudbeers/yolo/commits/38814ca33833ff5583624c29f305be9133f27a40"))
+            .inScenario("PR 2 Merge 404")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(
+                aResponse()
+                .withStatus(404)
+                .withHeader("Content-Type", "application/json; charset=utf-8")
+                .withBodyFile("body-heads-master-notfound.json"))
+            .willSetStateTo(Scenario.STARTED));
+
+        SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
+        source.fetch(new SCMSourceCriteria() {
+            @Override
+            public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
+                return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
+            }
+        }, collector, null, null);
+        Map<String,SCMHead> byName = new HashMap<>();
+        Map<String,SCMRevision> revByName = new HashMap<>();
+        for (Map.Entry<SCMHead, SCMRevision> h: collector.result().entrySet())  {
+            byName.put(h.getKey().getName(), h.getKey());
+            revByName.put(h.getKey().getName(), h.getValue());
+        }
+
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "master", "stephenc-patch-1"));
+
+        assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-2")).isMerge(), is(true));
+        assertThat(revByName.get("PR-2"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-2")),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c0e024f89969b976da165eecaa71e09dc60c3da1",
+                null
+        )));
+        ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash();
+
+        assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(true));
+        assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
+                "8f1314fc3c8284d8c6d5886d473db98f2126071c",
+                "c0e024f89969b976da165eecaa71e09dc60c3da1",
+                PullRequestSCMRevision.NOT_MERGEABLE_HASH
+        )));
+
+        // validation should fail for this PR.
+        Exception abort = null;
+        try {
+            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash();
         } catch (Exception e) {
             abort = e;
         }
@@ -350,7 +420,7 @@ public class GitHubSCMSourceTest {
         // validation should fail for this PR.
         Exception abort = null;
         try {
-            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash(repo);
+            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash();
         } catch (Exception e) {
             abort = e;
         }
@@ -369,8 +439,21 @@ public class GitHubSCMSourceTest {
 
     @Test
     public void fetchSmokes_badTarget() throws Exception {
-        // make it so refs/heads/master returns 404 for first call
-        // Causes PR 2 to fail.
+        // make it so the merge commit is not found returns 404
+        // Causes PR 2 to fall back to null merge_commit_sha
+        // Then make it so refs/heads/master returns 404 for first call
+        // Causes PR 2 to fail because it cannot determine base commit.
+        githubApi.stubFor(
+            get(urlEqualTo("/repos/cloudbeers/yolo/commits/38814ca33833ff5583624c29f305be9133f27a40"))
+            .inScenario("PR 2 Merge 404")
+            .whenScenarioStateIs(Scenario.STARTED)
+            .willReturn(
+                aResponse()
+                .withStatus(404)
+                .withHeader("Content-Type", "application/json; charset=utf-8")
+                .withBodyFile("body-heads-master-notfound.json"))
+            .willSetStateTo(Scenario.STARTED));
+
         githubApi.stubFor(
             get(urlEqualTo("/repos/cloudbeers/yolo/git/refs/heads/master"))
             .inScenario("PR 2 Master 404")
@@ -423,7 +506,7 @@ public class GitHubSCMSourceTest {
         // validation should fail for this PR.
         Exception abort = null;
         try {
-            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash(repo);
+            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash();
         } catch (Exception e) {
             abort = e;
         }
@@ -475,16 +558,7 @@ public class GitHubSCMSourceTest {
                 "c0e024f89969b976da165eecaa71e09dc60c3da1",
                 null
         )));
-
-        // validation should fail for this PR.
-        Exception abort = null;
-        try {
-            ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash(repo);
-        } catch (Exception e) {
-            abort = e;
-        }
-        assertThat(abort, instanceOf(AbortException.class));
-        assertThat(abort.getMessage(), containsString("Unknown merge state"));
+        ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash();
 
         assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
         assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(true));
@@ -495,9 +569,9 @@ public class GitHubSCMSourceTest {
         )));
 
         // validation should fail for this PR.
-        abort = null;
+        Exception abort = null;
         try {
-            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash(repo);
+            ((PullRequestSCMRevision)revByName.get("PR-3")).validateMergeHash();
         } catch (Exception e) {
             abort = e;
         }
@@ -541,17 +615,7 @@ public class GitHubSCMSourceTest {
                 "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                 "c0e024f89969b976da165eecaa71e09dc60c3da1"
         )));
-
-        // validation should fail for this PR.
-        Exception abort = null;
-        try {
-            ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash(repo);
-        } catch (Exception e) {
-            abort = e;
-        }
-        assertThat(abort, instanceOf(AbortException.class));
-        assertThat(abort.getMessage(), containsString("Not a merge head"));
-
+        ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash();
 
         assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
         assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(false));
