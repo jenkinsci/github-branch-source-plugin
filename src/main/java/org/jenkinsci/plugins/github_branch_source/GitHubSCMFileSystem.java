@@ -33,6 +33,8 @@ import hudson.Extension;
 import hudson.model.Item;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
+
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
@@ -88,7 +90,6 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                 PullRequestSCMRevision prRev = (PullRequestSCMRevision) rev;
                 PullRequestSCMHead pr = (PullRequestSCMHead) prRev.getHead();
                 if (pr.isMerge()) {
-                    prRev.validateMergeHash(repo);
                     this.ref = prRev.getMergeHash();
                 } else {
                     this.ref = prRev.getPullHash();
@@ -279,7 +280,17 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                     refName = "tags/" + head.getName();
                 } else if (head instanceof PullRequestSCMHead) {
                     refName = null;
-                    if (rev == null) {
+                    if (rev != null && rev instanceof PullRequestSCMRevision) {
+                        PullRequestSCMRevision prRev = (PullRequestSCMRevision) rev;
+                        if (((PullRequestSCMHead)head).isMerge()) {
+                            if (prRev.getMergeHash() == null) {
+                                // we need to release here as we are not throwing an exception or transferring responsibility to FS
+                                Connector.release(github);
+                                return null;
+                            }
+                            prRev.validateMergeHash();
+                        }
+                    } else {
                         // we need to release here as we are not throwing an exception or transferring responsibility to FS
                         Connector.release(github);
                         return null;

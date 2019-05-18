@@ -1081,7 +1081,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             return;
         }
-        ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
         for (final ChangeRequestCheckoutStrategy strategy : strategies.get(fork)) {
             final String branchName;
             if (strategies.get(fork).size() == 1) {
@@ -1089,6 +1088,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             } else {
                 branchName = "PR-" + number + "-" + strategy.name().toLowerCase(Locale.ENGLISH);
             }
+
+            // PR details only needed for merge PRs
+            if (strategy == ChangeRequestCheckoutStrategy.MERGE) {
+                ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
+            }
+
             if (request.process(new PullRequestSCMHead(
                             pr, branchName, strategy == ChangeRequestCheckoutStrategy.MERGE
                     ),
@@ -1251,7 +1256,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 int number = Integer.parseInt(prMatcher.group(1));
                 listener.getLogger().format("Attempting to resolve %s as pull request %d%n", headName, number);
                 try {
-                    GHPullRequest pr = getDetailedGHPullRequest(number, listener, github, ghRepository);
+                    Connector.checkApiRateLimit(listener, github);
+                    GHPullRequest pr = ghRepository.getPullRequest(number);
                     if (pr != null) {
                         boolean fork = !ghRepository.getOwner().equals(pr.getHead().getUser());
                         Set<ChangeRequestCheckoutStrategy> strategies;
@@ -1304,12 +1310,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         PullRequestSCMHead head = new PullRequestSCMHead(
                                 pr, headName, strategy == ChangeRequestCheckoutStrategy.MERGE
                         );
+                        if (head.isMerge()) {
+                            ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
+                        }
                         PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, head, listener, github, ghRepository);
 
                         switch (strategy) {
                             case MERGE:
                                 try {
-                                    prRev.validateMergeHash(ghRepository);
+                                    prRev.validateMergeHash();
                                 } catch (AbortException e) {
                                     listener.getLogger().format("Resolved %s as pull request %d: %s.%n%n",
                                         headName,
@@ -1499,12 +1508,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 repositoryUrl = ghRepository.getHtmlUrl();
                 if (head instanceof PullRequestSCMHead) {
                     PullRequestSCMHead prhead = (PullRequestSCMHead) head;
-
-                    GHPullRequest pr = getDetailedGHPullRequest(prhead.getNumber(), listener, github, ghRepository);
-                    PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, prhead, listener, github, ghRepository);
+                    Connector.checkApiRateLimit(listener, github);
+                    GHPullRequest pr = ghRepository.getPullRequest(prhead.getNumber());
                     if (prhead.isMerge()) {
-                        prRev.validateMergeHash(ghRepository);
+                        ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
                     }
+                    PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, prhead, listener, github, ghRepository);
+                    prRev.validateMergeHash();
                     return prRev;
                 } else if (head instanceof GitHubTagSCMHead) {
                     GitHubTagSCMHead tagHead = (GitHubTagSCMHead) head;
@@ -1532,26 +1542,57 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         String baseHash = pr.getBase().getSha();
         String prHeadHash = pr.getHead().getSha();
         String mergeHash = null;
-        switch (prhead.getCheckoutStrategy()) {
-            case MERGE:
-                Connector.checkApiRateLimit(listener, github);
-                baseHash = ghRepository.getRef("heads/" +  pr.getBase().getRef()).getObject().getSha();
-                if (pr.getMergeable() != null) {
-                    mergeHash = Boolean.TRUE.equals(pr.getMergeable()) ? pr.getMergeCommitSha() : PullRequestSCMRevision.NOT_MERGEABLE_HASH;
+
+        if (prhead.isMerge()) {
+            if (Boolean.FALSE.equals(pr.getMergeable())) {
+                mergeHash = PullRequestSCMRevision.NOT_MERGEABLE_HASH;
+            } else if (Boolean.TRUE.equals(pr.getMergeable())) {
+                String proposedMergeHash = pr.getMergeCommitSha();
+                GHCommit commit = null;
+                try {
+                    commit = ghRepository.getCommit(proposedMergeHash);
+                } catch (FileNotFoundException e) {
+                    listener.getLogger().format("Pull request %s : github merge_commit_sha not found (%s). Close and reopen the PR to reset its merge hash.%n",
+                        pr.getNumber(),
+                        proposedMergeHash);
+                } catch (IOException e) {
+                    throw new AbortException("Error while retrieving pull request " + pr.getNumber() + " merge hash : " + e.toString());
                 }
-                break;
-            default:
-                break;
+
+                if (commit != null) {
+                    List<String> parents = commit.getParentSHA1s();
+                    // Merge commits always merge against the most recent base commit they can detect.
+                    if (parents.size() != 2) {
+                        listener.getLogger().format("WARNING: Invalid github merge_commit_sha for pull request %s : merge commit %s with parents - %s.%n",
+                            pr.getNumber(),
+                            proposedMergeHash,
+                            StringUtils.join(parents, "+"));
+                    } else if (!parents.contains(prHeadHash)) {
+                        // This is maintains the existing behavior from pre-2.5.x when the merge_commit_sha is out of sync from the requested prHead
+                        listener.getLogger().format("WARNING: Invalid  github merge_commit_sha for pull request %s : Head commit %s does match merge commit %s with parents - %s.%n",
+                            pr.getNumber(),
+                            prHeadHash,
+                            proposedMergeHash,
+                            StringUtils.join(parents, "+"));
+                    } else {
+                        // We found a merge_commit_sha with 2 parents and one matches the prHeadHash
+                        // Use the other parent hash as the base. This keeps the merge hash in sync with head and base.
+                        // It is possible that head or base hash will not exist in their branch by the time we build
+                        // This is be true (and cause a failure) regardless of how we determine the commits.
+                        mergeHash = proposedMergeHash;
+                        baseHash = prHeadHash.equals(parents.get(0)) ? parents.get(1) : parents.get(0);
+                    }
+                }
+            }
+
+            // Merge PR jobs always merge against the most recent base branch commit they can detect.
+            // For an invalid merge_commit_sha, we need to query for most recent base commit separately
+            if (mergeHash == null) {
+                baseHash = ghRepository.getRef("heads/" +  pr.getBase().getRef()).getObject().getSha();
+            }
         }
+
         return new PullRequestSCMRevision(prhead, baseHash, prHeadHash, mergeHash);
-    }
-
-
-    private static GHPullRequest getDetailedGHPullRequest(int number, TaskListener listener, GitHub github, GHRepository ghRepository) throws IOException, InterruptedException {
-        Connector.checkApiRateLimit(listener, github);
-        GHPullRequest pr = ghRepository.getPullRequest(number);
-        ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
-        return pr;
     }
 
     private static void ensureDetailedGHPullRequest(GHPullRequest pr, TaskListener listener, GitHub github, GHRepository ghRepository) throws IOException, InterruptedException {
@@ -1561,7 +1602,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         Connector.checkApiRateLimit(listener, github);
         while (pr.getMergeable() == null && retryCountdown > 1) {
             listener.getLogger().format(
-                "Could not determine the mergability of pull request %d.  Retrying %d more times...%n",
+                "Waiting for GitHub to create a merge commit for pull request %d.  Retrying %d more times...%n",
                 pr.getNumber(),
                 retryCountdown);
             retryCountdown -= 1;
