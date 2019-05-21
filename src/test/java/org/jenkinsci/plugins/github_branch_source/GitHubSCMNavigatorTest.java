@@ -60,6 +60,7 @@ import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.MockFolder;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -125,6 +126,10 @@ public class GitHubSCMNavigatorTest {
 
                     })
     );
+
+    @Mock
+    private SCMSourceOwner scmSourceOwner;
+
     private GitHubSCMNavigator navigator;
 
     @Before
@@ -147,7 +152,7 @@ public class GitHubSCMNavigatorTest {
     @Test
     public void fetchSmokes() throws Exception {
         final Set<String> projectNames = new HashSet<>();
-        SCMSourceObserver observer = getObserver(projectNames);
+        final SCMSourceObserver observer = getObserver(projectNames);
 
         navigator.visitSources(SCMSourceObserver.filter(observer, "yolo"));
 
@@ -263,7 +268,7 @@ public class GitHubSCMNavigatorTest {
             @NonNull
             @Override
             public SCMSourceOwner getContext() {
-                return Mockito.mock(SCMSourceOwner.class);
+                return scmSourceOwner;
             }
 
             @NonNull

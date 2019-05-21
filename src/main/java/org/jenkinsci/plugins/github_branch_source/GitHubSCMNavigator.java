@@ -970,33 +970,24 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
                     listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                             "Looking up repositories of organization %s", repoOwner)));
+                    final Iterable<GHRepository> repositories;
                     if (StringUtils.isNotBlank(gitHubSCMNavigatorContext.getTeamSlug())) {
                         listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                 "Looking up repositories for team %s", gitHubSCMNavigatorContext.getTeamSlug())));
-                        for (GHRepository repo : org.getTeamBySlug(gitHubSCMNavigatorContext.getTeamSlug()).listRepositories().withPageSize(100)) {
-                            Connector.checkApiRateLimit(listener, github);
-                            if (request.process(repo.getName(), sourceFactory, null, witness)) {
-                                listener.getLogger()
-                                        .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                                "%d repositories were processed (query completed)", witness.getCount()
-                                                                                                                   )));
-                            }
-                        }
-                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                "%d repositories were processed", witness.getCount())));
+                        repositories = org.getTeamBySlug(gitHubSCMNavigatorContext.getTeamSlug()).listRepositories().withPageSize(100);
                     } else {
-                        for (GHRepository repo : org.listRepositories(100)) {
-                            Connector.checkApiRateLimit(listener, github);
-                            if (request.process(repo.getName(), sourceFactory, null, witness)) {
-                                listener.getLogger()
-                                        .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                                "%d repositories were processed (query completed)", witness.getCount()
-                                                                                                                   )));
-                            }
-                        }
-                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                "%d repositories were processed", witness.getCount())));
+                        repositories = org.listRepositories(100);
                     }
+                    for (GHRepository repo : repositories) {
+                        Connector.checkApiRateLimit(listener, github);
+                        if (request.process(repo.getName(), sourceFactory, null, witness)) {
+                            listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                    "%d repositories were processed (query completed)", witness.getCount()
+                                                                                                                           )));
+                        }
+                    }
+                    listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                            "%d repositories were processed", witness.getCount())));
                     return;
                 }
 
