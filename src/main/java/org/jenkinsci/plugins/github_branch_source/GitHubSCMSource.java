@@ -1602,7 +1602,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         Connector.checkApiRateLimit(listener, github);
         while (pr.getMergeable() == null && retryCountdown > 1) {
             listener.getLogger().format(
-                "Could not determine the mergability of pull request %d.  Retrying %d more times...%n",
+                "Waiting for GitHub to create a merge commit for pull request %d.  Retrying %d more times...%n",
                 pr.getNumber(),
                 retryCountdown);
             retryCountdown -= 1;
