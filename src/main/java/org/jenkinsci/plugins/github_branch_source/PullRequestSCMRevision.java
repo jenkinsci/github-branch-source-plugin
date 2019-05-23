@@ -118,12 +118,16 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
             return false;
         }
         PullRequestSCMRevision other = (PullRequestSCMRevision) o;
-        return getHead().equals(other.getHead()) && pullHash.equals(other.pullHash) && StringUtils.equals(getMergeHash(), other.getMergeHash());
+
+        // JENKINS-57583 - Equivalent is used to make decisiions about when to build.
+        // mergeHash is an implementation detail of github, generated from base and target
+        // If only mergeHash changes we do not consider it a different revision
+        return getHead().equals(other.getHead()) && pullHash.equals(other.pullHash);
     }
 
     @Override
     public int _hashCode() {
-        return pullHash.hashCode() + ((mergeHash == null) ? 0 : mergeHash.hashCode());
+        return pullHash.hashCode();
     }
 
     @Override
