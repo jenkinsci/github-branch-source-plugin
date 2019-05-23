@@ -106,27 +106,9 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
         return mergeHash;
     }
 
-    void validateMergeHash(@NonNull GHRepository repo) throws IOException {
-        if (!isMerge()) {
-            throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Not a merge head");
-        } else if (this.mergeHash == null) {
-            throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Unknown merge state " + this.toString());
-        } else if (this.mergeHash == NOT_MERGEABLE_HASH) {
-            throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Not mergeable " + this.toString());
-        } else {
-            GHCommit commit = null;
-            try {
-                commit = repo.getCommit(this.mergeHash);
-            } catch (FileNotFoundException e) {
-                throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : commit not found (" + this.mergeHash + "). Close and reopen the PR to reset its merge hash.");
-            } catch (IOException e) {
-                throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : " + e.toString());
-            }
-            assert(commit != null);
-            List<String> parents = commit.getParentSHA1s();
-            if (parents.size() != 2 || !parents.contains(this.getBaseHash()) || !parents.contains(this.getPullHash())) {
-                throw new AbortException("Invalid merge hash for pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Head and base commits do match merge commit " + this.toString() );
-            }
+    void validateMergeHash() throws AbortException {
+        if (this.mergeHash == NOT_MERGEABLE_HASH) {
+            throw new AbortException("Pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Not mergeable at " + this.toString());
         }
     }
 

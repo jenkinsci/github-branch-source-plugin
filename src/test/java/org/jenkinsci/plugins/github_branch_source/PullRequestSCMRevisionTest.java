@@ -148,6 +148,12 @@ public class PullRequestSCMRevisionTest {
 
         assertThat(prRevision,
             not(is(new PullRequestSCMRevision(prMerge, "master-revision", "pr-branch-revision", null))));
+
+        try {
+            prRevision.validateMergeHash();
+        } catch (AbortException e) {
+            fail("Validation should succeed, but: " + e.getMessage());
+        }
     }
 
     @Test
@@ -167,17 +173,11 @@ public class PullRequestSCMRevisionTest {
         assertThat(prRevision,
             not(is(new PullRequestSCMRevision(prMerge, "master-revision", "pr-branch-revision", "pr-merge-revision"))));
 
-
-        // validation should fail for this PR.
-        Exception abort = null;
         try {
-            prRevision.validateMergeHash(repo);
-        } catch (Exception e) {
-            abort = e;
+            prRevision.validateMergeHash();
+        } catch (AbortException e) {
+            fail("Validation should succeed, but: " + e.getMessage());
         }
-        assertThat(abort, instanceOf(AbortException.class));
-        assertThat(abort.getMessage(), containsString("Not a merge head"));
-
     }
 
     @Test
@@ -197,15 +197,11 @@ public class PullRequestSCMRevisionTest {
         assertThat(prRevision,
             not(is(new PullRequestSCMRevision(prHead, "master-revision", "pr-branch-revision", null))));
 
-        // validation should fail for this PR.
-        Exception abort = null;
         try {
-            prRevision.validateMergeHash(repo);
-        } catch (Exception e) {
-            abort = e;
+            prRevision.validateMergeHash();
+        } catch (AbortException e) {
+            fail("Validation should succeed, but: " + e.getMessage());
         }
-        assertThat(abort, instanceOf(AbortException.class));
-        assertThat(abort.getMessage(), containsString("Unknown merge state"));
     }
 
     @Test
@@ -228,7 +224,7 @@ public class PullRequestSCMRevisionTest {
         // validation should fail for this PR.
         Exception abort = null;
         try {
-            prRevision.validateMergeHash(repo);
+            prRevision.validateMergeHash();
         } catch (Exception e) {
             abort = e;
         }
@@ -252,43 +248,11 @@ public class PullRequestSCMRevisionTest {
 
         assertThat(prRevision,
             not(is(new PullRequestSCMRevision(prHead, "master-revision", "pr-branch-revision", "pr-merge-revision"))));
-    }
 
-    @Test
-    public void createMergewithMergeRevision_validation_valid() throws Exception {
-        PullRequestSCMRevision prRevision = new PullRequestSCMRevision(
-            prMerge,
-            "8f1314fc3c8284d8c6d5886d473db98f2126071c",
-            "c0e024f89969b976da165eecaa71e09dc60c3da1",
-            "38814ca33833ff5583624c29f305be9133f27a40");
-
-        assertThat(prRevision.toString(), is("c0e024f89969b976da165eecaa71e09dc60c3da1+8f1314fc3c8284d8c6d5886d473db98f2126071c (38814ca33833ff5583624c29f305be9133f27a40)"));
         try {
-            prRevision.validateMergeHash(repo);
+            prRevision.validateMergeHash();
         } catch (AbortException e) {
             fail("Validation should succeed, but: " + e.getMessage());
         }
     }
-
-    @Test
-    public void createMergewithMergeRevision_validation_invalid() throws Exception {
-        PullRequestSCMRevision prRevision = new PullRequestSCMRevision(
-            prMerge,
-            "INVALIDc3c8284d8c6d5886d473db98f2126071c",
-            "c0e024f89969b976da165eecaa71e09dc60c3da1",
-            "38814ca33833ff5583624c29f305be9133f27a40");
-
-        assertThat(prRevision.toString(), is("c0e024f89969b976da165eecaa71e09dc60c3da1+INVALIDc3c8284d8c6d5886d473db98f2126071c (38814ca33833ff5583624c29f305be9133f27a40)"));
-
-        // validation should fail for this PR.
-        Exception abort = null;
-        try {
-            prRevision.validateMergeHash(repo);
-        } catch (Exception e) {
-            abort = e;
-        }
-        assertThat(abort, instanceOf(AbortException.class));
-        assertThat(abort.getMessage(), containsString("Head and base commits do match merge commit"));
-    }
-
 }
