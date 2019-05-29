@@ -1,5 +1,9 @@
 package org.jenkinsci.plugins.github_branch_source;
 
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMTrait;
@@ -12,10 +16,6 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
 
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
