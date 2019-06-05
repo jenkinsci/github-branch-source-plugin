@@ -210,6 +210,7 @@ public class GitHubSCMNavigatorTest {
             }
         };
         navigator.visitSources(SCMSourceObserver.filter(observer, "basic", "advanced"));
+        // basic is not archived, advanced is archived - advanced should be filtered out
         assertThat(names, Matchers.contains("basic"));
         assertThat(names, Matchers.not(Matchers.contains("advanced")));
     }
