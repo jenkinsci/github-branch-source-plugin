@@ -196,7 +196,7 @@ public class GitHubSCMSourceTest {
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
-        source = new GitHubSCMSource("cloudbeers", "yolo");
+        source = new GitHubSCMSource("cloudbeers", "yolo", null);
         source.setApiUri("http://localhost:" + githubApi.port());
         source.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, true), new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustContributors())));
         github = Connector.connect("http://localhost:" + githubApi.port(), null);
@@ -721,5 +721,4 @@ public class GitHubSCMSourceTest {
             r.jenkins.remove(dummy);
         }
     }
-
 }

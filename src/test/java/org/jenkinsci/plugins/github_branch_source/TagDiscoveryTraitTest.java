@@ -46,7 +46,7 @@ public class TagDiscoveryTraitTest {
 
     @Test
     public void authority() throws Exception {
-        try (GitHubSCMSourceRequest probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect()).newRequest(new GitHubSCMSource("does-not-exist","http://does-not-exist.test"), null)) {
+        try (GitHubSCMSourceRequest probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect()).newRequest(new GitHubSCMSource("does-not-exist","http://does-not-exist.test", null), null)) {
             TagDiscoveryTrait.TagSCMHeadAuthority instance = new TagDiscoveryTrait.TagSCMHeadAuthority();
             assertThat(instance.isTrusted(probe, new SCMHead("v1.0.0")), is(false));
             assertThat(instance.isTrusted(probe, new PullRequestSCMHead("PR-1", "does-not-exists",

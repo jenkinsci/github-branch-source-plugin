@@ -32,7 +32,7 @@ public class SSHCheckoutTraitTest {
     @Test
     public void given__sshCheckoutWithCredentials__when__decorating__then__credentialsApplied() throws Exception {
         SSHCheckoutTrait instance = new SSHCheckoutTrait("keyId");
-        GitHubSCMSource source = new GitHubSCMSource("example", "does-not-exist");
+        GitHubSCMSource source = new GitHubSCMSource("example", "does-not-exist", null);
         source.setApiUri("https://github.test");
         source.setCredentialsId("scanId");
         GitHubSCMBuilder probe = new GitHubSCMBuilder( source, new BranchSCMHead("master"), null);
@@ -44,7 +44,7 @@ public class SSHCheckoutTraitTest {
     @Test
     public void given__sshCheckoutWithAgentKey__when__decorating__then__useAgentKeyApplied() throws Exception {
         SSHCheckoutTrait instance = new SSHCheckoutTrait(null);
-        GitHubSCMSource source = new GitHubSCMSource("example", "does-not-exist");
+        GitHubSCMSource source = new GitHubSCMSource("example", "does-not-exist", null);
         source.setApiUri("https://github.test");
         source.setCredentialsId("scanId");
         GitHubSCMBuilder probe = new GitHubSCMBuilder(source, new BranchSCMHead("master"), null);

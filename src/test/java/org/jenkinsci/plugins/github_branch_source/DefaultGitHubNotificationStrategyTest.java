@@ -47,7 +47,7 @@ public class DefaultGitHubNotificationStrategyTest {
     @Test
     public void given_basicJob_then_singleNotification() throws Exception {
         FreeStyleProject job = j.createFreeStyleProject();
-        GitHubSCMSource src = new GitHubSCMSource("exmaple", "test");
+        GitHubSCMSource src = new GitHubSCMSource("exmaple", "test", null);
         FreeStyleBuild run = j.buildAndAssertSuccess(job);
         DefaultGitHubNotificationStrategy instance = new DefaultGitHubNotificationStrategy();
         List<GitHubNotificationRequest> notifications =
@@ -60,7 +60,7 @@ public class DefaultGitHubNotificationStrategyTest {
     @Test
     public void given_differentSCMheads_then_distinctNotifications() throws Exception {
         FreeStyleProject job = j.createFreeStyleProject();
-        GitHubSCMSource src = new GitHubSCMSource("example", "test");
+        GitHubSCMSource src = new GitHubSCMSource("example", "test", null);
         FreeStyleBuild run = j.buildAndAssertSuccess(job);
         DefaultGitHubNotificationStrategy instance = new DefaultGitHubNotificationStrategy();
         BranchSCMHead testBranch = new BranchSCMHead("master");
@@ -85,7 +85,7 @@ public class DefaultGitHubNotificationStrategyTest {
     @Test
     public void given_jobOrRun_then_differentURLs() throws Exception {
         FreeStyleProject job = j.createFreeStyleProject();
-        GitHubSCMSource src = new GitHubSCMSource("example", "test");
+        GitHubSCMSource src = new GitHubSCMSource("example", "test", null);
         FreeStyleBuild run = j.buildAndAssertSuccess(job);
         DefaultGitHubNotificationStrategy instance = new DefaultGitHubNotificationStrategy();
         String urlA = instance.notifications(GitHubNotificationContext.build(null, run, src, new BranchSCMHead("master")),

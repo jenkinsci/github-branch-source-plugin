@@ -61,7 +61,7 @@ public class GitHubSCMBuilderTest {
     @Before
     public void setUp() throws IOException {
         owner = j.createProject(WorkflowMultiBranchProject.class);
-        source = new GitHubSCMSource( "tester", "test-repo");
+        source = new GitHubSCMSource( "tester", "test-repo", null);
         owner.setSourcesList(Collections.singletonList(new BranchSource(source)));
         source.setOwner(owner);
         Credentials userPasswordCredential = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "user-pass", null, "git-user", "git-secret");
