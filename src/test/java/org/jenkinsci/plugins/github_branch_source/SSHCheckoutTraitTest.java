@@ -30,9 +30,19 @@ public class SSHCheckoutTraitTest {
     }
 
     @Test
+    public void given__sshCheckoutWithCredentials__when__decorating__then__credentialsApplied_with_rawUrl() throws Exception {
+        SSHCheckoutTrait instance = new SSHCheckoutTrait("keyId");
+        GitHubSCMSource source = new GitHubSCMSource("", "", "https://github.com/example/does-not-exist");
+        source.setCredentialsId("scanId");
+        GitHubSCMBuilder probe = new GitHubSCMBuilder( source, new BranchSCMHead("master"), null);
+        assumeThat(probe.credentialsId(), is("scanId"));
+        instance.decorateBuilder(probe);
+        assertThat(probe.credentialsId(), is("keyId"));
+    }
+    @Test
     public void given__sshCheckoutWithCredentials__when__decorating__then__credentialsApplied() throws Exception {
         SSHCheckoutTrait instance = new SSHCheckoutTrait("keyId");
-        GitHubSCMSource source = new GitHubSCMSource("example", "does-not-exist");
+        GitHubSCMSource source = new GitHubSCMSource("example", "does-not-exist", null);
         source.setApiUri("https://github.test");
         source.setCredentialsId("scanId");
         GitHubSCMBuilder probe = new GitHubSCMBuilder( source, new BranchSCMHead("master"), null);
@@ -42,9 +52,19 @@ public class SSHCheckoutTraitTest {
     }
 
     @Test
+    public void given__sshCheckoutWithAgentKey__when__decorating__then__useAgentKeyApplied_with_rawUrl() throws Exception {
+        SSHCheckoutTrait instance = new SSHCheckoutTrait(null);
+        GitHubSCMSource source = new GitHubSCMSource("", "", "https://github.com/example/does-not-exist");
+        source.setCredentialsId("scanId");
+        GitHubSCMBuilder probe = new GitHubSCMBuilder(source, new BranchSCMHead("master"), null);
+        assumeThat(probe.credentialsId(), is("scanId"));
+        instance.decorateBuilder(probe);
+        assertThat(probe.credentialsId(), is(nullValue()));
+    }
+    @Test
     public void given__sshCheckoutWithAgentKey__when__decorating__then__useAgentKeyApplied() throws Exception {
         SSHCheckoutTrait instance = new SSHCheckoutTrait(null);
-        GitHubSCMSource source = new GitHubSCMSource("example", "does-not-exist");
+        GitHubSCMSource source = new GitHubSCMSource("example", "does-not-exist", null);
         source.setApiUri("https://github.test");
         source.setCredentialsId("scanId");
         GitHubSCMBuilder probe = new GitHubSCMBuilder(source, new BranchSCMHead("master"), null);

@@ -14,10 +14,7 @@ import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.BuildChooserSetting;
 import hudson.util.LogTaskListener;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.branch.BranchSource;
@@ -28,6 +25,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
@@ -35,6 +33,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.Mockito;
 
@@ -51,17 +51,37 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
-
+@RunWith(Parameterized.class)
 public class GitHubSCMBuilderTest {
     @ClassRule
     public static JenkinsRule j = new JenkinsRule();
     private GitHubSCMSource source;
     private WorkflowMultiBranchProject owner;
+    private boolean withRawUrl;
+
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> generateParams() {
+        return Arrays.asList(new Object[]{true}, new Object[]{false});
+    }
+
+    /*
+    Test with rawUrl are not using apiUri, so are skipped with
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
+     */
+    public GitHubSCMBuilderTest(boolean withRawUrl){
+        this.withRawUrl = withRawUrl;
+    }
+
 
     @Before
     public void setUp() throws IOException {
         owner = j.createProject(WorkflowMultiBranchProject.class);
-        source = new GitHubSCMSource( "tester", "test-repo");
+        if (withRawUrl)
+            source = new GitHubSCMSource( "", "", "https://github.com/tester/test-repo");
+        else
+            source = new GitHubSCMSource( "tester", "test-repo", null);
+
         owner.setSourcesList(Collections.singletonList(new BranchSource(source)));
         source.setOwner(owner);
         Credentials userPasswordCredential = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "user-pass", null, "git-user", "git-secret");
@@ -711,6 +731,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_branch_rev_anon__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         BranchSCMHead head = new BranchSCMHead("test-branch");
         AbstractGitSCMSource.SCMRevisionImpl revision =
@@ -766,6 +787,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_branch_rev_userpass__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         BranchSCMHead head = new BranchSCMHead("test-branch");
         AbstractGitSCMSource.SCMRevisionImpl revision =
@@ -820,6 +842,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_branch_rev_userkey__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         BranchSCMHead head = new BranchSCMHead("test-branch");
         AbstractGitSCMSource.SCMRevisionImpl revision =
@@ -874,6 +897,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_branch_norev_anon__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         BranchSCMHead head = new BranchSCMHead("test-branch");
         source.setCredentialsId(null);
@@ -914,6 +938,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_branch_norev_userpass__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         BranchSCMHead head = new BranchSCMHead("test-branch");
         source.setCredentialsId("user-pass");
@@ -954,6 +979,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_branch_norev_userkey__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         BranchSCMHead head = new BranchSCMHead("test-branch");
         source.setCredentialsId("user-key");
@@ -1291,6 +1317,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullHead_rev_anon__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
@@ -1351,6 +1378,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullHead_rev_userpass__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
@@ -1410,6 +1438,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullHead_rev_userkey__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
@@ -1469,6 +1498,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullHead_norev_anon__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
@@ -1511,6 +1541,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullHead_norev_userpass__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
@@ -1553,6 +1584,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullHead_norev_userkey__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
@@ -1958,6 +1990,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullMerge_rev_anon__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
@@ -2029,6 +2062,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullMerge_rev_userpass__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
@@ -2099,6 +2133,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullMerge_rev_userkey__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
@@ -2169,6 +2204,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullMerge_norev_anon__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
@@ -2223,6 +2259,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullMerge_norev_userpass__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
@@ -2277,6 +2314,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullMerge_norev_userkey__when__build__then__scmBuilt() throws Exception {
+        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
         source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),

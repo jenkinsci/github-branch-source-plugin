@@ -143,7 +143,7 @@ public class GitHubBuildStatusNotification {
         if (src instanceof GitHubSCMSource) {
             GitHubSCMSource source = (GitHubSCMSource) src;
             if (source.getScanCredentialsId() != null) {
-                return github.getRepository(source.getRepoOwner() + "/" + source.getRepository());
+                return github.getRepository(GitHubSCMSourceHelper.build(source).repo);
             }
         }
         return null;
