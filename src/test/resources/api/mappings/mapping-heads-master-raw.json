@@ -1,0 +1,35 @@
+{
+  "request": {
+    "url": "/api/v3/repos/cloudbeers/yolo/git/refs/heads/master",
+    "method": "GET"
+  },
+  "response": {
+    "status": 200,
+    "bodyFileName": "body-heads-master.json",
+    "headers": {
+      "Server": "GitHub.com",
+      "Date": "Tue, 06 Dec 2016 17:32:20 GMT",
+      "Content-Type": "application/json; charset=utf-8",
+      "Transfer-Encoding": "chunked",
+      "Status": "200 OK",
+      "X-RateLimit-Limit": "60",
+      "X-RateLimit-Remaining": "52",
+      "X-RateLimit-Reset": "1481048932",
+      "Cache-Control": "public, max-age=60, s-maxage=60",
+      "Vary": ["Accept", "Accept-Encoding"],
+      "ETag": "W/\"c2c8faf1f6e6d92b68748342898f30e6\"",
+      "Last-Modified": "Mon, 21 Nov 2016 22:53:53 GMT",
+      "X-Poll-Interval": "300",
+      "X-GitHub-Media-Type": "github.v3; format=json",
+      "Access-Control-Expose-Headers": "ETag, Link, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval",
+      "Access-Control-Allow-Origin": "*",
+      "Content-Security-Policy": "default-src 'none'",
+      "Strict-Transport-Security": "max-age=31536000; includeSubdomains; preload",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "deny",
+      "X-XSS-Protection": "1; mode=block",
+      "X-Served-By": "a7f8a126c9ed3f1c4715a34c0ddc7290",
+      "X-GitHub-Request-Id": "BC8D23FA:31E4:269B4EB3:5846F623"
+    }
+  }
+}

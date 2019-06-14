@@ -60,6 +60,7 @@ import java.util.Map;
 
 import jenkins.branch.BranchSource;
 import jenkins.model.Jenkins;
+import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitSCMSource;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -71,6 +72,7 @@ import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+import org.apache.commons.lang.StringUtils;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.Before;
@@ -78,6 +80,8 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
@@ -100,7 +104,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-
+@RunWith(Parameterized.class)
 public class GitHubSCMSourceTest {
     /**
      * All tests in this class only use Jenkins for the extensions
@@ -149,6 +153,22 @@ public class GitHubSCMSourceTest {
     private GitHubSCMSource source;
     private GitHub github;
     private GHRepository repo;
+    private String prefix = "";
+
+    public GitHubSCMSourceTest(GitHubSCMSource source) {
+        this.source = source;
+        if (StringUtils.isNotBlank( source.rawUrl)){
+            prefix = "/api/v3";
+        }
+    }
+
+    @Parameterized.Parameters(name = "{index}: revision={0}")
+    public static GitHubSCMSource[] revisions() {
+        return new GitHubSCMSource[]{
+                new GitHubSCMSource("cloudbeers", "yolo", null),
+                new GitHubSCMSource("", "", "https://github.com/cloudbeers/yolo")
+            };
+    }
 
 
     @Before
@@ -196,8 +216,11 @@ public class GitHubSCMSourceTest {
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
-        source = new GitHubSCMSource("cloudbeers", "yolo");
-        source.setApiUri("http://localhost:" + githubApi.port());
+        if(StringUtils.isBlank(source.getRawUrl())) {
+            source.setApiUri("http://localhost:" + githubApi.port());
+        }else{
+            source = new GitHubSCMSource("", "", "http://localhost:" + githubApi.port() + "/cloudbeers/yolo");
+        }
         source.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, true), new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustContributors())));
         github = Connector.connect("http://localhost:" + githubApi.port(), null);
         repo = github.getRepository("cloudbeers/yolo");
@@ -307,7 +330,7 @@ public class GitHubSCMSourceTest {
         // Causes PR 2 to fall back to null merge_commit_sha
 
         githubApi.stubFor(
-            get(urlEqualTo("/repos/cloudbeers/yolo/commits/38814ca33833ff5583624c29f305be9133f27a40"))
+            get(urlEqualTo(prefix+"/repos/cloudbeers/yolo/commits/38814ca33833ff5583624c29f305be9133f27a40"))
             .inScenario("PR 2 Merge 404")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -374,7 +397,7 @@ public class GitHubSCMSourceTest {
     public void fetchSmokes_badUser() throws Exception {
         // make it so PR-2 returns a file not found for user
         githubApi.stubFor(
-            get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
+            get(urlEqualTo(prefix+"/repos/cloudbeers/yolo/pulls/2"))
             .inScenario("Pull Request Merge Hash")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -382,7 +405,7 @@ public class GitHubSCMSourceTest {
                 .withHeader("Content-Type", "application/json; charset=utf-8")
                 .withBodyFile("body-yolo-pulls-2-bad-user.json")));
         githubApi.stubFor(
-            get(urlEqualTo("/repos/cloudbeers/yolo/pulls?state=open"))
+            get(urlEqualTo(prefix+"/repos/cloudbeers/yolo/pulls?state=open"))
             .inScenario("Pull Request Merge Hash")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -444,7 +467,7 @@ public class GitHubSCMSourceTest {
         // Then make it so refs/heads/master returns 404 for first call
         // Causes PR 2 to fail because it cannot determine base commit.
         githubApi.stubFor(
-            get(urlEqualTo("/repos/cloudbeers/yolo/commits/38814ca33833ff5583624c29f305be9133f27a40"))
+            get(urlEqualTo(prefix+"/repos/cloudbeers/yolo/commits/38814ca33833ff5583624c29f305be9133f27a40"))
             .inScenario("PR 2 Merge 404")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -455,7 +478,7 @@ public class GitHubSCMSourceTest {
             .willSetStateTo(Scenario.STARTED));
 
         githubApi.stubFor(
-            get(urlEqualTo("/repos/cloudbeers/yolo/git/refs/heads/master"))
+            get(urlEqualTo(prefix+"/repos/cloudbeers/yolo/git/refs/heads/master"))
             .inScenario("PR 2 Master 404")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -466,7 +489,7 @@ public class GitHubSCMSourceTest {
             .willSetStateTo("Master 200"));
 
         githubApi.stubFor(
-            get(urlEqualTo("/repos/cloudbeers/yolo/git/refs/heads/master"))
+            get(urlEqualTo(prefix+"/repos/cloudbeers/yolo/git/refs/heads/master"))
             .inScenario("PR 2 Master 404")
             .whenScenarioStateIs("Master 200")
             .willReturn(
@@ -721,5 +744,4 @@ public class GitHubSCMSourceTest {
             r.jenkins.remove(dummy);
         }
     }
-
 }
