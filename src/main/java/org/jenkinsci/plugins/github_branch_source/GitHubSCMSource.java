@@ -2495,11 +2495,23 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         protected Iterable<GHRef> create() {
             try {
                 request.checkApiRateLimit();
-                Set<String> tagNames = request.getRequestedTagNames();
+                final Set<String> tagNames = request.getRequestedTagNames();
                 if (tagNames != null && tagNames.size() == 1) {
                     String tagName = tagNames.iterator().next();
                     request.listener().getLogger().format("%n  Getting remote tag %s...%n", tagName);
-                    return Collections.singletonList(repo.getRef("tags/" + tagName));
+                    try {
+                        // Do not blow up if the tag is not present
+                        GHRef tag = repo.getRef("tags/" + tagName);
+                        return Collections.singletonList(tag);
+                    } catch (FileNotFoundException e) {
+                        // branch does not currently exist
+                        return Collections.emptyList();
+                    }catch (Error e) {
+                        if (e.getCause() instanceof GHFileNotFoundException) {
+                            return Collections.emptyList();
+                        }
+                        throw e;
+                    }
                 }
                 request.listener().getLogger().format("%n  Getting remote tags...%n");
                 // GitHub will give a 404 if the repository does not have any tags
