@@ -108,6 +108,7 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
     /**
      * Our descriptor.
      */
+    @Symbol("gitHubSshCheckout")
     @Extension
     public static class DescriptorImpl extends SCMSourceTraitDescriptor {
 
