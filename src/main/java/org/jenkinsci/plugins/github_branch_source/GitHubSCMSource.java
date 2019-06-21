@@ -859,10 +859,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     protected final void retrieve(@CheckForNull SCMSourceCriteria criteria,
                                   @NonNull SCMHeadObserver observer,
                                   @CheckForNull SCMHeadEvent<?> event,
+                                  @CheckForNull Item context,
                                   @NonNull final TaskListener listener) throws IOException, InterruptedException {
-        StandardCredentials credentials = Connector.lookupScanCredentials((Item)getOwner(), apiUri, credentialsId);
+        context = context != null ? context : getOwner();
+        StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, credentialsId);
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
+
         try {
             checkApiUrlValidity(github, credentials);
             Connector.checkApiRateLimit(listener, github);
@@ -1072,7 +1075,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @NonNull
     @Override
-    protected Set<String> retrieveRevisions(@NonNull TaskListener listener, Item retrieveContext) throws IOException, InterruptedException {
+    protected Set<String> retrieveRevisions(@CheckForNull Item retrieveContext, @NonNull TaskListener listener) throws IOException, InterruptedException {
         StandardCredentials credentials = Connector.lookupScanCredentials(retrieveContext, apiUri, credentialsId);
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
@@ -1164,7 +1167,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     @Override
-    protected SCMRevision retrieve(@NonNull String headName, @NonNull TaskListener listener, Item retrieveContext)
+    protected SCMRevision retrieve(@NonNull String headName, @CheckForNull Item retrieveContext, @NonNull TaskListener listener)
             throws IOException, InterruptedException {
         StandardCredentials credentials = Connector.lookupScanCredentials(retrieveContext, apiUri, credentialsId);
         // Github client and validation
