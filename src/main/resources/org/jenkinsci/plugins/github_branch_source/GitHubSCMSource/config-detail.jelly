@@ -2,7 +2,10 @@
 <j:jelly xmlns:j="jelly:core" xmlns:c="/lib/credentials"
          xmlns:f="/lib/form"
          xmlns:scm="/jenkins/scm/api/form">
-  <f:radioBlock name="url" value="Github Repository" checked="${instance.isConfiguredByRepoScan()}" title="Github Repository Scan" inline="true">
+  <f:entry title="${%Credentials}" field="credentialsId">
+    <c:select checkMethod="post"/>
+  </f:entry>
+  <f:radioBlock name="isConfigurableByScan" value="scan" checked="${instance.isConfiguredByRepoScan()}" title="Github Repository Scan" inline="true">
     <f:nested>
       <j:choose>
         <j:when test="${descriptor.apiUriSelectable}">
@@ -16,9 +19,7 @@
           </f:invisibleEntry>
         </j:otherwise>
       </j:choose>
-      <f:entry title="${%Credentials}" field="credentialsId">
-        <c:select checkMethod="post"/>
-      </f:entry>
+
       <f:entry title ="${%Owner}" field="repoOwner">
         <f:textbox/>
       </f:entry>
@@ -28,16 +29,13 @@
 
     </f:nested>
   </f:radioBlock>
-  <f:radioBlock name="url" value="Github Repository" checked="${!instance.isConfiguredByRepoScan()}" title="Github Repository HTTPs URL" inline="true">
+  <f:radioBlock name="isConfigurableByScan" value="raw" checked="${!instance.isConfiguredByRepoScan()}" title="Github Repository HTTPs URL" inline="true">
     <f:nested>
-      <f:entry title="${%Credentials}" field="credentialsIdRaw">
-        <c:select checkMethod="post"/>
-      </f:entry>
       <f:entry title="HTTPS URL" field="rawUrl">
         <f:textbox/>
       </f:entry>
 
-      <f:validateButton method="checkCredentials" title="Validate" with="rawUrl,credentialsIdRaw" />
+<!--      <f:validateButton method="checkCredentials" title="Validate" with="rawUrl,credentialsId" />-->
     </f:nested>
   </f:radioBlock>
 

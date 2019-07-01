@@ -118,7 +118,7 @@ public class GitHubSCMSourceBuilder extends SCMSourceBuilder<GitHubSCMSourceBuil
     @NonNull
     @Override
     public GitHubSCMSource build() {
-        GitHubSCMSource result = new GitHubSCMSource(repoOwner, projectName(), null);
+        GitHubSCMSource result = new GitHubSCMSource(repoOwner, projectName(), null, null);
         result.setId(id());
         result.setApiUri(apiUri());
         result.setCredentialsId(credentialsId());
