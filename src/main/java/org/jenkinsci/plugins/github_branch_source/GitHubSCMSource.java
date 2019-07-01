@@ -356,9 +356,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
         }
     }
-
-    public String isURLRepo(){
-        return isNotBlank(this.rawUrl) ? "true": "";
+    @Restricted(NoExternalUse.class)
+    public boolean isConfiguredByURL(){
+        return isNotBlank(this.rawUrl);
     }
 
 
@@ -577,7 +577,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     public String getRemote() {
         GitHubSCMSourceHelper helper = getHelper();
-        String uri = helper.uri;
+        String uri = helper.apiUri;
         String apiUri = StringUtils.defaultIfBlank(uri, GitHubServerConfig.GITHUB_URL);
         return GitHubSCMBuilder.uriResolver(getOwner(), apiUri, getLocalCredentials())
                 .getRepositoryUri(uri, helper.owner, helper.repoName);
@@ -601,7 +601,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
     public RepositoryUriResolver getUriResolver() {
-        String uri = getHelper().uri;
+        String uri = getHelper().apiUri;
         return GitHubSCMBuilder.uriResolver(
                 getOwner(),
                 StringUtils.defaultIfBlank(uri, GitHubServerConfig.GITHUB_URL),
@@ -909,9 +909,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                   @NonNull final TaskListener listener) throws IOException, InterruptedException {
 
         GitHubSCMSourceHelper helper = getHelper();
-        String uri = helper.uri;
+        String uri = helper.apiUri;
         StandardCredentials credentials = Connector.lookupScanCredentials((Item)getOwner(), uri, getLocalCredentials());
-//        credentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "d","desc", "taboadismo", "cloudbees2018");
         // Github client and validation
         final GitHub github = Connector.connect(uri, credentials);
         try {
@@ -1188,7 +1187,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @NonNull
     @Override
     protected Set<String> retrieveRevisions(@NonNull TaskListener listener) throws IOException, InterruptedException {
-        String uri = getHelper().uri;
+        String uri = getHelper().apiUri;
         StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), uri, getLocalCredentials());
         // Github client and validation
         final GitHub github = Connector.connect(uri, credentials);
@@ -1285,7 +1284,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     protected SCMRevision retrieve(@NonNull String headName, @NonNull TaskListener listener)
             throws IOException, InterruptedException {
         GitHubSCMSourceHelper helper = getHelper();
-        String uri = helper.uri;
+        String uri = helper.apiUri;
         StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), uri, getLocalCredentials());
         // Github client and validation
         final GitHub github = Connector.connect(uri, credentials);
@@ -1500,7 +1499,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         try {
             Connector.checkApiUrlValidity(github, credentials);
         } catch (HttpException e) {
-            String message = String.format("It seems %s is unreachable",  getHelper().uri);
+            String message = String.format("It seems %s is unreachable",  getHelper().apiUri);
             throw new IOException(message, e);
         }
     }
@@ -1531,10 +1530,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Override
     protected SCMProbe createProbe(@NonNull SCMHead head, @CheckForNull final SCMRevision revision) throws IOException {
         GitHubSCMSourceHelper helper = getHelper();
-        String uri = helper.uri;
+        String uri = helper.apiUri;
         StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), uri, getLocalCredentials());
         // Github client and validation
-        GitHub github = Connector.connect(helper.uri, credentials);
+        GitHub github = Connector.connect(helper.apiUri, credentials);
         try {
             String fullName = helper.repo;
             final GHRepository repo = github.getRepository(fullName);
@@ -1551,11 +1550,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), apiUri, getLocalCredentials());
         GitHubSCMSourceHelper helper = getHelper();
         // Github client and validation
-        GitHub github = Connector.connect(helper.uri, credentials);
+        GitHub github = Connector.connect(helper.apiUri, credentials);
         try {
             checkApiUrlValidity(github, credentials);
             try {
-                Connector.checkConnectionValidity(helper.uri, listener, credentials, github);
+                Connector.checkConnectionValidity(helper.apiUri, listener, credentials, github);
                 Connector.checkApiRateLimit(listener, github);
                 String fullName = helper.repo;
                 ghRepository = github.getRepository(fullName);
@@ -1689,7 +1688,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 GitHubSCMSourceHelper helper = getHelper();
                 String fullName = helper.repo;
                 if (isNotBlank(fullName)) {
-                    String uri = helper.uri;
+                    String uri = helper.apiUri;
                     LOGGER.log(Level.INFO, "Getting remote pull requests from {0}", fullName);
                     StandardCredentials credentials =
                             Connector.lookupScanCredentials((Item) getOwner(), uri, getLocalCredentials());
@@ -1771,7 +1770,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 } catch (HttpException e) {
                     listener.getLogger()
                             .format("It seems %s is unreachable, assuming no trusted collaborators%n",
-                                    getHelper().uri);
+                                    getHelper().apiUri);
                     collaboratorNames = Collections.singleton(repoOwner);
                 }
             }
@@ -1862,7 +1861,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         result.add(new GitHubRepoMetadataAction());
 
         GitHubSCMSourceHelper helper = getHelper();
-        String uri = helper.uri;
+        String uri = helper.apiUri;
 
         StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), uri, getLocalCredentials());
         GitHub hub = Connector.connect(uri, credentials);
@@ -1875,7 +1874,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             } catch (FileNotFoundException e) {
                 throw new AbortException(
                         String.format("Invalid scan credentials when using %s to connect to '%s' on %s",
-                                credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials), helper.repo, helper.uri));
+                                credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials), helper.repo, helper.apiUri));
             }
             result.add(new ObjectMetadataAction(null, ghRepository.getDescription(), Util.fixEmpty(ghRepository.getHomepage())));
             result.add(new GitHubLink("icon-github-repo", ghRepository.getHtmlUrl()));
@@ -2663,19 +2662,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             GitHubSCMSourceHelper helper = getHelper();
             listener.getLogger().format("Connecting to %s to obtain list of collaborators for '%s'%n",
-                    helper.uri, helper.repo);
+                    helper.apiUri, helper.repo);
             StandardCredentials credentials = Connector.lookupScanCredentials(
-                    (Item) getOwner(), helper.uri, getLocalCredentials()
+                    (Item) getOwner(), helper.apiUri, getLocalCredentials()
             );
             // Github client and validation
             try {
-                GitHub github = Connector.connect(helper.uri, credentials);
+                GitHub github = Connector.connect(helper.apiUri, credentials);
                 try {
                     checkApiUrlValidity(github, credentials);
                     Connector.checkApiRateLimit(listener, github);
 
                     // Input data validation
-                    Connector.checkConnectionValidity(helper.uri, listener, credentials, github);
+                    Connector.checkConnectionValidity(helper.apiUri, listener, credentials, github);
                     // Input data validation
                     String credentialsName =
                             credentials == null
@@ -2684,18 +2683,18 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     if (credentials != null && !isCredentialValid(github)) {
                         listener.getLogger().format("Invalid scan credentials %s to connect to %s, "
                                         + "assuming no trusted collaborators%n",
-                                credentialsName, helper.uri);
+                                credentialsName, helper.apiUri);
                         collaboratorNames = Collections.singleton(getRepoOwner());
                     } else {
                         if (!github.isAnonymous()) {
                             listener.getLogger()
                                     .format("Connecting to %s using %s%n",
-                                            helper.uri,
+                                            helper.apiUri,
                                             credentialsName);
                         } else {
                             listener.getLogger()
                                     .format("Connecting to %s with no credentials, anonymous access%n",
-                                            helper.uri);
+                                            helper.apiUri);
                         }
 
                         // Input data validation
@@ -2734,11 +2733,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (repo == null) {
                 GitHubSCMSourceHelper helper = getHelper();
                 listener.getLogger().format("Connecting to %s to check permissions of obtain list of %s for %s/%s%n",
-                        helper.uri, username, getRepoOwner(), getRepository());
+                        helper.apiUri, username, getRepoOwner(), getRepository());
                 StandardCredentials credentials = Connector.lookupScanCredentials(
-                        (Item) getOwner(), helper.uri, credentialsId
+                        (Item) getOwner(), helper.apiUri, credentialsId
                 );
-                github = Connector.connect(helper.uri, credentials);
+                github = Connector.connect(helper.apiUri, credentials);
                 String fullName = helper.repo;
                 repo = github.getRepository(fullName);
             }

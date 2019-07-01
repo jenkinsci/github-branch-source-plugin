@@ -2,7 +2,7 @@
 <j:jelly xmlns:j="jelly:core" xmlns:c="/lib/credentials"
          xmlns:f="/lib/form"
          xmlns:scm="/jenkins/scm/api/form">
-  <f:radioBlock name="url" value="Github Repository" checked="${instance.isURLRepo() == ''}" title="Github Repository Scan" inline="true">
+  <f:radioBlock name="url" value="Github Repository" checked="${instance.isConfiguredByURL()}" title="Github Repository Scan" inline="true">
     <f:nested>
       <j:choose>
         <j:when test="${descriptor.apiUriSelectable}">
@@ -28,7 +28,7 @@
 
     </f:nested>
   </f:radioBlock>
-  <f:radioBlock name="url" value="Github Repository" checked="${instance.isURLRepo() == 'true'}" title="Github Repository HTTPs URL" inline="true">
+  <f:radioBlock name="url" value="Github Repository" checked="${instance.isConfiguredByURL()}" title="Github Repository HTTPs URL" inline="true">
     <f:nested>
       <f:entry title="${%Credentials}" field="credentialsIdRaw">
         <c:select checkMethod="post"/>
