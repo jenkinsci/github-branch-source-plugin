@@ -3,5 +3,6 @@
   <repoOwner></repoOwner>
   <repository></repository>
   <rawUrl>https://github.com/joseblas/jx</rawUrl>
+  <credentialsIdRaw>abcd</credentialsIdRaw>
   <traits/>
 </org.jenkinsci.plugins.github_branch_source.GitHubSCMSource>
