@@ -1,9 +1,10 @@
 package org.jenkinsci.plugins.github_branch_source;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.StringUtils;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -12,10 +13,11 @@ import java.util.logging.Logger;
 
 import static org.apache.commons.lang.StringUtils.removeEnd;
 
+@Restricted(NoExternalUse.class)
 public class GitHubSCMSourceHelper {
 
     @NonNull
-    String uri = "";
+    String apiUri = "";
 
     @NonNull
     String repo;
@@ -39,7 +41,7 @@ public class GitHubSCMSourceHelper {
         GitHubSCMSourceHelper helper = new GitHubSCMSourceHelper();
         if (source == null) return helper;
         try {
-            helper.uri = getUri(source.rawUrl, source.getApiUri());
+            helper.apiUri = getUri(source.rawUrl, source.getApiUri());
             helper.repo = getRepoFullName(source);
             String[] split = helper.repo.split("/");
             if (split != null && split.length == 2) {

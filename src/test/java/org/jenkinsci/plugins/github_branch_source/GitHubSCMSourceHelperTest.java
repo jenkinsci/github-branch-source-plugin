@@ -16,7 +16,7 @@ public class GitHubSCMSourceHelperTest {
         source.setApiUri("");
         GitHubSCMSourceHelper sut = GitHubSCMSourceHelper.build(source);
 
-        assertThat(sut.uri, is("https://api.github.com"));
+        assertThat(sut.apiUri, is("https://api.github.com"));
         assertThat(sut.repo, is("jenkinsci/jenkins"));
         assertThat(sut.owner, is("jenkinsci"));
         assertThat(sut.repoName, is("jenkins"));
@@ -28,7 +28,7 @@ public class GitHubSCMSourceHelperTest {
         source.setApiUri("https://github.beescloud.com/api/v3");
         GitHubSCMSourceHelper sut = GitHubSCMSourceHelper.build(source);
 
-        assertThat(sut.uri, is("https://github.beescloud.com/api/v3"));
+        assertThat(sut.apiUri, is("https://github.beescloud.com/api/v3"));
         assertThat(sut.repo, is("jenkinsci/jenkins"));
         assertThat(sut.owner, is("jenkinsci"));
         assertThat(sut.repoName, is("jenkins"));
@@ -40,7 +40,7 @@ public class GitHubSCMSourceHelperTest {
         source.setApiUri("https://mygithub.com/api/v3");
         GitHubSCMSourceHelper sut = GitHubSCMSourceHelper.build(source);
 
-        assertThat(sut.uri, is("https://mygithub.com/api/v3"));
+        assertThat(sut.apiUri, is("https://mygithub.com/api/v3"));
         assertThat(sut.repo, is("jenkinsci/jenkins"));
         assertThat(sut.owner, is("jenkinsci"));
         assertThat(sut.repoName, is("jenkins"));
@@ -52,7 +52,7 @@ public class GitHubSCMSourceHelperTest {
         source.setApiUri("https://mygithub.com/api/v3");
         GitHubSCMSourceHelper sut = GitHubSCMSourceHelper.build(source);
 
-        assertThat(sut.uri, is("https://mygithub.com/api/v3"));
+        assertThat(sut.apiUri, is("https://mygithub.com/api/v3"));
         assertThat(sut.repo, is("jenkinsci/jenkins"));
         assertThat(sut.owner, is("jenkinsci"));
         assertThat(sut.repoName, is("jenkins"));
@@ -65,7 +65,7 @@ public class GitHubSCMSourceHelperTest {
         source.setApiUri("");
         GitHubSCMSourceHelper sut = GitHubSCMSourceHelper.build(source);
 
-        assertThat(sut.uri, is("https://api.github.com"));
+        assertThat(sut.apiUri, is("https://api.github.com"));
         assertThat(sut.repo, is("jenkinsci/jenkins"));
         assertThat(sut.owner, is("jenkinsci"));
         assertThat(sut.repoName, is("jenkins"));
@@ -78,7 +78,7 @@ public class GitHubSCMSourceHelperTest {
         source.setApiUri("");
         GitHubSCMSourceHelper sut = GitHubSCMSourceHelper.build(source);
 
-        assertThat(sut.uri, is("https://api.github.com"));
+        assertThat(sut.apiUri, is("https://api.github.com"));
         assertThat(sut.repo, is("jenkinsci/jenkins"));
         assertThat(sut.owner, is("jenkinsci"));
         assertThat(sut.repoName, is("jenkins"));
