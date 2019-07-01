@@ -11,7 +11,9 @@ import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static org.apache.commons.lang.StringUtils.isNotEmpty;
 import static org.apache.commons.lang.StringUtils.removeEnd;
+import static org.parboiled.common.StringUtils.isEmpty;
 
 @Restricted(NoExternalUse.class)
 public class GitHubSCMSourceHelper {
@@ -111,7 +113,7 @@ public class GitHubSCMSourceHelper {
     @SuppressFBWarnings
     private static String getRepoFullName(GitHubSCMSource source) {
         String url = source.repoOwner + '/' + source.repository;
-        if (source.getApiUri() == null) {
+        if ( isEmpty(source.getApiUri())  ) {
             if ("/".equals(url)) {
                 try {
                     url = StringUtils.removeStart(new URL(source.getRawUrl()).getPath(), "/");
