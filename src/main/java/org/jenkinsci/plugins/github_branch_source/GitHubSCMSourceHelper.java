@@ -17,7 +17,7 @@ import static org.apache.commons.lang.StringUtils.removeEnd;
 public class GitHubSCMSourceHelper {
 
     @NonNull
-    String apiUri = "";
+    String apiURI = "";
 
     @NonNull
     String repo;
@@ -41,7 +41,7 @@ public class GitHubSCMSourceHelper {
         GitHubSCMSourceHelper helper = new GitHubSCMSourceHelper();
         if (source == null) return helper;
         try {
-            helper.apiUri = getUri(source.rawUrl, source.getApiUri());
+            helper.apiURI = getUri(source.rawUrl, source.getApiUri());
             helper.repo = getRepoFullName(source);
             String[] split = helper.repo.split("/");
             if (split != null && split.length == 2) {
@@ -62,10 +62,10 @@ public class GitHubSCMSourceHelper {
             return new URL (removeEnd(source.getRawUrl(),".git"));
         }else{
             if( StringUtils.isBlank(source.getApiUri())){
-                return new URL("https://github.com/" + source.getRepoOwner()+"/"+source.getRepository());
+                return new URL("https://github.com/" + source.repoOwner+"/"+source.repository);
             }else{
                 String baseURL = removeEnd(source.getApiUri(), "/api/v3");
-                return new URL(baseURL+ "/" + source.getRepoOwner()+"/"+source.getRepository());
+                return new URL(baseURL+ "/" + source.repoOwner+"/"+source.repository);
             }
 
         }
@@ -110,7 +110,7 @@ public class GitHubSCMSourceHelper {
 
     @SuppressFBWarnings
     private static String getRepoFullName(GitHubSCMSource source) {
-        String url = source.getRepoOwner() + '/' + source.getRepository();
+        String url = source.repoOwner + '/' + source.repository;
         if (source.getApiUri() == null) {
             if ("/".equals(url)) {
                 try {

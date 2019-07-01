@@ -85,8 +85,10 @@ public class GitHubSCMSourceTraitsTest {
 
         assertThat(instance.getId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
         assertThat(instance.getApiUri(), is(nullValue()));
-        assertThat(instance.getRepoOwner(), is(""));
-        assertThat(instance.getRepository(), is(""));
+        assertThat(instance.getRepoOwner(), is("joseblas"));
+        assertThat(instance.getRepository(), is("jx"));
+        assertThat(instance.isConfiguredByRepoScan(), is(true));
+        assertThat(instance.getCredentialsIdRaw(), is("abcd"));
         assertThat(instance.getRawUrl(), is("https://github.com/joseblas/jx"));
         assertThat(instance.getCredentialsId(), is(nullValue()));
         assertThat(instance.getTraits(), is(Collections.<SCMSourceTrait>emptyList()));
@@ -109,6 +111,9 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is(nullValue()));
+        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
+        assertThat(instance.isConfiguredByRepoScan(), is(false));
+        assertThat(instance.getRawUrl(), is(nullValue()));
         assertThat(instance.getTraits(), is(Collections.<SCMSourceTrait>emptyList()));
         // Legacy API
         assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMSource.DescriptorImpl.SAME));
@@ -170,6 +175,7 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
+        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -211,6 +217,7 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
+        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -257,6 +264,7 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
+        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -298,6 +306,7 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
+        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -340,6 +349,7 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
+        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -382,6 +392,7 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
+        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -421,6 +432,7 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
+        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -457,6 +469,7 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
+        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
