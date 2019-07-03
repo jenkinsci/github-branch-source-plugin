@@ -14,7 +14,10 @@ import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.BuildChooserSetting;
 import hudson.util.LogTaskListener;
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.branch.BranchSource;
@@ -25,7 +28,6 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
-import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
@@ -42,7 +44,6 @@ import static java.util.logging.Level.FINEST;
 import static java.util.logging.Logger.getAnonymousLogger;
 import static jenkins.plugins.git.AbstractGitSCMSource.SCMRevisionImpl;
 import static jenkins.plugins.git.AbstractGitSCMSource.SpecificRevisionBuildChooser;
-import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
@@ -52,48 +53,32 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+
 @RunWith(Parameterized.class)
 public class GitHubSCMBuilderTest {
     @ClassRule
     public static JenkinsRule j = new JenkinsRule();
     private GitHubSCMSource source;
     private WorkflowMultiBranchProject owner;
-    private boolean withRawUrl;
-    private String host;
-
+    private boolean configuredByUrl;
 
     @Parameterized.Parameters
     public static Collection<Object[]> generateParams() {
         return Arrays.asList(new Object[]{true}, new Object[]{false});
     }
 
-    /*
-    Test with rawUrl are not using apiUri, so are skipped with
-        org.junit.Assume.assumeTrue(StringUtils.isBlank(source.rawUrl));
-     */
-    public GitHubSCMBuilderTest(boolean withRawUrl){
-        this.withRawUrl = withRawUrl;
-    }
-
-    // updates host and apiUri for non rawUrl
-    // and used by the tests outcome.
-    // Is not used in setUp because is not always used.
-    public void updateUrl(){
-        if(isBlank(source.rawUrl)){
-            host = "github.test";
-            source.setApiUri("https://"+ host + "/api/v3");
-        }
+    public GitHubSCMBuilderTest(boolean configuredByUrl){
+        this.configuredByUrl = configuredByUrl;
     }
 
     @Before
     public void setUp() throws IOException {
         owner = j.createProject(WorkflowMultiBranchProject.class);
-        if (withRawUrl) {
-            source = new GitHubSCMSource("", "", "https://github.com/tester/test-repo");
-            host = "github.com";
+        if (configuredByUrl) {
+            source = new GitHubSCMSource("", "", "https://github.com/tester/test-repo.git");
+        } else {
+            source = new GitHubSCMSource( "tester", "test-repo");
         }
-        else
-            source = new GitHubSCMSource( "tester", "test-repo", null);
 
         owner.setSourcesList(Collections.singletonList(new BranchSource(source)));
         source.setOwner(owner);
@@ -744,7 +729,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_branch_rev_anon__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         BranchSCMHead head = new BranchSCMHead("test-branch");
         AbstractGitSCMSource.SCMRevisionImpl revision =
                 new AbstractGitSCMSource.SCMRevisionImpl(head, "cafebabedeadbeefcafebabedeadbeefcafebabe");
@@ -755,27 +740,27 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is((SCMRevision) revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/tester/test-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/tester/test-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(instance.remote(), is("https://github.test/tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/tester/test-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/tester/test-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/heads/test-branch:refs/remotes/origin/test-branch"));
-        assertThat(config.getUrl(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(config.getUrl(), is("https://github.test/tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is(nullValue()));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("https://github.test/tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(1));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/heads/test-branch"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/test-branch"));
@@ -799,7 +784,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_branch_rev_userpass__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         BranchSCMHead head = new BranchSCMHead("test-branch");
         AbstractGitSCMSource.SCMRevisionImpl revision =
                 new AbstractGitSCMSource.SCMRevisionImpl(head, "cafebabedeadbeefcafebabedeadbeefcafebabe");
@@ -810,27 +795,27 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is((SCMRevision) revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/tester/test-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/tester/test-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(instance.remote(), is("https://github.test/tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/tester/test-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/tester/test-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/heads/test-branch:refs/remotes/origin/test-branch"));
-        assertThat(config.getUrl(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(config.getUrl(), is("https://github.test/tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is("user-pass"));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("https://github.test/tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(1));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/heads/test-branch"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/test-branch"));
@@ -853,7 +838,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_branch_rev_userkey__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         BranchSCMHead head = new BranchSCMHead("test-branch");
         AbstractGitSCMSource.SCMRevisionImpl revision =
                 new AbstractGitSCMSource.SCMRevisionImpl(head, "cafebabedeadbeefcafebabedeadbeefcafebabe");
@@ -864,27 +849,27 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is((SCMRevision) revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://"+ host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://"+ host + "/tester/test-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/tester/test-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("git@"+host+":tester/test-repo.git"));
+        assertThat(instance.remote(), is("git@github.test:tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://"+ host + "/tester/test-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/tester/test-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/heads/test-branch:refs/remotes/origin/test-branch"));
-        assertThat(config.getUrl(), is("git@"+host+":tester/test-repo.git"));
+        assertThat(config.getUrl(), is("git@github.test:tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is("user-key"));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("git@"+host+":tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("git@github.test:tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(1));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/heads/test-branch"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/test-branch"));
@@ -907,7 +892,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_branch_norev_anon__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         BranchSCMHead head = new BranchSCMHead("test-branch");
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
@@ -916,27 +901,27 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://"+host+"/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/tester/test-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/tester/test-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(instance.remote(), is("https://github.test/tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/tester/test-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/tester/test-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/heads/test-branch:refs/remotes/origin/test-branch"));
-        assertThat(config.getUrl(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(config.getUrl(), is("https://github.test/tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is(nullValue()));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("https://github.test/tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(1));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/heads/test-branch"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/test-branch"));
@@ -947,7 +932,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_branch_norev_userpass__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         BranchSCMHead head = new BranchSCMHead("test-branch");
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
@@ -956,27 +941,27 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://"+ host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://"+ host + "/tester/test-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/tester/test-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("https://"+ host + "/tester/test-repo.git"));
+        assertThat(instance.remote(), is("https://github.test/tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://"+ host + "/tester/test-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/tester/test-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/heads/test-branch:refs/remotes/origin/test-branch"));
-        assertThat(config.getUrl(), is("https://"+ host + "/tester/test-repo.git"));
+        assertThat(config.getUrl(), is("https://github.test/tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is("user-pass"));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("https://"+ host + "/tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("https://github.test/tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(1));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/heads/test-branch"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/test-branch"));
@@ -987,7 +972,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_branch_norev_userkey__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         BranchSCMHead head = new BranchSCMHead("test-branch");
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
@@ -996,27 +981,27 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/tester/test-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/tester/test-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(instance.remote(), is("git@github.test:tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/tester/test-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/tester/test-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/heads/test-branch:refs/remotes/origin/test-branch"));
-        assertThat(config.getUrl(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(config.getUrl(), is("git@github.test:tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is("user-key"));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("git@github.test:tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(1));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/heads/test-branch"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/test-branch"));
@@ -1324,7 +1309,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullHead_rev_anon__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.HEAD);
@@ -1340,27 +1325,27 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is((SCMRevision) revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(instance.remote(), is("https://github.test/tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/pull/1/head:refs/remotes/origin/PR-1"));
-        assertThat(config.getUrl(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(config.getUrl(), is("https://github.test/tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is(nullValue()));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("https://github.test/tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(1));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/pull/1/head"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/PR-1"));
@@ -1384,7 +1369,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullHead_rev_userpass__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.HEAD);
@@ -1400,27 +1385,27 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is((SCMRevision) revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(instance.remote(), is("https://github.test/tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/pull/1/head:refs/remotes/origin/PR-1"));
-        assertThat(config.getUrl(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(config.getUrl(), is("https://github.test/tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is("user-pass"));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("https://github.test/tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(1));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/pull/1/head"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/PR-1"));
@@ -1443,7 +1428,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullHead_rev_userkey__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.HEAD);
@@ -1459,27 +1444,27 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is((SCMRevision) revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(instance.remote(), is("git@github.test:tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/pull/1/head:refs/remotes/origin/PR-1"));
-        assertThat(config.getUrl(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(config.getUrl(), is("git@github.test:tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is("user-key"));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("git@github.test:tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(1));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/pull/1/head"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/PR-1"));
@@ -1502,7 +1487,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullHead_norev_anon__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.HEAD);
@@ -1513,27 +1498,27 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(instance.remote(), is("https://github.test/tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/pull/1/head:refs/remotes/origin/PR-1"));
-        assertThat(config.getUrl(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(config.getUrl(), is("https://github.test/tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is(nullValue()));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("https://github.test/tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(1));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/pull/1/head"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/PR-1"));
@@ -1544,7 +1529,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullHead_norev_userpass__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.HEAD);
@@ -1555,27 +1540,27 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(instance.remote(), is("https://github.test/tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/pull/1/head:refs/remotes/origin/PR-1"));
-        assertThat(config.getUrl(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(config.getUrl(), is("https://github.test/tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is("user-pass"));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("https://github.test/tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(1));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/pull/1/head"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/PR-1"));
@@ -1586,7 +1571,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullHead_norev_userkey__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.HEAD);
@@ -1597,27 +1582,27 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(instance.remote(), is("git@github.test:tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/pull/1/head:refs/remotes/origin/PR-1"));
-        assertThat(config.getUrl(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(config.getUrl(), is("git@github.test:tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is("user-key"));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("git@github.test:tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(1));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/pull/1/head"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/PR-1"));
@@ -1991,7 +1976,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullMerge_rev_anon__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.MERGE);
@@ -2007,28 +1992,28 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is((SCMRevision) revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(instance.remote(), is("https://github.test/tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/pull/1/head:refs/remotes/origin/PR-1 "
                 + "+refs/heads/test-branch:refs/remotes/origin/test-branch"));
-        assertThat(config.getUrl(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(config.getUrl(), is("https://github.test/tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is(nullValue()));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("https://github.test/tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(2));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/pull/1/head"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/PR-1"));
@@ -2062,7 +2047,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullMerge_rev_userpass__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.MERGE);
@@ -2078,28 +2063,28 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is((SCMRevision) revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(instance.remote(), is("https://github.test/tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/pull/1/head:refs/remotes/origin/PR-1 "
                 + "+refs/heads/test-branch:refs/remotes/origin/test-branch"));
-        assertThat(config.getUrl(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(config.getUrl(), is("https://github.test/tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is("user-pass"));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("https://github.test/tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(2));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/pull/1/head"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/PR-1"));
@@ -2132,8 +2117,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullMerge_rev_userkey__when__build__then__scmBuilt() throws Exception {
-
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.MERGE);
@@ -2149,28 +2133,28 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is((SCMRevision) revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(instance.remote(), is("git@github.test:tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/pull/1/head:refs/remotes/origin/PR-1 "
                 + "+refs/heads/test-branch:refs/remotes/origin/test-branch"));
-        assertThat(config.getUrl(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(config.getUrl(), is("git@github.test:tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is("user-key"));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("git@github.test:tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(2));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/pull/1/head"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/PR-1"));
@@ -2203,7 +2187,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullMerge_norev_anon__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.MERGE);
@@ -2214,28 +2198,28 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(instance.remote(), is("https://github.test/tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/pull/1/head:refs/remotes/origin/PR-1 "
                 + "+refs/heads/test-branch:refs/remotes/origin/test-branch"));
-        assertThat(config.getUrl(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(config.getUrl(), is("https://github.test/tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is(nullValue()));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("https://github.test/tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(2));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/pull/1/head"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/PR-1"));
@@ -2257,7 +2241,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullMerge_norev_userpass__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.MERGE);
@@ -2268,28 +2252,28 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(instance.remote(), is("https://github.test/tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/pull/1/head:refs/remotes/origin/PR-1 "
                 + "+refs/heads/test-branch:refs/remotes/origin/test-branch"));
-        assertThat(config.getUrl(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(config.getUrl(), is("https://github.test/tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is("user-pass"));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("https://" + host + "/tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("https://github.test/tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(2));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/pull/1/head"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/PR-1"));
@@ -2311,7 +2295,7 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_pullMerge_norev_userkey__when__build__then__scmBuilt() throws Exception {
-        updateUrl();
+        source.setApiUri("https://github.test/api/v3");
         PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "qa", "qa-repo", "qa-branch", 1,
                 new BranchSCMHead("test-branch"), new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.MERGE);
@@ -2322,28 +2306,28 @@ public class GitHubSCMBuilderTest {
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
-                instance.remote(), is("https://" + host + "/tester/test-repo.git"));
+                instance.remote(), is("https://github.test/tester/test-repo.git"));
         assertThat(instance.browser(), instanceOf(GithubWeb.class));
-        assertThat(instance.browser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(instance.browser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
 
         instance.withGitHubRemote();
-        assertThat(instance.remote(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(instance.remote(), is("git@github.test:tester/test-repo.git"));
 
         GitSCM actual = instance.build();
         assertThat(actual.getBrowser(), instanceOf(GithubWeb.class));
-        assertThat(actual.getBrowser().getRepoUrl(), is("https://" + host + "/qa/qa-repo"));
+        assertThat(actual.getBrowser().getRepoUrl(), is("https://github.test/qa/qa-repo"));
         assertThat(actual.getGitTool(), nullValue());
         assertThat(actual.getUserRemoteConfigs(), hasSize(1));
         UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
         assertThat(config.getName(), is("origin"));
         assertThat(config.getRefspec(), is("+refs/pull/1/head:refs/remotes/origin/PR-1 "
                 + "+refs/heads/test-branch:refs/remotes/origin/test-branch"));
-        assertThat(config.getUrl(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(config.getUrl(), is("git@github.test:tester/test-repo.git"));
         assertThat(config.getCredentialsId(), is("user-key"));
         RemoteConfig origin = actual.getRepositoryByName("origin");
         assertThat(origin, notNullValue());
         assertThat(origin.getURIs(), hasSize(1));
-        assertThat(origin.getURIs().get(0).toString(), is("git@" + host + ":tester/test-repo.git"));
+        assertThat(origin.getURIs().get(0).toString(), is("git@github.test:tester/test-repo.git"));
         assertThat(origin.getFetchRefSpecs(), hasSize(2));
         assertThat(origin.getFetchRefSpecs().get(0).getSource(), is("refs/pull/1/head"));
         assertThat(origin.getFetchRefSpecs().get(0).getDestination(), is("refs/remotes/origin/PR-1"));

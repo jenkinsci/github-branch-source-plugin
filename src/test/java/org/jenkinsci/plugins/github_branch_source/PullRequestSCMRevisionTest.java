@@ -108,7 +108,7 @@ public class PullRequestSCMRevisionTest {
                     })
     );
     private GitHub github;
-
+    private GHRepository repo;
 
     @Before
     public void prepareMockGitHub() throws Exception {
@@ -125,6 +125,7 @@ public class PullRequestSCMRevisionTest {
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
         github = Connector.connect("http://localhost:" + githubApi.port(), null);
+        repo = github.getRepository("cloudbeers/yolo");
     }
 
     public static SCMHead master = new BranchSCMHead("master");

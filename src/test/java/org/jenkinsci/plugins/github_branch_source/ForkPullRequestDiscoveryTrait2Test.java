@@ -63,10 +63,10 @@ public class ForkPullRequestDiscoveryTrait2Test {
         assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustPermission(), true);
     }
 
-    private void assertRoundTrip(WorkflowMultiBranchProject p, SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision> trust, boolean withRawUrl) throws Exception {
+    private void assertRoundTrip(WorkflowMultiBranchProject p, SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision> trust, boolean configuredByUrl) throws Exception {
 
         GitHubSCMSource s = null;
-        if (withRawUrl)
+        if (configuredByUrl)
             s = new GitHubSCMSource("", "", "https://github.com/nobody/nowhere");
         else
             s = new GitHubSCMSource("nobody", "nowhere", null);

@@ -2,44 +2,39 @@
 <j:jelly xmlns:j="jelly:core" xmlns:c="/lib/credentials"
          xmlns:f="/lib/form"
          xmlns:scm="/jenkins/scm/api/form">
+  <j:choose>
+    <j:when test="${descriptor.apiUriSelectable}">
+    <f:entry title="${%API endpoint}" field="apiUri">
+      <f:select/>
+    </f:entry>
+    </j:when>
+    <j:otherwise>
+      <f:invisibleEntry>
+        <f:select field="apiUri"/>
+      </f:invisibleEntry>
+    </j:otherwise>
+  </j:choose>
   <f:entry title="${%Credentials}" field="credentialsId">
     <c:select checkMethod="post"/>
   </f:entry>
-  <f:radioBlock name="isConfigurableByScan" value="scan" checked="${instance.isConfiguredByRepoScan()}" title="Github Repository Scan" inline="true">
+  <f:radioBlock name="isConfiguredByUrl" value="false" checked="${instance.configuredByUrl}" title="${%Repository Scan}" inline="true">
     <f:nested>
-      <j:choose>
-        <j:when test="${descriptor.apiUriSelectable}">
-          <f:entry title="${%API endpoint}" field="apiUri">
-            <f:select/>
-          </f:entry>
-        </j:when>
-        <j:otherwise>
-          <f:invisibleEntry>
-            <f:select field="apiUri"/>
-          </f:invisibleEntry>
-        </j:otherwise>
-      </j:choose>
-
       <f:entry title ="${%Owner}" field="repoOwner">
         <f:textbox/>
       </f:entry>
       <f:entry title="${%Repository}" field="repository">
         <f:select/>
       </f:entry>
-
     </f:nested>
   </f:radioBlock>
-  <f:radioBlock name="isConfigurableByScan" value="raw" checked="${!instance.isConfiguredByRepoScan()}" title="Github Repository HTTPs URL" inline="true">
+  <f:radioBlock name="isConfiguredByUrl" value="true" checked="${instance.configuredByUrl}" title="${%Repository URL}" inline="true">
     <f:nested>
-      <f:entry title="HTTPS URL" field="rawUrl">
+      <f:entry title="${%Repository URL}" field="repositoryUrl">
         <f:textbox/>
       </f:entry>
-
-<!--      <f:validateButton method="checkCredentials" title="Validate" with="rawUrl,credentialsId" />-->
+      <f:validateButton method="validateRepositoryUrlAndCredentials" title="${%Validate}" with="repositoryUrl,credentialsId" />
     </f:nested>
   </f:radioBlock>
-
-  <script language="javascript" type="text/javascript" src="${rootURL}/plugin/github-branch-source/show.js"/>
 
   <f:entry title="${%Behaviours}">
     <scm:traits field="traits"/>

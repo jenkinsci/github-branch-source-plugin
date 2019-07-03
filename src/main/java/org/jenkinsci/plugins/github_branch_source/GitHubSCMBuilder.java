@@ -113,15 +113,12 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
      */
     public GitHubSCMBuilder(@NonNull GitHubSCMSource source,
                             @NonNull SCMHead head, @CheckForNull SCMRevision revision) {
-
         super(head, revision, /*dummy value*/guessRemote(source), source.getCredentialsId());
         this.context = source.getOwner();
         apiUri = StringUtils.defaultIfBlank(source.getApiUri(), GitHubServerConfig.GITHUB_URL);
-        GitHubSCMSourceHelper helper = GitHubSCMSourceHelper.build(source);
-        repoOwner =  StringUtils.defaultIfBlank(source.getRepoOwner(), helper.owner);
-        repository = StringUtils.defaultIfBlank(source.getRepository(), helper.repoName);
-        repositoryUrl = source.getRepositoryUrl()!=null?source.getRepositoryUrl() : helper.url;
-
+        repoOwner = source.getRepoOwner();
+        repository = source.getRepository();
+        repositoryUrl = source.getResolvedRepositoryUrl();
         // now configure the ref specs
         withoutRefSpecs();
         String repoUrl;
@@ -157,8 +154,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         } else {
             apiUri = StringUtils.removeEnd(apiUri, "/"+API_V3);
         }
-        GitHubSCMSourceHelper helper = GitHubSCMSourceHelper.build(source);
-        return apiUri + "/" + helper.repo + ".git";
+        return apiUri + "/" + source.getRepoOwner() + "/" + source.getRepository() + ".git";
     }
 
     /**
