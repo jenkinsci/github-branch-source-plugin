@@ -1,3 +1,26 @@
+/*
+ * The MIT License
+ *
+ * Copyright 2019 CloudBees, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -11,8 +34,7 @@ import java.net.URL;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static org.apache.commons.lang.StringUtils.isNotEmpty;
-import static org.apache.commons.lang.StringUtils.removeEnd;
+import static org.apache.commons.lang.StringUtils.*;
 import static org.parboiled.common.StringUtils.isEmpty;
 
 @Restricted(NoExternalUse.class)
@@ -42,6 +64,11 @@ public class GitHubSCMSourceHelper {
     public static GitHubSCMSourceHelper build(GitHubSCMSource source) {
         GitHubSCMSourceHelper helper = new GitHubSCMSourceHelper();
         if (source == null) return helper;
+
+        if (isBlank(source.rawUrl) &&  isBlank(source.getRepoOwnerInternal()) && isBlank(source.getRepositoryInternal())) {
+            throw new IllegalArgumentException("Repository URL must not be empty");
+        }
+
         try {
             helper.apiURI = getUri(source.rawUrl, source.getApiUri());
             helper.repo = getRepoFullName(source);
@@ -49,11 +76,13 @@ public class GitHubSCMSourceHelper {
             if (split != null && split.length == 2) {
                 helper.owner = split[0];
                 helper.repoName = split[1];
-            }
+            }else
+                throw new IllegalArgumentException("Repository URL not valid");
             helper.url = getUrl(source);
 
         } catch (MalformedURLException e) {
             LOGGER.log(Level.WARNING, "Malformed repository URL {0}", source.rawUrl);
+            throw new IllegalArgumentException("Repository URL not valid, e");
         }
         return helper;
 
@@ -63,7 +92,7 @@ public class GitHubSCMSourceHelper {
         if(StringUtils.isNotBlank(source.getRawUrl()) ){
             return new URL (removeEnd(source.getRawUrl(),".git"));
         }else{
-            if( StringUtils.isBlank(source.getApiUri())){
+            if( isBlank(source.getApiUri())){
                 return new URL("https://github.com/" + source.repoOwner+"/"+source.repository);
             }else{
                 String baseURL = removeEnd(source.getApiUri(), "/api/v3");
@@ -78,7 +107,7 @@ public class GitHubSCMSourceHelper {
         //RawURL
         if (StringUtils.isNotBlank(rawUrl)) {
             return getRawUrlUri(rawUrl);
-        } else if (StringUtils.isBlank(apiUri)) { //GitHub Repo
+        } else if (isBlank(apiUri)) { //GitHub Repo
             return "https://api.github.com";
         }else {
             // GitHub Enterprise or rawUrl

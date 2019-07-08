@@ -288,7 +288,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                 return Collections.emptyMap();
             }
 
-            boolean fork = !GitHubSCMSourceHelper.build( (GitHubSCMSource) source).owner.equalsIgnoreCase(prOwnerName);
+            boolean fork = !src.getRepoOwner().equalsIgnoreCase(prOwnerName);
 
             Map<SCMHead, SCMRevision> result = new HashMap<>();
             GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, SCMHeadObserver.none())

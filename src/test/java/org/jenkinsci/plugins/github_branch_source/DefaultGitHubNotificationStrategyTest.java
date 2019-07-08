@@ -49,8 +49,8 @@ public class DefaultGitHubNotificationStrategyTest {
     @Test
     public void given_basicJob_then_singleNotification() throws Exception {
         List<GitHubSCMSource> srcs = Arrays.asList(
-                new GitHubSCMSource("example", "test", null),
-                new GitHubSCMSource("", "", "http://github.com/example/test")
+                new GitHubSCMSource("example", "test", null, "scan"),
+                new GitHubSCMSource("", "", "http://github.com/example/test", "raw")
         );
         for( GitHubSCMSource src: srcs) {
             FreeStyleProject job = j.createFreeStyleProject();
@@ -67,8 +67,8 @@ public class DefaultGitHubNotificationStrategyTest {
     @Test
     public void given_differentSCMheads_then_distinctNotifications() throws Exception {
         List<GitHubSCMSource> srcs = Arrays.asList(
-                new GitHubSCMSource("example", "test", null),
-                new GitHubSCMSource("", "", "http://github.com/example/test")
+                new GitHubSCMSource("example", "test", null, "scan"),
+                new GitHubSCMSource("", "", "http://github.com/example/test", "raw")
         );
         for( GitHubSCMSource src: srcs) {
             FreeStyleProject job = j.createFreeStyleProject();
@@ -97,8 +97,8 @@ public class DefaultGitHubNotificationStrategyTest {
     @Test
     public void given_jobOrRun_then_differentURLs() throws Exception {
         List<GitHubSCMSource> srcs = Arrays.asList(
-                new GitHubSCMSource("example", "test", null),
-                new GitHubSCMSource("", "", "http://github.com/example/test")
+                new GitHubSCMSource("example", "test", null, "scan"),
+                new GitHubSCMSource("", "", "http://github.com/example/test", "raw")
         );
         for( GitHubSCMSource src: srcs) {
             FreeStyleProject job = j.createFreeStyleProject();
