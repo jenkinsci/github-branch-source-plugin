@@ -5,7 +5,7 @@
   <f:entry title="${%Credentials}" field="credentialsId">
     <c:select checkMethod="post"/>
   </f:entry>
-  <f:radioBlock name="isConfigurableByScan" value="scan" checked="${instance.isConfiguredByRepoScan()}" title="Github Repository Scan" inline="true">
+  <f:radioBlock name="configurableByScan" value="scan" checked="${instance.isConfiguredByRepoScan()}" title="Github Repository Scan" inline="true">
     <f:nested>
       <j:choose>
         <j:when test="${descriptor.apiUriSelectable}">
@@ -20,22 +20,21 @@
         </j:otherwise>
       </j:choose>
 
-      <f:entry title ="${%Owner}" field="repoOwner">
+      <f:entry title ="${%Owner}" field="repoOwnerInternal">
         <f:textbox/>
       </f:entry>
-      <f:entry title="${%Repository}" field="repository">
+      <f:entry title="${%Repository}" field="repositoryInternal">
         <f:select/>
       </f:entry>
 
     </f:nested>
   </f:radioBlock>
-  <f:radioBlock name="isConfigurableByScan" value="raw" checked="${!instance.isConfiguredByRepoScan()}" title="Github Repository HTTPs URL" inline="true">
+  <f:radioBlock name="configurableByScan" value="raw" checked="${!instance.isConfiguredByRepoScan()}" title="Github Repository HTTPs URL" inline="true">
     <f:nested>
       <f:entry title="HTTPS URL" field="rawUrl">
         <f:textbox/>
       </f:entry>
 
-<!--      <f:validateButton method="checkCredentials" title="Validate" with="rawUrl,credentialsId" />-->
     </f:nested>
   </f:radioBlock>
 

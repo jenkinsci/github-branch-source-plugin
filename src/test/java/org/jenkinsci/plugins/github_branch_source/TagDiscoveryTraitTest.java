@@ -46,22 +46,25 @@ public class TagDiscoveryTraitTest {
 
     @Test
     public void authority() throws Exception {
-        try (GitHubSCMSourceRequest probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect()).newRequest(new GitHubSCMSource("does-not-exist","http://does-not-exist.test", null), null)) {
+        try (GitHubSCMSourceRequest probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect())
+                .newRequest(new GitHubSCMSource("does-not-exist","http://does-not-exist.test"), null)) {
             TagDiscoveryTrait.TagSCMHeadAuthority instance = new TagDiscoveryTrait.TagSCMHeadAuthority();
             assertThat(instance.isTrusted(probe, new SCMHead("v1.0.0")), is(false));
             assertThat(instance.isTrusted(probe, new PullRequestSCMHead("PR-1", "does-not-exists",
-                    "http://does-not-exist.test", "feature/1", 1, new BranchSCMHead("master"), SCMHeadOrigin.DEFAULT, ChangeRequestCheckoutStrategy.MERGE)), is(false));
+                    "http://does-not-exist.test", "feature/1", 1, new BranchSCMHead("master"),
+                    SCMHeadOrigin.DEFAULT, ChangeRequestCheckoutStrategy.MERGE)), is(false));
             assertThat(instance.isTrusted(probe, new GitHubTagSCMHead("v1.0.0", 0L)), is(true));
         }
     }
     @Test
-    public void authority_with_rawUrl() throws Exception {
+    public void authority_with_repositoryUrl() throws Exception {
         try (GitHubSCMSourceRequest probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect()).newRequest(
-                new GitHubSCMSource("", "", "https://github.com/example/does-not-exist"), null)) {
+                new GitHubSCMSource("", "", "https://github.com/example/does-not-exist", "raw"), null)) {
             TagDiscoveryTrait.TagSCMHeadAuthority instance = new TagDiscoveryTrait.TagSCMHeadAuthority();
             assertThat(instance.isTrusted(probe, new SCMHead("v1.0.0")), is(false));
             assertThat(instance.isTrusted(probe, new PullRequestSCMHead("PR-1", "does-not-exists",
-                    "http://does-not-exist.test", "feature/1", 1, new BranchSCMHead("master"), SCMHeadOrigin.DEFAULT, ChangeRequestCheckoutStrategy.MERGE)), is(false));
+                    "http://does-not-exist.test", "feature/1", 1, new BranchSCMHead("master"),
+                    SCMHeadOrigin.DEFAULT, ChangeRequestCheckoutStrategy.MERGE)), is(false));
             assertThat(instance.isTrusted(probe, new GitHubTagSCMHead("v1.0.0", 0L)), is(true));
         }
     }

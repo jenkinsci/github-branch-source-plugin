@@ -63,13 +63,13 @@ public class ForkPullRequestDiscoveryTrait2Test {
         assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustPermission(), true);
     }
 
-    private void assertRoundTrip(WorkflowMultiBranchProject p, SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision> trust, boolean withRawUrl) throws Exception {
+    private void assertRoundTrip(WorkflowMultiBranchProject p, SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision> trust, boolean configuredByUrl) throws Exception {
 
         GitHubSCMSource s = null;
-        if (withRawUrl)
-            s = new GitHubSCMSource("", "", "https://github.com/nobody/nowhere");
+        if (configuredByUrl)
+            s = new GitHubSCMSource("", "", "https://github.com/nobody/nowhere", "raw");
         else
-            s = new GitHubSCMSource("nobody", "nowhere", null);
+            s = new GitHubSCMSource("nobody", "nowhere", null, "scan");
 
         p.setSourcesList(Collections.singletonList(new BranchSource(s)));
         s.setTraits(Collections.<SCMSourceTrait>singletonList(new ForkPullRequestDiscoveryTrait(0, trust)));

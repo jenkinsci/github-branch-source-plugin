@@ -277,9 +277,8 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
 
         @Override
         public PullRequestSCMHead migrate(@NonNull GitHubSCMSource source, @NonNull FixOrigin head) {
-            GitHubSCMSourceHelper helper = GitHubSCMSourceHelper.build(source);
             return new PullRequestSCMHead(head.getName(), head.getSourceOwner(), head.getSourceRepo(),
-                    head.getSourceBranch(), head.getNumber(), head.getTarget(), helper.owner.equalsIgnoreCase(head.getSourceOwner())
+                    head.getSourceBranch(), head.getNumber(), head.getTarget(), source.getRepoOwner().equalsIgnoreCase(head.getSourceOwner())
                                         ? SCMHeadOrigin.DEFAULT
                                         : new SCMHeadOrigin.Fork(head.getSourceOwner()), head.getCheckoutStrategy());
         }
@@ -328,10 +327,9 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         @Override
         public PullRequestSCMHead migrate(@NonNull GitHubSCMSource source, @NonNull FixMetadata head) {
             PullRequestSource src = source.retrievePullRequestSource(head.getNumber());
-            GitHubSCMSourceHelper helper = GitHubSCMSourceHelper.build(source);
             return new PullRequestSCMHead(head.getName(), src == null ? null : src.getSourceOwner(),
                     src == null ? null : src.getSourceRepo(), src == null ? null : src.getSourceBranch(),
-                    head.getNumber(), head.getTarget(), src != null && helper.owner.equalsIgnoreCase(src.getSourceOwner())
+                    head.getNumber(), head.getTarget(), src != null && source.getRepoOwner().equalsIgnoreCase(src.getSourceOwner())
                                         ? SCMHeadOrigin.DEFAULT
                                         : new SCMHeadOrigin.Fork(head.getSourceOwner()), head.getCheckoutStrategy());
         }

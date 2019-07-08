@@ -165,8 +165,8 @@ public class GitHubSCMSourceTest {
     @Parameterized.Parameters(name = "{index}: revision={0}")
     public static GitHubSCMSource[] revisions() {
         return new GitHubSCMSource[]{
-                new GitHubSCMSource("cloudbeers", "yolo", null),
-                new GitHubSCMSource("", "", "https://github.com/cloudbeers/yolo")
+                new GitHubSCMSource("cloudbeers", "yolo", null, "scan"),
+                new GitHubSCMSource("", "", "https://github.com/cloudbeers/yolo", "raw")
             };
     }
 
@@ -219,7 +219,7 @@ public class GitHubSCMSourceTest {
         if(StringUtils.isBlank(source.getRawUrl())) {
             source.setApiUri("http://localhost:" + githubApi.port());
         }else{
-            source = new GitHubSCMSource("", "", "http://localhost:" + githubApi.port() + "/cloudbeers/yolo");
+            source = new GitHubSCMSource("", "", "http://localhost:" + githubApi.port() + "/cloudbeers/yolo", "raw");
         }
         source.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, true), new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustContributors())));
         github = Connector.connect("http://localhost:" + githubApi.port(), null);

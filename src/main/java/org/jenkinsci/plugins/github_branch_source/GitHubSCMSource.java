@@ -204,6 +204,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     final String rawUrl;
 
     /**
+     * Defines if the repo is configured by Scan or RepositoryURL
+     * @since 2.2.0
+     */
+    @NonNull
+    transient String configurableByScan;
+
+    /**
      * The behaviours to apply to this source.
      * @since 2.2.0
      */
@@ -317,22 +324,38 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * @since 2.2.0
      */
     @DataBoundConstructor
-    public GitHubSCMSource(String repoOwner, String repository, String rawUrl, String isConfigurableByScan) {
-        if("raw".equals(isConfigurableByScan) ) {
+    public GitHubSCMSource(String repoOwnerInternal, String repositoryInternal, String rawUrl, String configurableByScan) {
+        this.configurableByScan = configurableByScan;
+        if(StringUtils.equals("raw", configurableByScan)) {
             this.rawUrl = rawUrl;
-            this.apiUri = "";
             this.repoOwner = "";
             this.repository = "";
         }else{
             this.rawUrl = "";
-            this.repoOwner = repoOwner;
-            this.repository = repository;
+            this.repoOwner = repoOwnerInternal;
+            this.repository = repositoryInternal;
         }
         pullRequestMetadataCache = new ConcurrentHashMap<>();
         pullRequestContributorCache = new ConcurrentHashMap<>();
         this.traits = new ArrayList<>();
     }
 
+    /**
+     * Legacy constructor.
+     *
+     * @param repoOwner the repository owner.
+     * @param repository the repository name.
+     * @since 2.2.0
+     */
+    @Deprecated
+    public GitHubSCMSource(String repoOwner, String repository) {
+        this(repoOwner, repository, null, "scan");
+    }
+
+    @Restricted(NoExternalUse.class)
+    public String getConfigurableByScan(){
+        return this.configurableByScan;
+    }
     /**
      * Legacy constructor.
      * @param id the source id.
@@ -348,7 +371,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                            @NonNull String checkoutCredentialsId,
                            @CheckForNull String scanCredentialsId, @NonNull String repoOwner,
                            @NonNull String repository) {
-        this(repoOwner, repository, null, null);
+        this(repoOwner, repository, null, "scan");
         setId(id);
         setApiUri(apiUri);
         setCredentialsId(scanCredentialsId);
@@ -360,6 +383,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
         }
     }
+
     @Restricted(NoExternalUse.class)
     public boolean isConfiguredByRepoScan(){
         return isBlank(this.rawUrl);
@@ -421,8 +445,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Exported
     @NonNull
     public String getRepoOwner() {
+        return GitHubSCMSourceHelper.build(this).owner;
+    }
+
+
+    @Nullable
+    @Restricted(NoExternalUse.class)
+    public String getRepoOwnerInternal() {
         return repoOwner;
     }
+
 
     /**
      * Gets the repository name.
@@ -431,6 +463,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Exported
     @NonNull
     public String getRepository() {
+        return GitHubSCMSourceHelper.build(this).repoName;
+    }
+
+    @Nullable
+    @Restricted(NoExternalUse.class)
+    public String getRepositoryInternal() {
         return repository;
     }
     /**
@@ -439,7 +477,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
 
     @Exported
-    @NonNull
+    @Nullable
     public String getRawUrl() {
         return rawUrl;
     }
@@ -526,6 +564,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (!StringUtils.equals(apiUri, GitHubConfiguration.normalizeApiUri(apiUri))) {
             setApiUri(apiUri);
         }
+
+        if( isBlank(this.rawUrl)){
+            configurableByScan = "scan";
+        }else{
+            configurableByScan = "raw";
+
+        }
+
         return this;
     }
 
@@ -2107,11 +2153,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
 
         @RequirePOST
-        public ListBoxModel doFillRepositoryItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri,
-                @QueryParameter String credentialsId, @QueryParameter String repoOwner, @QueryParameter String rawUrl) throws IOException {
+        public ListBoxModel doFillRepositoryInternalItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri,
+                @QueryParameter String credentialsId, @QueryParameter String repoOwnerInternal) throws IOException {
 
-            repoOwner = Util.fixEmptyAndTrim(repoOwner);
-            if (repoOwner == null) {
+            repoOwnerInternal = Util.fixEmptyAndTrim(repoOwnerInternal);
+            if (repoOwnerInternal == null) {
                 return new ListBoxModel();
             }
             if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
@@ -2138,7 +2184,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                     "Exception retrieving the repositories of the owner {0} on {1} with credentials {2}");
                             lr.setThrown(e);
                             lr.setParameters(new Object[]{
-                                    repoOwner, apiUri,
+                                    repoOwnerInternal, apiUri,
                                     credentials == null
                                             ? "anonymous access"
                                             : CredentialsNameProvider.name(credentials)
@@ -2146,7 +2192,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             LOGGER.log(lr);
                             throw new FillErrorResponse(e.getMessage(), false);
                         }
-                        if (myself != null && repoOwner.equalsIgnoreCase(myself.getLogin())) {
+                        if (myself != null && repoOwnerInternal.equalsIgnoreCase(myself.getLogin())) {
                             Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
                             for (GHRepository repo : myself.listRepositories(100, GHMyself.RepositoryListFilter.ALL)) {
                                 result.add(repo.getName());
@@ -2157,15 +2203,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
                     GHOrganization org = null;
                     try {
-                        org = github.getOrganization(repoOwner);
+                        org = github.getOrganization(repoOwnerInternal);
                     } catch (FileNotFoundException fnf) {
-                        LOGGER.log(Level.FINE, "There is not any GH Organization named {0}", repoOwner);
+                        LOGGER.log(Level.FINE, "There is not any GH Organization named {0}", repoOwnerInternal);
                     } catch (IOException e) {
                         LogRecord lr = new LogRecord(Level.WARNING,
                                 "Exception retrieving the repositories of the organization {0} on {1} with credentials {2}");
                         lr.setThrown(e);
                         lr.setParameters(new Object[]{
-                                repoOwner, apiUri,
+                                repoOwnerInternal, apiUri,
                                 credentials == null
                                         ? "anonymous access"
                                         : CredentialsNameProvider.name(credentials)
@@ -2173,32 +2219,32 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         LOGGER.log(lr);
                         throw new FillErrorResponse(e.getMessage(), false);
                     }
-                    if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
+                    if (org != null && repoOwnerInternal.equalsIgnoreCase(org.getLogin())) {
                         Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
                         LOGGER.log(Level.FINE, "as {0} looking for repositories in {1}",
-                                new Object[]{credentialsId, repoOwner});
+                                new Object[]{credentialsId, repoOwnerInternal});
                         PagedIterable<GHRepository> ghRepositories = org.listRepositories(100);
                         for (GHRepository repo : ghRepositories) {
                             LOGGER.log(Level.FINE, "as {0} found {1}/{2}",
-                                    new Object[]{credentialsId, repoOwner, repo.getName()});
+                                    new Object[]{credentialsId, repoOwnerInternal, repo.getName()});
                             result.add(repo.getName());
                         }
                         LOGGER.log(Level.FINE, "as {0} result of {1} is {2}",
-                                new Object[]{credentialsId, repoOwner, result});
+                                new Object[]{credentialsId, repoOwnerInternal, result});
                         return nameAndValueModel(result);
                     }
 
                     GHUser user = null;
                     try {
-                        user = github.getUser(repoOwner);
+                        user = github.getUser(repoOwnerInternal);
                     } catch (FileNotFoundException fnf) {
-                        LOGGER.log(Level.FINE, "There is not any GH User named {0}", repoOwner);
+                        LOGGER.log(Level.FINE, "There is not any GH User named {0}", repoOwnerInternal);
                     } catch (IOException e) {
                         LogRecord lr = new LogRecord(Level.WARNING,
                                 "Exception retrieving the repositories of the user {0} on {1} with credentials {2}");
                         lr.setThrown(e);
                         lr.setParameters(new Object[]{
-                                repoOwner, apiUri,
+                                repoOwnerInternal, apiUri,
                                 credentials == null
                                         ? "anonymous access"
                                         : CredentialsNameProvider.name(credentials)
@@ -2206,7 +2252,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         LOGGER.log(lr);
                         throw new FillErrorResponse(e.getMessage(), false);
                     }
-                    if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
+                    if (user != null && repoOwnerInternal.equalsIgnoreCase(user.getLogin())) {
                         Set<String> result = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
                         for (GHRepository repo : user.listRepositories(100)) {
                             result.add(repo.getName());
@@ -2222,7 +2268,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 LOGGER.log(Level.SEVERE, e.getMessage(), e);
                 throw new FillErrorResponse(e.getMessage(), false);
             }
-            throw new FillErrorResponse(Messages.GitHubSCMSource_NoMatchingOwner(repoOwner), true);
+            throw new FillErrorResponse(Messages.GitHubSCMSource_NoMatchingOwner(repoOwnerInternal), true);
         }
         /**
          * Creates a list box model from a list of values.

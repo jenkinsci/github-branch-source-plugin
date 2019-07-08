@@ -49,10 +49,10 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__configuredInstance__when__uninstantiating__then__deprecatedFieldsIgnored() throws Exception {
-        GitHubSCMSource instance = new GitHubSCMSource("repo-owner", "repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("repo-owner", "repo", null, "scan");
         instance.setId("test");
         assertThat(DescribableModel.uninstantiate2_(instance).toString(),
-                is("@github(id=test,repoOwner=repo-owner,repository=repo)")
+                is("@github(configurableByScan=scan,id=test,rawUrl=,repoOwnerInternal=repo-owner,repositoryInternal=repo)")
         );
         instance.setBuildOriginBranch(true);
         instance.setBuildOriginBranchWithPR(false);
@@ -65,10 +65,12 @@ public class GitHubSCMSourceTraitsTest {
         instance.setScanCredentialsId("foo");
         assertThat(DescribableModel.uninstantiate2_(instance).toString(),
                 is("@github("
+                        + "configurableByScan=scan,"
                         + "credentialsId=foo,"
                         + "id=test,"
-                        + "repoOwner=repo-owner,"
-                        + "repository=repo,"
+                        + "rawUrl=,"
+                        + "repoOwnerInternal=repo-owner,"
+                        + "repositoryInternal=repo,"
                         + "traits=["
                         + "@gitHubBranchDiscovery$org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait(strategyId=1), "
                         + "$OriginPullRequestDiscoveryTrait(strategyId=1), "
@@ -87,10 +89,9 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getApiUri(), is(nullValue()));
         assertThat(instance.getRepoOwner(), is("joseblas"));
         assertThat(instance.getRepository(), is("jx"));
-        assertThat(instance.isConfiguredByRepoScan(), is(true));
-        assertThat(instance.getCredentialsIdRaw(), is("abcd"));
+        assertThat(instance.isConfiguredByRepoScan(), is(false));
         assertThat(instance.getRawUrl(), is("https://github.com/joseblas/jx"));
-        assertThat(instance.getCredentialsId(), is(nullValue()));
+        assertThat(instance.getCredentialsId(), is("abcd"));
         assertThat(instance.getTraits(), is(Collections.<SCMSourceTrait>emptyList()));
         // Legacy API
         assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMSource.DescriptorImpl.SAME));
@@ -111,8 +112,7 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is(nullValue()));
-        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
-        assertThat(instance.isConfiguredByRepoScan(), is(false));
+        assertThat(instance.isConfiguredByRepoScan(), is(true));
         assertThat(instance.getRawUrl(), is(nullValue()));
         assertThat(instance.getTraits(), is(Collections.<SCMSourceTrait>emptyList()));
         // Legacy API
@@ -175,7 +175,6 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
-        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -217,7 +216,6 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
-        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -264,7 +262,6 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
-        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -306,7 +303,6 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
-        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -349,7 +345,6 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
-        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -392,7 +387,6 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
-        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -432,7 +426,6 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
-        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -469,7 +462,6 @@ public class GitHubSCMSourceTraitsTest {
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
         assertThat(instance.getRepository(), is("stunning-adventure"));
         assertThat(instance.getCredentialsId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
-        assertThat(instance.getCredentialsIdRaw(), is(nullValue()));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -502,14 +494,14 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__instance__when__setTraits_empty__then__traitsEmpty() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setTraits(Collections.<SCMSourceTrait>emptyList());
         assertThat(instance.getTraits(), is(Collections.<SCMSourceTrait>emptyList()));
     }
 
     @Test
     public void given__legacyCode__when__setBuildOriginBranch__then__traitsMaintained() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setTraits(Collections.<SCMSourceTrait>emptyList());
         assertThat(instance.getTraits(), is(Collections.<SCMSourceTrait>emptyList()));
         instance.setBuildOriginBranch(true);
@@ -541,7 +533,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__instance__when__setTraits__then__traitsSet() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setTraits(Arrays.asList(new BranchDiscoveryTrait(1),
                 new SSHCheckoutTrait("value")));
         assertThat(instance.getTraits(),
@@ -561,7 +553,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__instance__when__setApiUri__then__valueSet() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         assertThat("initial default", instance.getApiUri(), is(nullValue()));
         instance.setApiUri("https://github.test/api/v3");
         assertThat(instance.getApiUri(), is("https://github.test/api/v3"));
@@ -571,28 +563,28 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__instance__when__setCredentials_empty__then__credentials_null() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setCredentialsId("");
         assertThat(instance.getCredentialsId(), is(nullValue()));
     }
 
     @Test
     public void given__instance__when__setCredentials_null__then__credentials_null() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setCredentialsId("");
         assertThat(instance.getCredentialsId(), is(nullValue()));
     }
 
     @Test
     public void given__instance__when__setCredentials__then__credentials_set() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setCredentialsId("test");
         assertThat(instance.getCredentialsId(), is("test"));
     }
 
     @Test
     public void given__legacyCode_withoutExcludes__when__setIncludes_default__then__traitRemoved() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new WildcardSCMHeadFilterTrait("feature/*", "")
@@ -614,7 +606,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__legacyCode_withoutExcludes__when__setIncludes_value__then__traitUpdated() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new WildcardSCMHeadFilterTrait("feature/*", "")
@@ -638,7 +630,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__legacyCode_withoutTrait__when__setIncludes_value__then__traitAdded() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new SSHCheckoutTrait("someValue")
@@ -660,7 +652,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__legacyCode_withExcludes__when__setIncludes_default__then__traitUpdated() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new WildcardSCMHeadFilterTrait("feature/*", "feature/ignore"),
@@ -685,7 +677,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__legacyCode_withExcludes__when__setIncludes_value__then__traitUpdated() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new WildcardSCMHeadFilterTrait("feature/*", "feature/ignore"),
@@ -710,7 +702,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__legacyCode_withoutIncludes__when__setExcludes_default__then__traitRemoved() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new WildcardSCMHeadFilterTrait("*", "feature/ignore"),
@@ -733,7 +725,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__legacyCode_withoutIncludes__when__setExcludes_value__then__traitUpdated() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new WildcardSCMHeadFilterTrait("*", "feature/ignore"),
@@ -758,7 +750,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__legacyCode_withoutTrait__when__setExcludes_value__then__traitAdded() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new SSHCheckoutTrait("someValue")
@@ -780,7 +772,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__legacyCode_withIncludes__when__setExcludes_default__then__traitUpdated() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new WildcardSCMHeadFilterTrait("feature/*", "feature/ignore"),
@@ -805,7 +797,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__legacyCode_withIncludes__when__setExcludes_value__then__traitUpdated() {
-        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null);
+        GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo", null, "scan");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new WildcardSCMHeadFilterTrait("feature/*", ""),

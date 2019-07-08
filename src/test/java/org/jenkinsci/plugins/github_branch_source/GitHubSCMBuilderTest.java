@@ -89,11 +89,11 @@ public class GitHubSCMBuilderTest {
     public void setUp() throws IOException {
         owner = j.createProject(WorkflowMultiBranchProject.class);
         if (withRawUrl) {
-            source = new GitHubSCMSource("", "", "https://github.com/tester/test-repo");
+            source = new GitHubSCMSource("", "", "https://github.com/tester/test-repo", "raw");
             host = "github.com";
         }
         else
-            source = new GitHubSCMSource( "tester", "test-repo", null);
+            source = new GitHubSCMSource( "tester", "test-repo", null, "scan");
 
         owner.setSourcesList(Collections.singletonList(new BranchSource(source)));
         source.setOwner(owner);
