@@ -391,7 +391,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         return StringUtils.equals("scan",getConfigurableByScan());
     }
 
-
     /**
      * Returns the GitHub API end-point or {@code null} if {@link #GITHUB_URL}.
      *
@@ -581,9 +580,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             configurableByScan = "scan";
         }else{
             configurableByScan = "raw";
-
         }
-
         return this;
     }
 
@@ -631,7 +628,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * {@inheritDoc}
      */
     @Override
-
     public String getRemote() {
         GitHubSCMSourceHelper helper = getHelper();
         String uri = helper.apiURI;
