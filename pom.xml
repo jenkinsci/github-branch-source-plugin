@@ -25,7 +25,7 @@
         <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
         <jenkins.version>2.121.3</jenkins.version>
-        <scm-api.version>2.5.0-rc464.915933672136</scm-api.version> <!-- TODO https://github.com/jenkinsci/scm-api-plugin/pull/65 -->
+        <scm-api.version>2.6.2</scm-api.version>
     </properties>
 
     <scm>
