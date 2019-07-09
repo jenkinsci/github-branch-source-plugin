@@ -88,6 +88,7 @@ import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.OkHttpConnector;
 
 import static java.util.logging.Level.FINE;
+import static org.apache.commons.lang.StringUtils.isBlank;
 
 /**
  * Utilities that could perhaps be moved into {@code github-api}.
@@ -179,6 +180,11 @@ public class Connector {
                 context != null && !context.hasPermission(Item.EXTENDED_READ)) {
             return FormValidation.ok();
         }
+
+        if(isBlank(apiUri)){
+            return FormValidation.ok("No server specified");
+        }
+
         if (!scanCredentialsId.isEmpty()) {
             ListBoxModel options = listScanCredentials(context, apiUri);
             boolean found = false;

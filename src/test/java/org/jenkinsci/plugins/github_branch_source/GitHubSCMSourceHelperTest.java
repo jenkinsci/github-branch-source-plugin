@@ -6,6 +6,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.*;
 
 public class GitHubSCMSourceHelperTest {
@@ -34,6 +35,9 @@ public class GitHubSCMSourceHelperTest {
         assertThat(sut.repoName, is("jenkins"));
         assertThat(source.getRepoOwner(), is("jenkinsci"));
         assertThat(sut.url, is(new URL("https://github.beescloud.com/jenkinsci/jenkins")));
+
+        assertThat(source.getRepoOwnerInternal(), is("jenkinsci"));
+        assertThat(source.getRepositoryInternal(), is("jenkins"));
     }
     @Test
     public void rawUrl_non_github() throws MalformedURLException {
@@ -44,7 +48,7 @@ public class GitHubSCMSourceHelperTest {
         assertThat(sut.apiURI, is("https://mygithub.com/api/v3"));
         assertThat(sut.repo, is("jenkinsci/jenkins"));
         assertThat(sut.owner, is("jenkinsci"));
-        assertThat(source.getRepoOwnerInternal(), is(""));
+        assertThat(source.getRepoOwnerInternal(), is(nullValue()));
         assertThat(source.getRepoOwner(), is("jenkinsci"));
         assertThat(sut.repoName, is("jenkins"));
         assertThat(sut.url, is(new URL("https://mygithub.com/jenkinsci/jenkins")));
@@ -56,6 +60,7 @@ public class GitHubSCMSourceHelperTest {
         GitHubSCMSourceHelper sut = GitHubSCMSourceHelper.build(source);
 
         assertThat(sut.apiURI, is("https://mygithub.com/api/v3"));
+        assertThat(source.getRepoOwnerInternal(), is(nullValue()));
         assertThat(sut.repo, is("jenkinsci/jenkins"));
         assertThat(sut.owner, is("jenkinsci"));
         assertThat(sut.repoName, is("jenkins"));
@@ -75,6 +80,7 @@ public class GitHubSCMSourceHelperTest {
         assertThat(source.getRepoOwner(), is("jenkinsci"));
         assertThat(sut.repoName, is("jenkins"));
         assertThat(sut.url, is(new URL("https://github.com/jenkinsci/jenkins")));
+        assertThat(source.getRepoOwnerInternal(), is(nullValue()));
     }
 
     @Test

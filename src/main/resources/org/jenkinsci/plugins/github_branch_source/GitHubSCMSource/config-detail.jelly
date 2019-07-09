@@ -5,6 +5,15 @@
   <f:entry title="${%Credentials}" field="credentialsId">
     <c:select checkMethod="post"/>
   </f:entry>
+
+  <f:radioBlock name="configurableByScan" value="raw" checked="${!instance.isConfiguredByRepoScan()}" title="Github Repository HTTPs URL" inline="true">
+    <f:nested>
+      <f:entry title="HTTPS URL" field="rawUrl">
+        <f:textbox/>
+      </f:entry>
+      <f:validateButton method="checkRepoURL" title="Validate" progress="Validating access..." with="rawUrl,credentialsId"/>
+    </f:nested>
+  </f:radioBlock>
   <f:radioBlock name="configurableByScan" value="scan" checked="${instance.isConfiguredByRepoScan()}" title="Github Repository Scan" inline="true">
     <f:nested>
       <j:choose>
@@ -26,15 +35,7 @@
       <f:entry title="${%Repository}" field="repositoryInternal">
         <f:select/>
       </f:entry>
-
-    </f:nested>
-  </f:radioBlock>
-  <f:radioBlock name="configurableByScan" value="raw" checked="${!instance.isConfiguredByRepoScan()}" title="Github Repository HTTPs URL" inline="true">
-    <f:nested>
-      <f:entry title="HTTPS URL" field="rawUrl">
-        <f:textbox/>
-      </f:entry>
-
+      <f:validateButton method="checkRepoScan" title="Validate" progress="Validating access..." with="repoOwnerInternal,repositoryInternal,apiUri,credentialsId"/>
     </f:nested>
   </f:radioBlock>
 

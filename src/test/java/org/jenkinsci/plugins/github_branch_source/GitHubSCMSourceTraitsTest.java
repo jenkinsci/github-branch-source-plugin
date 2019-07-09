@@ -52,7 +52,7 @@ public class GitHubSCMSourceTraitsTest {
         GitHubSCMSource instance = new GitHubSCMSource("repo-owner", "repo", null, "scan");
         instance.setId("test");
         assertThat(DescribableModel.uninstantiate2_(instance).toString(),
-                is("@github(configurableByScan=scan,id=test,rawUrl=,repoOwnerInternal=repo-owner,repositoryInternal=repo)")
+                is("@github(configurableByScan=scan,id=test,repoOwnerInternal=repo-owner,repositoryInternal=repo)")
         );
         instance.setBuildOriginBranch(true);
         instance.setBuildOriginBranchWithPR(false);
@@ -68,7 +68,6 @@ public class GitHubSCMSourceTraitsTest {
                         + "configurableByScan=scan,"
                         + "credentialsId=foo,"
                         + "id=test,"
-                        + "rawUrl=,"
                         + "repoOwnerInternal=repo-owner,"
                         + "repositoryInternal=repo,"
                         + "traits=["
