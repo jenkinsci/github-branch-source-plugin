@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang.StringUtils;
@@ -117,7 +118,7 @@ public class GitHubSCMSourceHelper {
         }
     }
 
-    @NonNull
+    @CheckForNull
     private static String getRawUrlUri(String rawUrl) {
         String uri = rawUrl;
         URL url;
