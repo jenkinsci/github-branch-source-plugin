@@ -8,6 +8,7 @@
   <f:entry title="${%Repository URL}" field="repositoryURL">
     <f:textbox/>
   </f:entry>
+  <f:validateButton method="checkCredentials" title="Validate" progress="validating..." with="repositoryURL,credentialsId"></f:validateButton>
   <f:entry title="${%Behaviours}">
     <scm:traits field="traits"/>
   </f:entry>

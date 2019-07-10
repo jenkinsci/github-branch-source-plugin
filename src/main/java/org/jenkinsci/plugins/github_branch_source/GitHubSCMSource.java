@@ -66,6 +66,10 @@ public class GitHubSCMSource extends GitHubSCMSourceAbstract {
     @Symbol("github")
     @Extension
     public static class DescriptorImpl extends DescriptorAbstract {
+        @Override
+        public String getDisplayName() {
+            return Messages.GitHubSCMSource_DisplayName();
+        }
 
     }
 }

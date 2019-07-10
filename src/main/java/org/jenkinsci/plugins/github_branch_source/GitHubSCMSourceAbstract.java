@@ -1794,7 +1794,7 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
         }
     }
 
-    public static class DescriptorAbstract extends SCMSourceDescriptor {
+    public static abstract class DescriptorAbstract extends SCMSourceDescriptor {
 
         @Deprecated
         @Restricted(DoNotUse.class)
@@ -1835,11 +1835,6 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
         @Initializer(before = InitMilestone.PLUGINS_STARTED)
         public static void addAliases() {
             XSTREAM2.addCompatibilityAlias("org.jenkinsci.plugins.github_branch_source.OriginGitHubSCMSourceAbstract", GitHubSCMSourceAbstract.class);
-        }
-
-        @Override
-        public String getDisplayName() {
-            return Messages.GitHubSCMSource_DisplayName();
         }
 
         public ListBoxModel doFillCredentialsIdItems(@CheckForNull @AncestorInPath Item context,
