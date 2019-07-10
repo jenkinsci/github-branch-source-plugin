@@ -102,7 +102,7 @@ public class GitHubSCMSourceHttpsUrl extends GitHubSCMSourceAbstract {
     }
 
     public String getRepositoryURL(){
-        return getUrlBase(this.getApiUri()) +this.getRepoOwner()+"/"+ this.getRepository();
+        return getUrlBase(this.getApiUri()) +"/"+this.getRepoOwner()+"/"+ this.getRepository();
     }
 
     static String getUrlBase(String apiUri) {
