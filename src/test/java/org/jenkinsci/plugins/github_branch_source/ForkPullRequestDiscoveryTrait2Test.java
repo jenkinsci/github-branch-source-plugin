@@ -46,17 +46,35 @@ public class ForkPullRequestDiscoveryTrait2Test {
     @Test
     public void configRoundtrip() throws Exception {
         WorkflowMultiBranchProject p = r.createProject(WorkflowMultiBranchProject.class);
-        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustNobody());
-        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustEveryone());
-        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustContributors());
-        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustPermission());
+
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustNobody(), false);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustEveryone(), false);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustContributors(), false);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustPermission(), false);
     }
-    private void assertRoundTrip(WorkflowMultiBranchProject p, SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision> trust) throws Exception {
-        GitHubSCMSource s = new GitHubSCMSource("nobody", "nowhere");
+
+    @Test
+    public void configRoundtripWithRawUrl() throws Exception {
+        WorkflowMultiBranchProject p = r.createProject(WorkflowMultiBranchProject.class);
+
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustNobody(), true);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustEveryone(), true);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustContributors(), true);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustPermission(), true);
+    }
+
+    private void assertRoundTrip(WorkflowMultiBranchProject p, SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision> trust, boolean configuredByUrl) throws Exception {
+
+        GitHubSCMSourceAbstract s = null;
+        if (configuredByUrl)
+            s = new GitHubSCMSourceHttpsUrl("https://github.com/nobody/nowhere");
+        else
+            s = new GitHubSCMSource("nobody", "nowhere");
+
         p.setSourcesList(Collections.singletonList(new BranchSource(s)));
         s.setTraits(Collections.<SCMSourceTrait>singletonList(new ForkPullRequestDiscoveryTrait(0, trust)));
         r.configRoundtrip(p);
-        List<SCMSourceTrait> traits = ((GitHubSCMSource) p.getSourcesList().get(0).getSource()).getTraits();
+        List<SCMSourceTrait> traits = ((GitHubSCMSourceAbstract) p.getSourcesList().get(0).getSource()).getTraits();
         assertEquals(1, traits.size());
         assertEquals(trust.getClass(), ((ForkPullRequestDiscoveryTrait) traits.get(0)).getTrust().getClass());
     }

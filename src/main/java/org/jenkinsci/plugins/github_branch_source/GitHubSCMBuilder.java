@@ -111,7 +111,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
      * @param head     the {@link SCMHead}
      * @param revision the (optional) {@link SCMRevision}
      */
-    public GitHubSCMBuilder(@NonNull GitHubSCMSource source,
+    public GitHubSCMBuilder(@NonNull GitHubSCMSourceAbstract source,
                             @NonNull SCMHead head, @CheckForNull SCMRevision revision) {
         super(head, revision, /*dummy value*/guessRemote(source), source.getCredentialsId());
         this.context = source.getOwner();
@@ -147,7 +147,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
      * @param source the source.
      * @return the (possibly incorrect) best guess at the Git repository URL.
      */
-    private static String guessRemote(GitHubSCMSource source) {
+    private static String guessRemote(GitHubSCMSourceAbstract source) {
         String apiUri = StringUtils.removeEnd(source.getApiUri(), "/");
         if (StringUtils.isBlank(apiUri) || GitHubServerConfig.GITHUB_URL.equals(apiUri)) {
             apiUri = "https://github.com";

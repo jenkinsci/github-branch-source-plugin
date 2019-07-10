@@ -37,6 +37,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import java.net.MalformedURLException;
@@ -107,7 +108,7 @@ public class GitHubSCMSourceHttpsUrl extends GitHubSCMSourceAbstract {
 
     static String getUrlBase(String apiUri) {
         if(StringUtils.equals("https://api.github.com", apiUri)){
-            return "https://github.com/";
+            return "https://github.com";
         }else {
             return StringUtils.removeEnd(apiUri, "/api/v3");
         }

@@ -14,10 +14,7 @@ import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.BuildChooserSetting;
 import hudson.util.LogTaskListener;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.branch.BranchSource;
@@ -35,6 +32,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.Mockito;
 
@@ -42,6 +42,7 @@ import static java.util.logging.Level.FINEST;
 import static java.util.logging.Logger.getAnonymousLogger;
 import static jenkins.plugins.git.AbstractGitSCMSource.SCMRevisionImpl;
 import static jenkins.plugins.git.AbstractGitSCMSource.SpecificRevisionBuildChooser;
+import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
@@ -51,19 +52,32 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
-
+@RunWith(Parameterized.class)
 public class GitHubSCMBuilderTest {
     @ClassRule
     public static JenkinsRule j = new JenkinsRule();
-    private GitHubSCMSource source;
+    private GitHubSCMSourceAbstract source;
     private WorkflowMultiBranchProject owner;
+
+
+    @Parameters(name = "{index}: revision={0}")
+    public static GitHubSCMSourceAbstract[] revisions() {
+        return new GitHubSCMSourceAbstract[]{
+                new GitHubSCMSource("tester", "test-repo"),
+                new GitHubSCMSourceHttpsUrl("https://github.test/tester/test-repo")
+        };
+    }
+
+    public GitHubSCMBuilderTest(GitHubSCMSourceAbstract source){
+        this.source = source;
+    }
 
     @Before
     public void setUp() throws IOException {
         owner = j.createProject(WorkflowMultiBranchProject.class);
-        source = new GitHubSCMSource( "tester", "test-repo");
         owner.setSourcesList(Collections.singletonList(new BranchSource(source)));
         source.setOwner(owner);
+        source.setApiUri("");
         Credentials userPasswordCredential = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "user-pass", null, "git-user", "git-secret");
         Credentials sshPrivateKeyCredential = new BasicSSHUserPrivateKey(CredentialsScope.GLOBAL, "user-key", "git",
                 new BasicSSHUserPrivateKey.UsersPrivateKeySource(), null, null);

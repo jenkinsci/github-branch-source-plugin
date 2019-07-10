@@ -1,0 +1,6 @@
+<org.jenkinsci.plugins.github_branch_source.GitHubSCMSourceHttpsUrl>
+  <id>43de25eb-ddea-43f9-83c8-808eadcc19e3</id>
+  <repoOwner>cloudbeers</repoOwner>
+  <repository>stunning-adventure</repository>
+  <traits/>
+</org.jenkinsci.plugins.github_branch_source.GitHubSCMSourceHttpsUrl>

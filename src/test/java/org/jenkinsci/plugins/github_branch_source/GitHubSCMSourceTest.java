@@ -78,6 +78,8 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
@@ -101,7 +103,22 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
+@RunWith(Parameterized.class)
 public class GitHubSCMSourceTest {
+
+    public GitHubSCMSourceTest(GitHubSCMSourceAbstract source) {
+        this.source = source;
+    }
+
+    @Parameterized.Parameters(name = "{index}: revision={0}")
+    public static GitHubSCMSourceAbstract[] revisions() {
+        return new GitHubSCMSourceAbstract[]{
+                new GitHubSCMSource("cloudbeers", "yolo"),
+                new GitHubSCMSourceHttpsUrl("https://github.com/cloudbeers/yolo")
+        };
+    }
+
+
     /**
      * All tests in this class only use Jenkins for the extensions
      */
@@ -146,7 +163,7 @@ public class GitHubSCMSourceTest {
 
                     })
     );
-    private GitHubSCMSource source;
+    private GitHubSCMSourceAbstract source;
     private GitHub github;
     private GHRepository repo;
 
