@@ -170,7 +170,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
          */
         @Override
         public Class<? extends SCMSource> getSourceClass() {
-            return GitHubSCMSource.class;
+            return GitHubSCMSourceAbstract.class;
         }
 
         /**
