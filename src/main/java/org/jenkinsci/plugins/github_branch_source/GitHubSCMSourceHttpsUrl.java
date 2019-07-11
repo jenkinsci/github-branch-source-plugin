@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.util.FormValidation;
@@ -56,6 +57,7 @@ public class GitHubSCMSourceHttpsUrl extends AbstractGitHubSCMSource {
      * @param repositoryURL the repository URL.
      * @since 2.2.0
      */
+    @SuppressFBWarnings("NP_METHOD_PARAMETER_TIGHTENS_ANNOTATION")
     @DataBoundConstructor
     public GitHubSCMSourceHttpsUrl(@NonNull String repositoryURL) {
         super(Helper.getOwner(repositoryURL), Helper.getRepository(repositoryURL));
@@ -65,14 +67,6 @@ public class GitHubSCMSourceHttpsUrl extends AbstractGitHubSCMSource {
     public String getRepositoryURL(){
         return Helper.getUrlBase(this.getApiUri()) +"/"+this.getRepoOwner()+"/"+ this.getRepository();
     }
-
-//    static String getUrlBase(String apiUri) {
-//        if(StringUtils.equals("https://api.github.com", apiUri)){
-//            return "https://github.com";
-//        }else {
-//            return StringUtils.removeEnd(apiUri, "/api/v3");
-//        }
-//    }
 
     @Symbol("https url")
     @Extension
