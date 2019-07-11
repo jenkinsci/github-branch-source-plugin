@@ -48,7 +48,7 @@ import java.net.URL;
 
 import static org.apache.commons.lang.StringUtils.*;
 
-public class GitHubSCMSourceHttpsUrl extends AbstractGitHubSCMSource {
+public class GitHubSCMSourceHttpsUrl extends GitHubSCMSource {
 
     /**
      * Constructor, defaults to {@link #GITHUB_URL} as the end-point, and anonymous access, does not default any
