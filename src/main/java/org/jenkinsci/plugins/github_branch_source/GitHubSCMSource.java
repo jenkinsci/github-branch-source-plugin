@@ -1095,7 +1095,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
 
             if (request.process(new PullRequestSCMHead(
-                            pr, branchName, strategy == ChangeRequestCheckoutStrategy.MERGE
+                            ghRepository.getName(), pr, branchName, strategy == ChangeRequestCheckoutStrategy.MERGE
                     ),
                     null,
                     new SCMSourceRequest.ProbeLambda<PullRequestSCMHead, Void>() {
@@ -1308,7 +1308,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             }
                         }
                         PullRequestSCMHead head = new PullRequestSCMHead(
-                                pr, headName, strategy == ChangeRequestCheckoutStrategy.MERGE
+                                ghRepository.getName(), pr, headName, strategy == ChangeRequestCheckoutStrategy.MERGE
                         );
                         if (head.isMerge()) {
                             ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
