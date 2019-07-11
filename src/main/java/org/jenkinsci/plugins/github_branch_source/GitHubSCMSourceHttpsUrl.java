@@ -58,7 +58,7 @@ public class GitHubSCMSourceHttpsUrl extends AbstractGitHubSCMSource {
      */
     @DataBoundConstructor
     public GitHubSCMSourceHttpsUrl(@NonNull String repositoryURL) {
-        super( Helper.getOwner(repositoryURL), Helper.getRepository(repositoryURL));
+        super(Helper.getOwner(repositoryURL), Helper.getRepository(repositoryURL));
         setApiUri(Helper.getUrl(repositoryURL));
     }
 
@@ -66,13 +66,13 @@ public class GitHubSCMSourceHttpsUrl extends AbstractGitHubSCMSource {
         return Helper.getUrlBase(this.getApiUri()) +"/"+this.getRepoOwner()+"/"+ this.getRepository();
     }
 
-    static String getUrlBase(String apiUri) {
-        if(StringUtils.equals("https://api.github.com", apiUri)){
-            return "https://github.com";
-        }else {
-            return StringUtils.removeEnd(apiUri, "/api/v3");
-        }
-    }
+//    static String getUrlBase(String apiUri) {
+//        if(StringUtils.equals("https://api.github.com", apiUri)){
+//            return "https://github.com";
+//        }else {
+//            return StringUtils.removeEnd(apiUri, "/api/v3");
+//        }
+//    }
 
     @Symbol("https url")
     @Extension
@@ -108,12 +108,7 @@ public class GitHubSCMSourceHttpsUrl extends AbstractGitHubSCMSource {
             try {
 
                 URL url = new URL(repositoryURL);
-                String apiUri;
-                if ("github.com".equals(url.getHost())){
-                    apiUri = "https://api." + url.getHost();//if github.com => api.github.com, otherwise github enterprise
-                }else {
-                    apiUri = "https://" + url.getHost() + "/api/v3";
-                }
+                String apiUri = Helper.getUrl(repositoryURL);
                 GitHub github = Connector.connect(apiUri, credentials);
                 github.checkApiUrlValidity();
 
@@ -125,41 +120,41 @@ public class GitHubSCMSourceHttpsUrl extends AbstractGitHubSCMSource {
                 github.getRepository(removeEnd(path, ".git"));
                 sb.append("Connection Valid. ");
             } catch (IOException e) {
-                return FormValidation.error("Error accessing the server. "+ sb.toString());
+                return FormValidation.error(e.getMessage() + ". Error accessing the server. "+ sb.toString());
             }
             return FormValidation.ok(sb.toString());
         }
 
         private void checkRepository(String path) throws IOException {
             if (isBlank(path))
-                throw new IOException("Illegal repository: "+ path);
+                throw new IOException("Illegal repository URL: "+ path);
             String[] split = path.split("/");
             if( split == null || split.length != 2){
-                throw new IOException("Illegal repository: "+ path);
+                throw new IOException("Illegal repository URL: "+ path);
             }else if( isBlank(split[0])|| isBlank(split[1])){
-                throw new IOException("Illegal repository: "+ path);
+                throw new IOException("Illegal repository URL: "+ path);
             }
         }
     }
 
     private static class Helper {
 
-        static final int OWNER = 1;
-        static final int REPOSITORY = 2;
+        private static final int OWNER = 1;
+        private static final int REPOSITORY = 2;
 
-        static String getOwner(String repo){
+        private static String getOwner(String repo){
             return Helper. getElementAt(repo, 1);
         }
 
-        static String getRepository(String repo){
+        private static String getRepository(String repo){
             return Helper.getElementAt(repo, 2);
         }
 
-        static String getUrl(String repositoryURL) {
+        private static String getUrl(String repositoryURL) {
             return Helper.getElementAt(repositoryURL, 0);
         }
 
-        static String getElementAt(String repo, int pos){
+        private static String getElementAt(String repo, int pos){
             try {
                 URL url = new URL(repo);
                 if (pos == OWNER || pos == REPOSITORY) {
