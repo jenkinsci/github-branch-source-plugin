@@ -42,7 +42,6 @@ import static java.util.logging.Level.FINEST;
 import static java.util.logging.Logger.getAnonymousLogger;
 import static jenkins.plugins.git.AbstractGitSCMSource.SCMRevisionImpl;
 import static jenkins.plugins.git.AbstractGitSCMSource.SpecificRevisionBuildChooser;
-import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
@@ -56,19 +55,19 @@ import static org.mockito.Mockito.mock;
 public class GitHubSCMBuilderTest {
     @ClassRule
     public static JenkinsRule j = new JenkinsRule();
-    private GitHubSCMSourceAbstract source;
+    private AbstractGitHubSCMSource source;
     private WorkflowMultiBranchProject owner;
 
 
     @Parameters(name = "{index}: revision={0}")
-    public static GitHubSCMSourceAbstract[] revisions() {
-        return new GitHubSCMSourceAbstract[]{
+    public static AbstractGitHubSCMSource[] revisions() {
+        return new AbstractGitHubSCMSource[]{
                 new GitHubSCMSource("tester", "test-repo"),
                 new GitHubSCMSourceHttpsUrl("https://github.test/tester/test-repo")
         };
     }
 
-    public GitHubSCMBuilderTest(GitHubSCMSourceAbstract source){
+    public GitHubSCMBuilderTest(AbstractGitHubSCMSource source){
         this.source = source;
     }
 

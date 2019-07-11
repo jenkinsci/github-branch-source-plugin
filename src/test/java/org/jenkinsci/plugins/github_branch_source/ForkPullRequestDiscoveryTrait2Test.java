@@ -65,7 +65,7 @@ public class ForkPullRequestDiscoveryTrait2Test {
 
     private void assertRoundTrip(WorkflowMultiBranchProject p, SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision> trust, boolean configuredByUrl) throws Exception {
 
-        GitHubSCMSourceAbstract s = null;
+        AbstractGitHubSCMSource s = null;
         if (configuredByUrl)
             s = new GitHubSCMSourceHttpsUrl("https://github.com/nobody/nowhere");
         else
@@ -74,7 +74,7 @@ public class ForkPullRequestDiscoveryTrait2Test {
         p.setSourcesList(Collections.singletonList(new BranchSource(s)));
         s.setTraits(Collections.<SCMSourceTrait>singletonList(new ForkPullRequestDiscoveryTrait(0, trust)));
         r.configRoundtrip(p);
-        List<SCMSourceTrait> traits = ((GitHubSCMSourceAbstract) p.getSourcesList().get(0).getSource()).getTraits();
+        List<SCMSourceTrait> traits = ((AbstractGitHubSCMSource) p.getSourcesList().get(0).getSource()).getTraits();
         assertEquals(1, traits.size());
         assertEquals(trust.getClass(), ((ForkPullRequestDiscoveryTrait) traits.get(0)).getTrust().getClass());
     }

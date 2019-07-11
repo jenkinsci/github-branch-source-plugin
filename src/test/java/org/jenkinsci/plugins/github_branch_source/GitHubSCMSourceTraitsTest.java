@@ -1,16 +1,12 @@
 package org.jenkinsci.plugins.github_branch_source;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMSourceTrait;
-import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.structs.describable.DescribableModel;
 import org.junit.ClassRule;
@@ -42,12 +38,12 @@ public class GitHubSCMSourceTraitsTest {
     @Rule
     public TestName currentTestName = new TestName();
 
-    private GitHubSCMSourceAbstract load() {
+    private AbstractGitHubSCMSource load() {
         return load(currentTestName.getMethodName());
     }
 
-    private GitHubSCMSourceAbstract load(String dataSet) {
-        return (GitHubSCMSourceAbstract) Jenkins.XSTREAM2.fromXML(
+    private AbstractGitHubSCMSource load(String dataSet) {
+        return (AbstractGitHubSCMSource) Jenkins.XSTREAM2.fromXML(
                 getClass().getResource(getClass().getSimpleName() + "/" + dataSet + ".xml"));
     }
 
@@ -84,7 +80,7 @@ public class GitHubSCMSourceTraitsTest {
     }
     @Test
     public void given__configuredInstance__when__uninstantiating__then__deprecatedFieldsIgnored_with_repositoryURL() throws Exception {
-        GitHubSCMSourceAbstract instance = new GitHubSCMSourceHttpsUrl("https://github.com/repo-owner/repo");
+        AbstractGitHubSCMSource instance = new GitHubSCMSourceHttpsUrl("https://github.com/repo-owner/repo");
         instance.setId("test");
         assertThat(DescribableModel.uninstantiate2_(instance).toString(),
                 is("@https url(id=test,repositoryURL=https://github.com/repo-owner/repo)")
@@ -115,7 +111,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void modern() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
         assertThat(instance.getApiUri(), is(nullValue()));
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
@@ -135,7 +131,7 @@ public class GitHubSCMSourceTraitsTest {
     }
     @Test
     public void modern_repositoryURL() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getId(), is("43de25eb-ddea-43f9-83c8-808eadcc19e3"));
         assertThat(instance.getApiUri(), is(nullValue()));
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
@@ -156,7 +152,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void basic_cloud() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getId(), is("org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator"
                 + "::https://api.github.com"
                 + "::cloudbeers"
@@ -193,7 +189,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void basic_server() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getId(), is("org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator"
                 + "::https://github.test/api/v3"
                 + "::cloudbeers"
@@ -234,7 +230,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void custom_checkout_credentials() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getId(), is("org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator"
                 + "::https://github.test/api/v3"
                 + "::cloudbeers"
@@ -280,7 +276,7 @@ public class GitHubSCMSourceTraitsTest {
     @Issue("JENKINS-45467")
     @Test
     public void same_checkout_credentials() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getId(), is("org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator"
                 + "::https://github.test/api/v3"
                 + "::cloudbeers"
@@ -321,7 +317,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void exclude_branches() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getId(), is("org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator"
                 + "::https://api.github.com"
                 + "::cloudbeers"
@@ -363,7 +359,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void limit_branches() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getId(), is("org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator"
                 + "::https://api.github.com"
                 + "::cloudbeers"
@@ -405,7 +401,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void use_agent_checkout() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getId(), is("org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator"
                 + "::https://api.github.com"
                 + "::cloudbeers"
@@ -849,7 +845,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_000000() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 empty()
         );
@@ -857,7 +853,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_000001() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 contains(
                         Matchers.<SCMSourceTrait>allOf(
@@ -870,7 +866,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_000010() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 contains(
                         Matchers.<SCMSourceTrait>allOf(
@@ -883,7 +879,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_000011() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 contains(
                         Matchers.<SCMSourceTrait>allOf(
@@ -896,7 +892,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_000100() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 contains(
                         Matchers.<SCMSourceTrait>allOf(
@@ -909,7 +905,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_000101() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -926,7 +922,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_000110() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -943,7 +939,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_000111() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -960,7 +956,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_001000() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 contains(
                         Matchers.<SCMSourceTrait>allOf(
@@ -973,7 +969,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_001001() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -990,7 +986,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_001010() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1007,7 +1003,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_001011() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1024,7 +1020,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_001100() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 contains(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1037,7 +1033,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_001101() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1054,7 +1050,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_001110() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1071,7 +1067,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_001111() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1088,7 +1084,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_010000() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 contains(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1102,7 +1098,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_010001() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1120,7 +1116,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_010010() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1138,7 +1134,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_010011() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1156,7 +1152,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_010100() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1174,7 +1170,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_010101() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1196,7 +1192,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_010110() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1218,7 +1214,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_010111() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1240,7 +1236,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_011000() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1258,7 +1254,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_011001() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1280,7 +1276,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_011010() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1302,7 +1298,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_011011() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1324,7 +1320,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_011100() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1342,7 +1338,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_011101() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1364,7 +1360,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_011110() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1386,7 +1382,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_011111() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1408,7 +1404,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_100000() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 contains(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1422,7 +1418,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_100001() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1440,7 +1436,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_100010() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1458,7 +1454,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_100011() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1476,7 +1472,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_100100() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1494,7 +1490,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_100101() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1516,7 +1512,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_100110() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1538,7 +1534,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_100111() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1560,7 +1556,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_101000() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1578,7 +1574,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_101001() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1600,7 +1596,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_101010() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1622,7 +1618,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_101011() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1644,7 +1640,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_101100() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1662,7 +1658,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_101101() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1684,7 +1680,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_101110() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1706,7 +1702,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_101111() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1728,7 +1724,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_110000() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 contains(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1742,7 +1738,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_110001() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1760,7 +1756,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_110010() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1778,7 +1774,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_110011() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1796,7 +1792,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_110100() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1814,7 +1810,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_110101() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1836,7 +1832,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_110110() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1858,7 +1854,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_110111() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1880,7 +1876,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_111000() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1898,7 +1894,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_111001() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1920,7 +1916,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_111010() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1942,7 +1938,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_111011() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1964,7 +1960,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_111100() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -1982,7 +1978,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_111101() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -2004,7 +2000,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_111110() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(
@@ -2026,7 +2022,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void build_111111() throws Exception {
-        GitHubSCMSourceAbstract instance = load();
+        AbstractGitHubSCMSource instance = load();
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
                         Matchers.<SCMSourceTrait>allOf(

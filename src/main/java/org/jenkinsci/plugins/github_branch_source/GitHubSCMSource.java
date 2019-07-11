@@ -26,12 +26,77 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
+import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMSourceTrait;
+import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-public class GitHubSCMSource extends GitHubSCMSourceAbstract {
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+
+public class GitHubSCMSource extends AbstractGitHubSCMSource {
+
+    //////////////////////////////////////////////////////////////////////
+    // Legacy Configuration fields
+    //////////////////////////////////////////////////////////////////////
+
+    /**
+     * Legacy field.
+     */
+    @Deprecated
+    private transient String scanCredentialsId;
+    /**
+     * Legacy field.
+     */
+    @Deprecated
+    private transient String checkoutCredentialsId;
+    /**
+     * Legacy field.
+     */
+    @Deprecated
+    private String includes;
+    /**
+     * Legacy field.
+     */
+    @Deprecated
+    private String excludes;
+    /**
+     * Legacy field.
+     */
+    @Deprecated
+    private transient Boolean buildOriginBranch;
+    /**
+     * Legacy field.
+     */
+    @Deprecated
+    private transient Boolean buildOriginBranchWithPR;
+    /**
+     * Legacy field.
+     */
+    @Deprecated
+    private transient Boolean buildOriginPRMerge;
+    /**
+     * Legacy field.
+     */
+    @Deprecated
+    private transient Boolean buildOriginPRHead;
+    /**
+     * Legacy field.
+     */
+    @Deprecated
+    private transient Boolean buildForkPRMerge;
+    /**
+     * Legacy field.
+     */
+    @Deprecated
+    private transient Boolean buildForkPRHead;
+
 
     /**
      * Constructor, defaults to {@link #GITHUB_URL} as the end-point, and anonymous access, does not default any
@@ -72,4 +137,68 @@ public class GitHubSCMSource extends GitHubSCMSourceAbstract {
         }
 
     }
+
+    /**
+     * Use defaults for old settings.
+     */
+    @SuppressWarnings("ConstantConditions")
+    @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="Only non-null after we set them here!")
+    private Object readResolve() {
+        if (scanCredentialsId != null) {
+            credentialsId = scanCredentialsId;
+        }
+        if (pullRequestMetadataCache == null) {
+            pullRequestMetadataCache = new ConcurrentHashMap<>();
+        }
+        if (pullRequestContributorCache == null) {
+            pullRequestContributorCache = new ConcurrentHashMap<>();
+        }
+        if (traits == null) {
+            boolean buildOriginBranch = this.buildOriginBranch == null || this.buildOriginBranch;
+            boolean buildOriginBranchWithPR = this.buildOriginBranchWithPR == null || this.buildOriginBranchWithPR;
+            boolean buildOriginPRMerge = this.buildOriginPRMerge != null && this.buildOriginPRMerge;
+            boolean buildOriginPRHead = this.buildOriginPRHead != null && this.buildOriginPRHead;
+            boolean buildForkPRMerge = this.buildForkPRMerge == null || this.buildForkPRMerge;
+            boolean buildForkPRHead = this.buildForkPRHead != null && this.buildForkPRHead;
+            List<SCMSourceTrait> traits = new ArrayList<>();
+            if (buildOriginBranch || buildOriginBranchWithPR) {
+                traits.add(new BranchDiscoveryTrait(buildOriginBranch, buildOriginBranchWithPR));
+            }
+            if (buildOriginPRMerge || buildOriginPRHead) {
+                EnumSet<ChangeRequestCheckoutStrategy> s = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
+                if (buildOriginPRMerge) {
+                    s.add(ChangeRequestCheckoutStrategy.MERGE);
+                }
+                if (buildOriginPRHead) {
+                    s.add(ChangeRequestCheckoutStrategy.HEAD);
+                }
+                traits.add(new OriginPullRequestDiscoveryTrait(s));
+            }
+            if (buildForkPRMerge || buildForkPRHead) {
+                EnumSet<ChangeRequestCheckoutStrategy> s = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
+                if (buildForkPRMerge) {
+                    s.add(ChangeRequestCheckoutStrategy.MERGE);
+                }
+                if (buildForkPRHead) {
+                    s.add(ChangeRequestCheckoutStrategy.HEAD);
+                }
+                traits.add(new ForkPullRequestDiscoveryTrait(s, new ForkPullRequestDiscoveryTrait.TrustPermission()));
+            }
+            if (!"*".equals(includes) || !"".equals(excludes)) {
+                traits.add(new WildcardSCMHeadFilterTrait(includes, excludes));
+            }
+            if (checkoutCredentialsId != null
+                    && !DescriptorAbstract.SAME.equals(checkoutCredentialsId)
+                    && !checkoutCredentialsId.equals(scanCredentialsId)) {
+                traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
+            }
+            this.traits = traits;
+        }
+        if (!StringUtils.equals(apiUri, GitHubConfiguration.normalizeApiUri(apiUri))) {
+            setApiUri(apiUri);
+        }
+        return this;
+    }
+
+
 }

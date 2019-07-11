@@ -75,7 +75,6 @@ import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -106,13 +105,13 @@ import static org.junit.Assert.assertThat;
 @RunWith(Parameterized.class)
 public class GitHubSCMSourceTest {
 
-    public GitHubSCMSourceTest(GitHubSCMSourceAbstract source) {
+    public GitHubSCMSourceTest(AbstractGitHubSCMSource source) {
         this.source = source;
     }
 
     @Parameterized.Parameters(name = "{index}: revision={0}")
-    public static GitHubSCMSourceAbstract[] revisions() {
-        return new GitHubSCMSourceAbstract[]{
+    public static AbstractGitHubSCMSource[] revisions() {
+        return new AbstractGitHubSCMSource[]{
                 new GitHubSCMSource("cloudbeers", "yolo"),
                 new GitHubSCMSourceHttpsUrl("https://github.com/cloudbeers/yolo")
         };
@@ -163,7 +162,7 @@ public class GitHubSCMSourceTest {
 
                     })
     );
-    private GitHubSCMSourceAbstract source;
+    private AbstractGitHubSCMSource source;
     private GitHub github;
     private GHRepository repo;
 

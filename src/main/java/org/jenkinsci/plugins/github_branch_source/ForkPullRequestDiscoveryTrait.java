@@ -181,7 +181,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
          */
         @Override
         public Class<? extends SCMSource> getSourceClass() {
-            return GitHubSCMSourceAbstract.class;
+            return AbstractGitHubSCMSource.class;
         }
 
         /**

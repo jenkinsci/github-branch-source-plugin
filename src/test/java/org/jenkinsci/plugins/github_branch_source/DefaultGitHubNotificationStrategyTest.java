@@ -48,11 +48,11 @@ public class DefaultGitHubNotificationStrategyTest {
 
     @Test
     public void given_basicJob_then_singleNotification() throws Exception {
-        List<GitHubSCMSourceAbstract> srcs = Arrays.asList(
+        List<AbstractGitHubSCMSource> srcs = Arrays.asList(
                 new GitHubSCMSource("example", "test"),
                 new GitHubSCMSourceHttpsUrl("http://github.com/example/test")
         );
-        for( GitHubSCMSourceAbstract src: srcs) {
+        for( AbstractGitHubSCMSource src: srcs) {
             FreeStyleProject job = j.createFreeStyleProject();
             FreeStyleBuild run = j.buildAndAssertSuccess(job);
             DefaultGitHubNotificationStrategy instance = new DefaultGitHubNotificationStrategy();
@@ -66,11 +66,11 @@ public class DefaultGitHubNotificationStrategyTest {
 
     @Test
     public void given_differentSCMheads_then_distinctNotifications() throws Exception {
-        List<GitHubSCMSourceAbstract> srcs = Arrays.asList(
+        List<AbstractGitHubSCMSource> srcs = Arrays.asList(
                 new GitHubSCMSource("example", "test"),
                 new GitHubSCMSourceHttpsUrl("http://github.com/example/test")
         );
-        for( GitHubSCMSourceAbstract src: srcs) {
+        for( AbstractGitHubSCMSource src: srcs) {
             FreeStyleProject job = j.createFreeStyleProject();
             FreeStyleBuild run = j.buildAndAssertSuccess(job);
             DefaultGitHubNotificationStrategy instance = new DefaultGitHubNotificationStrategy();
@@ -96,11 +96,11 @@ public class DefaultGitHubNotificationStrategyTest {
 
     @Test
     public void given_jobOrRun_then_differentURLs() throws Exception {
-        List<GitHubSCMSourceAbstract> srcs = Arrays.asList(
+        List<AbstractGitHubSCMSource> srcs = Arrays.asList(
                 new GitHubSCMSource("example", "test"),
                 new GitHubSCMSourceHttpsUrl("http://github.com/example/test")
         );
-        for( GitHubSCMSourceAbstract src: srcs) {
+        for( AbstractGitHubSCMSource src: srcs) {
             FreeStyleProject job = j.createFreeStyleProject();
             FreeStyleBuild run = j.buildAndAssertSuccess(job);
             DefaultGitHubNotificationStrategy instance = new DefaultGitHubNotificationStrategy();

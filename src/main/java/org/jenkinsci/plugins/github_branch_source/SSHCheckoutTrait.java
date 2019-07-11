@@ -38,7 +38,6 @@ import hudson.model.Queue;
 import hudson.model.queue.Tasks;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
-import hudson.scm.SCMDescriptor;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -133,7 +132,7 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
          */
         @Override
         public Class<? extends SCMSource> getSourceClass() {
-            return GitHubSCMSourceAbstract.class;
+            return AbstractGitHubSCMSource.class;
         }
 
         /**

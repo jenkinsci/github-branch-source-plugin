@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015-2017 CloudBees, Inc.
+ * Copyright 2019 CloudBees, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
-import hudson.Extension;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
@@ -45,7 +44,6 @@ import hudson.model.Actionable;
 import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.plugins.git.extensions.GitSCMExtension;
-import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.LogTaskListener;
@@ -72,14 +70,12 @@ import jenkins.scm.impl.trait.Selection;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.Constants;
-import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.*;
 import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.export.Exported;
@@ -103,24 +99,24 @@ import static hudson.Functions.isWindows;
 import static hudson.model.Items.XSTREAM2;
 import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
 
-public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
+public abstract class AbstractGitHubSCMSource extends AbstractGitSCMSource {
 
     public static final String VALID_GITHUB_REPO_NAME = "^[0-9A-Za-z._-]+$";
     public static final String VALID_GITHUB_USER_NAME = "^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$";
     public static final String VALID_GIT_SHA1 = "^[a-fA-F0-9]{40}$";
     public static final String GITHUB_URL = GitHubServerConfig.GITHUB_URL;
-    private static final Logger LOGGER = Logger.getLogger(GitHubSCMSourceAbstract.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(AbstractGitHubSCMSource.class.getName());
     private static final String R_PULL = Constants.R_REFS + "pull/";
     /**
      * How long to delay events received from GitHub in order to allow the API caches to sync.
      */
     private static /*mostly final*/ int eventDelaySeconds =
-            Math.min(300, Math.max(0, Integer.getInteger(GitHubSCMSourceAbstract.class.getName() + ".eventDelaySeconds", 5)));
+            Math.min(300, Math.max(0, Integer.getInteger(AbstractGitHubSCMSource.class.getName() + ".eventDelaySeconds", 5)));
     /**
      * How big (in megabytes) an on-disk cache to keep of GitHub API responses. Cache is per repo, per credentials.
      */
     private static /*mostly final*/ int cacheSize =
-            Math.min(1024, Math.max(0, Integer.getInteger(GitHubSCMSourceAbstract.class.getName() + ".cacheSize", isWindows() ? 0 : 20)));
+            Math.min(1024, Math.max(0, Integer.getInteger(AbstractGitHubSCMSource.class.getName() + ".cacheSize", isWindows() ? 0 : 20)));
     /**
      * Lock to guard access to the {@link #pullRequestSourceMap} field and prevent concurrent GitHub queries during
      * a 1.x to 2.2.0+ upgrade.
@@ -137,14 +133,14 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
      * The GitHub end-point or {@code null} if {@link #GITHUB_URL} is implied.
      */
     @CheckForNull // TODO migrate to non-null with configuration of GITHUB_URL by default
-    private String apiUri;
+    protected String apiUri;
 
     /**
      * Credentials for GitHub API; currently only supports username/password (personal access token).
      * @since 2.2.0
      */
     @CheckForNull
-    private String credentialsId;
+    protected String credentialsId;
 
     /**
      * The repository owner.
@@ -163,62 +159,8 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
      * @since 2.2.0
      */
     @NonNull
-    private List<SCMSourceTrait> traits;
+    protected List<SCMSourceTrait> traits;
 
-    //////////////////////////////////////////////////////////////////////
-    // Legacy Configuration fields
-    //////////////////////////////////////////////////////////////////////
-
-    /**
-     * Legacy field.
-     */
-    @Deprecated
-    private transient String scanCredentialsId;
-    /**
-     * Legacy field.
-     */
-    @Deprecated
-    private transient String checkoutCredentialsId;
-    /**
-     * Legacy field.
-     */
-    @Deprecated
-    private String includes;
-    /**
-     * Legacy field.
-     */
-    @Deprecated
-    private String excludes;
-    /**
-     * Legacy field.
-     */
-    @Deprecated
-    private transient Boolean buildOriginBranch;
-    /**
-     * Legacy field.
-     */
-    @Deprecated
-    private transient Boolean buildOriginBranchWithPR;
-    /**
-     * Legacy field.
-     */
-    @Deprecated
-    private transient Boolean buildOriginPRMerge;
-    /**
-     * Legacy field.
-     */
-    @Deprecated
-    private transient Boolean buildOriginPRHead;
-    /**
-     * Legacy field.
-     */
-    @Deprecated
-    private transient Boolean buildForkPRMerge;
-    /**
-     * Legacy field.
-     */
-    @Deprecated
-    private transient Boolean buildForkPRHead;
 
     //////////////////////////////////////////////////////////////////////
     // Run-time cached state
@@ -244,12 +186,12 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
      * The cache of {@link ObjectMetadataAction} instances for each open PR.
      */
     @NonNull
-    private transient /*effectively final*/ Map<Integer,ObjectMetadataAction> pullRequestMetadataCache;
+    protected transient /*effectively final*/ Map<Integer,ObjectMetadataAction> pullRequestMetadataCache;
     /**
      * The cache of {@link ObjectMetadataAction} instances for each open PR.
      */
     @NonNull
-    private transient /*effectively final*/ Map<Integer,ContributorMetadataAction> pullRequestContributorCache;
+    protected  transient /*effectively final*/ Map<Integer,ContributorMetadataAction> pullRequestContributorCache;
 
     /**
      * Used during upgrade from 1.x to 2.2.0+ only.
@@ -270,8 +212,7 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
      * @param repository the repository name.
      * @since 2.2.0
      */
-//    @DataBoundConstructor
-    public GitHubSCMSourceAbstract(@NonNull String repoOwner, @NonNull String repository) {
+    public AbstractGitHubSCMSource(@NonNull String repoOwner, @NonNull String repository) {
         this.repoOwner = repoOwner;
         this.repository = repository;
         pullRequestMetadataCache = new ConcurrentHashMap<>();
@@ -290,7 +231,7 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
      * @param repository the repository name.
      */
     @Deprecated
-    public GitHubSCMSourceAbstract(@CheckForNull String id, @CheckForNull String apiUri, @NonNull String checkoutCredentialsId,
+    public AbstractGitHubSCMSource(@CheckForNull String id, @CheckForNull String apiUri, @NonNull String checkoutCredentialsId,
                                    @CheckForNull String scanCredentialsId, @NonNull String repoOwner,
                                    @NonNull String repository) {
         this(repoOwner, repository);
@@ -380,7 +321,7 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
     }
 
     /**
-     * Sets the behaviours that are applied to this {@link GitHubSCMSourceAbstract}.
+     * Sets the behaviours that are applied to this {@link AbstractGitHubSCMSource}.
      * @param traits the behaviours that are to be applied.
      */
     @DataBoundSetter
@@ -388,67 +329,6 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
         this.traits = new ArrayList<>(Util.fixNull(traits));
     }
 
-    /**
-     * Use defaults for old settings.
-     */
-    @SuppressWarnings("ConstantConditions")
-    @SuppressFBWarnings(value="RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification="Only non-null after we set them here!")
-    private Object readResolve() {
-        if (scanCredentialsId != null) {
-            credentialsId = scanCredentialsId;
-        }
-        if (pullRequestMetadataCache == null) {
-            pullRequestMetadataCache = new ConcurrentHashMap<>();
-        }
-        if (pullRequestContributorCache == null) {
-            pullRequestContributorCache = new ConcurrentHashMap<>();
-        }
-        if (traits == null) {
-            boolean buildOriginBranch = this.buildOriginBranch == null || this.buildOriginBranch;
-            boolean buildOriginBranchWithPR = this.buildOriginBranchWithPR == null || this.buildOriginBranchWithPR;
-            boolean buildOriginPRMerge = this.buildOriginPRMerge != null && this.buildOriginPRMerge;
-            boolean buildOriginPRHead = this.buildOriginPRHead != null && this.buildOriginPRHead;
-            boolean buildForkPRMerge = this.buildForkPRMerge == null || this.buildForkPRMerge;
-            boolean buildForkPRHead = this.buildForkPRHead != null && this.buildForkPRHead;
-            List<SCMSourceTrait> traits = new ArrayList<>();
-            if (buildOriginBranch || buildOriginBranchWithPR) {
-                traits.add(new BranchDiscoveryTrait(buildOriginBranch, buildOriginBranchWithPR));
-            }
-            if (buildOriginPRMerge || buildOriginPRHead) {
-                EnumSet<ChangeRequestCheckoutStrategy> s = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
-                if (buildOriginPRMerge) {
-                    s.add(ChangeRequestCheckoutStrategy.MERGE);
-                }
-                if (buildOriginPRHead) {
-                    s.add(ChangeRequestCheckoutStrategy.HEAD);
-                }
-                traits.add(new OriginPullRequestDiscoveryTrait(s));
-            }
-            if (buildForkPRMerge || buildForkPRHead) {
-                EnumSet<ChangeRequestCheckoutStrategy> s = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
-                if (buildForkPRMerge) {
-                    s.add(ChangeRequestCheckoutStrategy.MERGE);
-                }
-                if (buildForkPRHead) {
-                    s.add(ChangeRequestCheckoutStrategy.HEAD);
-                }
-                traits.add(new ForkPullRequestDiscoveryTrait(s, new ForkPullRequestDiscoveryTrait.TrustPermission()));
-            }
-            if (!"*".equals(includes) || !"".equals(excludes)) {
-                traits.add(new WildcardSCMHeadFilterTrait(includes, excludes));
-            }
-            if (checkoutCredentialsId != null
-                    && !DescriptorAbstract.SAME.equals(checkoutCredentialsId)
-                    && !checkoutCredentialsId.equals(scanCredentialsId)) {
-                traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
-            }
-            this.traits = traits;
-        }
-        if (!StringUtils.equals(apiUri, GitHubConfiguration.normalizeApiUri(apiUri))) {
-            setApiUri(apiUri);
-        }
-        return this;
-    }
 
     /**
      * Returns how long to delay events received from GitHub in order to allow the API caches to sync.
@@ -467,7 +347,7 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
      */
     @Restricted(NoExternalUse.class) // to allow configuration from system groovy console
     public static void setEventDelaySeconds(int eventDelaySeconds) {
-        GitHubSCMSourceAbstract.eventDelaySeconds = Math.min(300, Math.max(0, eventDelaySeconds));
+        AbstractGitHubSCMSource.eventDelaySeconds = Math.min(300, Math.max(0, eventDelaySeconds));
     }
 
     /**
@@ -487,7 +367,7 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
      */
     @Restricted(NoExternalUse.class) // to allow configuration from system groovy console
     public static void setCacheSize(int cacheSize) {
-        GitHubSCMSourceAbstract.cacheSize = Math.min(1024, Math.max(0, cacheSize));
+        AbstractGitHubSCMSource.cacheSize = Math.min(1024, Math.max(0, cacheSize));
     }
 
     /**
@@ -549,7 +429,7 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
             if (trait instanceof SSHCheckoutTrait) {
                 return StringUtils.defaultString(
                         ((SSHCheckoutTrait) trait).getCredentialsId(),
-                        GitHubSCMSourceAbstract.DescriptorAbstract.ANONYMOUS
+                        AbstractGitHubSCMSource.DescriptorAbstract.ANONYMOUS
                 );
             }
         }
@@ -1834,7 +1714,7 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
 
         @Initializer(before = InitMilestone.PLUGINS_STARTED)
         public static void addAliases() {
-            XSTREAM2.addCompatibilityAlias("org.jenkinsci.plugins.github_branch_source.OriginGitHubSCMSourceAbstract", GitHubSCMSourceAbstract.class);
+            XSTREAM2.addCompatibilityAlias("org.jenkinsci.plugins.github_branch_source.OriginGitHubSCMSourceAbstract", AbstractGitHubSCMSource.class);
         }
 
         public ListBoxModel doFillCredentialsIdItems(@CheckForNull @AncestorInPath Item context,
@@ -2184,7 +2064,7 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
                         .state(GHIssueState.OPEN)
                         .list());
             } catch (IOException | InterruptedException e) {
-                throw new GitHubSCMSourceAbstract.WrappedException(e);
+                throw new AbstractGitHubSCMSource.WrappedException(e);
             }
         }
 
@@ -2303,7 +2183,7 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
                 });
                 return values;
             } catch (IOException | InterruptedException e) {
-                throw new GitHubSCMSourceAbstract.WrappedException(e);
+                throw new AbstractGitHubSCMSource.WrappedException(e);
             }
         }
     }
@@ -2404,7 +2284,7 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
                     }
                 };
             } catch (IOException | InterruptedException e) {
-                throw new GitHubSCMSourceAbstract.WrappedException(e);
+                throw new AbstractGitHubSCMSource.WrappedException(e);
             }
         }
     }
@@ -2446,7 +2326,7 @@ public abstract class GitHubSCMSourceAbstract extends AbstractGitSCMSource {
                 try {
                     mergeable = pr.getMergeable();
                 } catch (IOException e) {
-                    throw new GitHubSCMSourceAbstract.WrappedException(e);
+                    throw new AbstractGitHubSCMSource.WrappedException(e);
                 }
                 if (Boolean.FALSE.equals(mergeable)) {
                     switch (strategy) {

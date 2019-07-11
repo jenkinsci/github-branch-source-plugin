@@ -39,7 +39,6 @@ import org.kohsuke.github.GitHub;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import java.io.IOException;
@@ -48,7 +47,7 @@ import java.net.URL;
 
 import static org.apache.commons.lang.StringUtils.*;
 
-public class GitHubSCMSourceHttpsUrl extends GitHubSCMSourceAbstract {
+public class GitHubSCMSourceHttpsUrl extends AbstractGitHubSCMSource {
 
     /**
      * Constructor, defaults to {@link #GITHUB_URL} as the end-point, and anonymous access, does not default any
