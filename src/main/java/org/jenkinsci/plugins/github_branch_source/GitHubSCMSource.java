@@ -2095,8 +2095,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
         @RequirePOST
         public ListBoxModel doFillRepositoryItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri,
-                @QueryParameter String credentialsId, @QueryParameter String repoOwner) throws IOException {
-
+                @QueryParameter String credentialsId, @QueryParameter String repoOwner, @QueryParameter boolean isConfiguredByUrlDynamicValue) throws IOException {
+            if (isConfiguredByUrlDynamicValue) {
+                return new ListBoxModel(); // Using the URL-based configuration, don't scan for repositories.
+            }
             repoOwner = Util.fixEmptyAndTrim(repoOwner);
             if (repoOwner == null) {
                 return new ListBoxModel();
