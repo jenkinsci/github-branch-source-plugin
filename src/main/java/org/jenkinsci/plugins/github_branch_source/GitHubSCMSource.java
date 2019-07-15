@@ -314,22 +314,25 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * @param repoOwner the repository owner.
      * @param repository the repository name.
      * @param repositoryUrl HTML URL for the repository. If specified, takes precedence over repoOwner and repository.
+     * @param isConfiguredByUrlDynamicValue Whether to use repositoryUrl or repoOwner/repository for configuration.
      * @throws IllegalArgumentException if repositoryUrl is specified but invalid.
      * @since 2.2.0
      */
+    // isConfiguredByUrlDynamicValue is used to decide which radioBlock in the UI the user had selected when they submitted the form.
     @DataBoundConstructor
-    public GitHubSCMSource(String repoOwner, String repository, String repositoryUrl) {
-        if (StringUtils.isBlank(repositoryUrl)) {
+    public GitHubSCMSource(String repoOwner, String repository, String repositoryUrl, boolean isConfiguredByUrlDynamicValue) {
+        if (!isConfiguredByUrlDynamicValue) {
+            this.apiUri = GITHUB_URL;
             this.repoOwner = repoOwner;
             this.repository = repository;
             this.repositoryUrl = null;
         } else {
             GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
+            this.apiUri = info.getApiUri();
             this.repoOwner = info.getRepoOwner();
             this.repository = info.getRepository();
             this.repositoryUrl = info.getRepositoryUrl();
         }
-        this.apiUri = GITHUB_URL;
         pullRequestMetadataCache = new ConcurrentHashMap<>();
         pullRequestContributorCache = new ConcurrentHashMap<>();
         this.traits = new ArrayList<>();
@@ -344,7 +347,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @Deprecated
     public GitHubSCMSource(String repoOwner, String repository) {
-        this(repoOwner, repository, null);
+        this(repoOwner, repository, null, false);
     }
 
     /**
@@ -362,7 +365,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                            @NonNull String checkoutCredentialsId,
                            @CheckForNull String scanCredentialsId, @NonNull String repoOwner,
                            @NonNull String repository) {
-        this(repoOwner, repository, null);
+        this(repoOwner, repository, null, false);
         setId(id);
         setApiUri(apiUri);
         setCredentialsId(scanCredentialsId);
@@ -376,7 +379,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     @Restricted(NoExternalUse.class)
-    public boolean isConfiguredByUrl() {
+    public boolean getIsConfiguredByUrlDynamicValue() {
         return repositoryUrl != null;
     }
 
@@ -398,6 +401,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @DataBoundSetter
     public void setApiUri(@CheckForNull String apiUri) {
+        // TODO: What should happen when this is called and this instance is configured by URL? Nothing?
         apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmptyAndTrim(apiUri));
         if (apiUri == null) {
             apiUri = GITHUB_URL;
@@ -453,9 +457,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * @return the repository URL as specified by the user.
      */
     @Restricted(NoExternalUse.class)
-    @CheckForNull
+    @NonNull // Always returns a value so that users can always use the URL-based configuration when reconfiguring.
     public String getRepositoryUrl() {
-        return repositoryUrl;
+        if (repositoryUrl != null) {
+            return repositoryUrl;
+        } else {
+            // TODO: Use constants or something
+            return "https://github.com/" + repoOwner + '/' + repository;
+        }
     }
 
     /**

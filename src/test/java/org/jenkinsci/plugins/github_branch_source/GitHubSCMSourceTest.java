@@ -161,8 +161,8 @@ public class GitHubSCMSourceTest {
     @Parameterized.Parameters(name = "{index}: revision={0}")
     public static GitHubSCMSource[] revisions() {
         return new GitHubSCMSource[]{
-                new GitHubSCMSource("cloudbeers", "yolo", null),
-                new GitHubSCMSource("", "", "https://github.com/cloudbeers/yolo")
+                new GitHubSCMSource("cloudbeers", "yolo", null, false),
+                new GitHubSCMSource("", "", "https://github.com/cloudbeers/yolo", true)
             };
     }
 

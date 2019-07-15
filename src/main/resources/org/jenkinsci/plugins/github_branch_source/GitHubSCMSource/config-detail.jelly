@@ -2,18 +2,6 @@
 <j:jelly xmlns:j="jelly:core" xmlns:c="/lib/credentials"
          xmlns:f="/lib/form"
          xmlns:scm="/jenkins/scm/api/form">
-  <j:choose>
-    <j:when test="${descriptor.apiUriSelectable}">
-    <f:entry title="${%API endpoint}" field="apiUri">
-      <f:select/>
-    </f:entry>
-    </j:when>
-    <j:otherwise>
-      <f:invisibleEntry>
-        <f:select field="apiUri"/>
-      </f:invisibleEntry>
-    </j:otherwise>
-  </j:choose>
   <f:entry title="${%Credentials}" field="credentialsId">
     <c:select checkMethod="post"/>
   </f:entry>
@@ -30,6 +18,18 @@
   </f:radioBlock>
   <f:radioBlock name="isConfiguredByUrl" value="false" checked="false" title="${%Repository Scan}" inline="true">
     <f:nested>
+      <j:choose>
+        <j:when test="${descriptor.apiUriSelectable}">
+        <f:entry title="${%API endpoint}" field="apiUri">
+          <f:select/>
+        </f:entry>
+        </j:when>
+        <j:otherwise>
+          <f:invisibleEntry>
+            <f:select field="apiUri"/>
+          </f:invisibleEntry>
+        </j:otherwise>
+      </j:choose>
       <f:entry title ="${%Owner}" field="repoOwner">
         <f:textbox/>
       </f:entry>

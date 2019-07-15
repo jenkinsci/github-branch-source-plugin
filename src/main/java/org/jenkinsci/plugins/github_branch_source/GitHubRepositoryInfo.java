@@ -38,6 +38,9 @@ import java.net.URL;
  */
 class GitHubRepositoryInfo {
     @NonNull
+    private final String apiUri;
+
+    @NonNull
     private final String repoOwner;
 
     @NonNull
@@ -46,10 +49,15 @@ class GitHubRepositoryInfo {
     @NonNull
     private final String repositoryUrl;
 
-    private GitHubRepositoryInfo(String repoOwner, String repository, String repositoryUrl) {
+    private GitHubRepositoryInfo(String apiUri, String repoOwner, String repository, String repositoryUrl) {
+        this.apiUri = apiUri;
         this.repoOwner = repoOwner;
         this.repository = repository;
         this.repositoryUrl = repositoryUrl;
+    }
+
+    public String getApiUri() {
+        return apiUri;
     }
 
     public String getRepoOwner() {
@@ -66,7 +74,7 @@ class GitHubRepositoryInfo {
 
     @NonNull
     public static GitHubRepositoryInfo forRepositoryUrl(@NonNull String repositoryUrl) {
-        String trimmedRepoUrl = StringUtils.removeEnd(repositoryUrl.trim(), ".git");
+        String trimmedRepoUrl = repositoryUrl.trim();
         if (StringUtils.isBlank(trimmedRepoUrl)) {
             throw new IllegalArgumentException("Repository URL must not be empty");
         }
@@ -76,14 +84,31 @@ class GitHubRepositoryInfo {
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException(e);
         }
+        if (!url.getProtocol().equals("http") && !url.getProtocol().equals("https")) {
+            throw new IllegalArgumentException("Invalid repository URL scheme (must be HTTPS or HTTP): " + url.getProtocol());
+        }
+        String apiUri = guessApiUri(url);
         String[] pathParts = StringUtils.removeStart(url.getPath(), "/").split("/");
         if (pathParts.length != 2) {
             throw new IllegalArgumentException("Invalid repository URL: " + repositoryUrl);
         } else {
             String repoOwner = pathParts[0];
             String repository = pathParts[1];
-            return new GitHubRepositoryInfo(repoOwner, repository, repositoryUrl.trim());
+            return new GitHubRepositoryInfo(apiUri, repoOwner, repository, repositoryUrl.trim());
         }
+    }
+
+    private static String guessApiUri(URL repositoryUrl) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(repositoryUrl.getProtocol());
+        sb.append("://");
+        sb.append(repositoryUrl.getHost());
+        if (repositoryUrl.getPort() != -1) {
+            sb.append(':');
+            sb.append(repositoryUrl.getPort());
+        }
+        sb.append('/').append(GitHubSCMBuilder.API_V3);
+        return GitHubConfiguration.normalizeApiUri(sb.toString());
     }
 
 }

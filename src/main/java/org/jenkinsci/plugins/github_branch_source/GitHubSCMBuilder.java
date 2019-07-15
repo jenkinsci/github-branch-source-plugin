@@ -72,7 +72,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
     /**
      * The GitHub API suffix for GitHub Server.
      */
-    private static final String API_V3 = "api/v3";
+    static final String API_V3 = "api/v3";
     /**
      * The context within which credentials should be resolved.
      */

@@ -75,7 +75,7 @@ public class GitHubSCMBuilderTest {
     public void setUp() throws IOException {
         owner = j.createProject(WorkflowMultiBranchProject.class);
         if (configuredByUrl) {
-            source = new GitHubSCMSource("", "", "https://github.com/tester/test-repo.git");
+            source = new GitHubSCMSource("", "", "https://github.com/tester/test-repo", true);
         } else {
             source = new GitHubSCMSource( "tester", "test-repo");
         }
