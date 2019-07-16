@@ -27,27 +27,29 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import hudson.model.TaskListener;
+import hudson.util.ListBoxModel;
 import jenkins.model.GlobalConfiguration;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
+import org.kohsuke.github.GitHub;
 import org.kohsuke.stapler.StaplerRequest;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.*;
+
 @Extension public class GitHubConfiguration extends GlobalConfiguration {
+
 
     public static GitHubConfiguration get() {
         return GlobalConfiguration.all().get(GitHubConfiguration.class);
     }
 
     private List<Endpoint> endpoints;
+
+    private ApiRateLimitChecker apiRateLimitChecker;
 
     public GitHubConfiguration() {
         load();
@@ -61,6 +63,19 @@ import org.kohsuke.stapler.StaplerRequest;
     @NonNull
     public synchronized List<Endpoint> getEndpoints() {
         return endpoints == null ? Collections.<Endpoint>emptyList() : Collections.unmodifiableList(endpoints);
+    }
+
+    @NonNull
+    public ApiRateLimitChecker getApiRateLimitChecker() {
+        if (apiRateLimitChecker == null) {
+            return ApiRateLimitChecker.ThrottleForNormalize;
+        }
+        return apiRateLimitChecker;
+    }
+
+    public synchronized void setApiRateLimitChecker(@CheckForNull ApiRateLimitChecker apiRateLimitChecker) {
+        this.apiRateLimitChecker = apiRateLimitChecker;
+        save();
     }
 
     /**
@@ -213,4 +228,11 @@ import org.kohsuke.stapler.StaplerRequest;
         return null;
     }
 
+    public ListBoxModel doFillApiRateLimitCheckerItems() {
+        ListBoxModel items = new ListBoxModel();
+        for (ApiRateLimitChecker mode : ApiRateLimitChecker.values()) {
+            items.add(mode.getDisplayName(), mode.name());
+        }
+        return items;
+    }
 }
