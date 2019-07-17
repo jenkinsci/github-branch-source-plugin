@@ -76,7 +76,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         this.metadata = copy.metadata;
     }
 
-    PullRequestSCMHead(String repoName, GHPullRequest pr, String name, boolean merge) {
+    PullRequestSCMHead(GHPullRequest pr, String name, boolean merge) {
         super(name);
         // the merge flag is encoded into the name, so safe to store here
         this.merge = merge;
@@ -92,7 +92,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
             this.origin = SCMHeadOrigin.DEFAULT;
         } else {
             // if the forked repo name differs from the upstream repo name
-            this.origin = pr.getHead().getRepository().getName().equalsIgnoreCase(repoName)
+            this.origin = pr.getHead().getRepository().getName().equalsIgnoreCase(pr.getBase().getRepository().getName())
                     ? new SCMHeadOrigin.Fork(this.sourceOwner)
                     : new SCMHeadOrigin.Fork(pr.getHead().getRepository().getFullName());
         }

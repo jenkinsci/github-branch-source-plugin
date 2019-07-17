@@ -324,12 +324,12 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                     switch (strategy) {
                         case MERGE:
                             // it will take a call to GitHub to get the merge commit, so let the event receiver poll
-                            head = new PullRequestSCMHead(prRepoName, ghPullRequest, branchName, true);
+                            head = new PullRequestSCMHead(ghPullRequest, branchName, true);
                             revision = null;
                             break;
                         default:
                             // Give the event receiver the data we have so they can revalidate
-                            head = new PullRequestSCMHead(prRepoName, ghPullRequest, branchName, false);
+                            head = new PullRequestSCMHead(ghPullRequest, branchName, false);
                             revision = new PullRequestSCMRevision(
                                     head,
                                     ghPullRequest.getBase().getSha(),
