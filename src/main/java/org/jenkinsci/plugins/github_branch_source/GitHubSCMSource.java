@@ -75,6 +75,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource;
@@ -112,6 +113,9 @@ import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.jenkinsci.plugins.github_branch_source.PullRequestSCMHead;
 import org.jenkinsci.plugins.github_branch_source.PullRequestSCMRevision;
+import org.jenkinsci.plugins.structs.describable.CustomDescribableModel;
+import org.jenkinsci.plugins.structs.describable.DescribableModel;
+import org.jenkinsci.plugins.structs.describable.UninstantiatedDescribable;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -1894,7 +1898,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     @Symbol("github")
     @Extension
-    public static class DescriptorImpl extends SCMSourceDescriptor {
+    public static class DescriptorImpl extends SCMSourceDescriptor implements CustomDescribableModel {
 
         @Deprecated
         @Restricted(DoNotUse.class)
@@ -1942,6 +1946,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return Messages.GitHubSCMSource_DisplayName();
         }
 
+        @Nonnull
+        public Map<String, Object> customInstantiate(@Nonnull Map<String, Object> arguments) {
+            return arguments;
+        }
+//
+        @Nonnull
+        public UninstantiatedDescribable customUninstantiate(@Nonnull UninstantiatedDescribable ud) {
+            Map<String, Object> scmArguments = new HashMap<>(ud.getArguments());
+            scmArguments.remove("repositoryUrl");
+            scmArguments.remove("isConfiguredByUrlDynamicValue");
+            return ud.withArguments(scmArguments);
+        }
+
         public ListBoxModel doFillCredentialsIdItems(@CheckForNull @AncestorInPath Item context,
                                                      @QueryParameter String apiUri,
                                                      @QueryParameter String credentialsId) {
@@ -1959,6 +1976,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                                        @QueryParameter String apiUri,
                                                        @QueryParameter String value) {
             return Connector.checkScanCredentials(context, apiUri, value);
+        }
+
+        @RequirePOST
+        @Restricted(NoExternalUse.class)
+        public FormValidation doXXXX(@CheckForNull @AncestorInPath Item context){
+            return FormValidation.ok();
         }
 
         @RequirePOST
@@ -2103,8 +2126,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             throw new FillErrorResponse(Messages.GitHubSCMSource_CouldNotConnectionGithub(credentialsId),true);
         }
         @RequirePOST
-        public ListBoxModel doFillRepositoryItems(@CheckForNull @AncestorInPath Item context, @QueryParameter String apiUri,
-                @QueryParameter String credentialsId, @QueryParameter String repoOwner, @QueryParameter boolean isConfiguredByUrlDynamicValue) throws IOException {
+        public ListBoxModel doFillRepositoryItems(@CheckForNull @AncestorInPath Item context,
+                                                  @QueryParameter String apiUri,
+                                                  @QueryParameter String credentialsId,
+                                                  @QueryParameter String repoOwner,
+                                                  @QueryParameter String isConfiguredByUrl,
+                                                  @QueryParameter boolean isConfiguredByUrlDynamicValue) throws IOException {
             if (isConfiguredByUrlDynamicValue) {
                 return new ListBoxModel(); // Using the URL-based configuration, don't scan for repositories.
             }

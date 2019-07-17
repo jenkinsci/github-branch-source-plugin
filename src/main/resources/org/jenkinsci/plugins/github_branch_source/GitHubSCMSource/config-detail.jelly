@@ -34,7 +34,7 @@
         <f:textbox/>
       </f:entry>
       <f:entry title="${%Repository}" field="repository">
-        <f:select/>
+            <f:select/>
       </f:entry>
     </f:nested>
   </f:radioBlock>
