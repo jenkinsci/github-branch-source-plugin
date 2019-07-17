@@ -16,7 +16,7 @@
       <f:validateButton method="validateRepositoryUrlAndCredentials" title="${%Validate}" with="repositoryUrl,credentialsId" />
     </f:nested>
   </f:radioBlock>
-  <f:radioBlock name="isConfiguredByUrl" value="false" checked="false" title="${%Repository Scan}" inline="true">
+  <f:radioBlock name="isConfiguredByUrl" value="false" checked="false" title="${%Repository Scan - Deprecated}" inline="true">
     <f:nested>
       <j:choose>
         <j:when test="${descriptor.apiUriSelectable}">
