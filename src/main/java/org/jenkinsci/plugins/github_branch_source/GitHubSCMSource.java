@@ -1948,7 +1948,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         @Nonnull
         public Map<String, Object> customInstantiate(@Nonnull Map<String, Object> arguments) {
-            return arguments;
+            Map<String, Object> arguments2 = new HashMap<>(arguments);
+            arguments2.remove("repositoryUrl");
+            arguments2.remove("isConfiguredByUrlDynamicValue");
+            return arguments2;
         }
 //
         @Nonnull

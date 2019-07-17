@@ -26,6 +26,7 @@
         <java.level>8</java.level>
         <jenkins.version>2.138.4</jenkins.version>
         <scm-api.version>2.6.3</scm-api.version>
+        <useBeta>true</useBeta>
     </properties>
 
     <scm>
