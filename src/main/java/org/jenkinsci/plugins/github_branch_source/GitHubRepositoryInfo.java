@@ -30,6 +30,9 @@ import org.apache.commons.lang.StringUtils;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import static org.jenkinsci.plugins.github_branch_source.GitHubSCMSource.GITHUB_COM;
+import static org.jenkinsci.plugins.github_branch_source.GitHubSCMSource.GITHUB_URL;
+
 /**
  * Used to compute values for GitHubSCMSource from a user-specified repository URL.
  * 
@@ -102,12 +105,19 @@ class GitHubRepositoryInfo {
         StringBuilder sb = new StringBuilder();
         sb.append(repositoryUrl.getProtocol());
         sb.append("://");
-        sb.append(repositoryUrl.getHost());
+        boolean isGitHub = GITHUB_COM.equals(repositoryUrl.getHost());
+        if(isGitHub){
+            sb.append(GITHUB_URL);
+        }else {
+            sb.append(repositoryUrl.getHost());
+        }
         if (repositoryUrl.getPort() != -1) {
             sb.append(':');
             sb.append(repositoryUrl.getPort());
         }
-        sb.append('/').append(GitHubSCMBuilder.API_V3);
+        if(!isGitHub) {
+            sb.append('/').append(GitHubSCMBuilder.API_V3);
+        }
         return GitHubConfiguration.normalizeApiUri(sb.toString());
     }
 

@@ -50,7 +50,6 @@ public class GitHubSCMSourceTraitsTest {
                 getClass().getResource(getClass().getSimpleName() + "/" + dataSet + ".xml"));
     }
 
-//    @Ignore("TODO: Need to use CustomDescribableModel to remove isConfiguredByUrlDynamicValue and repositoryUrl in some cases")
     @Test
     public void given__configuredInstance__when__uninstantiating__then__deprecatedFieldsIgnored() throws Exception {
         GitHubSCMSource instance = new GitHubSCMSource("repo-owner", "repo");
@@ -62,7 +61,7 @@ public class GitHubSCMSourceTraitsTest {
         GitHubSCMSource recreated = (GitHubSCMSource) model.instantiate(udMap);
 
         assertThat(DescribableModel.uninstantiate2_(recreated).toString(),
-                is("@github(id=test,repository=repo,repoOwner=repo-owner)")
+                is("@github(id=test,repoOwner=repo-owner,repository=repo)")
         );
         recreated.setBuildOriginBranch(true);
         recreated.setBuildOriginBranchWithPR(false);
@@ -75,18 +74,17 @@ public class GitHubSCMSourceTraitsTest {
         recreated.setScanCredentialsId("foo");
         assertThat(DescribableModel.uninstantiate2_(recreated).toString(),
                 is("@github("
+                        + "credentialsId=foo,"
+                        + "id=test,"
+                        + "repoOwner=repo-owner,"
+                        + "repository=repo,"
                         + "traits=["
                         + "@gitHubBranchDiscovery$org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait(strategyId=1), "
                         + "$OriginPullRequestDiscoveryTrait(strategyId=1), "
                         + "@gitHubForkDiscovery$ForkPullRequestDiscoveryTrait("
                         + "strategyId=2,"
                         + "trust=@gitHubTrustPermissions$TrustPermission()), "
-                        + "@headWildcardFilter$WildcardSCMHeadFilterTrait(excludes=production,includes=i*)],"
-                        + "repoOwner=repo-owner,"
-                        + "credentialsId=foo,"
-                        + "id=test,"
-                        + "repository=repo"
-                        + ")")
+                        + "@headWildcardFilter$WildcardSCMHeadFilterTrait(excludes=production,includes=i*)])")
         );
     }
 

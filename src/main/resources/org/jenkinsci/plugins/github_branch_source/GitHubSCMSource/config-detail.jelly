@@ -6,9 +6,13 @@
     <c:select checkMethod="post"/>
   </f:entry>
   <f:invisibleEntry>
-    <f:textbox name="isConfiguredByUrlDynamicValue" value="true"/>
+    <f:textbox name="configuredByUrl" value="true"/>
   </f:invisibleEntry>
-  <f:radioBlock name="isConfiguredByUrl" value="true" checked="true" title="${%Repository HTTPS URL}" inline="true">
+    <!--
+    This is always true because the repo scan has been deprecated
+    If this item was saved using the repo scan a URL will be built based on current data.
+    -->
+  <f:radioBlock name="configuredByUrlRadio" value="true" checked="true" title="${%Repository HTTPS URL}" inline="true">
     <f:nested>
       <f:entry title="${%Repository HTTPS URL}" field="repositoryUrl">
         <f:textbox/>
@@ -16,7 +20,7 @@
       <f:validateButton method="validateRepositoryUrlAndCredentials" title="${%Validate}" with="repositoryUrl,credentialsId" />
     </f:nested>
   </f:radioBlock>
-  <f:radioBlock name="isConfiguredByUrl" value="false" checked="false" title="${%Repository Scan - Deprecated Visualization}" inline="true">
+  <f:radioBlock name="configuredByUrlRadio" value="false" checked="false" title="${%Repository Scan - Deprecated Visualization}" inline="true">
     <f:nested>
       <j:choose>
         <j:when test="${descriptor.apiUriSelectable}">

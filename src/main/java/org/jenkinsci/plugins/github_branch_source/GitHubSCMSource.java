@@ -152,6 +152,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public static final String VALID_GITHUB_USER_NAME = "^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$";
     public static final String VALID_GIT_SHA1 = "^[a-fA-F0-9]{40}$";
     public static final String GITHUB_URL = GitHubServerConfig.GITHUB_URL;
+    public static final String GITHUB_COM = "github.com";
     private static final Logger LOGGER = Logger.getLogger(GitHubSCMSource.class.getName());
     private static final String R_PULL = Constants.R_REFS + "pull/";
     /**
@@ -318,23 +319,23 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * @param repoOwner the repository owner.
      * @param repository the repository name.
      * @param repositoryUrl HTML URL for the repository. If specified, takes precedence over repoOwner and repository.
-     * @param isConfiguredByUrlDynamicValue Whether to use repositoryUrl or repoOwner/repository for configuration.
+     * @param configuredByUrl Whether to use repositoryUrl or repoOwner/repository for configuration.
      * @throws IllegalArgumentException if repositoryUrl is specified but invalid.
      * @since 2.2.0
      */
-    // isConfiguredByUrlDynamicValue is used to decide which radioBlock in the UI the user had selected when they submitted the form.
+    // configuredByUrl is used to decide which radioBlock in the UI the user had selected when they submitted the form.
     @DataBoundConstructor
-    public GitHubSCMSource(String repoOwner, String repository, String repositoryUrl, boolean isConfiguredByUrlDynamicValue) {
-        if (!isConfiguredByUrlDynamicValue) {
+    public GitHubSCMSource(String repoOwner, String repository, String repositoryUrl, boolean configuredByUrl) {
+        if (!configuredByUrl) {
             this.apiUri = GITHUB_URL;
             this.repoOwner = repoOwner;
-            this.repository = repository;
+            this.repository = removeEnd(repository, ".git");;
             this.repositoryUrl = null;
         } else {
             GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
             this.apiUri = info.getApiUri();
             this.repoOwner = info.getRepoOwner();
-            this.repository = info.getRepository();
+            this.repository = removeEnd(info.getRepository(), ".git");
             this.repositoryUrl = info.getRepositoryUrl();
         }
         pullRequestMetadataCache = new ConcurrentHashMap<>();
@@ -383,7 +384,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     @Restricted(NoExternalUse.class)
-    public boolean getIsConfiguredByUrlDynamicValue() {
+    public boolean isConfiguredByUrl() {
         return repositoryUrl != null;
     }
 
@@ -466,10 +467,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (repositoryUrl != null) {
             return repositoryUrl;
         } else {
-            if (isBlank(apiUri) || "https://api.github.com".equals(apiUri))
+            if (GITHUB_URL.equals(apiUri))
                 return "https://github.com/" + repoOwner + '/' + repository;
             else
-                return String.format("%s/%s/%s", removeEnd(apiUri, API_V3), repoOwner, repository);
+                return String.format("%s%s/%s", removeEnd(apiUri, API_V3), repoOwner, repository);
         }
     }
 
@@ -943,7 +944,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     throw new AbortException("No repository selected, skipping");
                 }
 
-                String fullName = repoOwner + "/" + removeEnd(repository, ".git");
+                String fullName = repoOwner + "/" + repository;
                 ghRepository = github.getRepository(fullName);
                 final GHRepository ghRepository = this.ghRepository;
                 listener.getLogger().format("Examining %s%n",
@@ -1864,7 +1865,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         List<Action> result = new ArrayList<>();
         result.add(new GitHubRepoMetadataAction());
-        String repository = removeEnd(this.repository, ".git");
+        String repository = this.repository;
 
         StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), apiUri, credentialsId);
         GitHub hub = Connector.connect(apiUri, credentials);
@@ -1952,17 +1953,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         @Nonnull
         public Map<String, Object> customInstantiate(@Nonnull Map<String, Object> arguments) {
-            Map<String, Object> arguments2 = new HashMap<>(arguments);
+            Map<String, Object> arguments2 = new TreeMap<>(arguments);
             arguments2.remove("repositoryUrl");
-            arguments2.remove("isConfiguredByUrlDynamicValue");
+            arguments2.remove("configuredByUrl");
             return arguments2;
         }
-//
+
         @Nonnull
         public UninstantiatedDescribable customUninstantiate(@Nonnull UninstantiatedDescribable ud) {
-            Map<String, Object> scmArguments = new HashMap<>(ud.getArguments());
+            Map<String, Object> scmArguments = new TreeMap<>(ud.getArguments());
             scmArguments.remove("repositoryUrl");
-            scmArguments.remove("isConfiguredByUrlDynamicValue");
+            scmArguments.remove("configuredByUrl");
             return ud.withArguments(scmArguments);
         }
 
@@ -1987,12 +1988,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         @RequirePOST
         @Restricted(NoExternalUse.class)
-        public FormValidation doXXXX(@CheckForNull @AncestorInPath Item context){
-            return FormValidation.ok();
-        }
-
-        @RequirePOST
-        @Restricted(NoExternalUse.class)
         public FormValidation doValidateRepositoryUrlAndCredentials(@CheckForNull @AncestorInPath Item context,
                                                                     @QueryParameter String repositoryUrl,
                                                                     @QueryParameter String credentialsId) {
@@ -2004,7 +1999,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 return FormValidation.error("Unable to validate repository information"); // not permitted to try connecting with these credentials
             }
             GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
-
 
             StandardCredentials credentials = Connector.lookupScanCredentials(context, info.getApiUri(), credentialsId);
             StringBuilder sb = new StringBuilder();
@@ -2139,9 +2133,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                                   @QueryParameter String apiUri,
                                                   @QueryParameter String credentialsId,
                                                   @QueryParameter String repoOwner,
-                                                  @QueryParameter String isConfiguredByUrl,
-                                                  @QueryParameter boolean isConfiguredByUrlDynamicValue) throws IOException {
-            if (isConfiguredByUrlDynamicValue) {
+                                                  @QueryParameter String configuredByUrlRadio,
+                                                  @QueryParameter boolean configuredByUrl) throws IOException {
+            if (configuredByUrl) {
                 return new ListBoxModel(); // Using the URL-based configuration, don't scan for repositories.
             }
             repoOwner = Util.fixEmptyAndTrim(repoOwner);
@@ -2728,7 +2722,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             collaboratorNames = Collections.singleton(repoOwner);
                         } else {
                             request.checkApiRateLimit();
-                            String fullName = repoOwner + "/" + removeEnd(repository, ".git");
+                            String fullName = repoOwner + "/" + repository;
                             ghRepository = github.getRepository(fullName);
                             resolvedRepositoryUrl = ghRepository.getHtmlUrl();
                             return new LazyContributorNames(request, listener, github, ghRepository, credentials);
@@ -2763,7 +2757,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         (Item) getOwner(), apiUri, credentialsId
                 );
                 github = Connector.connect(apiUri, credentials);
-                String fullName = repoOwner + "/" + removeEnd(repository, ".git");
+                String fullName = repoOwner + "/" + repository;
                 repo = github.getRepository(fullName);
             }
             return repo.getPermission(username);
