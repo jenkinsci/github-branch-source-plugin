@@ -8,15 +8,15 @@
   <f:invisibleEntry>
     <f:textbox name="isConfiguredByUrlDynamicValue" value="true"/>
   </f:invisibleEntry>
-  <f:radioBlock name="isConfiguredByUrl" value="true" checked="true" title="${%Repository URL}" inline="true">
+  <f:radioBlock name="isConfiguredByUrl" value="true" checked="true" title="${%Repository HTTPS URL}" inline="true">
     <f:nested>
-      <f:entry title="${%Repository URL}" field="repositoryUrl">
+      <f:entry title="${%Repository HTTPS URL}" field="repositoryUrl">
         <f:textbox/>
       </f:entry>
       <f:validateButton method="validateRepositoryUrlAndCredentials" title="${%Validate}" with="repositoryUrl,credentialsId" />
     </f:nested>
   </f:radioBlock>
-  <f:radioBlock name="isConfiguredByUrl" value="false" checked="false" title="${%Repository Scan - Deprecated}" inline="true">
+  <f:radioBlock name="isConfiguredByUrl" value="false" checked="false" title="${%Repository Scan - Deprecated Visualization}" inline="true">
     <f:nested>
       <j:choose>
         <j:when test="${descriptor.apiUriSelectable}">
@@ -40,7 +40,10 @@
   </f:radioBlock>
 
   <script type="text/javascript" src="${rootURL}/plugin/github-branch-source/github-scm-source.js"/>
-
+  <f:block>
+    <br/>
+    <br/>
+  </f:block>
   <f:entry title="${%Behaviours}">
     <scm:traits field="traits"/>
   </f:entry>

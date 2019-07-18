@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.github_branch_source;
 
-import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -9,15 +8,11 @@ import java.util.Map;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMSourceTrait;
-import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang.StringUtils;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.structs.describable.DescribableModel;
 import org.jenkinsci.plugins.structs.describable.UninstantiatedDescribable;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;

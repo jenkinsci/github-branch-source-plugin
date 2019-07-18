@@ -38,7 +38,9 @@ Behaviour.specify("input[name$=_isConfiguredByUrl]", 'GitHubSCMSourceRadioConfig
                     oEvent = document.createEvent("HTMLEvents");
                     oEvent.initEvent("change");
                     var repoOwner = getNthParent(e, 3).nextElementSibling.nextElementSibling.nextElementSibling.childNodes[2].firstElementChild
-                    repoOwner.dispatchEvent(oEvent);
+                    if( repoOwner != null) {
+                        repoOwner.dispatchEvent(oEvent);
+                    }
                 }
             }
         };

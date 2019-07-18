@@ -142,7 +142,10 @@ import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import static hudson.Functions.isWindows;
 import static hudson.model.Items.XSTREAM2;
+import static org.apache.commons.lang.StringUtils.isBlank;
+import static org.apache.commons.lang.StringUtils.removeEnd;
 import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
+import static org.jenkinsci.plugins.github_branch_source.GitHubSCMBuilder.API_V3;
 
 import org.kohsuke.stapler.export.Exported;
 
@@ -466,8 +469,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (repositoryUrl != null) {
             return repositoryUrl;
         } else {
-            // TODO: Use constants or something
-            return "https://github.com/" + repoOwner + '/' + repository;
+            if (isBlank(apiUri) || "https://api.github.com".equals(apiUri))
+                return "https://github.com/" + repoOwner + '/' + repository;
+            else
+                return String.format("%s/%s/%s", removeEnd(apiUri, API_V3), repoOwner, repository);
         }
     }
 
@@ -545,7 +550,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             this.traits = traits;
         }
-        if (StringUtils.isBlank(apiUri)) {
+        if (isBlank(apiUri)) {
             setApiUri(GITHUB_URL);
         } else if (!StringUtils.equals(apiUri, GitHubConfiguration.normalizeApiUri(apiUri))) {
             setApiUri(apiUri);
@@ -937,11 +942,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 Connector.checkConnectionValidity(apiUri, listener, credentials, github);
 
                 // Input data validation
-                if (StringUtils.isBlank(repository)) {
+                if (isBlank(repository)) {
                     throw new AbortException("No repository selected, skipping");
                 }
 
-                String fullName = repoOwner + "/" + repository;
+                String fullName = repoOwner + "/" + removeEnd(repository, ".git");
                 ghRepository = github.getRepository(fullName);
                 final GHRepository ghRepository = this.ghRepository;
                 listener.getLogger().format("Examining %s%n",
@@ -1215,7 +1220,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 Connector.checkConnectionValidity(apiUri, listener, credentials, github);
 
                 // Input data validation
-                if (StringUtils.isBlank(repository)) {
+                if (isBlank(repository)) {
                     throw new AbortException("No repository selected, skipping");
                 }
 
@@ -1302,7 +1307,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             checkApiUrlValidity(github, credentials);
             Connector.checkApiRateLimit(listener, github);
             // Input data validation
-            if (StringUtils.isBlank(repository)) {
+            if (isBlank(repository)) {
                 throw new AbortException("No repository selected, skipping");
             }
 
@@ -1862,6 +1867,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // TODO when we have support for trusted events, use the details from event if event was from trusted source
         List<Action> result = new ArrayList<>();
         result.add(new GitHubRepoMetadataAction());
+        String repository = removeEnd(this.repository, ".git");
+
         StandardCredentials credentials = Connector.lookupScanCredentials((Item) getOwner(), apiUri, credentialsId);
         GitHub hub = Connector.connect(apiUri, credentials);
         try {
@@ -1990,7 +1997,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         @RequirePOST
         @Restricted(NoExternalUse.class)
         public FormValidation doValidateRepositoryUrlAndCredentials(@CheckForNull @AncestorInPath Item context,
-                                                                    @QueryParameter String apiUri,
                                                                     @QueryParameter String repositoryUrl,
                                                                     @QueryParameter String credentialsId) {
             if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
@@ -2000,14 +2006,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.error("Unable to validate repository information"); // not permitted to try connecting with these credentials
             }
-            StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, credentialsId);
+            GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
+
+
+            StandardCredentials credentials = Connector.lookupScanCredentials(context, info.getApiUri(), credentialsId);
             StringBuilder sb = new StringBuilder();
             try {
-                GitHub github = Connector.connect(apiUri, credentials);
-                if (github.isCredentialValid() || github.isAnonymous()){
+                GitHub github = Connector.connect(info.getApiUri(), credentials);
+                if (github.isCredentialValid()){
                     sb.append("Credentials ok.");
                 }
-                GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
+
                 GHRepository repo = github.getRepository(info.getRepoOwner() + "/" + info.getRepository());
                 if (repo != null) {
                     sb.append(" Connected to ");
@@ -2718,11 +2727,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         }
 
                         // Input data validation
-                        if (StringUtils.isBlank(getRepository())) {
+                        if (isBlank(getRepository())) {
                             collaboratorNames = Collections.singleton(repoOwner);
                         } else {
                             request.checkApiRateLimit();
-                            String fullName = repoOwner + "/" + repository;
+                            String fullName = repoOwner + "/" + removeEnd(repository, ".git");
                             ghRepository = github.getRepository(fullName);
                             resolvedRepositoryUrl = ghRepository.getHtmlUrl();
                             return new LazyContributorNames(request, listener, github, ghRepository, credentials);
@@ -2757,7 +2766,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         (Item) getOwner(), apiUri, credentialsId
                 );
                 github = Connector.connect(apiUri, credentials);
-                String fullName = repoOwner + "/" + repository;
+                String fullName = repoOwner + "/" + removeEnd(repository, ".git");
                 repo = github.getRepository(fullName);
             }
             return repo.getPermission(username);
