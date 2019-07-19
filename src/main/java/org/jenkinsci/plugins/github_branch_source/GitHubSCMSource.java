@@ -336,7 +336,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
             this.apiUri = info.getApiUri();
             this.repoOwner = info.getRepoOwner();
-            this.repository = removeEnd(info.getRepository(), ".git");
+            this.repository = info.getRepository();
             this.repositoryUrl = info.getRepositoryUrl();
         }
         pullRequestMetadataCache = new ConcurrentHashMap<>();
@@ -2134,7 +2134,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                                   @QueryParameter String apiUri,
                                                   @QueryParameter String credentialsId,
                                                   @QueryParameter String repoOwner,
-                                                  @QueryParameter String configuredByUrlRadio,
                                                   @QueryParameter boolean configuredByUrl) throws IOException {
             if (configuredByUrl) {
                 return new ListBoxModel(); // Using the URL-based configuration, don't scan for repositories.
