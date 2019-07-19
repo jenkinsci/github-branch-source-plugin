@@ -40,6 +40,7 @@ import static org.jenkinsci.plugins.github_branch_source.GitHubSCMSource.GITHUB_
  * Is it worth making a guess based on the specified host?
  */
 class GitHubRepositoryInfo {
+    private static final String GITHUB_API_URL = "api.github.com";
     @NonNull
     private final String apiUri;
 
@@ -107,7 +108,7 @@ class GitHubRepositoryInfo {
         sb.append("://");
         boolean isGitHub = GITHUB_COM.equals(repositoryUrl.getHost());
         if(isGitHub){
-            sb.append(GITHUB_URL);
+            sb.append(GITHUB_API_URL);
         }else {
             sb.append(repositoryUrl.getHost());
         }
