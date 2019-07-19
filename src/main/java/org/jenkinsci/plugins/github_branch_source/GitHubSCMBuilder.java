@@ -123,7 +123,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         withoutRefSpecs();
         String repoUrl;
         if (head instanceof PullRequestSCMHead) {
-            PullRequestSCMHead h = (PullRequestSCMHead) head;Gi
+            PullRequestSCMHead h = (PullRequestSCMHead) head;
             withRefSpec("+refs/pull/" + h.getId() + "/head:refs/remotes/@{remote}/" + head
                     .getName());
             repoUrl = repositoryUrl(h.getSourceOwner(), h.getSourceRepo());
