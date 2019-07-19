@@ -330,7 +330,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (!configuredByUrl) {
             this.apiUri = GITHUB_URL;
             this.repoOwner = repoOwner;
-            this.repository = removeEnd(repository, ".git");;
+            this.repository = repository;
             this.repositoryUrl = null;
         } else {
             GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
