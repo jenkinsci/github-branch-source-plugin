@@ -21,9 +21,8 @@ Behaviour.specify("input[name$=_configuredByUrlRadio]", 'GitHubSCMSourceRadioCon
     var findNeighboringDynamicInput = function(e) {
         var inputTbody = getNthParent(e, 4 /*tbody > tr > td > label > input*/);
         if (inputTbody) {
-            var radioblockStart = getNthParent(e, 3 /* tr > td > label > input*/);
             // input hidden is always in the 4th position
-            var hiddenBlock = radioblockStart.parentNode.childNodes[4].firstElementChild.firstElementChild
+            var hiddenBlock = inputTbody.childNodes[4].firstElementChild.firstElementChild
             return hiddenBlock
         }
     }
