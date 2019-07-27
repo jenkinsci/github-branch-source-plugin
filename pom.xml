@@ -24,8 +24,9 @@
         <revision>2.5.5</revision>
         <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
-        <jenkins.version>2.121.3</jenkins.version>
+        <jenkins.version>2.138.4</jenkins.version>
         <scm-api.version>2.6.3</scm-api.version>
+        <useBeta>true</useBeta>
     </properties>
 
     <scm>
@@ -38,7 +39,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
-            <version>1.17</version>
+            <version>1.19</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>

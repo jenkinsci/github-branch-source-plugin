@@ -110,7 +110,6 @@ public class PullRequestSCMRevisionTest {
     private GitHub github;
     private GHRepository repo;
 
-
     @Before
     public void prepareMockGitHub() throws Exception {
         new File("src/test/resources/api/mappings").mkdirs();
