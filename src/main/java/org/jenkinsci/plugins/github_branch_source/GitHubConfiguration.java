@@ -67,7 +67,7 @@ import org.kohsuke.stapler.StaplerRequest;
     }
 
     @NonNull
-    public ApiRateLimitChecker getApiRateLimitChecker() {
+    public synchronized ApiRateLimitChecker getApiRateLimitChecker() {
         if (apiRateLimitChecker == null) {
             return ApiRateLimitChecker.ThrottleForNormalize;
         }
