@@ -52,23 +52,15 @@ import hudson.util.ListBoxModel;
 import hudson.util.LogTaskListener;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import jenkins.branch.BranchSource;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.GitSCMSource;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jenkins.scm.api.SCMFile;
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMHeadObserver;
-import jenkins.scm.api.SCMHeadOrigin;
-import jenkins.scm.api.SCMRevision;
-import jenkins.scm.api.SCMSourceCriteria;
+
+import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import org.hamcrest.Matchers;
@@ -82,14 +74,16 @@ import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
+import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import java.util.EnumSet;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -100,7 +94,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 
 @RunWith(Parameterized.class)
 public class GitHubSCMSourceTest {
@@ -762,4 +756,32 @@ public class GitHubSCMSourceTest {
         }
     }
 
+    @Test
+    @Issue("JENKINS-54403")
+    public void testMissingSingleTag () throws IOException {
+        SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+
+        Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(Collections
+                .singleton(new GitHubTagSCMHead("non-existent-tag", System.currentTimeMillis())));
+        GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
+        context.wantTags(true);
+        GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
+        Iterable<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repo);
+        assertFalse(tags.iterator().hasNext());
+    }
+
+    @Test
+    @Issue("JENKINS-54403")
+    public void testExistentSingleTag () throws IOException {
+        SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+
+        Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(Collections
+                .singleton(new GitHubTagSCMHead("existent-tag", System.currentTimeMillis())));
+        GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
+        context.wantTags(true);
+        GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
+        Iterable<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repo);
+        assertTrue(tags.iterator().hasNext());
+        assertFalse(tags.iterator().hasNext());
+    }
 }

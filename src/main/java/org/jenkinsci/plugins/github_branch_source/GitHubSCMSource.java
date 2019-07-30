@@ -2482,7 +2482,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    private static class LazyTags extends LazyIterable<GHRef> {
+    @Restricted(NoExternalUse.class)
+    static class LazyTags extends LazyIterable<GHRef> {
         private final GitHubSCMSourceRequest request;
         private final GHRepository repo;
 
