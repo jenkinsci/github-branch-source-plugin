@@ -11,6 +11,9 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public enum ApiRateLimitChecker {
+    /**
+     * Attempt to evenly distribute GitHub API requests.
+     */
     ThrottleForNormalize(Messages.ApiRateLimitChecker_ThrottleForNormalize()) {
         @Override
         public void checkApiRateLimit(@NonNull TaskListener listener, GitHub github) throws IOException, InterruptedException {
@@ -68,39 +71,15 @@ public enum ApiRateLimitChecker {
                                 Util.getTimeSpanString(expiration - System.currentTimeMillis())
                         )));
                     }
-                    long nextNotify = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(3);
-                    while (expiration > System.currentTimeMillis()) {
-                        if (Thread.interrupted()) {
-                            throw new InterruptedException();
-                        }
-                        long sleep = Math.min(expiration, nextNotify) - System.currentTimeMillis();
-                        if (sleep > 0) {
-                            Thread.sleep(sleep);
-                        }
-                        // A random straw poll of users concluded that 3 minutes without any visible progress in the logs
-                        // is the point after which people believe that the process is dead.
-                        nextNotify += TimeUnit.SECONDS.toMillis(180);
-                        long now = System.currentTimeMillis();
-                        if (now < expiration) {
-                            GHRateLimit current = github.getRateLimit();
-                            if (current.remaining > rateLimit.remaining
-                                    || current.getResetDate().getTime() > rateLimit.getResetDate().getTime()) {
-                                listener.getLogger().println(GitHubConsoleNote.create(now,
-                                        "GitHub API Usage: The quota may have been refreshed earlier than expected, rechecking..."
-                                ));
-                                break;
-                            }
-                            listener.getLogger().println(GitHubConsoleNote.create(now, String.format(
-                                    "GitHub API Usage: Still sleeping, now only %s remaining.",
-                                    Util.getTimeSpanString(expiration - now)
-                            )));
-                        }
-                    }
+                    waitUntilRateLimit(listener, github, rateLimit, expiration);
                 }
             }
         }
     },
 
+    /**
+     * Restrict GitHub API requests only when near or above rate limit.
+     */
     ThrottleOnOver(Messages.ApiRateLimitChecker_ThrottleOnOver()) {
         @Override
         public void checkApiRateLimit(@NonNull TaskListener listener, GitHub github) throws IOException, InterruptedException {
@@ -109,7 +88,7 @@ public enum ApiRateLimitChecker {
                 GHRateLimit rateLimit = github.rateLimit();
                 // the buffer is how much we want to avoid using to cover unplanned over-use
                 int buffer = Math.max(15, rateLimit.limit / 20);
-                // the burst is how much we want to allow for speedier response outside of the throttle
+                // check that we have at least our minimum buffer of remaining calls
                 if (rateLimit.remaining >= buffer) {
                     break;
                 }
@@ -119,6 +98,7 @@ public enum ApiRateLimitChecker {
                         rateLimit.remaining, buffer - rateLimit.remaining, rateLimit.limit,
                         Util.getTimeSpanString(expiration - System.currentTimeMillis())
                 )));
+                waitUntilRateLimit(listener, github, rateLimit, expiration);
             }
         }
     };
@@ -139,4 +119,35 @@ public enum ApiRateLimitChecker {
 
     public abstract void checkApiRateLimit(@NonNull TaskListener listener, GitHub github)
             throws IOException, InterruptedException;
+
+    private static void waitUntilRateLimit(@NonNull TaskListener listener, GitHub github, GHRateLimit rateLimit, long expiration) throws InterruptedException, IOException {
+        long nextNotify = System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(3);
+        while (expiration > System.currentTimeMillis()) {
+            if (Thread.interrupted()) {
+                throw new InterruptedException();
+            }
+            long sleep = Math.min(expiration, nextNotify) - System.currentTimeMillis();
+            if (sleep > 0) {
+                Thread.sleep(sleep);
+            }
+            // A random straw poll of users concluded that 3 minutes without any visible progress in the logs
+            // is the point after which people believe that the process is dead.
+            nextNotify += TimeUnit.SECONDS.toMillis(180);
+            long now = System.currentTimeMillis();
+            if (now < expiration) {
+                GHRateLimit current = github.getRateLimit();
+                if (current.remaining > rateLimit.remaining
+                        || current.getResetDate().getTime() > rateLimit.getResetDate().getTime()) {
+                    listener.getLogger().println(GitHubConsoleNote.create(now,
+                            "GitHub API Usage: The quota may have been refreshed earlier than expected, rechecking..."
+                    ));
+                    break;
+                }
+                listener.getLogger().println(GitHubConsoleNote.create(now, String.format(
+                        "GitHub API Usage: Still sleeping, now only %s remaining.",
+                        Util.getTimeSpanString(expiration - now)
+                )));
+            }
+        }
+    }
 }
