@@ -71,17 +71,36 @@ public class GitHubSCMBuilderTest {
         this.configuredByUrl = configuredByUrl;
     }
 
-    @Before
-    public void setUp() throws IOException {
+    public void createGitHubSCMSourceForTest(boolean configuredByUrl, String repoUrlToConfigure) throws Exception {
         owner = j.createProject(WorkflowMultiBranchProject.class);
-        if (configuredByUrl) {
-            source = new GitHubSCMSource("", "", "https://github.com/tester/test-repo", true);
-        } else {
-            source = new GitHubSCMSource( "tester", "test-repo");
-        }
 
+        GitHubSCMSource testSCMSource;
+        if (configuredByUrl) {
+            // Throw an exception if we don't supply a URL
+            if (repoUrlToConfigure.isEmpty()) {
+                throw new Exception("Must supply a URL when testing single-URL configured jobs");
+            }
+            source = new GitHubSCMSource("", "", repoUrlToConfigure, true);
+        } else {
+            source = new GitHubSCMSource("tester", "test-repo");
+        }
         owner.setSourcesList(Collections.singletonList(new BranchSource(source)));
         source.setOwner(owner);
+
+        // return testSCMSource;
+    }
+
+    @Before
+    public void setUp() throws IOException {
+//        owner = j.createProject(WorkflowMultiBranchProject.class);
+//        if (configuredByUrl) {
+//            source = new GitHubSCMSource("", "", "https://github.com/tester/test-repo", true);
+//        } else {
+//            source = new GitHubSCMSource( "tester", "test-repo");
+//        }
+
+//        owner.setSourcesList(Collections.singletonList(new BranchSource(source)));
+//        source.setOwner(owner);
         Credentials userPasswordCredential = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "user-pass", null, "git-user", "git-secret");
         Credentials sshPrivateKeyCredential = new BasicSSHUserPrivateKey(CredentialsScope.GLOBAL, "user-key", "git",
                 new BasicSSHUserPrivateKey.UsersPrivateKeySource(), null, null);
@@ -729,7 +748,9 @@ public class GitHubSCMBuilderTest {
 
     @Test
     public void given__server_branch_rev_anon__when__build__then__scmBuilt() throws Exception {
-        source.setApiUri("https://github.test/api/v3");
+        // source.setApiUri("https://github.test/api/v3");
+        // helper method
+        createGitHubSCMSourceForTest(true, "https://github.test/tester/test-repo.git");
         BranchSCMHead head = new BranchSCMHead("test-branch");
         AbstractGitSCMSource.SCMRevisionImpl revision =
                 new AbstractGitSCMSource.SCMRevisionImpl(head, "cafebabedeadbeefcafebabedeadbeefcafebabe");
