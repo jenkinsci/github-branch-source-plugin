@@ -30,6 +30,16 @@ public class SSHCheckoutTraitTest {
     }
 
     @Test
+    public void given__sshCheckoutWithCredentials__when__decorating__then__credentialsApplied_with_repositoryUrl() throws Exception {
+        SSHCheckoutTrait instance = new SSHCheckoutTrait("keyId");
+        GitHubSCMSource source = new GitHubSCMSource("", "", "https://github.com/example/does-not-exist", true);
+        source.setCredentialsId("scanId");
+        GitHubSCMBuilder probe = new GitHubSCMBuilder( source, new BranchSCMHead("master"), null);
+        assumeThat(probe.credentialsId(), is("scanId"));
+        instance.decorateBuilder(probe);
+        assertThat(probe.credentialsId(), is("keyId"));
+    }
+    @Test
     public void given__sshCheckoutWithCredentials__when__decorating__then__credentialsApplied() throws Exception {
         SSHCheckoutTrait instance = new SSHCheckoutTrait("keyId");
         GitHubSCMSource source = new GitHubSCMSource("example", "does-not-exist");
@@ -41,6 +51,16 @@ public class SSHCheckoutTraitTest {
         assertThat(probe.credentialsId(), is("keyId"));
     }
 
+    @Test
+    public void given__sshCheckoutWithAgentKey__when__decorating__then__useAgentKeyApplied_with_repositoryUrl() throws Exception {
+        SSHCheckoutTrait instance = new SSHCheckoutTrait(null);
+        GitHubSCMSource source = new GitHubSCMSource("", "", "https://github.com/example/does-not-exist", true);
+        source.setCredentialsId("scanId");
+        GitHubSCMBuilder probe = new GitHubSCMBuilder(source, new BranchSCMHead("master"), null);
+        assumeThat(probe.credentialsId(), is("scanId"));
+        instance.decorateBuilder(probe);
+        assertThat(probe.credentialsId(), is(nullValue()));
+    }
     @Test
     public void given__sshCheckoutWithAgentKey__when__decorating__then__useAgentKeyApplied() throws Exception {
         SSHCheckoutTrait instance = new SSHCheckoutTrait(null);

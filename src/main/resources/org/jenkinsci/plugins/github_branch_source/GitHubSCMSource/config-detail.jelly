@@ -2,27 +2,52 @@
 <j:jelly xmlns:j="jelly:core" xmlns:c="/lib/credentials"
          xmlns:f="/lib/form"
          xmlns:scm="/jenkins/scm/api/form">
-  <j:choose>
-    <j:when test="${descriptor.apiUriSelectable}">
-    <f:entry title="${%API endpoint}" field="apiUri">
-      <f:select/>
-    </f:entry>
-    </j:when>
-    <j:otherwise>
-      <f:invisibleEntry>
-        <f:select field="apiUri"/>
-      </f:invisibleEntry>
-    </j:otherwise>
-  </j:choose>
   <f:entry title="${%Credentials}" field="credentialsId">
     <c:select checkMethod="post"/>
   </f:entry>
-  <f:entry title="${%Owner}" field="repoOwner">
-    <f:textbox/>
-  </f:entry>
-  <f:entry title="${%Repository}" field="repository">
-    <f:select/>
-  </f:entry>
+  <f:invisibleEntry>
+    <f:textbox name="configuredByUrl" value="true"/>
+  </f:invisibleEntry>
+    <!--
+    This is always true because the repo scan has been deprecated
+    If this item was saved using the repo scan a URL will be built based on current data.
+    -->
+  <f:radioBlock name="configuredByUrlRadio" value="true" checked="true" title="${%Repository HTTPS URL}" inline="true">
+    <f:nested>
+      <f:entry title="${%Repository HTTPS URL}" field="repositoryUrl">
+        <f:textbox/>
+      </f:entry>
+      <f:validateButton method="validateRepositoryUrlAndCredentials" title="${%Validate}" with="repositoryUrl,credentialsId" />
+    </f:nested>
+  </f:radioBlock>
+  <f:radioBlock name="configuredByUrlRadio" value="false" checked="false" title="${%Repository Scan - Deprecated Visualization}" inline="true">
+    <f:nested>
+      <j:choose>
+        <j:when test="${descriptor.apiUriSelectable}">
+        <f:entry title="${%API endpoint}" field="apiUri">
+          <f:select/>
+        </f:entry>
+        </j:when>
+        <j:otherwise>
+          <f:invisibleEntry>
+            <f:select field="apiUri"/>
+          </f:invisibleEntry>
+        </j:otherwise>
+      </j:choose>
+      <f:entry title ="${%Owner}" field="repoOwner">
+        <f:textbox/>
+      </f:entry>
+      <f:entry title="${%Repository}" field="repository">
+            <f:select/>
+      </f:entry>
+    </f:nested>
+  </f:radioBlock>
+
+  <script type="text/javascript" src="${rootURL}/plugin/github-branch-source/github-scm-source.js"/>
+  <f:block>
+    <br/>
+    <br/>
+  </f:block>
   <f:entry title="${%Behaviours}">
     <scm:traits field="traits"/>
   </f:entry>

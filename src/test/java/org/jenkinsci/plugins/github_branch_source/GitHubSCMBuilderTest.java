@@ -35,6 +35,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.mockito.Mockito;
 
@@ -52,16 +54,32 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
+@RunWith(Parameterized.class)
 public class GitHubSCMBuilderTest {
     @ClassRule
     public static JenkinsRule j = new JenkinsRule();
     private GitHubSCMSource source;
     private WorkflowMultiBranchProject owner;
+    private boolean configuredByUrl;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> generateParams() {
+        return Arrays.asList(new Object[]{true}, new Object[]{false});
+    }
+
+    public GitHubSCMBuilderTest(boolean configuredByUrl){
+        this.configuredByUrl = configuredByUrl;
+    }
 
     @Before
     public void setUp() throws IOException {
         owner = j.createProject(WorkflowMultiBranchProject.class);
-        source = new GitHubSCMSource( "tester", "test-repo");
+        if (configuredByUrl) {
+            source = new GitHubSCMSource("", "", "https://github.com/tester/test-repo", true);
+        } else {
+            source = new GitHubSCMSource( "tester", "test-repo");
+        }
+
         owner.setSourcesList(Collections.singletonList(new BranchSource(source)));
         source.setOwner(owner);
         Credentials userPasswordCredential = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "user-pass", null, "git-user", "git-secret");

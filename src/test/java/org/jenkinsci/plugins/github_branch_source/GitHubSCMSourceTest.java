@@ -71,6 +71,7 @@ import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+import org.apache.commons.lang.StringUtils;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.Before;
@@ -78,6 +79,8 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
@@ -101,6 +104,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
+@RunWith(Parameterized.class)
 public class GitHubSCMSourceTest {
     /**
      * All tests in this class only use Jenkins for the extensions
@@ -150,6 +154,18 @@ public class GitHubSCMSourceTest {
     private GitHub github;
     private GHRepository repo;
 
+    public GitHubSCMSourceTest(GitHubSCMSource source) {
+        this.source = source;
+    }
+
+    @Parameterized.Parameters(name = "{index}: revision={0}")
+    public static GitHubSCMSource[] revisions() {
+        return new GitHubSCMSource[]{
+                new GitHubSCMSource("cloudbeers", "yolo", null, false),
+                new GitHubSCMSource("", "", "https://github.com/cloudbeers/yolo", true)
+            };
+    }
+
 
     @Before
     public void prepareMockGitHub() throws Exception {
@@ -196,7 +212,6 @@ public class GitHubSCMSourceTest {
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
-        source = new GitHubSCMSource("cloudbeers", "yolo");
         source.setApiUri("http://localhost:" + githubApi.port());
         source.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, true), new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustContributors())));
         github = Connector.connect("http://localhost:" + githubApi.port(), null);

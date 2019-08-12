@@ -1,0 +1,8 @@
+<org.jenkinsci.plugins.github_branch_source.GitHubSCMSource>
+  <id>e4d8c11a-0d24-472f-b86b-4b017c160e9a</id>
+  <repoOwner>joseblas</repoOwner>
+  <repository>jx</repository>
+  <repositoryUrl>https://github.com/joseblas/jx</repositoryUrl>
+  <credentialsId>abcd</credentialsId>
+  <traits/>
+</org.jenkinsci.plugins.github_branch_source.GitHubSCMSource>

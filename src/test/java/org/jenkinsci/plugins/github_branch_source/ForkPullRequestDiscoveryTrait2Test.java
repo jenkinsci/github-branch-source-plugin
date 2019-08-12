@@ -31,6 +31,7 @@ import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
 import jenkins.scm.api.trait.SCMHeadAuthority;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
+import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.Rule;
@@ -43,16 +44,35 @@ public class ForkPullRequestDiscoveryTrait2Test {
     @Rule
     public JenkinsRule r = new JenkinsRule();
 
+    @Ignore("These tests fail because users get automatically migrated to URL-based configuration if they re-save the GitHubSCMSource")
     @Test
     public void configRoundtrip() throws Exception {
         WorkflowMultiBranchProject p = r.createProject(WorkflowMultiBranchProject.class);
-        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustNobody());
-        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustEveryone());
-        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustContributors());
-        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustPermission());
+
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustNobody(), false);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustEveryone(), false);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustContributors(), false);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustPermission(), false);
     }
-    private void assertRoundTrip(WorkflowMultiBranchProject p, SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision> trust) throws Exception {
-        GitHubSCMSource s = new GitHubSCMSource("nobody", "nowhere");
+
+    @Test
+    public void configRoundtripWithRawUrl() throws Exception {
+        WorkflowMultiBranchProject p = r.createProject(WorkflowMultiBranchProject.class);
+
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustNobody(), true);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustEveryone(), true);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustContributors(), true);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustPermission(), true);
+    }
+
+    private void assertRoundTrip(WorkflowMultiBranchProject p, SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision> trust, boolean configuredByUrl) throws Exception {
+
+        GitHubSCMSource s = null;
+        if (configuredByUrl)
+            s = new GitHubSCMSource("", "", "https://github.com/nobody/nowhere", true);
+        else
+            s = new GitHubSCMSource("nobody", "nowhere", null, false);
+
         p.setSourcesList(Collections.singletonList(new BranchSource(s)));
         s.setTraits(Collections.<SCMSourceTrait>singletonList(new ForkPullRequestDiscoveryTrait(0, trust)));
         r.configRoundtrip(p);
