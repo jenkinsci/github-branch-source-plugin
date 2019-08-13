@@ -122,7 +122,6 @@ public class GitHubSCMSourceTest {
     public WireMockRule githubApi = factory.getRule(WireMockConfiguration.options()
             .dynamicPort()
             .usingFilesUnderClasspath("api")
-            .notifier(new ConsoleNotifier(true))
             .extensions(
                     new ResponseTransformer() {
                         @Override
