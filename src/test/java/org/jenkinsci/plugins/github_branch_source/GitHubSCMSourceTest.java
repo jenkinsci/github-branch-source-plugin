@@ -27,7 +27,6 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import com.cloudbees.jenkins.GitHubRepositoryNameContributor;
-import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.common.SingleRootFileSource;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -211,11 +210,8 @@ public class GitHubSCMSourceTest {
 
         githubApi.stubFor(
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
-                // get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://github.test/api/v3")));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
-        // source.setApiUri("http://localhost:" + githubApi.port());
-        // source = new GitHubSCMSource("", "", "http://localhost:" + githubApi.port() + "/owner/repo", true);
         if (source.isConfiguredByUrl()) {
             source = new GitHubSCMSource("cloudbeers", "yolo", "http://localhost:" + githubApi.port() + "/cloudbeers/yolo", true);
         } else {
