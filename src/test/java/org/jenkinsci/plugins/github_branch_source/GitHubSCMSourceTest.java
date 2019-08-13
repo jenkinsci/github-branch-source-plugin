@@ -133,8 +133,6 @@ public class GitHubSCMSourceTest {
                                         .body(response.getBodyAsString()
                                                 .replace("https://api.github.com/",
                                                         "http://localhost:" + githubApi.port() + "/")
-                                                .replace("http://github.test/api/v3",
-                                                        "http://localhost:" + githubApi.port())
                                                 .replace("https://raw.githubusercontent.com/",
                                                         "http://localhost:" + githubRaw.port() + "/")
                                         )
