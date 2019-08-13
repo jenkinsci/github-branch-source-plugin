@@ -93,7 +93,7 @@ public class GitHubSCMSourceTraitsTest {
         GitHubSCMSource instance = load();
 
         assertThat(instance.getId(), is("e4d8c11a-0d24-472f-b86b-4b017c160e9a"));
-        assertThat(instance.getApiUri(), is(GitHubSCMSource.GITHUB_URL));
+        assertThat(instance.getApiUri(), is("https://api.github.com"));
         assertThat(instance.getRepoOwner(), is("joseblas"));
         assertThat(instance.getRepository(), is("jx"));
         assertThat(instance.getCredentialsId(), is("abcd"));
