@@ -77,7 +77,7 @@ public class GitHubSCMBuilderTest {
         if (configuredByUrl) {
             source = new GitHubSCMSource("", "", "https://github.com/tester/test-repo", true);
         } else {
-            source = new GitHubSCMSource( "tester", "test-repo");
+            source = new GitHubSCMSource("tester", "test-repo");
         }
 
         owner.setSourcesList(Collections.singletonList(new BranchSource(source)));

@@ -25,6 +25,11 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import com.cloudbees.plugins.credentials.Credentials;
+import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
+import com.cloudbees.plugins.credentials.domains.Domain;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.common.SingleRootFileSource;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -45,22 +50,18 @@ import hudson.security.SecurityRealm;
 import hudson.util.ListBoxModel;
 import hudson.util.LogTaskListener;
 import java.io.File;
-import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jenkins.branch.OrganizationFolder;
 import jenkins.model.Jenkins;
-import jenkins.scm.api.SCMFile;
-import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMNavigatorOwner;
-import jenkins.scm.api.SCMSourceCriteria;
 import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.impl.NoOpProjectObserver;
-import org.acegisecurity.context.SecurityContextHolder;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -75,7 +76,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -93,6 +93,7 @@ public class GitHubSCMNavigatorTest {
             .dynamicPort()
             .usingFilesUnderClasspath("raw")
     );
+
     @Rule
     public WireMockRule githubApi = factory.getRule(WireMockConfiguration.options()
             .dynamicPort()
@@ -124,6 +125,7 @@ public class GitHubSCMNavigatorTest {
 
                     })
     );
+
     private GitHubSCMNavigator navigator;
 
     @Before
@@ -140,6 +142,13 @@ public class GitHubSCMNavigatorTest {
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
+        
+        Credentials userPasswordCredential = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL, "user-pass", null, "git-user", "git-secret");
+        SystemCredentialsProvider.getInstance().setDomainCredentialsMap(
+            Collections.singletonMap(Domain.global(),
+            Arrays.<Credentials>asList(userPasswordCredential))
+        );
+
         navigator = new GitHubSCMNavigator("http://localhost:" + githubApi.port(), "cloudbeers", null, null);
     }
 
@@ -179,7 +188,85 @@ public class GitHubSCMNavigatorTest {
     }
 
     @Test
-    public void fetchRepositories() throws Exception {
+    public void fetchUserRepositories() throws Exception {
+        navigator = new GitHubSCMNavigator("http://localhost:" + githubApi.port(), "cloudbeers", "user-pass", null);
+
+        final LogTaskListener listener = new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO);
+        final Set<String> names = new HashSet<>();
+        final SCMSourceOwner owner = Mockito.mock(SCMSourceOwner.class);
+        SCMSourceObserver observer = new SCMSourceObserver() {
+            @NonNull
+            @Override
+            public SCMSourceOwner getContext() {
+                return owner;
+            }
+
+            @NonNull
+            @Override
+            public TaskListener getListener() {
+                return listener;
+            }
+
+            @NonNull
+            @Override
+            public ProjectObserver observe(@NonNull String projectName) throws IllegalArgumentException {
+                names.add(projectName);
+                return new NoOpProjectObserver();
+            }
+
+            @Override
+            public void addAttribute(@NonNull String key, @Nullable Object value)
+                throws IllegalArgumentException, ClassCastException {
+
+            }
+        };
+        navigator.visitSources(SCMSourceObserver.filter(observer, "basic", "advanced"));
+        // basic is not archived, advanced is archived - advanced should be filtered out
+        assertThat(names, Matchers.contains("basic"));
+        assertThat(names, Matchers.not(Matchers.contains("advanced")));
+    }
+
+    @Test
+    public void fetchOrgaRepositories() throws Exception {
+        final LogTaskListener listener = new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO);
+        final Set<String> names = new HashSet<>();
+        final SCMSourceOwner owner = Mockito.mock(SCMSourceOwner.class);
+        SCMSourceObserver observer = new SCMSourceObserver() {
+            @NonNull
+            @Override
+            public SCMSourceOwner getContext() {
+                return owner;
+            }
+
+            @NonNull
+            @Override
+            public TaskListener getListener() {
+                return listener;
+            }
+
+            @NonNull
+            @Override
+            public ProjectObserver observe(@NonNull String projectName) throws IllegalArgumentException {
+                names.add(projectName);
+                return new NoOpProjectObserver();
+            }
+
+            @Override
+            public void addAttribute(@NonNull String key, @Nullable Object value)
+                throws IllegalArgumentException, ClassCastException {
+
+            }
+        };
+        navigator.visitSources(SCMSourceObserver.filter(observer, "basic", "advanced"));
+        // basic is not archived, advanced is archived - advanced should be filtered out
+        assertThat(names, Matchers.contains("basic"));
+        assertThat(names, Matchers.not(Matchers.contains("advanced")));
+    }
+
+    @Test
+    public void fetchAnonymousRepositories() throws Exception {
+        navigator = new GitHubSCMNavigator("http://localhost:" + githubApi.port(), "anonymous-user", null, null);
+
         final LogTaskListener listener = new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO);
         final Set<String> names = new HashSet<>();
         final SCMSourceOwner owner = Mockito.mock(SCMSourceOwner.class);

@@ -1,0 +1,31 @@
+{
+  "id" : "11f5a288-f0d4-38ec-8d5c-126e7fbdaac6",
+  "uuid" : "11f5a288-f0d4-38ec-8d5c-126e7fbdaac6",
+  "request" : {
+    "url" : "/user/repos?type=all&per_page=100",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "body-user-repos-myz2C.json",
+    "headers" : {
+      "Date" : "Tue, 13 Aug 2019 15:13:45 GMT",
+      "Content-Type" : "application/json; charset=utf-8",
+      "Server" : "GitHub.com",
+      "Status" : "200 Unauthorized",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "X-RateLimit-Limit" : "60",
+      "X-RateLimit-Remaining" : "54",
+      "X-RateLimit-Reset" : "1565712825",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type",
+      "Access-Control-Allow-Origin" : "*",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "X-Frame-Options" : "deny",
+      "X-Content-Type-Options" : "nosniff",
+      "X-XSS-Protection" : "1; mode=block",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "Content-Security-Policy" : "default-src 'none'",
+      "X-GitHub-Request-Id" : "C449:75A6:D5B41:136409:5D52D3A9"
+    }
+  }
+}
