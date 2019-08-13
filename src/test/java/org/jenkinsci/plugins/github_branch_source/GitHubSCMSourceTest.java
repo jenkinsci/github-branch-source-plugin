@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import com.cloudbees.jenkins.GitHubRepositoryNameContributor;
+import com.github.tomakehurst.wiremock.common.ConsoleNotifier;
 import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.common.SingleRootFileSource;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
@@ -123,6 +124,7 @@ public class GitHubSCMSourceTest {
     public WireMockRule githubApi = factory.getRule(WireMockConfiguration.options()
             .dynamicPort()
             .usingFilesUnderClasspath("api")
+            .notifier(new ConsoleNotifier(true))
             .extensions(
                     new ResponseTransformer() {
                         @Override
@@ -135,6 +137,8 @@ public class GitHubSCMSourceTest {
                                         .body(response.getBodyAsString()
                                                 .replace("https://api.github.com/",
                                                         "http://localhost:" + githubApi.port() + "/")
+                                                .replace("http://github.test/api/v3",
+                                                        "http://localhost:" + githubApi.port())
                                                 .replace("https://raw.githubusercontent.com/",
                                                         "http://localhost:" + githubRaw.port() + "/")
                                         )
@@ -161,8 +165,8 @@ public class GitHubSCMSourceTest {
     @Parameterized.Parameters(name = "{index}: revision={0}")
     public static GitHubSCMSource[] revisions() {
         return new GitHubSCMSource[]{
-                new GitHubSCMSource("cloudbeers", "yolo", null, false),
-                new GitHubSCMSource("", "", "https://github.com/cloudbeers/yolo", true)
+                new GitHubSCMSource("cloudbeers", "yolo", null, false)
+                // new GitHubSCMSource("", "", "https://github.com/cloudbeers/yolo", true)
             };
     }
 
@@ -210,9 +214,16 @@ public class GitHubSCMSourceTest {
 
         githubApi.stubFor(
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
+                // get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://github.test/api/v3")));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
-        source.setApiUri("http://localhost:" + githubApi.port());
+        // source.setApiUri("http://localhost:" + githubApi.port());
+        // source = new GitHubSCMSource("", "", "http://localhost:" + githubApi.port() + "/owner/repo", true);
+        if (source.isConfiguredByUrl()) {
+            source = new GitHubSCMSource("cloudbeers", "yolo", "http://127.0.0.1:" + githubApi.port() + "/cloudbeers/yolo", true);
+        } else {
+            source.setApiUri("http://localhost:" + githubApi.port());
+        }
         source.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, true), new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustContributors())));
         github = Connector.connect("http://localhost:" + githubApi.port(), null);
         repo = github.getRepository("cloudbeers/yolo");
