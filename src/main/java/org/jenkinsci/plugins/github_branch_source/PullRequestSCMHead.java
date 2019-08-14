@@ -27,6 +27,11 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,6 +41,7 @@ import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
+import org.jenkinsci.plugins.github_branch_source.util.GitHubApiUtils;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHPullRequest;
@@ -59,6 +65,8 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
     private final String sourceRepo;
     private final String sourceBranch;
     private final SCMHeadOrigin origin;
+    private final Set<String> labels;
+
     /**
      * Only populated if de-serializing instances.
      */
@@ -74,6 +82,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         this.sourceBranch = copy.sourceBranch;
         this.origin = copy.origin;
         this.metadata = copy.metadata;
+        this.labels = new HashSet<>(copy.labels);
     }
 
     PullRequestSCMHead(GHPullRequest pr, String name, boolean merge) {
@@ -90,6 +99,8 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         this.origin = pr.getRepository().getOwnerName().equalsIgnoreCase(sourceOwner)
                 ? SCMHeadOrigin.DEFAULT
                 : new SCMHeadOrigin.Fork(this.sourceOwner);
+        //TODO: Error propagation?
+        this.labels = GitHubApiUtils.getLabels(pr);
     }
 
     public PullRequestSCMHead(@NonNull String name, String sourceOwner, String sourceRepo, String sourceBranch, int number,
@@ -102,6 +113,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         this.sourceRepo = sourceRepo;
         this.sourceBranch = sourceBranch;
         this.origin = origin;
+        this.labels = Collections.emptySet();
     }
 
     /**
@@ -211,6 +223,16 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
     @Override
     public SCMHeadOrigin getOrigin() {
         return origin == null ? SCMHeadOrigin.DEFAULT : origin;
+    }
+
+    /**
+     * Get pull request labels
+     * @return Labels
+     * @since TODO
+     */
+    @NonNull
+    public Set<String> getLabels() {
+        return labels;
     }
 
     /**
