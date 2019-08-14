@@ -61,7 +61,10 @@ public class GitHubOrgWebHook {
     }
 
     public static void register(GitHub hub, String orgName) throws IOException {
-        String rootUrl = Jenkins.getActiveInstance().getRootUrl();
+        String rootUrl = System.getenv("JENKINS_HOOK_URL");
+        if (rootUrl == null) {
+            rootUrl = Jenkins.get().getRootUrl();
+        }
         if (rootUrl == null) {
             return;
         }
