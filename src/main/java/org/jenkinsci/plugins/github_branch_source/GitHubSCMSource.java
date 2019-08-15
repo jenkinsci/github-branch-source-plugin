@@ -407,7 +407,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @DataBoundSetter
     public void setApiUri(@CheckForNull String apiUri) {
-        // TODO: What should happen when this is called and this instance is configured by URL? Nothing?
+        // JENKINS-58862
+        // If repositoryUrl is set, we don't want to set it again.
+        if (this.repositoryUrl != null) {
+            return;
+        }
         apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmptyAndTrim(apiUri));
         if (apiUri == null) {
             apiUri = GITHUB_URL;
