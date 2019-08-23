@@ -279,7 +279,7 @@ public class GitHubSCMSourceTest {
             byName.put(h.getKey().getName(), h.getKey());
             revByName.put(h.getKey().getName(), h.getValue());
         }
-        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "master", "stephenc-patch-1"));
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "PR-4", "master", "stephenc-patch-1"));
 
         assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
         assertThat(((PullRequestSCMHead)byName.get("PR-2")).isMerge(), is(true));
@@ -291,6 +291,7 @@ public class GitHubSCMSourceTest {
         ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash();
 
         assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-3").getOrigin()).getName(), is("stephenc"));
         assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(true));
         assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
                 "8f1314fc3c8284d8c6d5886d473db98f2126071c",
@@ -307,6 +308,9 @@ public class GitHubSCMSourceTest {
         }
         assertThat(abort, instanceOf(AbortException.class));
         assertThat(abort.getMessage(), containsString("Not mergeable"));
+
+        assertThat(byName.get("PR-4"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-4").getOrigin()).getName(), is("stephenc/jenkins-58450"));
 
         assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
         assertThat(revByName.get("master"),
@@ -348,7 +352,7 @@ public class GitHubSCMSourceTest {
             revByName.put(h.getKey().getName(), h.getValue());
         }
 
-        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "master", "stephenc-patch-1"));
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "PR-4", "master", "stephenc-patch-1"));
 
         assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
         assertThat(((PullRequestSCMHead)byName.get("PR-2")).isMerge(), is(true));
@@ -361,6 +365,7 @@ public class GitHubSCMSourceTest {
 
         assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
         assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(true));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-3").getOrigin()).getName(), is("stephenc"));
         assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
                 "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                 "c0e024f89969b976da165eecaa71e09dc60c3da1",
@@ -376,6 +381,9 @@ public class GitHubSCMSourceTest {
         }
         assertThat(abort, instanceOf(AbortException.class));
         assertThat(abort.getMessage(), containsString("Not mergeable"));
+
+        assertThat(byName.get("PR-4"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-4").getOrigin()).getName(), is("stephenc/jenkins-58450"));
 
         assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
         assertThat(revByName.get("master"),
@@ -420,12 +428,13 @@ public class GitHubSCMSourceTest {
             byName.put(h.getKey().getName(), h.getKey());
             revByName.put(h.getKey().getName(), h.getValue());
         }
-        assertThat(byName.keySet(), containsInAnyOrder("PR-3", "master", "stephenc-patch-1"));
+        assertThat(byName.keySet(), containsInAnyOrder("PR-3", "PR-4", "master", "stephenc-patch-1"));
 
         // PR-2 fails to find user and throws file not found for user.
         // Caught and handled by removing PR-2 but scan continues.
 
         assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-3").getOrigin()).getName(), is("stephenc"));
         assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(true));
         assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
                 "8f1314fc3c8284d8c6d5886d473db98f2126071c",
@@ -442,6 +451,9 @@ public class GitHubSCMSourceTest {
         }
         assertThat(abort, instanceOf(AbortException.class));
         assertThat(abort.getMessage(), containsString("Not mergeable"));
+
+        assertThat(byName.get("PR-4"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-4").getOrigin()).getName(), is("stephenc/jenkins-58450"));
 
         assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
         assertThat(revByName.get("master"),
@@ -506,12 +518,13 @@ public class GitHubSCMSourceTest {
             byName.put(h.getKey().getName(), h.getKey());
             revByName.put(h.getKey().getName(), h.getValue());
         }
-        assertThat(byName.keySet(), containsInAnyOrder("PR-3", "master", "stephenc-patch-1"));
+        assertThat(byName.keySet(), containsInAnyOrder("PR-3", "PR-4", "master", "stephenc-patch-1"));
 
         // PR-2 fails to find master and throws file not found for master.
         // Caught and handled by removing PR-2 but scan continues.
 
         assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-3").getOrigin()).getName(), is("stephenc"));
         assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(true));
         assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
                 "8f1314fc3c8284d8c6d5886d473db98f2126071c",
@@ -528,6 +541,9 @@ public class GitHubSCMSourceTest {
         }
         assertThat(abort, instanceOf(AbortException.class));
         assertThat(abort.getMessage(), containsString("Not mergeable"));
+
+        assertThat(byName.get("PR-4"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-4").getOrigin()).getName(), is("stephenc/jenkins-58450"));
 
         assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
         assertThat(revByName.get("master"),
@@ -565,7 +581,7 @@ public class GitHubSCMSourceTest {
             revByName.put(h.getKey().getName(), h.getValue());
         }
 
-        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "master", "stephenc-patch-1"));
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "PR-4", "master", "stephenc-patch-1"));
 
         assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
         assertThat(((PullRequestSCMHead)byName.get("PR-2")).isMerge(), is(true));
@@ -577,6 +593,7 @@ public class GitHubSCMSourceTest {
         ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash();
 
         assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-3").getOrigin()).getName(), is("stephenc"));
         assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(true));
         assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
                 "8f1314fc3c8284d8c6d5886d473db98f2126071c",
@@ -593,6 +610,9 @@ public class GitHubSCMSourceTest {
         }
         assertThat(abort, instanceOf(AbortException.class));
         assertThat(abort.getMessage(), containsString("Not mergeable"));
+
+        assertThat(byName.get("PR-4"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-4").getOrigin()).getName(), is("stephenc/jenkins-58450"));
 
         assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
         assertThat(revByName.get("master"),
@@ -624,7 +644,7 @@ public class GitHubSCMSourceTest {
             byName.put(h.getKey().getName(), h.getKey());
             revByName.put(h.getKey().getName(), h.getValue());
         }
-        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "master", "stephenc-patch-1"));
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "PR-4", "master", "stephenc-patch-1"));
         assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
         assertThat(((PullRequestSCMHead)byName.get("PR-2")).isMerge(), is(false));
         assertThat(revByName.get("PR-2"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-2")),
@@ -634,11 +654,15 @@ public class GitHubSCMSourceTest {
         ((PullRequestSCMRevision)revByName.get("PR-2")).validateMergeHash();
 
         assertThat(byName.get("PR-3"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-3").getOrigin()).getName(), is("stephenc"));
         assertThat(((PullRequestSCMHead)byName.get("PR-3")).isMerge(), is(false));
         assertThat(revByName.get("PR-3"), is((SCMRevision) new PullRequestSCMRevision((PullRequestSCMHead)(byName.get("PR-3")),
                 "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                 "c0e024f89969b976da165eecaa71e09dc60c3da1"
         )));
+
+        assertThat(byName.get("PR-4"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-4").getOrigin()).getName(), is("stephenc/jenkins-58450"));
 
         assertThat(byName.get("master"), instanceOf(BranchSCMHead.class));
         assertThat(revByName.get("master"),
