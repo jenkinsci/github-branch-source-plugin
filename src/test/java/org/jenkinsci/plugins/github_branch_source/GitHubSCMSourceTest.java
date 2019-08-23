@@ -766,8 +766,8 @@ public class GitHubSCMSourceTest {
         GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
-        Iterable<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repo);
-        assertFalse(tags.iterator().hasNext());
+        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repo).iterator();
+        assertFalse(tags.hasNext());
     }
 
     @Test
@@ -780,8 +780,9 @@ public class GitHubSCMSourceTest {
         GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
-        Iterable<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repo);
-        assertTrue(tags.iterator().hasNext());
-        assertFalse(tags.iterator().hasNext());
+        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repo).iterator();
+        assertTrue(tags.hasNext());
+        assertEquals("refs/tags/existent-tag", tags.next().getRef());
+        assertFalse(tags.hasNext());
     }
 }
