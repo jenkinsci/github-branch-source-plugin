@@ -44,14 +44,14 @@ public enum ApiRateLimitChecker {
                         // we add a little bit of random to prevent CPU overload when the limit is due to reset but GitHub
                         // hasn't actually reset yet (clock synchronization is a hard problem)
                         if (rateLimitResetMillis < 0) {
-                            expiration = System.currentTimeMillis() + ENTROPY.nextInt(65536); // approx 1 min
+                            expiration = System.currentTimeMillis() + ENTROPY.nextInt(expirationWaitMillis);
                             listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                     "GitHub API Usage: Current quota has %d remaining (%d over budget). Next quota of %d due now. Sleeping for %s.",
                                     rateLimit.remaining, ideal - rateLimit.remaining, rateLimit.limit,
                                     Util.getTimeSpanString(expiration - System.currentTimeMillis())
                             )));
                         } else {
-                            expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(65536); // approx 1 min
+                            expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(expirationWaitMillis);
                             listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                     "GitHub API Usage: Current quota has %d remaining (%d over budget). Next quota of %d in %s. Sleeping until reset.",
                                     rateLimit.remaining, ideal - rateLimit.remaining, rateLimit.limit,
@@ -92,7 +92,7 @@ public enum ApiRateLimitChecker {
                 if (rateLimit.remaining >= buffer) {
                     break;
                 }
-                final long expiration = System.currentTimeMillis() + ENTROPY.nextInt(65536); // approx 1 min
+                final long expiration = System.currentTimeMillis() + ENTROPY.nextInt(expirationWaitMillis);
                 listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                         "GitHub API Usage: Current quota has %d remaining (%d over buffer). Next quota of %d due now. Sleeping for %s.",
                         rateLimit.remaining, buffer - rateLimit.remaining, rateLimit.limit,
@@ -105,12 +105,17 @@ public enum ApiRateLimitChecker {
 
     private static final double MILLIS_PER_HOUR = TimeUnit.HOURS.toMillis(1);
     private static final Random ENTROPY = new Random();
+    private static int expirationWaitMillis = 65536; // approx 1 min
 
     private String displayName;
 
     ApiRateLimitChecker(String displayName) {
 
         this.displayName = displayName;
+    }
+
+    void setExpirationWaitMillis(int expirationWaitMillis) {
+        this.expirationWaitMillis = expirationWaitMillis;
     }
 
     public String getDisplayName() {
