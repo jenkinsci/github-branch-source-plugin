@@ -1,16 +1,13 @@
 package org.jenkinsci.plugins.github_branch_source;
 
-import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.common.SingleRootFileSource;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.extension.Parameters;
 import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
-import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import hudson.util.LogTaskListener;
 import org.junit.Before;
@@ -21,6 +18,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.kohsuke.github.GitHub;
 
 import java.io.File;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -33,7 +31,7 @@ public class ApiRateLimitCheckerTest {
     @ClassRule
     public static JenkinsRule r = new JenkinsRule();
 
-    public static WireMockRuleFactory factory = new WireMockRuleFactory();
+    private static WireMockRuleFactory factory = new WireMockRuleFactory();
 
     @Rule
     public WireMockRule githubRaw = factory.getRule(WireMockConfiguration.options()
@@ -73,6 +71,9 @@ public class ApiRateLimitCheckerTest {
     );
     private GitHub github;
 
+    private final ApiRateLimitChecker apiRateLimitCheckerThrottleOnOver = ApiRateLimitChecker.ThrottleOnOver;
+    private final ApiRateLimitChecker apiRateLimitCheckerThrottleForNormalize = ApiRateLimitChecker.ThrottleForNormalize;
+
     @Before
     public void prepareMockGitHub() throws Exception {
         new File("src/test/resources/api/mappings").mkdirs();
@@ -93,9 +94,18 @@ public class ApiRateLimitCheckerTest {
         github = Connector.connect("http://localhost:" + githubApi.port(), null);
 
         resetAllScenarios();
+
+        // Don't actually throttle and wait
+        final Random entropy = new Random(1000);
+        apiRateLimitCheckerThrottleOnOver.setEntropy(entropy);
+        apiRateLimitCheckerThrottleOnOver.setExpirationWaitMillis(1);
+        apiRateLimitCheckerThrottleOnOver.setNotificationWaitMillis(1);
+        apiRateLimitCheckerThrottleForNormalize.setEntropy(entropy);
+        apiRateLimitCheckerThrottleForNormalize.setExpirationWaitMillis(1);
+        apiRateLimitCheckerThrottleForNormalize.setNotificationWaitMillis(1);
     }
 
-    @Test(timeout=120000)
+    @Test
     public void ThrottleOnOverTest() throws Exception {
         githubApi.stubFor(
                 get(urlEqualTo("/rate_limit"))
@@ -131,13 +141,13 @@ public class ApiRateLimitCheckerTest {
 
         final Logger logger = Logger.getLogger(getClass().getName());
         final LogTaskListener listener = new LogTaskListener(logger, Level.INFO);
-        final ApiRateLimitChecker apiRateLimitChecker = ApiRateLimitChecker.ThrottleOnOver;
-        apiRateLimitChecker.setExpirationWaitMillis(1);
-        apiRateLimitChecker.checkApiRateLimit(listener, github);
-        apiRateLimitChecker.checkApiRateLimit(listener, github);
+
+        for (int i = 0; i < 3; i++) {
+            apiRateLimitCheckerThrottleOnOver.checkApiRateLimit(listener, github);
+        }
     }
 
-    @Test(timeout=120000)
+    @Test
     public void ThrottleForNormalizeTest() throws Exception {
         githubApi.stubFor(
                 get(urlEqualTo("/rate_limit"))
@@ -173,9 +183,9 @@ public class ApiRateLimitCheckerTest {
 
         final Logger logger = Logger.getLogger(getClass().getName());
         final LogTaskListener listener = new LogTaskListener(logger, Level.INFO);
-        final ApiRateLimitChecker apiRateLimitChecker = ApiRateLimitChecker.ThrottleForNormalize;
-        apiRateLimitChecker.setExpirationWaitMillis(1);
-        apiRateLimitChecker.checkApiRateLimit(listener, github);
-        apiRateLimitChecker.checkApiRateLimit(listener, github);
+
+        for (int i = 0; i < 3; i++) {
+            apiRateLimitCheckerThrottleForNormalize.checkApiRateLimit(listener, github);
+        }
     }
 }
