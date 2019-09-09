@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <revision>2.5.6</revision>
+        <revision>2.5.7</revision>
         <changelist>-SNAPSHOT</changelist>
         <java.level>8</java.level>
         <jenkins.version>2.138.4</jenkins.version>
