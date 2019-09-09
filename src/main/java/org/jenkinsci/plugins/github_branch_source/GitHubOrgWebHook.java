@@ -49,7 +49,7 @@ public class GitHubOrgWebHook {
     private static final List<GHEvent> EVENTS = Arrays.asList(GHEvent.REPOSITORY, GHEvent.PUSH, GHEvent.PULL_REQUEST, GHEvent.PULL_REQUEST_REVIEW_COMMENT);
 
     public static void register(GitHub hub, String orgName) throws IOException {
-        String rootUrl = System.getenv("JENKINS_HOOK_URL");
+        String rootUrl = System.getProperty("jenkins.hook.url");
         if (rootUrl == null) {
             rootUrl = Jenkins.get().getRootUrl();
         }
