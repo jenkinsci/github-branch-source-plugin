@@ -21,7 +21,7 @@ public enum ApiRateLimitChecker {
             while (check) {
                 check = false;
                 long start = System.currentTimeMillis();
-                GHRateLimit rateLimit = github.rateLimit();
+                GHRateLimit rateLimit = github.getRateLimit();
                 long rateLimitResetMillis = rateLimit.getResetDate().getTime() - start;
                 double resetProgress = rateLimitResetMillis / MILLIS_PER_HOUR;
                 // the buffer is how much we want to avoid using to cover unplanned over-use
@@ -85,7 +85,7 @@ public enum ApiRateLimitChecker {
         public void checkApiRateLimit(@NonNull TaskListener listener, GitHub github) throws IOException, InterruptedException {
             boolean check = true;
             while (check) {
-                GHRateLimit rateLimit = github.rateLimit();
+                GHRateLimit rateLimit = github.getRateLimit();
                 // the buffer is how much we want to avoid using to cover unplanned over-use
                 int buffer = Math.max(15, rateLimit.limit / 20);
                 // check that we have at least our minimum buffer of remaining calls
