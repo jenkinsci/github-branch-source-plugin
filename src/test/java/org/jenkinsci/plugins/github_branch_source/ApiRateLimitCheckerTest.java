@@ -181,6 +181,7 @@ public class ApiRateLimitCheckerTest {
         scenarios.add(new JsonRateLimit(100, 50, soon));
         scenarios.add(new JsonRateLimit(100, 30, soon));
         scenarios.add(new JsonRateLimit(100, 10, soon));
+        scenarios.add(new JsonRateLimit(100, 100, soon));
         setupStubs(scenarios);
 
         apiRateLimitCheckerThrottleForNormalize.setEntropy(entropy);
