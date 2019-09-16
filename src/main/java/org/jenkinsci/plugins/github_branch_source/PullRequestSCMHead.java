@@ -54,6 +54,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
 
     private Boolean merge;
     private final int number;
+    private String title;
     private final BranchSCMHead target;
     private final String sourceOwner;
     private final String sourceRepo;
@@ -81,6 +82,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         // the merge flag is encoded into the name, so safe to store here
         this.merge = merge;
         this.number = pr.getNumber();
+        this.title = pr.getTitle();
         this.target = new BranchSCMHead(pr.getBase().getRef());
         // the source stuff is immutable for a pull request on github, so safe to store here
         GHRepository repository = pr.getHead().getRepository(); // may be null for deleted forks JENKINS-41246
@@ -120,6 +122,10 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
 
     public int getNumber() {
         return number;
+    }
+
+    public String getTitle() {
+        return title;
     }
 
     /**
