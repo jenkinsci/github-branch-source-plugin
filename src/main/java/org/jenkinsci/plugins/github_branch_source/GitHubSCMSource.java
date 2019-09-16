@@ -2003,7 +2003,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.error("Unable to validate repository information"); // not permitted to try connecting with these credentials
             }
-            GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
+            GitHubRepositoryInfo info;
+
+            try {
+                info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
+            } catch (IllegalArgumentException e) {
+                return FormValidation.error(e, e.getMessage());
+            }
 
             StandardCredentials credentials = Connector.lookupScanCredentials(context, info.getApiUri(), credentialsId);
             StringBuilder sb = new StringBuilder();
