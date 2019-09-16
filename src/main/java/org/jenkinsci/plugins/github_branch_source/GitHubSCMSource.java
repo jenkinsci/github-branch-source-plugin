@@ -2284,11 +2284,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 }
             }
             List<NamedArrayList<? extends SCMTraitDescriptor<?>>> result = new ArrayList<>();
-            NamedArrayList.select(all, "Within repository", NamedArrayList
+            NamedArrayList.select(all, Messages.within_repository(), NamedArrayList
                             .anyOf(NamedArrayList.withAnnotation(Discovery.class),
                                     NamedArrayList.withAnnotation(Selection.class)),
                     true, result);
-            NamedArrayList.select(all, "General", null, true, result);
+            NamedArrayList.select(all, Messages.general(), null, true, result);
             return result;
         }
 
