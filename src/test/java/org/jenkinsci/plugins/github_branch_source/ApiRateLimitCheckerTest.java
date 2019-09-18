@@ -29,9 +29,12 @@ import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.jenkinsci.plugins.github_branch_source.ApiRateLimitChecker.ThrottleOnOver;
 import static org.junit.Assert.*;
 
 public class ApiRateLimitCheckerTest {
@@ -97,7 +100,7 @@ public class ApiRateLimitCheckerTest {
     );
     private GitHub github;
 
-    private final ApiRateLimitChecker apiRateLimitCheckerThrottleOnOver = ApiRateLimitChecker.ThrottleOnOver;
+    private final ApiRateLimitChecker apiRateLimitCheckerThrottleOnOver = ThrottleOnOver;
     private final ApiRateLimitChecker apiRateLimitCheckerThrottleForNormalize = ApiRateLimitChecker.ThrottleForNormalize;
     private final Random entropy = new Random(1000);
 
@@ -122,7 +125,7 @@ public class ApiRateLimitCheckerTest {
 
         resetAllScenarios();
 
-        handler = new RingBufferLogHandler(20);
+        handler = new RingBufferLogHandler(100);
         final Logger logger = Logger.getLogger(getClass().getName());
         logger.addHandler(handler);
         listener = new LogTaskListener(logger, Level.INFO);
@@ -164,53 +167,135 @@ public class ApiRateLimitCheckerTest {
 
     private Date soon = Date.from(LocalDateTime.now().plusMinutes(60).atZone(ZoneId.systemDefault()).toInstant());
 
-    private void setupThrottleOnOver() {
+    @Test
+    public void ThrottleOnOverTestWithQuota() throws Exception {
+        // set up checker: don't actually sleep
+        ApiRateLimitChecker.setEntropy(entropy);
+        ApiRateLimitChecker.setExpirationWaitMillis(1);
+        ApiRateLimitChecker.setNotificationWaitMillis(1);
+
+        // set up scenarios
         List<JsonRateLimit> scenarios = new ArrayList<>();
-        scenarios.add(new JsonRateLimit(100, 8, soon));
-        scenarios.add(new JsonRateLimit(100, 100, soon));
-        scenarios.add(new JsonRateLimit(100, 99, soon));
+        int limit = 5000;
+        scenarios.add(new JsonRateLimit(limit, limit, soon));
         setupStubs(scenarios);
 
-        apiRateLimitCheckerThrottleOnOver.setEntropy(entropy);
-        apiRateLimitCheckerThrottleOnOver.setExpirationWaitMillis(1);
-        apiRateLimitCheckerThrottleOnOver.setNotificationWaitMillis(1);
+        // Given a full rate limit quota, then we expect no throttling
+        for (int i = 0; i < 100; i++) {
+            apiRateLimitCheckerThrottleOnOver.checkApiRateLimit(listener, github);
+        }
+
+        assertEquals(0, handler.getView().stream().map(LogRecord::getMessage).filter(m -> m.contains("Sleeping")).count());
     }
 
-    private void setupThrottleForNormalize() {
+    @Test
+    public void ThrottleOnNormalizeTestWithQuota() throws Exception {
+        // set up checker: don't actually sleep
+        ApiRateLimitChecker.setEntropy(entropy);
+        ApiRateLimitChecker.setExpirationWaitMillis(1);
+        ApiRateLimitChecker.setNotificationWaitMillis(1);
+
+        // set up scenarios
         List<JsonRateLimit> scenarios = new ArrayList<>();
-        scenarios.add(new JsonRateLimit(100, 50, soon));
-        scenarios.add(new JsonRateLimit(100, 30, soon));
-        scenarios.add(new JsonRateLimit(100, 10, soon));
-        scenarios.add(new JsonRateLimit(100, 100, soon));
+        int limit = 5000;
+        scenarios.add(new JsonRateLimit(limit, limit, soon));
         setupStubs(scenarios);
 
-        apiRateLimitCheckerThrottleForNormalize.setEntropy(entropy);
-        apiRateLimitCheckerThrottleForNormalize.setExpirationWaitMillis(1);
-        apiRateLimitCheckerThrottleForNormalize.setNotificationWaitMillis(1);
+        // Given a full rate limit quota, then we expect no throttling
+        for (int i = 0; i < 100; i++) {
+            apiRateLimitCheckerThrottleForNormalize.checkApiRateLimit(listener, github);
+        }
+
+        assertEquals(0, handler.getView().stream().map(LogRecord::getMessage).filter(m -> m.contains("Sleeping")).count());
     }
 
-    // TODO: remove timeout
-    @Test(timeout = 2000)
+    @Test
     public void ThrottleOnOverTest() throws Exception {
-        setupThrottleOnOver();
+        // set up checker: don't actually sleep
+        ApiRateLimitChecker.setEntropy(entropy);
+        ApiRateLimitChecker.setExpirationWaitMillis(1);
+        ApiRateLimitChecker.setNotificationWaitMillis(1);
 
+        // set up scenarios
+        List<JsonRateLimit> scenarios = new ArrayList<>();
+        // set remaining quota to over buffer to trigger throttle
+        int limit = 5000;
+        int buffer = ApiRateLimitChecker.calculateBuffer(limit);
+        int expectedNumThrottles = 20;
+        for (int i = 1; i <= expectedNumThrottles; i++) {
+            scenarios.add(new JsonRateLimit(limit, buffer - i, soon));
+        }
+        // finally, stop throttling by restoring quota
+        scenarios.add(new JsonRateLimit(limit, limit, soon));
+        setupStubs(scenarios);
+
+        // check rate limit a few times to ensure we don't get stuck
         for (int i = 0; i < 3; i++) {
             apiRateLimitCheckerThrottleOnOver.checkApiRateLimit(listener, github);
         }
 
-        assertTrue(handler.getView().size() > 0);
-        assertTrue(handler.getView().stream().anyMatch(m -> m.getMessage().contains("quota")));
+        assertEquals(expectedNumThrottles, handler.getView().stream().map(LogRecord::getMessage).filter(m -> m.contains("Sleeping")).count());
     }
 
     @Test
-    public void ThrottleForNormalizeTest() throws Exception {
-        setupThrottleForNormalize();
+    public void ThrottleForNormalizeTestWithinIdeal() throws Exception {
+        // set up checker: don't actually sleep
+        ApiRateLimitChecker.setEntropy(entropy);
+        ApiRateLimitChecker.setExpirationWaitMillis(1);
+        ApiRateLimitChecker.setNotificationWaitMillis(1);
 
+        List<JsonRateLimit> scenarios = new ArrayList<>();
+        int limit = 5000;
+        int buffer = ApiRateLimitChecker.calculateBuffer(limit);
+        // estimate the ideal
+        int approximateIdeal = 4000;
+        // Check that if we're above within our ideal, then we don't throttle
+        scenarios.add(new JsonRateLimit(limit, approximateIdeal + buffer - 100, soon));
+        scenarios.add(new JsonRateLimit(limit, 5000, soon));
+        setupStubs(scenarios);
+
+        // Run check a few times to ensure we don't get stuck
         for (int i = 0; i < 3; i++) {
             apiRateLimitCheckerThrottleForNormalize.checkApiRateLimit(listener, github);
         }
 
-        assertTrue(handler.getView().size() > 0);
-        assertTrue(handler.getView().stream().anyMatch(m -> m.getMessage().contains("quota")));
+        // Check that we didn't throttle or sleep on normalize
+        assertTrue(handler.getView().stream().anyMatch(m -> m.getMessage().contains("under budget")));
+        assertFalse(handler.getView().stream().anyMatch(m -> m.getMessage().contains("Sleeping")));
+    }
+
+
+    @Test
+    public void ThrottleForNormalizeTest() throws Exception {
+        // set up checker: don't actually sleep
+        ApiRateLimitChecker.setEntropy(entropy);
+        ApiRateLimitChecker.setExpirationWaitMillis(1);
+        ApiRateLimitChecker.setNotificationWaitMillis(1);
+
+        // Set up scenarios
+        List<JsonRateLimit> scenarios = new ArrayList<>();
+        int limit = 5000;
+        // estimate the ideal
+        int approximateIdeal = 4000;
+        int burst = ApiRateLimitChecker.calculateNormalizedBurst(limit);
+        // Trigger a throttle for normalize
+        scenarios.add(new JsonRateLimit(limit, approximateIdeal - burst, soon));
+        // Trigger a wait until rate limit
+        scenarios.add(new JsonRateLimit(limit, approximateIdeal - burst, soon));
+        // Refresh rate limit
+        scenarios.add(new JsonRateLimit(limit, limit, soon));
+        setupStubs(scenarios);
+
+        // Run check a few times to ensure we don't get stuck
+        for (int i = 0; i < 3; i++) {
+            apiRateLimitCheckerThrottleForNormalize.checkApiRateLimit(listener, github);
+        }
+
+        // Expect a triggered throttle for normalize
+        assertEquals(1, handler.getView().stream().map(LogRecord::getMessage).filter(m -> m.contains("Sleeping")).count());
+        // Expect a wait until rate limit
+        assertEquals(1, handler.getView().stream().map(LogRecord::getMessage).filter(m -> m.contains("Still sleeping")).count());
+        // Expect that we stopped waiting on a refresh
+        assertEquals(1, handler.getView().stream().map(LogRecord::getMessage).filter(m -> m.contains("refreshed")).count());
     }
 }

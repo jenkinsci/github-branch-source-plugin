@@ -22,13 +22,13 @@ public enum ApiRateLimitChecker {
                 check = false;
                 long start = System.currentTimeMillis();
                 GHRateLimit rateLimit = github.getRateLimit();
+                // the buffer is how much we want to avoid using to cover unplanned over-use
+                int buffer = calculateBuffer(rateLimit.limit);
+                // the burst is how much we want to allow for speedier response outside of the throttle
+                int burst = calculateNormalizedBurst(rateLimit.limit);
+                // the ideal is how much remaining we should have (after a burst)
                 long rateLimitResetMillis = rateLimit.getResetDate().getTime() - start;
                 double resetProgress = rateLimitResetMillis / MILLIS_PER_HOUR;
-                // the buffer is how much we want to avoid using to cover unplanned over-use
-                int buffer = Math.max(15, rateLimit.limit / 20);
-                // the burst is how much we want to allow for speedier response outside of the throttle
-                int burst = rateLimit.limit < 1000 ? Math.max(5, rateLimit.limit / 10) : Math.max(200, rateLimit.limit / 5);
-                // the ideal is how much remaining we should have (after a burst)
                 int ideal = (int) ((rateLimit.limit - buffer - burst) * resetProgress) + buffer;
                 if (rateLimit.remaining >= ideal && rateLimit.remaining < ideal + buffer) {
                     listener.getLogger().println(GitHubConsoleNote.create(start, String.format(
@@ -87,7 +87,7 @@ public enum ApiRateLimitChecker {
             while (check) {
                 GHRateLimit rateLimit = github.getRateLimit();
                 // the buffer is how much we want to avoid using to cover unplanned over-use
-                int buffer = Math.max(15, rateLimit.limit / 20);
+                int buffer = calculateBuffer(rateLimit.limit);
                 // check that we have at least our minimum buffer of remaining calls
                 if (rateLimit.remaining >= buffer) {
                     break;
@@ -102,6 +102,7 @@ public enum ApiRateLimitChecker {
             }
         }
     };
+
 
     private static final double MILLIS_PER_HOUR = TimeUnit.HOURS.toMillis(1);
     private static Random ENTROPY = new Random();
@@ -135,6 +136,14 @@ public enum ApiRateLimitChecker {
 
     public abstract void checkApiRateLimit(@NonNull TaskListener listener, GitHub github)
             throws IOException, InterruptedException;
+
+    static int calculateBuffer(int limit) {
+        return Math.max(15, limit / 20);
+    }
+
+    static int calculateNormalizedBurst(int rateLimit) {
+        return rateLimit < 1000 ? Math.max(5, rateLimit / 10) : Math.max(200, rateLimit / 5);
+    }
 
     private static void waitUntilRateLimit(@NonNull TaskListener listener, GitHub github, GHRateLimit rateLimit, long expiration) throws InterruptedException, IOException {
         long nextNotify = System.currentTimeMillis() + NOTIFICATION_WAIT_MILLIS;
