@@ -1,0 +1,10 @@
+{
+  "ref": "refs/tags/existent-tag",
+  "node_id": "MDM6UmVmNTAyNTA5MTU6Ymx1ZW9jZWFuLXBhcmVudC0xLjE4LjA=",
+  "url": "https://api.github.com/repos/cloudbeers/yolo/git/refs/tags/existent-tag",
+  "object": {
+    "sha": "d6af8fca2a8dd7a575adc4ac79046c91e7dc3db8",
+    "type": "tag",
+    "url": "https://api.github.com/repos/jenkinsci/blueocean-plugin/git/tags/d6af8fca2a8dd7a575adc4ac79046c91e7dc3db8"
+  }
+}

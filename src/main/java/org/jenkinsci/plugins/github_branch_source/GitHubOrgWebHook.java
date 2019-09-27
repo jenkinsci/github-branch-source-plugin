@@ -48,20 +48,11 @@ public class GitHubOrgWebHook {
     private static final Logger LOGGER = Logger.getLogger(GitHubOrgWebHook.class.getName());
     private static final List<GHEvent> EVENTS = Arrays.asList(GHEvent.REPOSITORY, GHEvent.PUSH, GHEvent.PULL_REQUEST, GHEvent.PULL_REQUEST_REVIEW_COMMENT);
 
-    /**
-     * Verify if exists a webhook by its URL.
-     */
-    private static boolean existsHook(GHOrganization org, String url) throws IOException {
-        for (GHHook hook : org.getHooks()) {
-            if (hook.getConfig().get("url").equals(url)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public static void register(GitHub hub, String orgName) throws IOException {
-        String rootUrl = Jenkins.getActiveInstance().getRootUrl();
+        String rootUrl = System.getProperty("jenkins.hook.url");
+        if (rootUrl == null) {
+            rootUrl = Jenkins.get().getRootUrl();
+        }
         if (rootUrl == null) {
             return;
         }
