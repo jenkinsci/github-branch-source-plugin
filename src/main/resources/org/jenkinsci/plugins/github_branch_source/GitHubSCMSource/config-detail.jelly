@@ -15,7 +15,7 @@
   <f:radioBlock name="configuredByUrlRadio" value="true" checked="true" title="${%Repository HTTPS URL}" inline="true">
     <f:nested>
       <f:entry title="${%Repository HTTPS URL}" field="repositoryUrl">
-        <f:textbox/>
+        <f:textbox checkMethod="post"/>
       </f:entry>
       <f:validateButton method="validateRepositoryUrlAndCredentials" title="${%Validate}" with="repositoryUrl,credentialsId" />
     </f:nested>

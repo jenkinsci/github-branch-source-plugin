@@ -1993,6 +1993,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         @RequirePOST
         @Restricted(NoExternalUse.class)
+        public FormValidation doCheckRepositoryUrl(@QueryParameter String configuredByUrl, @QueryParameter String value) {
+            if(Boolean.parseBoolean(configuredByUrl)) {
+                try {
+                    GitHubRepositoryInfo.forRepositoryUrl(value);
+                } catch (IllegalArgumentException e) {
+                    return FormValidation.error(e, e.getMessage());
+                }
+            }
+            return FormValidation.ok();
+        }
+        
+        @RequirePOST
+        @Restricted(NoExternalUse.class)
         public FormValidation doValidateRepositoryUrlAndCredentials(@CheckForNull @AncestorInPath Item context,
                                                                     @QueryParameter String repositoryUrl,
                                                                     @QueryParameter String credentialsId) {
