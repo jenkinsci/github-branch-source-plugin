@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import org.apache.commons.lang.StringUtils;
 
@@ -78,7 +79,26 @@ class GitHubRepositoryInfo {
     }
 
     @NonNull
-    public static GitHubRepositoryInfo forRepositoryUrl(@NonNull String repositoryUrl) {
+    public static GitHubRepositoryInfo forRepositoryUrl(@CheckForNull String repositoryUrl) {
+        if (repositoryUrl == null) {
+            repositoryUrl = "";
+        }
+        URL url = getTrimmedUrl(repositoryUrl);
+
+        String apiUri = guessApiUri(url);
+
+        String[] pathParts = StringUtils.removeStart(url.getPath(), "/").split("/");
+        if (pathParts.length != 2) {
+            throw new IllegalArgumentException("Invalid repository URL: " + repositoryUrl);
+        } else {
+            String repoOwner = pathParts[0];
+            String repository = removeEnd(pathParts[1], ".git");
+            return new GitHubRepositoryInfo(apiUri, repoOwner, repository, repositoryUrl.trim());
+        }
+    }
+
+    @NonNull
+    public static URL getTrimmedUrl(@NonNull String repositoryUrl) {
         String trimmedRepoUrl = repositoryUrl.trim();
         if (StringUtils.isBlank(trimmedRepoUrl)) {
             throw new IllegalArgumentException("Repository URL must not be empty");
@@ -92,15 +112,7 @@ class GitHubRepositoryInfo {
         if (!url.getProtocol().equals("http") && !url.getProtocol().equals("https")) {
             throw new IllegalArgumentException("Invalid repository URL scheme (must be HTTPS or HTTP): " + url.getProtocol());
         }
-        String apiUri = guessApiUri(url);
-        String[] pathParts = StringUtils.removeStart(url.getPath(), "/").split("/");
-        if (pathParts.length != 2) {
-            throw new IllegalArgumentException("Invalid repository URL: " + repositoryUrl);
-        } else {
-            String repoOwner = pathParts[0];
-            String repository = removeEnd(pathParts[1], ".git");
-            return new GitHubRepositoryInfo(apiUri, repoOwner, repository, repositoryUrl.trim());
-        }
+        return url;
     }
 
     private static String guessApiUri(URL repositoryUrl) {

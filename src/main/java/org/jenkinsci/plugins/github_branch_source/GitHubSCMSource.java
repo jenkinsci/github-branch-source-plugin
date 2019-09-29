@@ -40,10 +40,7 @@ import hudson.Util;
 import hudson.console.HyperlinkNote;
 import hudson.init.InitMilestone;
 import hudson.init.Initializer;
-import hudson.model.Action;
-import hudson.model.Actionable;
-import hudson.model.Item;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.scm.SCM;
 import hudson.util.FormValidation;
@@ -54,6 +51,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.net.URL;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -83,16 +81,7 @@ import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.plugins.git.MergeWithGitSCMExtension;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMHeadCategory;
-import jenkins.scm.api.SCMHeadEvent;
-import jenkins.scm.api.SCMHeadObserver;
-import jenkins.scm.api.SCMProbe;
-import jenkins.scm.api.SCMRevision;
-import jenkins.scm.api.SCMSourceCriteria;
-import jenkins.scm.api.SCMSourceDescriptor;
-import jenkins.scm.api.SCMSourceEvent;
-import jenkins.scm.api.SCMSourceOwner;
+import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.ContributorMetadataAction;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.metadata.PrimaryInstanceMetadataAction;
@@ -108,6 +97,8 @@ import jenkins.scm.impl.form.NamedArrayList;
 import jenkins.scm.impl.trait.Discovery;
 import jenkins.scm.impl.trait.Selection;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
+import net.sf.json.JSONObject;
+import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.jenkinsci.Symbol;
@@ -132,10 +123,7 @@ import org.kohsuke.github.GHTagObject;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.*;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import static hudson.Functions.isWindows;
@@ -147,7 +135,7 @@ import static org.jenkinsci.plugins.github_branch_source.GitHubSCMBuilder.API_V3
 
 import org.kohsuke.stapler.export.Exported;
 
-public class GitHubSCMSource extends AbstractGitSCMSource {
+public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundResolvable {
 
     public static final String VALID_GITHUB_REPO_NAME = "^[0-9A-Za-z._-]+$";
     public static final String VALID_GITHUB_USER_NAME = "^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$";
@@ -195,19 +183,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * The repository owner.
      */
     @NonNull
-    private final String repoOwner;
+    private String repoOwner = "";
 
     /**
      * The repository
      */
     @NonNull
-    private final String repository;
+    private String repository = "";
 
     /**
      * HTTPS URL for the repository, if specified by the user.
      */
     @CheckForNull
-    private final String repositoryUrl;
+    private String repositoryUrl;
 
     /**
      * The behaviours to apply to this source.
@@ -317,31 +305,32 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * Constructor, defaults to {@link #GITHUB_URL} as the end-point, and anonymous access, does not default any
      * {@link SCMSourceTrait} behaviours.
      *
-     * @param repoOwner the repository owner.
-     * @param repository the repository name.
-     * @param repositoryUrl HTML URL for the repository. If specified, takes precedence over repoOwner and repository.
-     * @param configuredByUrl Whether to use repositoryUrl or repoOwner/repository for configuration.
+     * This was choosen as the constructor to allow users to set only the values they need and
+     * not have to pass extra null or empty values. However, this source cannot be used until
+     * either "repositoryUrl" or "repoOwner"/"repository" are set.
+     * If both combinations are set, repositoryUrl will be used.
+     *
+     * See {@link #bindResolve} for further discussion of the reasons for this design.
+     *
      * @throws IllegalArgumentException if repositoryUrl is specified but invalid.
      * @since 2.2.0
      */
-    // configuredByUrl is used to decide which radioBlock in the UI the user had selected when they submitted the form.
     @DataBoundConstructor
-    public GitHubSCMSource(String repoOwner, String repository, String repositoryUrl, boolean configuredByUrl) {
-        if (!configuredByUrl) {
-            this.apiUri = GITHUB_URL;
-            this.repoOwner = repoOwner;
-            this.repository = repository;
-            this.repositoryUrl = null;
-        } else {
-            GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
-            this.apiUri = info.getApiUri();
-            this.repoOwner = info.getRepoOwner();
-            this.repository = info.getRepository();
-            this.repositoryUrl = info.getRepositoryUrl();
-        }
+    public GitHubSCMSource() {
         pullRequestMetadataCache = new ConcurrentHashMap<>();
         pullRequestContributorCache = new ConcurrentHashMap<>();
         this.traits = new ArrayList<>();
+    }
+
+    /**
+     * Legacy constructor.
+     *
+     * @since 2.2.0
+     */
+    @Deprecated
+    public GitHubSCMSource(String repositoryUrl) {
+        this();
+        this.setRepositoryUrl(repositoryUrl);
     }
 
     /**
@@ -353,7 +342,32 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      */
     @Deprecated
     public GitHubSCMSource(String repoOwner, String repository) {
-        this(repoOwner, repository, null, false);
+        this();
+        this.repoOwner = repoOwner;
+        this.repository = repository;
+    }
+
+    /**
+     * Constructor, defaults to {@link #GITHUB_URL} as the end-point, and anonymous access, does not default any
+     * {@link SCMSourceTrait} behaviours.
+     *
+     * @param repoOwner the repository owner.
+     * @param repository the repository name.
+     * @param repositoryUrl HTML URL for the repository. If specified, takes precedence over repoOwner and repository.
+     * @param configuredByUrl Whether to use repositoryUrl or repoOwner/repository for configuration.
+     * @throws IllegalArgumentException if repositoryUrl is specified but invalid.
+     * @since 2.2.0
+     */
+    @Deprecated
+    // configuredByUrl is used to decide which radioBlock in the UI the user had selected when they submitted the form.
+    public GitHubSCMSource(String repoOwner, String repository, String repositoryUrl, boolean configuredByUrl) {
+        this();
+        if (!configuredByUrl) {
+            this.repoOwner = repoOwner;
+            this.repository = repository;
+        } else {
+            this.setRepositoryUrl(repositoryUrl);
+        }
     }
 
     /**
@@ -371,7 +385,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                            @NonNull String checkoutCredentialsId,
                            @CheckForNull String scanCredentialsId, @NonNull String repoOwner,
                            @NonNull String repository) {
-        this(repoOwner, repository, null, false);
+        this(repoOwner, repository);
         setId(id);
         setApiUri(apiUri);
         setCredentialsId(scanCredentialsId);
@@ -477,6 +491,52 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             else
                 return String.format("%s%s/%s", removeEnd(apiUri, API_V3), repoOwner, repository);
         }
+    }
+
+    /**
+     * Sets all fields on this source appropriately for the provided Url. 
+     *
+     * @param repositoryUrl HTML URL for the repository to connect to
+     * @since 2.6.0
+     */
+    @DataBoundSetter
+    public void setRepositoryUrl(@CheckForNull String repositoryUrl)  {
+        GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
+        this.apiUri = info.getApiUri();
+        this.repoOwner = info.getRepoOwner();
+        this.repository = info.getRepository();
+        this.repositoryUrl = info.getRepositoryUrl();
+    }
+
+    /**
+     * This method is called after Stapler instantiates this class from the Jenkins UI.
+     * This allows the object react to parameters in the UI without making them part of the
+     * data in the class.  It also lets the class have more complex behavior that would
+     * be allowed by data binding alone.
+     *
+     * We look at configuredByUrl to decide which set of parameters we look at to
+     * configure this instance.  This method is not called when instantiating from
+     * other scenarios such as JobDSL, so the object still need to have a reasonable
+     * way of handling callers setting multiple incompatible properties.
+     *
+     * @param staplerRequest
+     * @param json
+     * @return
+     */
+    @Override
+    public GitHubSCMSource bindResolve(StaplerRequest staplerRequest, JSONObject json) {
+        boolean configuredByUrl = json.getBoolean("configuredByUrl");
+
+        if(configuredByUrl) {
+            this.setRepositoryUrl(json.get("repositoryUrl").toString());
+        } else {
+            this.repositoryUrl = null;
+            this.apiUri = json.get("apiUri").toString();
+            this.repoOwner = json.get("repoOwner").toString();
+            this.repository = json.get("repository").toString();
+        }
+
+        return this;
     }
 
     /**
@@ -1956,6 +2016,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return Messages.GitHubSCMSource_DisplayName();
         }
 
+
         @Nonnull
         public Map<String, Object> customInstantiate(@Nonnull Map<String, Object> arguments) {
             Map<String, Object> arguments2 = new TreeMap<>(arguments);
@@ -1993,13 +2054,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
         @RequirePOST
         @Restricted(NoExternalUse.class)
-        public FormValidation doCheckRepositoryUrl(@QueryParameter String configuredByUrl, @QueryParameter String value) {
+        public FormValidation doCheckRepositoryUrl(@CheckForNull @AncestorInPath Item context, @QueryParameter String configuredByUrl, @QueryParameter String value, @QueryParameter String credentialsId) {
             if(Boolean.parseBoolean(configuredByUrl)) {
-                try {
-                    GitHubRepositoryInfo.forRepositoryUrl(value);
-                } catch (IllegalArgumentException e) {
-                    return FormValidation.error(e, e.getMessage());
-                }
+                return doValidateRepositoryUrlAndCredentials(context, value, credentialsId);
             }
             return FormValidation.ok();
         }
@@ -2009,6 +2066,20 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         public FormValidation doValidateRepositoryUrlAndCredentials(@CheckForNull @AncestorInPath Item context,
                                                                     @QueryParameter String repositoryUrl,
                                                                     @QueryParameter String credentialsId) {
+
+            // Start by verifying we have a well-formed GitHub API URL
+            GitHubRepositoryInfo info;
+
+            try {
+                info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
+            } catch (Throwable e) {
+                if (e instanceof IllegalArgumentException && e.getCause() != null) {
+                    e = e.getCause();
+                }
+                return FormValidation.error(e, e.getMessage());
+            }
+
+            // Do some context permissions checks
             if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                 context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                 return FormValidation.error("Unable to validate repository information"); // not supposed to be seeing this form
@@ -2016,22 +2087,25 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.error("Unable to validate repository information"); // not permitted to try connecting with these credentials
             }
-            GitHubRepositoryInfo info;
 
-            try {
-                info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
-            } catch (IllegalArgumentException e) {
-                return FormValidation.error(e, e.getMessage());
+            FormValidation credentialsValidation = Connector.checkScanCredentials(context, info.getApiUri(), credentialsId);
+            if (credentialsValidation.kind == FormValidation.Kind.ERROR) {
+                return credentialsValidation;
             }
 
             StandardCredentials credentials = Connector.lookupScanCredentials(context, info.getApiUri(), credentialsId);
             StringBuilder sb = new StringBuilder();
+            GitHub github;
             try {
-                GitHub github = Connector.connect(info.getApiUri(), credentials);
+                github = Connector.connect(info.getApiUri(), credentials);
                 if (github.isCredentialValid()){
                     sb.append("Credentials ok.");
                 }
+            } catch (IOException e) {
+                return FormValidation.error(e, "Error connecting to API endpoint: " + info.getApiUri());
+            }
 
+            try {
                 GHRepository repo = github.getRepository(info.getRepoOwner() + "/" + info.getRepository());
                 if (repo != null) {
                     sb.append(" Connected to ");
@@ -2039,7 +2113,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     sb.append(".");
                 }
             } catch (IOException e) {
-                return FormValidation.error(e, "Error validating repository information. " + sb.toString());
+                return FormValidation.error(e, sb.toString() + " Error connecting to repository: " + e.getMessage());
             }
             return FormValidation.ok(sb.toString());
         }

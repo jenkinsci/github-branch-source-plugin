@@ -150,8 +150,8 @@ public class GitHubSCMSourceTest {
     @Parameterized.Parameters(name = "{index}: revision={0}")
     public static GitHubSCMSource[] revisions() {
         return new GitHubSCMSource[]{
-                new GitHubSCMSource("cloudbeers", "yolo", null, false),
-                new GitHubSCMSource("", "", "https://github.com/cloudbeers/yolo", true)
+                new GitHubSCMSource("cloudbeers", "yolo"),
+                new GitHubSCMSource("https://github.com/cloudbeers/yolo")
             };
     }
 
@@ -202,7 +202,7 @@ public class GitHubSCMSourceTest {
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
         if (source.isConfiguredByUrl()) {
-            source = new GitHubSCMSource("cloudbeers", "yolo", "http://localhost:" + githubApi.port() + "/cloudbeers/yolo", true);
+            source = new GitHubSCMSource("http://localhost:" + githubApi.port() + "/cloudbeers/yolo");
         } else {
             source.setApiUri("http://localhost:" + githubApi.port());
         }

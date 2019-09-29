@@ -77,7 +77,7 @@ public class GitHubSCMBuilderTest {
             if (repoUrlToConfigure.isEmpty()) {
                 throw new Exception("Must supply a URL when testing single-URL configured jobs");
             }
-            source = new GitHubSCMSource("", "", repoUrlToConfigure, true);
+            source = new GitHubSCMSource(repoUrlToConfigure);
         } else {
             source = new GitHubSCMSource("tester", "test-repo");
         }

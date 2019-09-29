@@ -69,9 +69,9 @@ public class ForkPullRequestDiscoveryTrait2Test {
 
         GitHubSCMSource s = null;
         if (configuredByUrl)
-            s = new GitHubSCMSource("", "", "https://github.com/nobody/nowhere", true);
+            s = new GitHubSCMSource("https://github.com/nobody/nowhere");
         else
-            s = new GitHubSCMSource("nobody", "nowhere", null, false);
+            s = new GitHubSCMSource("nobody", "nowhere");
 
         p.setSourcesList(Collections.singletonList(new BranchSource(s)));
         s.setTraits(Collections.<SCMSourceTrait>singletonList(new ForkPullRequestDiscoveryTrait(0, trust)));
