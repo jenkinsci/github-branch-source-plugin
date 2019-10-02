@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.43</version>
+        <version>3.50</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
@@ -26,6 +26,7 @@
         <java.level>8</java.level>
         <jenkins.version>2.138.4</jenkins.version>
         <scm-api.version>2.6.3</scm-api.version>
+        <hamcrest.version>2.1</hamcrest.version>
         <useBeta>true</useBeta>
         <jcasc.version>1.30</jcasc.version>
     </properties>
@@ -154,27 +155,33 @@
         </dependency>
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
-            <artifactId>wiremock-standalone</artifactId>
-            <version>2.16.0</version>
+            <artifactId>wiremock-jre8-standalone</artifactId>
+            <version>2.24.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest-all</artifactId>
-            <version>1.3</version>
+            <artifactId>hamcrest</artifactId>
+            <version>${hamcrest.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- This is needed in order to force junit4 and JTH tests to use newer hamcrest version -->
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-core</artifactId>
+            <version>${hamcrest.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-library</artifactId>
+            <version>${hamcrest.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>1.9.5</version>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.hamcrest</groupId>
-                    <artifactId>hamcrest-core</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
         <!-- JCasC compatibility -->
