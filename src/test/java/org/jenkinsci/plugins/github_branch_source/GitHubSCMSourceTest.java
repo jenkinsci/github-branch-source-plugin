@@ -74,11 +74,10 @@ import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
-import org.kohsuke.github.GHRef;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GitHub;
+import org.kohsuke.github.*;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.Spy;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -756,33 +755,4 @@ public class GitHubSCMSourceTest {
         }
     }
 
-    @Test
-    @Issue("JENKINS-54403")
-    public void testMissingSingleTag () throws IOException {
-        SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
-
-        Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(Collections
-                .singleton(new GitHubTagSCMHead("non-existent-tag", System.currentTimeMillis())));
-        GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
-        context.wantTags(true);
-        GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
-        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repo).iterator();
-        assertFalse(tags.hasNext());
-    }
-
-    @Test
-    @Issue("JENKINS-54403")
-    public void testExistentSingleTag () throws IOException {
-        SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
-
-        Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(Collections
-                .singleton(new GitHubTagSCMHead("existent-tag", System.currentTimeMillis())));
-        GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
-        context.wantTags(true);
-        GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
-        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repo).iterator();
-        assertTrue(tags.hasNext());
-        assertEquals("refs/tags/existent-tag", tags.next().getRef());
-        assertFalse(tags.hasNext());
-    }
 }
