@@ -11,6 +11,15 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -19,14 +28,15 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
-import org.kohsuke.github.*;
+import org.kohsuke.github.GHFileNotFoundException;
+import org.kohsuke.github.GHException;
+import org.kohsuke.github.GHRef;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
+import org.kohsuke.github.PagedIterator;
+import org.kohsuke.github.PagedIterable;
 import org.mockito.Mockito;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOError;
-import java.io.IOException;
-import java.util.*;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.Assert.*;
@@ -107,36 +117,6 @@ public class GithubSCMSourceTagsTest {
                 new SingleRootFileSource("src/test/resources/raw/__files"));
 
         githubApi.stubFor(
-                get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
-                        .inScenario("Pull Request Merge Hash")
-                        .whenScenarioStateIs(Scenario.STARTED)
-                        .willReturn(
-                                aResponse()
-                                        .withHeader("Content-Type", "application/json; charset=utf-8")
-                                        .withBodyFile("body-yolo-pulls-2-mergeable-null.json"))
-                        .willSetStateTo("Pull Request Merge Hash - retry 1"));
-
-        githubApi.stubFor(
-                get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
-                        .inScenario("Pull Request Merge Hash")
-                        .whenScenarioStateIs("Pull Request Merge Hash - retry 1")
-                        .willReturn(
-                                aResponse()
-                                        .withHeader("Content-Type", "application/json; charset=utf-8")
-                                        .withBodyFile("body-yolo-pulls-2-mergeable-null.json"))
-                        .willSetStateTo("Pull Request Merge Hash - retry 2"));
-
-        githubApi.stubFor(
-                get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
-                        .inScenario("Pull Request Merge Hash")
-                        .whenScenarioStateIs("Pull Request Merge Hash - retry 2")
-                        .willReturn(
-                                aResponse()
-                                        .withHeader("Content-Type", "application/json; charset=utf-8")
-                                        .withBodyFile("body-yolo-pulls-2-mergeable-true.json"))
-                        .willSetStateTo("Pull Request Merge Hash - retry 2"));
-
-        githubApi.stubFor(
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
@@ -178,14 +158,6 @@ public class GithubSCMSourceTagsTest {
         assertTrue(tags.hasNext());
         assertEquals("refs/tags/existent-tag", tags.next().getRef());
         assertFalse(tags.hasNext());
-        try{
-            tags.next();
-            fail("This should throw an exception");
-        }
-        catch(NoSuchElementException e){
-            //Error is expected here so this is "success"
-            assertNotEquals("This should throw an exception", e.getMessage());
-        }
     }
 
     @Test
@@ -199,14 +171,6 @@ public class GithubSCMSourceTagsTest {
         GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
         Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repo).iterator();
         assertTrue(tags.hasNext());
-        try{
-            tags.remove();
-            fail("This should throw an exception");
-        }
-        catch(UnsupportedOperationException e){
-            //Error is expected here so this is "success"
-            assertNotEquals("This should throw an exception", e.getMessage());
-        }
     }
 
     @Test
@@ -262,6 +226,23 @@ public class GithubSCMSourceTagsTest {
         assertEquals("refs/tags/existent-multiple-tags1", tags.next().getRef());
         assertTrue(tags.hasNext());
         assertEquals("refs/tags/existent-multiple-tags2", tags.next().getRef());
+        assertFalse(tags.hasNext());
+        try{
+            tags.next();
+            fail("This should throw an exception");
+        }
+        catch(NoSuchElementException e){
+            //Error is expected here so this is "success"
+            assertNotEquals("This should throw an exception", e.getMessage());
+        }
+        try{
+            tags.remove();
+            fail("This should throw an exception");
+        }
+        catch(UnsupportedOperationException e){
+            //Error is expected here so this is "success"
+            assertNotEquals("This should throw an exception", e.getMessage());
+        }
     }
 
     @Test
