@@ -52,7 +52,6 @@ import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
-import org.kohsuke.github.GHCommitState;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
@@ -227,7 +226,7 @@ public class GitHubBuildStatusNotification {
                             GHRepository repo = lookUpRepo(gitHub, job);
                             if (repo != null) {
                                 // The submitter might push another commit before this build even starts.
-                                if (Jenkins.getActiveInstance().getQueue().getItem(taskId) instanceof Queue.LeftItem) {
+                                if (Jenkins.get().getQueue().getItem(taskId) instanceof Queue.LeftItem) {
                                     // we took too long and the item has left the queue, no longer valid to apply pending
 
                                     // status. JobCheckOutListener is now responsible for setting the pending status.

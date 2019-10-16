@@ -2,7 +2,6 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import java.util.Collections;
 import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;

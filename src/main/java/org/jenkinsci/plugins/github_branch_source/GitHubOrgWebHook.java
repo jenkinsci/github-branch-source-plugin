@@ -92,11 +92,11 @@ public class GitHubOrgWebHook {
     }
 
     private static File getTrackingFile(String orgName) {
-        return new File(Jenkins.getActiveInstance().getRootDir(), "github-webhooks/GitHubOrgHook." + orgName);
+        return new File(Jenkins.get().getRootDir(), "github-webhooks/GitHubOrgHook." + orgName);
     }
 
     public static void deregister(GitHub hub, String orgName) throws IOException {
-        String rootUrl = Jenkins.getActiveInstance().getRootUrl();
+        String rootUrl = Jenkins.get().getRootUrl();
         if (rootUrl == null) {
             return;
         }
