@@ -8,7 +8,6 @@ import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import java.io.File;
@@ -104,7 +103,6 @@ public class GithubSCMSourceTagsTest {
         };
     }
 
-
     @Before
     public void prepareMockGitHub() throws Exception {
         new File("src/test/resources/api/mappings").mkdirs();
@@ -120,11 +118,7 @@ public class GithubSCMSourceTagsTest {
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
-        if (source.isConfiguredByUrl()) {
-            source = new GitHubSCMSource("cloudbeers", "yolo", "http://localhost:" + githubApi.port() + "/cloudbeers/yolo", true);
-        } else {
-            source.setApiUri("http://localhost:" + githubApi.port());
-        }
+        source.setApiUri("http://localhost:" + githubApi.port());
         source.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, true), new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustContributors())));
         github = Connector.connect("http://localhost:" + githubApi.port(), null);
         repo = github.getRepository("cloudbeers/yolo");
@@ -133,6 +127,7 @@ public class GithubSCMSourceTagsTest {
     @Test
     @Issue("JENKINS-54403")
     public void testMissingSingleTag() throws IOException {
+        //This checks if the appropriate calls are made when making a request for a single tag which does not exist
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
 
         Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(Collections
@@ -141,12 +136,15 @@ public class GithubSCMSourceTagsTest {
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
         Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repo).iterator();
+
+        //Expected: No tag is found so an empty list
         assertFalse(tags.hasNext());
     }
 
     @Test
     @Issue("JENKINS-54403")
     public void testExistentSingleTag() throws IOException {
+        //This checks if the appropriate calls are made when making a request for a single tag which does exist
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
 
         Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(Collections
@@ -154,27 +152,17 @@ public class GithubSCMSourceTagsTest {
         GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
-        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repo).iterator();
+        Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repo).iterator();
+
+        //Expected: single tag is found and is named existent-tag
         assertTrue(tags.hasNext());
         assertEquals("refs/tags/existent-tag", tags.next().getRef());
         assertFalse(tags.hasNext());
     }
 
     @Test
-    public void testRemoveNotAllowed() throws IOException {
-        SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
-
-        Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(Collections
-                .singleton(new GitHubTagSCMHead("existent-tag", System.currentTimeMillis())));
-        GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
-        context.wantTags(true);
-        GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
-        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repo).iterator();
-        assertTrue(tags.hasNext());
-    }
-
-    @Test
     public void testThrownErrorSingleTagGHFileNotFound() throws IOException {
+        //This checks if the appropriate calls are made when making a request for a single tag but getting back a FileNotFound
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Error e = new Error("Bad Tag Request", new GHFileNotFoundException());
         Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(Collections
@@ -184,12 +172,15 @@ public class GithubSCMSourceTagsTest {
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
         Mockito.doThrow(e).when(repoSpy).getRef("tags/existent-tag");
-        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
+        Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
+
+        //Expected: No tag is found so an empty list
         assertFalse(tags.hasNext());
     }
 
     @Test
     public void testThrownErrorSingleTagOtherException() throws IOException {
+        //This checks if the appropriate calls are made when making a request for a single tag but getting back another Error
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Error expectedError = new Error("Bad Tag Request", new RuntimeException());
         Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(Collections
@@ -199,8 +190,10 @@ public class GithubSCMSourceTagsTest {
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
         Mockito.doThrow(expectedError).when(repoSpy).getRef("tags/existent-tag");
+
+        //Expected: When getting the tag, an error is thrown so we have to catch it
         try{
-            Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
+            Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
             fail("This should throw an exception");
         }
         catch(Error e){
@@ -212,6 +205,7 @@ public class GithubSCMSourceTagsTest {
 
     @Test
     public void testExistingMultipleTags() throws IOException {
+        //This checks if the appropriate calls are made when making a request for a multiple tags
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
 
         Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(
@@ -221,7 +215,9 @@ public class GithubSCMSourceTagsTest {
         GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
-        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repo).iterator();
+        Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repo).iterator();
+
+        //Expected: When getting the tags, we should get both tags and then we are failing on trying to get a 3rd tag or remove the iterator
         assertTrue(tags.hasNext());
         assertEquals("refs/tags/existent-multiple-tags1", tags.next().getRef());
         assertTrue(tags.hasNext());
@@ -247,6 +243,8 @@ public class GithubSCMSourceTagsTest {
 
     @Test
     public void testExistingMultipleTagsGHFileNotFoundExceptionIteratable() throws IOException {
+        //This checks if the appropriate calls are made when making a request for a multiple tags but a filenotFound is
+        // on the first returning the iterator and then an IO error is thrown on the second tag creation
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Error expectedError = new Error("Bad Tag Request", new GHFileNotFoundException());
         Error expectedError2 = new Error("Bad Tag Request IOError", new IOException());
@@ -262,6 +260,8 @@ public class GithubSCMSourceTagsTest {
         Mockito.when(repoSpy.listRefs("tags")).thenReturn(iterableSpy);
         Mockito.when(iterableSpy.iterator()).thenThrow(expectedError).thenThrow(expectedError2);
 
+        //Expected: When initially getting multiple tags, there will then be a thrown filenotfound which returns an empty list
+        //Then for the second tag iterator created it returns an IO error
         Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
         assertEquals(Collections.<GHRef>emptyList().iterator(), tags);
         try{
@@ -275,6 +275,8 @@ public class GithubSCMSourceTagsTest {
 
     @Test
     public void testExistingMultipleTagsIteratorGHFileNotFoundExceptionOnHasNext() throws IOException {
+        //This checks if the appropriate calls are made when making a request for a multiple tags but returns a filenotfound on hasNext
+        //and finally returns a IO error on the second hasNext
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Error expectedError = new Error("Bad Tag Request", new GHFileNotFoundException());
         Error expectedError2 = new Error("Bad Tag Request IOError", new IOException());
@@ -291,40 +293,25 @@ public class GithubSCMSourceTagsTest {
 
         PagedIterator<GHRef> iteratorSpy = Mockito.spy(iterableSpy.iterator());
         Mockito.when(iterableSpy.iterator()).thenReturn(iteratorSpy);
-        Mockito.when(iteratorSpy.hasNext()).thenThrow(expectedError);//.thenThrow(expectedError2);
-        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
-        assertFalse(tags.hasNext());
-    }
-    @Test
-    public void testExistingMultipleTagsIteratorIOErrorOnHasNext() throws IOException {
-        SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
-        Error expectedError = new Error("Bad Tag Request", new IOException());
-        Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(
-                new HashSet<>(Arrays.asList(
-                        new GitHubTagSCMHead("existent-multiple-tags1", System.currentTimeMillis()),
-                        new GitHubTagSCMHead("existent-multiple-tags2", System.currentTimeMillis()))));
-        GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
-        context.wantTags(true);
-        GitHubSCMSourceRequest request = context.newRequest(revisions()[0], null);
-        GHRepository repoSpy = Mockito.spy(repo);
-        PagedIterable<GHRef> iterableSpy = Mockito.spy(repoSpy.listRefs("tags"));
-        Mockito.when(repoSpy.listRefs("tags")).thenReturn(iterableSpy);
+        Mockito.when(iteratorSpy.hasNext()).thenThrow(expectedError).thenThrow(expectedError2);
 
-        PagedIterator<GHRef> iteratorSpy = Mockito.spy(iterableSpy.iterator());
-        Mockito.when(iterableSpy.iterator()).thenReturn(iteratorSpy);
-        Mockito.doThrow(expectedError).when(iteratorSpy).hasNext();
-        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
+        //Expected: When initially getting multiple tags, return a filenotfound on hasNext which means it will get an empty list
+        //Then return a IO error on the second hasNext
+        Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
+        Iterator<GHRef> tags2 = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
+        assertFalse(tags.hasNext());
         try{
             tags.hasNext();
             fail("This should throw an exception");
         }
         catch(Error e){
-            assertEquals("Bad Tag Request", e.getMessage());
+            assertEquals("Bad Tag Request IOError", e.getMessage());
         }
     }
 
     @Test
     public void testExistingMultipleTagsIteratorGHExceptionOnHasNextAndHasAtLeastOne() throws IOException {
+        //This checks if the appropriate calls are made when making a request for a multiple tags but returns a GHException but found at least one tag
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Exception expectedError = new GHException("Bad Tag Request");
         Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(
@@ -340,9 +327,10 @@ public class GithubSCMSourceTagsTest {
 
         PagedIterator<GHRef> iteratorSpy = Mockito.spy(iterableSpy.iterator());
         Mockito.when(iterableSpy.iterator()).thenReturn(iteratorSpy);
-        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
+        Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
         Mockito.when(iteratorSpy.hasNext()).thenReturn(true).thenThrow(expectedError);
 
+        //Expected: First call to hasNext should work true and then will throw an error
         try{
             //First Call is fine
             tags.hasNext();
@@ -357,6 +345,7 @@ public class GithubSCMSourceTagsTest {
 
     @Test
     public void testExistingMultipleTagsIteratorGHExceptionOnHasNextAndDoesNotHaveOne() throws IOException {
+        //This checks if the appropriate calls are made when making a request for a multiple tags but returns a GHException on the first tag
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Exception expectedError = new GHException("Bad Tag Request");
         Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(
@@ -372,9 +361,10 @@ public class GithubSCMSourceTagsTest {
 
         PagedIterator<GHRef> iteratorSpy = Mockito.spy(iterableSpy.iterator());
         Mockito.when(iterableSpy.iterator()).thenReturn(iteratorSpy);
-        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
+        Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
         Mockito.when(iteratorSpy.hasNext()).thenThrow(expectedError);
 
+        //Expected: First call to hasNext throws the GHException
         try{
             tags.hasNext();
             fail("This should throw an exception");
@@ -386,6 +376,8 @@ public class GithubSCMSourceTagsTest {
 
     @Test
     public void testExistingMultipleTagsIteratorGHExceptionOnHasNextButThrowsFileNotFoundOnGetRefs() throws IOException {
+        //Checks if the appropriate calls are made when making a request for a multiple tags but gets a GH exception on hasNext and then
+        // FilenotFound on getRefs
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Exception expectedError = new GHException("Bad Tag Request");
         Exception expectedGetRefError = new FileNotFoundException("Bad Tag Ref Request");
@@ -402,15 +394,18 @@ public class GithubSCMSourceTagsTest {
 
         PagedIterator<GHRef> iteratorSpy = Mockito.spy(iterableSpy.iterator());
         Mockito.when(iterableSpy.iterator()).thenReturn(iteratorSpy);
-        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
+        Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
         Mockito.when(iteratorSpy.hasNext()).thenThrow(expectedError);
         Mockito.when(repoSpy.getRefs("tags")).thenThrow(expectedGetRefError);
 
+        //Expected: First call to hasNext throws a GHException and then returns a FileNotFound on getRefs so it returns an empty list
         assertFalse(tags.hasNext());
     }
 
     @Test
     public void testExistingMultipleTagsIteratorGHExceptionOnHasNextButThrowsIOErrorOnGetRefs() throws IOException {
+        //Checks if the appropriate calls are made when making a request for a multiple tags but gets a GH exception on hasNext
+        // and then throws on IO error getRefs
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Exception expectedError = new GHException("Bad Tag Request");
         Exception expectedGetRefError = new IOException("Bad Tag Ref Request");
@@ -427,16 +422,17 @@ public class GithubSCMSourceTagsTest {
 
         PagedIterator<GHRef> iteratorSpy = Mockito.spy(iterableSpy.iterator());
         Mockito.when(iterableSpy.iterator()).thenReturn(iteratorSpy);
-        Iterator<GHRef>  tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
+        Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
         Mockito.when(iteratorSpy.hasNext()).thenThrow(expectedError);
         Mockito.when(repoSpy.getRefs("tags")).thenThrow(expectedGetRefError);
 
+        //Expected: First call to hasNext throws a GHException and then returns a IO exception on getRefs so it returns an error
         try{
             tags.hasNext();
             fail("This should throw an exception");
         }
         catch(GHException e){
-            //We swallow the new GetRef error and then throw the original one for some reason...
+            //We swallow the new GetRef error and then throw the original one for some reason
             assertEquals("Bad Tag Request", e.getMessage());
         }
     }
