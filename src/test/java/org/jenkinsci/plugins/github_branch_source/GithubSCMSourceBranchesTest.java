@@ -109,6 +109,7 @@ public class GithubSCMSourceBranchesTest {
                 get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
         githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
                 .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
+
         if (source.isConfiguredByUrl()) {
             source = new GitHubSCMSource("cloudbeers", "yolo", "http://localhost:" + githubApi.port() + "/cloudbeers/yolo", true);
         } else {
@@ -137,6 +138,14 @@ public class GithubSCMSourceBranchesTest {
     @Test
     public void testExistentSingleBranch () throws IOException {
         // Situation: Hitting the Github API for a branch and getting an existing branch
+        githubApi.stubFor(
+                get(urlEqualTo("/repos/cloudbeers/yolo/branches/existent-branch"))
+                        .inScenario("SingleBranch")
+                        .whenScenarioStateIs(Scenario.STARTED)
+                        .willReturn(
+                                aResponse()
+                                        .withHeader("Content-Type", "../branches/mappings/mapping-yolo-branches-existent-branch.json; charset=utf-8")
+                                        .withBodyFile("../branches/_files/body-yolo-branches-existent-branch.json")));
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(Collections
                 .singleton(new BranchSCMHead("existent-branch")));
@@ -179,10 +188,12 @@ public class GithubSCMSourceBranchesTest {
         // Situation: Hitting github and getting back multiple branches where master is first in the lst position
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo/branches"))
+                        .inScenario("MultipleBranches")
+                        .whenScenarioStateIs(Scenario.STARTED)
                         .willReturn(
                                 aResponse()
-                                        .withHeader("Content-Type", "mapping-yolo-branches-existent-multiple-branches-master1.json; charset=utf-8")
-                                        .withBodyFile("body-yolo-branches-existent-multiple-branches-master1.json")));
+                                        .withHeader("Content-Type", "../branches/mappings/mapping-yolo-branches-existent-multiple-branches-master1.json; charset=utf-8")
+                                        .withBodyFile("../branches/_files/body-yolo-branches-existent-multiple-branches-master1.json")));
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
         context.wantBranches(true);
@@ -202,10 +213,12 @@ public class GithubSCMSourceBranchesTest {
         // Situation: Hitting github and getting back multiple branches where master is first in the 2nd position
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo/branches"))
+                        .inScenario("MultipleBranches")
+                        .whenScenarioStateIs(Scenario.STARTED)
                         .willReturn(
                                 aResponse()
-                                        .withHeader("Content-Type", "mapping-yolo-branches-existent-multiple-branches-master2.json; charset=utf-8")
-                                        .withBodyFile("body-yolo-branches-existent-multiple-branches-master2.json")));
+                                        .withHeader("Content-Type", "../branches/mappings/mapping-yolo-branches-existent-multiple-branches-master2.json; charset=utf-8")
+                                        .withBodyFile("../branches/_files/body-yolo-branches-existent-multiple-branches-master2.json")));
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
         context.wantTags(true);
@@ -223,10 +236,12 @@ public class GithubSCMSourceBranchesTest {
         // Situation: Hitting github and getting back multiple branches where master is not in the list
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo/branches"))
+                        .inScenario("MultipleBranches")
+                        .whenScenarioStateIs(Scenario.STARTED)
                         .willReturn(
                                 aResponse()
-                                        .withHeader("Content-Type", "mapping-yolo-branches-existent-multiple-branches-no-master.json; charset=utf-8")
-                                        .withBodyFile("body-yolo-branches-existent-multiple-branches-no-master.json")));
+                                        .withHeader("Content-Type", "../branches/mappings/mapping-yolo-branches-existent-multiple-branches-no-master.json; charset=utf-8")
+                                        .withBodyFile("../branches/_files/body-yolo-branches-existent-multiple-branches-no-master.json")));
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
         context.wantTags(true);
@@ -242,13 +257,15 @@ public class GithubSCMSourceBranchesTest {
     @Test
     public void testExistingMultipleBranchesWithThrownError() throws IOException {
         // Situation: Hitting github and getting back multiple branches but throws an I/O error
+        SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo/branches"))
+                        .inScenario("MultipleBranches")
+                        .whenScenarioStateIs(Scenario.STARTED)
                         .willReturn(
                                 aResponse()
-                                        .withHeader("Content-Type", "mapping-yolo-branches-existent-multiple-branches-no-master.json; charset=utf-8")
-                                        .withBodyFile("body-yolo-branches-existent-multiple-branches-no-master.json")));
-        SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+                                        .withHeader("Content-Type", "../branches/mappings/mapping-yolo-branches-existent-multiple-branches-no-master.json; charset=utf-8")
+                                        .withBodyFile("../branches/_files/body-yolo-branches-existent-multiple-branches-no-master.json")));
         GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
@@ -264,6 +281,5 @@ public class GithubSCMSourceBranchesTest {
             //We swallow the new GetRef error and then throw the original one for some reason...
             assertEquals("java.io.IOException: Thrown Branch Error", e.getMessage());
         }
-
     }
 }

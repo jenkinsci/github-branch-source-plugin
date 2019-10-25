@@ -5,7 +5,7 @@
   },
   "response": {
     "status": 200,
-    "bodyFileName": "body-yolo-branches-existent-multiple-branches-no-master.json",
+    "bodyFileName": "branches/body-yolo-branches-existent-multiple-branches-no-master.json",
     "headers": {
       "Server": "GitHub.com",
       "Date": "Mon, 29 Jul 2019 23:22:30 GMT",

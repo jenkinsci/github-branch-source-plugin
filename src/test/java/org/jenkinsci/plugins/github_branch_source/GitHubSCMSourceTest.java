@@ -74,10 +74,8 @@ import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
-import org.kohsuke.github.*;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.Spy;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
@@ -754,5 +752,4 @@ public class GitHubSCMSourceTest {
             r.jenkins.remove(dummy);
         }
     }
-
 }
