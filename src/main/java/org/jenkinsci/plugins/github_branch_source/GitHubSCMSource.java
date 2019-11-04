@@ -2440,7 +2440,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    private static class LazyBranches extends LazyIterable<GHBranch> {
+    @Restricted(NoExternalUse.class)
+    static class LazyBranches extends LazyIterable<GHBranch> {
         private final GitHubSCMSourceRequest request;
         private final GHRepository repo;
 

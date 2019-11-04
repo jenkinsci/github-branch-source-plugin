@@ -752,5 +752,4 @@ public class GitHubSCMSourceTest {
             r.jenkins.remove(dummy);
         }
     }
-
 }
