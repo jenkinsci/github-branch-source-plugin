@@ -28,8 +28,6 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
         // Situation: Hitting the Github API for a branch and getting a 404
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo/branches/non-existent-branch"))
-                        .inScenario("SingleBranchMissing")
-                        .whenScenarioStateIs(Scenario.STARTED)
                         .willReturn(
                                 aResponse()
                                         .withStatus(404)
@@ -52,8 +50,6 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
         // Situation: Hitting the Github API for a branch and getting an existing branch
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo/branches/existent-branch"))
-                        .inScenario("SingleBranch")
-                        .whenScenarioStateIs(Scenario.STARTED)
                         .willReturn(
                                 aResponse()
                                         .withHeader("Content-Type", "application/json; charset=utf-8")
@@ -76,8 +72,6 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
         // Situation: When sending a request for a branch which exists, throw a GHNotFoundException
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo/branches/existent-branch"))
-                        .inScenario("SingleBranch")
-                        .whenScenarioStateIs(Scenario.STARTED)
                         .willReturn(
                                 aResponse()
                                         .withHeader("Content-Type", "application/json; charset=utf-8")
@@ -108,8 +102,6 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
         // Situation: Hitting github and getting back multiple branches where master is first in the lst position
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo/branches"))
-                        .inScenario("MultipleBranches")
-                        .whenScenarioStateIs(Scenario.STARTED)
                         .willReturn(
                                 aResponse()
                                         .withHeader("Content-Type", "application/json; charset=utf-8")
@@ -133,8 +125,6 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
         // Situation: Hitting github and getting back multiple branches where master is first in the 2nd position
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo/branches"))
-                        .inScenario("MultipleBranches")
-                        .whenScenarioStateIs(Scenario.STARTED)
                         .willReturn(
                                 aResponse()
                                         .withHeader("Content-Type", "application/json; charset=utf-8")
@@ -156,8 +146,6 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
         // Situation: Hitting github and getting back multiple branches where master is not in the list
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo/branches"))
-                        .inScenario("MultipleBranches")
-                        .whenScenarioStateIs(Scenario.STARTED)
                         .willReturn(
                                 aResponse()
                                         .withHeader("Content-Type", "application/json; charset=utf-8")
@@ -180,8 +168,6 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo/branches"))
-                        .inScenario("MultipleBranches")
-                        .whenScenarioStateIs(Scenario.STARTED)
                         .willReturn(
                                 aResponse()
                                         .withHeader("Content-Type", "application/json; charset=utf-8")
