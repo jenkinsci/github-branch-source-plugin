@@ -30,6 +30,7 @@
         <hamcrest.version>2.2</hamcrest.version>
         <useBeta>true</useBeta>
         <jcasc.version>1.35</jcasc.version>
+        <jjwt.version>0.10.5</jjwt.version>
     </properties>
 
     <scm>
@@ -79,6 +80,25 @@
             <artifactId>display-url-api</artifactId>
             <version>2.0</version>
         </dependency>
+
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Currently just here for interactive testing via hpi:run: -->
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
