@@ -136,7 +136,7 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
          */
         @Override
         public String getDisplayName() {
-            return Messages.discover_pull_requests_from_origin();
+            return Messages.OriginPullRequestDiscoveryTrait_discoverPullRequestsFromOrigin();
         }
 
         /**
