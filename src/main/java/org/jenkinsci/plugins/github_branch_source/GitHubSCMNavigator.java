@@ -1429,7 +1429,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     true, result);
             NamedArrayList.select(all, Messages.GitHubSCMNavigator_withinRepository(), NamedArrayList.anyOf(NamedArrayList.withAnnotation(Discovery.class),NamedArrayList.withAnnotation(Selection.class)),
                     true, result);
-            NamedArrayList.select(all, Messages.general(), null, true, result);
+            NamedArrayList.select(all, Messages.GitHubSCMNavigator_general(), null, true, result);
             return result;
         }
 
