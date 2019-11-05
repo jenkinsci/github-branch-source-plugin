@@ -2284,7 +2284,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 }
             }
             List<NamedArrayList<? extends SCMTraitDescriptor<?>>> result = new ArrayList<>();
-            NamedArrayList.select(all, Messages.within_repository(), NamedArrayList
+            NamedArrayList.select(all, Messages.GitHubSCMNavigator_withinRepository(), NamedArrayList
                             .anyOf(NamedArrayList.withAnnotation(Discovery.class),
                                     NamedArrayList.withAnnotation(Selection.class)),
                     true, result);
