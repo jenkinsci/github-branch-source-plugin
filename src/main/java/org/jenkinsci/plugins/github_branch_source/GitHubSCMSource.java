@@ -183,13 +183,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
      * The repository owner.
      */
     @NonNull
-    private String repoOwner = "";
+    private String repoOwner;
 
     /**
      * The repository
      */
     @NonNull
-    private String repository = "";
+    private String repository;
 
     /**
      * HTTPS URL for the repository, if specified by the user.
@@ -320,6 +320,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
         pullRequestMetadataCache = new ConcurrentHashMap<>();
         pullRequestContributorCache = new ConcurrentHashMap<>();
         this.traits = new ArrayList<>();
+        this.repoOwner = "";
+        this.repository = "";
+        this.repositoryUrl = null;
+        this.apiUri = GITHUB_URL;
     }
 
     /**
@@ -427,10 +431,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
             return;
         }
         apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmptyAndTrim(apiUri));
-        if (apiUri == null) {
-            apiUri = GITHUB_URL;
-        }
-        this.apiUri = apiUri;
+        this.apiUri = StringUtils.defaultIfBlank(apiUri, GITHUB_URL);
     }
 
     /**
@@ -467,6 +468,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
     }
 
     /**
+     * Sets the repository owner.
+     *
+     * @param repoOwner the repository owner alias
+     */
+    @DataBoundSetter
+    public void setRepoOwner(@CheckForNull String repoOwner) {
+        this.repoOwner = StringUtils.defaultIfBlank(repoOwner, "");
+    }
+
+    /**
      * Gets the repository name.
      * @return the repository name.
      */
@@ -474,6 +485,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
     @NonNull
     public String getRepository() {
         return repository;
+    }
+
+    /**
+     * Sets the repository
+     *
+     * @param repository the repository
+     */
+    @DataBoundSetter
+    public void setRepository(@CheckForNull String repository) {
+        this.repository = StringUtils.defaultIfBlank(repository, "");
     }
 
     /**
@@ -494,7 +515,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
     }
 
     /**
-     * Sets all fields on this source appropriately for the provided Url. 
+     * Sets all fields on this source appropriately for the provided Url.
      *
      * @param repositoryUrl HTML URL for the repository to connect to
      * @since 2.6.0
@@ -521,7 +542,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
      *
      * @param staplerRequest
      * @param json
-     * @return
+     * @return new GitHubSCMSource with settings matching provided JSON
      */
     @Override
     public GitHubSCMSource bindResolve(StaplerRequest staplerRequest, JSONObject json) {
@@ -2052,15 +2073,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
             return Connector.checkScanCredentials(context, apiUri, value);
         }
 
-        @RequirePOST
-        @Restricted(NoExternalUse.class)
-        public FormValidation doCheckRepositoryUrl(@CheckForNull @AncestorInPath Item context, @QueryParameter String configuredByUrl, @QueryParameter String value, @QueryParameter String credentialsId) {
-            if(Boolean.parseBoolean(configuredByUrl)) {
-                return doValidateRepositoryUrlAndCredentials(context, value, credentialsId);
-            }
-            return FormValidation.ok();
-        }
-        
         @RequirePOST
         @Restricted(NoExternalUse.class)
         public FormValidation doValidateRepositoryUrlAndCredentials(@CheckForNull @AncestorInPath Item context,

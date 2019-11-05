@@ -37,6 +37,6 @@ public class GitHubBranchSourcesJCasCCompatibilityTest extends RoundTripAbstract
 
     @Override
     protected String stringInLogExpected() {
-        return "Setting class org.jenkinsci.plugins.github_branch_source.GitHubSCMSource.repoOwner = jenkins-infra";
+        return "Setting org.jenkinsci.plugins.github_branch_source.GitHubSCMSource{id='null'}.repoOwner = jenkins-infra";
     }
 }
