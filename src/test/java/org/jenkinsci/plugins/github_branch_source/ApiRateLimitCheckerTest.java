@@ -24,10 +24,7 @@ import org.kohsuke.github.GitHub;
 import java.io.File;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
@@ -125,17 +122,14 @@ public class ApiRateLimitCheckerTest {
 
         resetAllScenarios();
 
-        handler = new RingBufferLogHandler(100);
+        handler = new RingBufferLogHandler(1000);
         final Logger logger = Logger.getLogger(getClass().getName());
         logger.addHandler(handler);
         listener = new LogTaskListener(logger, Level.INFO);
     }
 
     private void setupStubs(List<JsonRateLimit> scenarios) {
-        githubApi.listAllStubMappings().getMappings().stream()
-                .filter(x -> x.getScenarioName() != null && x.getScenarioName() == ("API Rate Limit"))
-                .forEach(x -> githubApi.removeStubMapping(x));
-
+        String scenarioName = UUID.randomUUID().toString();
         for (int i = 0; i < scenarios.size(); i++) {
             String state = (i == 0) ? Scenario.STARTED : Integer.toString(i);
             String nextState = Integer.toString(i + 1);
@@ -148,7 +142,7 @@ public class ApiRateLimitCheckerTest {
                     "\"remaining\": " + remaining + ", " +
                     "\"reset\": " + reset + " } }";
             ScenarioMappingBuilder scenario = get(urlEqualTo("/rate_limit"))
-                    .inScenario("API Rate Limit")
+                    .inScenario(scenarioName)
                     .whenScenarioStateIs(state)
                     .willReturn(aResponse()
                             .withHeader("Content-Type", "application/json; charset=utf-8")
