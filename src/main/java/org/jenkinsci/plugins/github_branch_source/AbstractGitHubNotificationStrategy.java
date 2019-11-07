@@ -31,7 +31,7 @@ import java.util.List;
 
 /**
  * Represents a strategy for constructing GitHub status notifications
- * @since TODO
+ * @since 2.3.2
  */
 public abstract class AbstractGitHubNotificationStrategy implements ExtensionPoint {
 
@@ -40,7 +40,7 @@ public abstract class AbstractGitHubNotificationStrategy implements ExtensionPoi
      * @param notificationContext {@link GitHubNotificationContext} the context details
      * @param listener the listener
      * @return a list of notification requests
-     * @since TODO
+     * @since 2.3.2
      */
     public abstract List<GitHubNotificationRequest> notifications(GitHubNotificationContext notificationContext, TaskListener listener);
 

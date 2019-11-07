@@ -52,7 +52,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /**
  * A {@link Discovery} trait for GitHub that will discover tags on the repository.
  *
- * @since TODO
+ * @since 2.3.0
  */
 public class TagDiscoveryTrait extends SCMSourceTrait {
     /**
