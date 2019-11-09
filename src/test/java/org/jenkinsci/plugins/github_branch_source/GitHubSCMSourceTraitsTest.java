@@ -80,7 +80,7 @@ public class GitHubSCMSourceTraitsTest {
                         + "repository=repo,"
                         + "traits=["
                         + "@gitHubBranchDiscovery$org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait(strategyId=1), "
-                        + "$OriginPullRequestDiscoveryTrait(strategyId=1), "
+                        + "@gitHubPullRequestDiscovery$OriginPullRequestDiscoveryTrait(strategyId=1), "
                         + "@gitHubForkDiscovery$ForkPullRequestDiscoveryTrait("
                         + "strategyId=2,"
                         + "trust=@gitHubTrustPermissions$TrustPermission()), "
