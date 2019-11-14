@@ -33,7 +33,6 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMProbe;
 import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMRevision;
-import jenkins.util.SystemProperties;
 import org.eclipse.jgit.lib.Constants;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;

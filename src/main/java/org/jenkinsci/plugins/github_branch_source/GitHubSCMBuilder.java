@@ -233,7 +233,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
                             StandardCredentials.class,
                             context,
                             context instanceof Queue.Task
-                                    ? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
+                                    ? ((Queue.Task) context).getDefaultAuthentication()
                                     : ACL.SYSTEM,
                             URIRequirementBuilder.create()
                                     .withHostname(RepositoryUriResolver.hostnameFromApiUri(apiUri))

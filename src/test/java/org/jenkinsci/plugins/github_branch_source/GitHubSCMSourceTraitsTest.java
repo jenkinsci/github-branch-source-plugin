@@ -52,7 +52,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__configuredInstance__when__uninstantiating__then__deprecatedFieldsIgnored() throws Exception {
-        GitHubSCMSource instance = new GitHubSCMSource("repo-owner", "repo");
+        GitHubSCMSource instance = new GitHubSCMSource("repo-owner", "repo", null, false);
         instance.setId("test");
 
         DescribableModel model = DescribableModel.of(GitHubSCMSource.class);
