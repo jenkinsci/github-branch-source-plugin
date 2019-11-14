@@ -29,8 +29,13 @@ import hudson.model.EnvironmentContributor;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
 import hudson.model.TaskListener;
+import java.util.HashMap;
+import java.util.Map;
 import javax.annotation.Nonnull;
+import jenkins.branch.BranchProjectFactory;
 import jenkins.branch.MultiBranchProject;
+import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.scm.api.SCMRevision;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
@@ -38,13 +43,38 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @Restricted(NoExternalUse.class)
 public class GitHubEnvContributor extends EnvironmentContributor {
 
+    private static final String CHANGE_SOURCE_COMMIT_ID = "CHANGE_SOURCE_COMMIT_ID";
+    private static final String CHANGE_MERGE_COMMIT_ID = "CHANGE_MERGE_COMMIT_ID";
+    private static final String CHANGE_BASE_COMMIT_ID = "CHANGE_BASE_COMMIT_ID";
+    private static final String CHANGE_BRANCH = "CHANGE_BRANCH";
+
+    @SuppressWarnings("unchecked")
     public void buildEnvironmentFor(Job job, @Nonnull EnvVars envs, @Nonnull TaskListener listener) {
         ItemGroup parent = job.getParent();
         if (parent instanceof MultiBranchProject) {
-            GitHubEnvAction action = job.getAction(GitHubEnvAction.class);
-            if (action != null) {
-                envs.putAll(action.getValues());
+            BranchProjectFactory projectFactory = ((MultiBranchProject) parent).getProjectFactory();
+            SCMRevision revision = projectFactory.getRevision(job);
+
+            Map<String, String> envValues = new HashMap<>();
+            if (revision instanceof PullRequestSCMRevision) {
+                PullRequestSCMRevision pullRequestSCMRevision = (PullRequestSCMRevision) revision;
+
+                envValues.put(CHANGE_SOURCE_COMMIT_ID, pullRequestSCMRevision.getPullHash());
+                envValues.put(CHANGE_MERGE_COMMIT_ID, pullRequestSCMRevision.getMergeHash());
+                envValues.put(CHANGE_BASE_COMMIT_ID, pullRequestSCMRevision.getBaseHash());
+
+
+            } else if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl) {
+                AbstractGitSCMSource.SCMRevisionImpl gitRevision = (AbstractGitSCMSource.SCMRevisionImpl) revision;
+
+                envValues.put(CHANGE_SOURCE_COMMIT_ID, gitRevision.getHash());
+                envValues.put(CHANGE_BRANCH, revision.getHead().getName());
+
+            } else {
+                throw new IllegalArgumentException("did not recognize " + revision);
             }
+            envs.putAll(envValues);
         }
     }
+
 }
