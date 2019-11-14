@@ -76,5 +76,4 @@ public class GitHubEnvContributor extends EnvironmentContributor {
             envs.putAll(envValues);
         }
     }
-
 }
