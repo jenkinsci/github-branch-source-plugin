@@ -78,7 +78,7 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
      *                      credentials (typically anonymous but not always)
      */
     @DataBoundConstructor
-    public SSHCheckoutTrait(String credentialsId) {
+    public SSHCheckoutTrait(@CheckForNull String credentialsId) {
         if (GitHubSCMSource.DescriptorImpl.ANONYMOUS.equals(credentialsId)) {
             // legacy migration of "magic" credential ID.
             this.credentialsId = null;

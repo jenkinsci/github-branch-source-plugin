@@ -57,7 +57,7 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
     /**
      * The strategy encoded as a bit-field.
      */
-    private int strategyId;
+    private final int strategyId;
 
     /**
      * Constructor for stapler.
@@ -126,6 +126,9 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
         return category instanceof ChangeRequestSCMHeadCategory;
     }
 
+    /**
+     * Our descriptor.
+     */
     @Symbol("gitHubPullRequestDiscovery")
     @Extension
     @Discovery
