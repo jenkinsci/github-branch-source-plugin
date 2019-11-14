@@ -1425,9 +1425,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         }
                     },
                     true, result);
-            NamedArrayList.select(all, "Within repository", NamedArrayList.anyOf(NamedArrayList.withAnnotation(Discovery.class),NamedArrayList.withAnnotation(Selection.class)),
+            NamedArrayList.select(all, Messages.GitHubSCMNavigator_withinRepository(), NamedArrayList.anyOf(NamedArrayList.withAnnotation(Discovery.class),NamedArrayList.withAnnotation(Selection.class)),
                     true, result);
-            NamedArrayList.select(all, "General", null, true, result);
+            NamedArrayList.select(all, Messages.GitHubSCMNavigator_general(), null, true, result);
             return result;
         }
 
