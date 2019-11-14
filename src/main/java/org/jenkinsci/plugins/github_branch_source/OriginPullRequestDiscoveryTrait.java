@@ -190,6 +190,7 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
          */
         @Extension
         public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+
             /**
              * {@inheritDoc}
              */

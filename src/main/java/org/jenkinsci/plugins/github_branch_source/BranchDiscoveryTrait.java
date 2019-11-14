@@ -94,7 +94,6 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
     @Restricted(NoExternalUse.class)
     public boolean isBuildBranch() {
         return (strategyId & 1) != 0;
-
     }
 
     /**

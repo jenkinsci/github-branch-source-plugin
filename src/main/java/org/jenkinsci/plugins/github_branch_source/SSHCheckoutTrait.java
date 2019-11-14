@@ -157,7 +157,7 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
          * Form completion.
          *
          * @param context       the context.
-         * @param apiUri     the server url.
+         * @param apiUri        the server url.
          * @param credentialsId the current selection.
          * @return the form items.
          */
@@ -206,23 +206,23 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
                 // use agent key
                 return FormValidation.ok();
             }
-            if (CredentialsMatchers.firstOrNull(
-                    CredentialsProvider
-                            .lookupCredentials(SSHUserPrivateKey.class, context, context instanceof Queue.Task
-                                    ? ((Queue.Task) context).getDefaultAuthentication()
-                                    : ACL.SYSTEM, URIRequirementBuilder.fromUri(serverUrl).build()),
+            if (CredentialsMatchers.firstOrNull(CredentialsProvider.lookupCredentials(
+                    SSHUserPrivateKey.class,
+                    context,
+                    context instanceof Queue.Task ? ((Queue.Task) context).getDefaultAuthentication() : ACL.SYSTEM,
+                    URIRequirementBuilder.fromUri(serverUrl).build()),
                     CredentialsMatchers.withId(value)) != null) {
                 return FormValidation.ok();
             }
-            if (CredentialsMatchers.firstOrNull(CredentialsProvider
-                            .lookupCredentials(StandardUsernameCredentials.class, context, context instanceof Queue.Task
-                                    ? ((Queue.Task) context).getDefaultAuthentication()
-                                    : ACL.SYSTEM, URIRequirementBuilder.fromUri(serverUrl).build()),
+            if (CredentialsMatchers.firstOrNull(CredentialsProvider.lookupCredentials(
+                    StandardUsernameCredentials.class,
+                    context,
+                    context instanceof Queue.Task ? ((Queue.Task) context).getDefaultAuthentication() : ACL.SYSTEM,
+                    URIRequirementBuilder.fromUri(serverUrl).build()),
                     CredentialsMatchers.withId(value)) != null) {
                 return FormValidation.error(Messages.SSHCheckoutTrait_incompatibleCredentials());
             }
             return FormValidation.warning(Messages.SSHCheckoutTrait_missingCredentials());
         }
-
     }
 }

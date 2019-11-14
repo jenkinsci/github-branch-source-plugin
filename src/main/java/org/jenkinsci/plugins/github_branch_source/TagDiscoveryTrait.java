@@ -51,7 +51,6 @@ public class TagDiscoveryTrait extends SCMSourceTrait {
      */
     @DataBoundConstructor
     public TagDiscoveryTrait() {
-
     }
 
     /**
@@ -103,7 +102,6 @@ public class TagDiscoveryTrait extends SCMSourceTrait {
         public Class<? extends SCMSource> getSourceClass() {
             return GitHubSCMSource.class;
         }
-
     }
 
     /**
