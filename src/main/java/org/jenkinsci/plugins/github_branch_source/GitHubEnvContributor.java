@@ -39,7 +39,7 @@ import jenkins.scm.api.SCMRevision;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 
-@Extension
+@Extension(optional = true)
 @Restricted(NoExternalUse.class)
 public class GitHubEnvContributor extends EnvironmentContributor {
 
