@@ -46,14 +46,12 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
-import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.AbstractGitSCMSource.SCMRevisionImpl;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
-import org.kohsuke.github.GHCommitState;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
@@ -74,9 +72,6 @@ public class GitHubBuildStatusNotification {
         SCMSource src = SCMSource.SourceByItem.findSource(build.getParent());
         SCMRevision revision = src != null ? SCMRevisionAction.getRevision(src, build) : null;
         if (revision != null) { // only notify if we have a revision to notify
-            GitHubEnvAction gitHubEnvAction = getGitHubEnvAction(revision);
-            build.getParent().addAction(gitHubEnvAction);
-
             try {
                 GitHub gitHub = lookUpGitHub(build.getParent());
                 try {
@@ -129,31 +124,6 @@ public class GitHubBuildStatusNotification {
                 }
             }
         }
-    }
-
-    private static GitHubEnvAction getGitHubEnvAction(SCMRevision revision) {
-        GitHubEnvAction action;
-        if (revision instanceof PullRequestSCMRevision) {
-            PullRequestSCMRevision pullRequestSCMRevision = (PullRequestSCMRevision) revision;
-
-            action = new GitHubEnvAction(
-                    pullRequestSCMRevision.getPullHash(),
-                    pullRequestSCMRevision.getMergeHash(),
-                    pullRequestSCMRevision.getBaseHash()
-            );
-
-
-        } else if (revision instanceof SCMRevisionImpl) {
-            SCMRevisionImpl gitRevision = (SCMRevisionImpl) revision;
-
-            action = new GitHubEnvAction(
-                    gitRevision.getHash(),
-                    revision.getHead().getName()
-            );
-        } else {
-            throw new IllegalArgumentException("did not recognize " + revision);
-        }
-        return action;
     }
 
     /**
@@ -256,7 +226,7 @@ public class GitHubBuildStatusNotification {
                             GHRepository repo = lookUpRepo(gitHub, job);
                             if (repo != null) {
                                 // The submitter might push another commit before this build even starts.
-                                if (Jenkins.getActiveInstance().getQueue().getItem(taskId) instanceof Queue.LeftItem) {
+                                if (Jenkins.get().getQueue().getItem(taskId) instanceof Queue.LeftItem) {
                                     // we took too long and the item has left the queue, no longer valid to apply pending
 
                                     // status. JobCheckOutListener is now responsible for setting the pending status.

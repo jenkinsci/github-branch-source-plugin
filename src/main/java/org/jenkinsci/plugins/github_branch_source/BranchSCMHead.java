@@ -35,7 +35,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 
 /**
  * Head corresponding to a branch.
- * @since FIXME
+ * @since 2.0.0
  */
 public class BranchSCMHead extends SCMHead {
     /**

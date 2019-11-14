@@ -36,7 +36,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /**
  * A {@link ViewJobFilter} that matches {@link PullRequestSCMHead} based branches.
  *
- * @since FIXME
+ * @since 2.0.0
  */
 public class GitHubPullRequestFilter extends ViewJobFilter {
     /**

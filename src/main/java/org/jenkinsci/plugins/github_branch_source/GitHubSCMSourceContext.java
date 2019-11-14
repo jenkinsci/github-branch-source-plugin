@@ -79,7 +79,7 @@ public class GitHubSCMSourceContext
     /**
      * Strategies used to notify Github of build status.
      *
-     * @since TODO
+     * @since 2.3.2
      */
     private final List<AbstractGitHubNotificationStrategy> notificationStrategies = new ArrayList<>();
 
@@ -161,7 +161,7 @@ public class GitHubSCMSourceContext
     /**
      * Returns the strategies used to notify Github of build status.
      * @return the strategies used to notify Github of build status.
-     * @since TODO
+     * @since 2.3.2
      */
     public final List<AbstractGitHubNotificationStrategy> notificationStrategies() {
         if (notificationStrategies.isEmpty()) {
@@ -258,7 +258,7 @@ public class GitHubSCMSourceContext
      *
      * @param strategies the strategies used to notify Github of build status.
      * @return {@code this} for method chaining.
-     * @since TODO
+     * @since 2.3.2
      */
     @NonNull
     public final GitHubSCMSourceContext withNotificationStrategies(List<AbstractGitHubNotificationStrategy> strategies) {
@@ -275,7 +275,7 @@ public class GitHubSCMSourceContext
      * Add a strategy used to notify Github of build status.
      * @param strategy a strategy used to notify Github of build status.
      * @return {@code this} for method chaining.
-     * @since TODO
+     * @since 2.3.2
      */
     @NonNull
     public final GitHubSCMSourceContext withNotificationStrategy(AbstractGitHubNotificationStrategy strategy) {

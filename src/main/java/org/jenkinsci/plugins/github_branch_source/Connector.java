@@ -143,7 +143,7 @@ public class Connector {
                 .includeEmptyValue()
                 .includeMatchingAs(
                         context instanceof Queue.Task
-                                ? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
+                                ? ((Queue.Task) context).getDefaultAuthentication()
                                 : ACL.SYSTEM,
                         context,
                         StandardUsernameCredentials.class,
@@ -175,7 +175,7 @@ public class Connector {
      * @return the {@link FormValidation} results.
      */
     public static FormValidation checkScanCredentials(@CheckForNull Item context, String apiUri, String scanCredentialsId) {
-        if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+        if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                 context != null && !context.hasPermission(Item.EXTENDED_READ)) {
             return FormValidation.ok();
         }
@@ -259,7 +259,7 @@ public class Connector {
                     StandardUsernameCredentials.class,
                     context,
                     context instanceof Queue.Task
-                            ? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
+                            ? ((Queue.Task) context).getDefaultAuthentication()
                             : ACL.SYSTEM,
                     githubDomainRequirements(apiUri)
                 ),
@@ -297,7 +297,7 @@ public class Connector {
         result.add("- anonymous -", GitHubSCMSource.DescriptorImpl.ANONYMOUS);
         return result.includeMatchingAs(
                 context instanceof Queue.Task
-                        ? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
+                        ? ((Queue.Task) context).getDefaultAuthentication()
                         : ACL.SYSTEM,
                 context,
                 StandardUsernameCredentials.class,

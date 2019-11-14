@@ -1357,7 +1357,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                                      @QueryParameter String apiUri,
                                                      @QueryParameter String credentialsId) {
             if (context == null
-                    ? !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER)
+                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
                     : !context.hasPermission(Item.EXTENDED_READ)) {
                 return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
@@ -1401,7 +1401,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @SuppressWarnings("unused") // jelly
         public List<NamedArrayList<? extends SCMTraitDescriptor<?>>> getTraitsDescriptorLists() {
             GitHubSCMSource.DescriptorImpl sourceDescriptor =
-                    Jenkins.getActiveInstance().getDescriptorByType(GitHubSCMSource.DescriptorImpl.class);
+                    Jenkins.get().getDescriptorByType(GitHubSCMSource.DescriptorImpl.class);
             List<SCMTraitDescriptor<?>> all = new ArrayList<>();
             all.addAll(SCMNavigatorTrait._for(this, GitHubSCMNavigatorContext.class, GitHubSCMSourceBuilder.class));
             all.addAll(SCMSourceTrait._for(sourceDescriptor, GitHubSCMSourceContext.class, null));
@@ -1425,9 +1425,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         }
                     },
                     true, result);
-            NamedArrayList.select(all, "Within repository", NamedArrayList.anyOf(NamedArrayList.withAnnotation(Discovery.class),NamedArrayList.withAnnotation(Selection.class)),
+            NamedArrayList.select(all, Messages.GitHubSCMNavigator_withinRepository(), NamedArrayList.anyOf(NamedArrayList.withAnnotation(Discovery.class),NamedArrayList.withAnnotation(Selection.class)),
                     true, result);
-            NamedArrayList.select(all, "General", null, true, result);
+            NamedArrayList.select(all, Messages.GitHubSCMNavigator_general(), null, true, result);
             return result;
         }
 

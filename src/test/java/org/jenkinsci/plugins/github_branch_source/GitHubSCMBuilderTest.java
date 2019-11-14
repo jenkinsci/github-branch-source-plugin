@@ -20,7 +20,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jenkins.branch.BranchSource;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitSCMSourceDefaults;
 import jenkins.plugins.git.MergeWithGitSCMExtension;
@@ -79,7 +78,7 @@ public class GitHubSCMBuilderTest {
             }
             source = new GitHubSCMSource("", "", repoUrlToConfigure, true);
         } else {
-            source = new GitHubSCMSource("tester", "test-repo");
+            source = new GitHubSCMSource("tester", "test-repo", null, false);
         }
         source.setOwner(owner);
     }

@@ -26,7 +26,6 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.util.ListBoxModel;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 import jenkins.scm.api.SCMHeadCategory;
@@ -35,7 +34,6 @@ import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
-import jenkins.scm.api.trait.SCMBuilder;
 import jenkins.scm.api.trait.SCMHeadAuthority;
 import jenkins.scm.api.trait.SCMHeadAuthorityDescriptor;
 import jenkins.scm.api.trait.SCMSourceContext;
@@ -44,6 +42,7 @@ import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.trait.Discovery;
+import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.stapler.DataBoundConstructor;
@@ -127,6 +126,7 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
         return category instanceof ChangeRequestSCMHeadCategory;
     }
 
+    @Symbol("gitHubPullRequestDiscovery")
     @Extension
     @Discovery
     public static class DescriptorImpl extends SCMSourceTraitDescriptor {
@@ -136,7 +136,7 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
          */
         @Override
         public String getDisplayName() {
-            return "Discover pull requests from origin";
+            return Messages.OriginPullRequestDiscoveryTrait_discoverPullRequestsFromOrigin();
         }
 
         /**

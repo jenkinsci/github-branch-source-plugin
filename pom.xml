@@ -23,6 +23,7 @@
     <properties>
         <revision>2.5.9</revision>
         <changelist>-SNAPSHOT</changelist>
+        <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
         <jenkins.version>2.138.4</jenkins.version>
         <scm-api.version>2.6.3</scm-api.version>
@@ -246,24 +247,4 @@
             <url>https://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.jenkins-ci.tools</groupId>
-                <artifactId>maven-hpi-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate-taglib-interface</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <compatibleSinceVersion>2.2.0</compatibleSinceVersion>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
 </project>
