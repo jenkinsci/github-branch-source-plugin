@@ -55,7 +55,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
     /**
      * The strategy encoded as a bit-field.
      */
-    private int strategyId;
+    private final int strategyId;
 
     /**
      * Constructor for stapler.
@@ -94,7 +94,6 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
     @Restricted(NoExternalUse.class)
     public boolean isBuildBranch() {
         return (strategyId & 1) != 0;
-
     }
 
     /**
@@ -175,7 +174,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
         /**
          * Populates the strategy options.
          *
-         * @return the stategy options.
+         * @return the strategy options.
          */
         @NonNull
         @Restricted(NoExternalUse.class)
