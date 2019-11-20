@@ -2318,7 +2318,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     }
 
-    private class LazyPullRequests extends LazyIterable<GHPullRequest> implements Closeable {
+    @Restricted(NoExternalUse.class)
+    class LazyPullRequests extends LazyIterable<GHPullRequest> implements Closeable {
         private final GitHubSCMSourceRequest request;
         private final GHRepository repo;
         private Set<Integer> pullRequestMetadataKeys = new HashSet<>();
