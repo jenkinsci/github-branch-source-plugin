@@ -397,7 +397,8 @@ public class Connector {
             }
 
             if (client.getCache() != null) {
-                gb.withConnector(new ForceValidationOkHttpConnector(new OkUrlFactory(client)));
+                OkHttpClient clientNoCache = new OkHttpClient().setProxy(getProxy(host));
+                gb.withConnector(new ForceValidationOkHttpConnector(client, clientNoCache));
             } else {
                 gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
             }
@@ -725,29 +726,32 @@ public class Connector {
     }
 
     /**
-     * A {@link HttpConnector} that uses {@link OkHttpConnector} but starts with the {@code Cache-Control} header
-     * configured to always revalidate requests against the remote server using conditional GET requests.
+     * A {@link HttpConnector} that uses {@link OkHttpConnector} when caching is enabled.
+     * Starts with the {@code Cache-Control} header configured to always revalidate requests
+     * against the remote server using conditional GET requests.
+     * Allows Jenkins to fallback to uncached query if requests fail due to flaky caching.
      */
     @Restricted(NoExternalUse.class)
-    /*package*/ static class ForceValidationOkHttpConnector implements HttpConnector {
+    /*package*/ static class ForceValidationOkHttpConnector extends OkHttpConnector {
         private static final String FORCE_VALIDATION = new CacheControl.Builder()
                 .maxAge(0, TimeUnit.SECONDS)
                 .build()
                 .toString();
         private static final String HEADER_NAME = "Cache-Control";
-        private final OkHttpConnector delegate;
+        private final OkHttpConnector uncachedConnector;
 
-        public ForceValidationOkHttpConnector(OkUrlFactory okUrlFactory) {
-            this.delegate = new OkHttpConnector(okUrlFactory);
+        public ForceValidationOkHttpConnector(OkHttpClient client, OkHttpClient uncachedClient) {
+            super(new OkUrlFactory(client));
+            this.uncachedConnector = new OkHttpConnector(new OkUrlFactory(uncachedClient));
         }
 
-        /*package*/ OkHttpConnector getDelegate() {
-            return delegate;
+        /*package*/ OkHttpConnector getUncachedConnector() {
+            return uncachedConnector;
         }
 
         @Override
         public HttpURLConnection connect(URL url) throws IOException {
-            HttpURLConnection connection = delegate.connect(url);
+            HttpURLConnection connection = super.connect(url);
             connection.setRequestProperty(HEADER_NAME, FORCE_VALIDATION);
             return connection;
         }

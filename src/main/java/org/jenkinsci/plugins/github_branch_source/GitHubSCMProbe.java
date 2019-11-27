@@ -192,7 +192,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
                     final Connector.ForceValidationOkHttpConnector oldConnector = (Connector.ForceValidationOkHttpConnector) gitHub.getConnector();
                     try {
                         //TODO I'm not sure we are alone in using this connector so maybe concurrent modification problems
-                        gitHub.setConnector(oldConnector.getDelegate());
+                        gitHub.setConnector(oldConnector.getUncachedConnector());
                         return stat(path);
                     } finally {
                         gitHub.setConnector(oldConnector);

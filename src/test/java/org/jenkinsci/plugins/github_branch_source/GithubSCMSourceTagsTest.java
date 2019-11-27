@@ -163,7 +163,7 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
         GHRepository repoSpy = Mockito.spy(repo);
-        PagedIterable<GHRef> iterableSpy = Mockito.spy(repoSpy.listRefs("tags"));
+        PagedIterable<GHRef> iterableSpy = (PagedIterable<GHRef>)Mockito.mock(PagedIterable.class);
         Mockito.when(repoSpy.listRefs("tags")).thenReturn(iterableSpy);
         Mockito.when(iterableSpy.iterator()).thenThrow(expectedError).thenThrow(expectedError2);
 
@@ -195,10 +195,10 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
         GHRepository repoSpy = Mockito.spy(repo);
-        PagedIterable<GHRef> iterableSpy = Mockito.spy(repoSpy.listRefs("tags"));
+        PagedIterable<GHRef> iterableSpy = (PagedIterable<GHRef>)Mockito.mock(PagedIterable.class);
         Mockito.when(repoSpy.listRefs("tags")).thenReturn(iterableSpy);
 
-        PagedIterator<GHRef> iteratorSpy = Mockito.spy(iterableSpy.iterator());
+        PagedIterator<GHRef> iteratorSpy = (PagedIterator<GHRef>)Mockito.mock(PagedIterator.class);
         Mockito.when(iterableSpy.iterator()).thenReturn(iteratorSpy);
         Mockito.when(iteratorSpy.hasNext()).thenThrow(expectedError).thenThrow(expectedError2);
 
@@ -229,10 +229,10 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
         GHRepository repoSpy = Mockito.spy(repo);
-        PagedIterable<GHRef> iterableSpy = Mockito.spy(repoSpy.listRefs("tags"));
+        PagedIterable<GHRef> iterableSpy = (PagedIterable<GHRef>)Mockito.mock(PagedIterable.class);
         Mockito.when(repoSpy.listRefs("tags")).thenReturn(iterableSpy);
 
-        PagedIterator<GHRef> iteratorSpy = Mockito.spy(iterableSpy.iterator());
+        PagedIterator<GHRef> iteratorSpy = (PagedIterator<GHRef>)Mockito.mock(PagedIterator.class);
         Mockito.when(iterableSpy.iterator()).thenReturn(iteratorSpy);
         Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
         Mockito.when(iteratorSpy.hasNext()).thenReturn(true).thenThrow(expectedError);
@@ -263,10 +263,10 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
         GHRepository repoSpy = Mockito.spy(repo);
-        PagedIterable<GHRef> iterableSpy = Mockito.spy(repoSpy.listRefs("tags"));
+        PagedIterable<GHRef> iterableSpy = (PagedIterable<GHRef>)Mockito.mock(PagedIterable.class);
         Mockito.when(repoSpy.listRefs("tags")).thenReturn(iterableSpy);
 
-        PagedIterator<GHRef> iteratorSpy = Mockito.spy(iterableSpy.iterator());
+        PagedIterator<GHRef> iteratorSpy = (PagedIterator<GHRef>)Mockito.mock(PagedIterator.class);
         Mockito.when(iterableSpy.iterator()).thenReturn(iteratorSpy);
         Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
         Mockito.when(iteratorSpy.hasNext()).thenThrow(expectedError);
@@ -296,10 +296,10 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
         GHRepository repoSpy = Mockito.spy(repo);
-        PagedIterable<GHRef> iterableSpy = Mockito.spy(repoSpy.listRefs("tags"));
+        PagedIterable<GHRef> iterableSpy = (PagedIterable<GHRef>)Mockito.mock(PagedIterable.class);
         Mockito.when(repoSpy.listRefs("tags")).thenReturn(iterableSpy);
 
-        PagedIterator<GHRef> iteratorSpy = Mockito.spy(iterableSpy.iterator());
+        PagedIterator<GHRef> iteratorSpy = (PagedIterator<GHRef>)Mockito.mock(PagedIterator.class);
         Mockito.when(iterableSpy.iterator()).thenReturn(iteratorSpy);
         Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
         Mockito.when(iteratorSpy.hasNext()).thenThrow(expectedError);
@@ -324,10 +324,10 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
         context.wantTags(true);
         GitHubSCMSourceRequest request = context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
         GHRepository repoSpy = Mockito.spy(repo);
-        PagedIterable<GHRef> iterableSpy = Mockito.spy(repoSpy.listRefs("tags"));
+        PagedIterable<GHRef> iterableSpy = (PagedIterable<GHRef>)Mockito.mock(PagedIterable.class);
         Mockito.when(repoSpy.listRefs("tags")).thenReturn(iterableSpy);
 
-        PagedIterator<GHRef> iteratorSpy = Mockito.spy(iterableSpy.iterator());
+        PagedIterator<GHRef> iteratorSpy = (PagedIterator<GHRef>)Mockito.mock(PagedIterator.class);
         Mockito.when(iterableSpy.iterator()).thenReturn(iteratorSpy);
         Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
         Mockito.when(iteratorSpy.hasNext()).thenThrow(expectedError);

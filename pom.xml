@@ -25,7 +25,7 @@
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
-        <jenkins.version>2.138.4</jenkins.version>
+        <jenkins.version>2.150.3</jenkins.version>
         <scm-api.version>2.6.3</scm-api.version>
         <hamcrest.version>2.1</hamcrest.version>
         <useBeta>true</useBeta>
