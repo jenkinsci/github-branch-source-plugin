@@ -75,6 +75,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
@@ -541,6 +542,46 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase{
 
     }
 
+    @Test
+    public void fetchSmokesUnknownFork() throws Exception {
+        // make it so PR-2 always returns mergeable = null
+        githubApi.stubFor(
+                get(urlEqualTo("/repos/cloudbeers/yolo/pulls/4"))
+                        .inScenario("Pull Request from Deleted Fork")
+                        .whenScenarioStateIs(Scenario.STARTED)
+                        .willReturn(
+                                aResponse()
+                                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                                        .withBodyFile("body-yolo-pulls-4-deleted-fork.json")));
+        githubApi.stubFor(
+                get(urlMatching("(/api/v3)?/repos/cloudbeers/yolo/pulls\\?state=open"))
+                        .inScenario("Pull Request from Deleted Fork")
+                        .whenScenarioStateIs(Scenario.STARTED)
+                        .willReturn(
+                                aResponse()
+                                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                                        .withBodyFile("body-yolo-pulls-deleted-fork.json")));
+
+        SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
+        source.fetch(new SCMSourceCriteria() {
+            @Override
+            public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
+                return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
+            }
+        }, collector, null, null);
+        Map<String,SCMHead> byName = new HashMap<>();
+        Map<String,SCMRevision> revByName = new HashMap<>();
+        for (Map.Entry<SCMHead, SCMRevision> h: collector.result().entrySet())  {
+            byName.put(h.getKey().getName(), h.getKey());
+            revByName.put(h.getKey().getName(), h.getValue());
+        }
+
+        assertThat(byName.keySet(), hasItem("PR-4"));
+
+        assertThat(byName.get("PR-4"), instanceOf(PullRequestSCMHead.class));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-4").getOrigin()).getName(), is("unknown_fork"));
+    }
+    
     @Test
     public void fetchAltConfig() throws Exception {
         source.setBuildForkPRMerge(false);
