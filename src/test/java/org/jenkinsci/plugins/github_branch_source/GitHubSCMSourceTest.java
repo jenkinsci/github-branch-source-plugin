@@ -78,6 +78,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
@@ -579,7 +580,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase{
         assertThat(byName.keySet(), hasItem("PR-4"));
 
         assertThat(byName.get("PR-4"), instanceOf(PullRequestSCMHead.class));
-        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-4").getOrigin()).getName(), is("unknown_fork"));
+        assertThat(((SCMHeadOrigin.Fork) byName.get("PR-4").getOrigin()).getName(), nullValue());
     }
     
     @Test
