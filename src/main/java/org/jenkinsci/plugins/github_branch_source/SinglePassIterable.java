@@ -102,6 +102,8 @@ class SinglePassIterable<V> implements Iterable<V> {
                             V element = delegate.next();
                             observe(element);
                             items.add(element);
+                            //Index needs to be incremented
+                            index++;
                             return element;
                         } else {
                             throw new NoSuchElementException();
