@@ -92,9 +92,9 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
             this.origin = SCMHeadOrigin.DEFAULT;
         } else {
             // if the forked repo name differs from the upstream repo name
-            this.origin = pr.getHead().getRepository().getName().equalsIgnoreCase(pr.getBase().getRepository().getName())
+            this.origin = pr.getBase().getRepository().getName().equalsIgnoreCase(sourceRepo)
                     ? new SCMHeadOrigin.Fork(this.sourceOwner)
-                    : new SCMHeadOrigin.Fork(pr.getHead().getRepository().getFullName());
+                    : new SCMHeadOrigin.Fork(repository == null ? this.sourceOwner : repository.getFullName());
         }
     }
 
