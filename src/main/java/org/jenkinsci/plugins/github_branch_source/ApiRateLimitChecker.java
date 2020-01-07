@@ -92,7 +92,7 @@ public enum ApiRateLimitChecker {
                 if (rateLimit.remaining >= buffer) {
                     break;
                 }
-                final long expiration = System.currentTimeMillis() + ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS);
+                final long expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS);
                 listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                         "GitHub API Usage: Current quota has %d remaining (%d over buffer). Next quota of %d due now. Sleeping for %s.",
                         rateLimit.remaining, buffer - rateLimit.remaining, rateLimit.limit,
