@@ -1,0 +1,6 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:c="/lib/credentials" xmlns:f="/lib/form">
+  <f:entry title="${%Max. head commit age in days}" field="maxDaysOld">
+    <f:textbox/>
+  </f:entry>
+</j:jelly>

@@ -1,0 +1,28 @@
+<div>
+    <p>
+        The maximum age in days of the head commit of a branch, tag or pull request.
+    </p>
+    <p>
+    	Branches, tags or pull requests older than this will be ignored if their head 
+    	is older than this number of days.
+    </p>
+    <p>
+    	The default is <strong>0</strong> which basically deactivates this feature.
+    	If the value is changed to any positive number above <strong>0</strong>, 
+    	branches, tags or pull requests older than the amount of days mentioned
+    	will be ignored.
+    </p>
+    <p>
+    	As a basis of the time-restriction, the last modification timestamp of the head commit 
+    	is used together with the current system time. If the current system time is 
+    	2020-01-10 11:20 AM GMT and the maximum commit age is set to 3 days, only branches, 
+    	tags or pull requests more recent than 2020-01-07 11:20 AM GMT (system time) will 
+    	be built. 
+    </p>
+    <p>
+    	If a new tag or branch is created with an old head commit, it is possible that the 
+    	filtering mechanism will ignore this "new" branch or tag even though it just was 
+    	created a few moments ago. This is due to the fact that git only tracks timestamps
+    	of commits and not those of branches, tags or pull requests. 
+    </p>
+</div>
