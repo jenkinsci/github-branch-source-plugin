@@ -161,8 +161,8 @@ public class ApiRateLimitCheckerTest {
     private Date soon = Date.from(LocalDateTime.now().plusMinutes(60).atZone(ZoneId.systemDefault()).toInstant());
 
     /**
-     * Shows when the throttle is not happening in "OnOver" throttle
-     * essentially when client has just been given a new quota
+     * Verify that the throttle does not happen in OnOver throttle
+     * when none of the quota has been used
      *
      * @author Julian V. Modesto
      */
@@ -188,7 +188,7 @@ public class ApiRateLimitCheckerTest {
     }
 
     /**
-     * Shows when the throttle is not happening in "OnNormalize" throttle
+     * Verify when the throttle is not happening in "OnNormalize" throttle
      * essentially when client has just been given a new quota
      *
      * @author Julian V. Modesto
@@ -215,7 +215,7 @@ public class ApiRateLimitCheckerTest {
     }
 
     /**
-     * Shows exactly when the throttle is occurring in "OnOver"
+     * Verify exactly when the throttle is occurring in "OnOver"
      *
      * @author Julian V. Modesto
      */
@@ -267,7 +267,7 @@ public class ApiRateLimitCheckerTest {
     }
 
     /**
-     * Shows the bounds of the throttle for "Normalize"
+     * Verify the bounds of the throttle for "Normalize"
      *
      * @author Julian V. Modesto
      */
@@ -328,7 +328,7 @@ public class ApiRateLimitCheckerTest {
     }
 
     /**
-     * Shows OnNormal throttling when past the buffer
+     * Verify OnNormal throttling when past the buffer
      *
      * @author  Julian V. Modesto
      */
@@ -371,7 +371,7 @@ public class ApiRateLimitCheckerTest {
     }
 
     /**
-     * Shows throttle in "OnOver" and the wait happens for the correct amount of time
+     * Verify throttle in "OnOver" and the wait happens for the correct amount of time
      *
      * @author Alex Taylor
      */
@@ -425,7 +425,7 @@ public class ApiRateLimitCheckerTest {
     }
 
     /**
-     * This test will show the "OnNormalize" throttle and wait is happening for the correct amount of time
+     * Verify the "OnNormalize" throttle and wait is happening for the correct amount of time
      *
      * @author  Alex Taylor
      */
@@ -473,7 +473,7 @@ public class ApiRateLimitCheckerTest {
 
 
     /**
-     * Shows when the throttle is happening for the "OnNormalize"
+     * Verify the throttle is happening for the "OnNormalize"
      * and proves the ideal "limit" changes correctly with time
      *
      * @author  Alex Taylor
@@ -539,7 +539,7 @@ public class ApiRateLimitCheckerTest {
     }
 
     /**
-     * This test will show when the throttle is happening for the "OnOver"
+     * Verify when the throttle is happening for the "OnOver"
      * and prove the current "limit" does not change the same way as Normalize
      *
      * @author  Alex Taylor
@@ -578,7 +578,7 @@ public class ApiRateLimitCheckerTest {
     }
 
     /**
-     * Test will show the expected reset happens and notifications happen on time in the logs for Normalize
+     * Verify the expected reset happens and notifications happen on time in the logs for Normalize
      *
      * @author  Alex Taylor
      */
@@ -586,7 +586,7 @@ public class ApiRateLimitCheckerTest {
     public void ExpectedResetTimingNormalize() throws Exception {
         ApiRateLimitChecker.setEntropy(entropy);
         ApiRateLimitChecker.setExpirationWaitMillis(20);
-        ApiRateLimitChecker.setNotificationWaitMillis(500);
+        ApiRateLimitChecker.setNotificationWaitMillis(2000);
         // Set up scenarios
         List<JsonRateLimit> scenarios = new ArrayList<>();
         int limit = 1000;
@@ -595,7 +595,7 @@ public class ApiRateLimitCheckerTest {
         //Giving a bit of time to make sure the setup happens on time
         long start = System.currentTimeMillis() + 7000;
 
-        for (int i = 0; i <= 9; i++) {
+        for (int i = 0; i <= 3; i++) {
             scenarios.add(new JsonRateLimit(limit, buffer - 5, new Date(start)));
         }
         // Refresh rate limit
@@ -604,7 +604,7 @@ public class ApiRateLimitCheckerTest {
         // First server warm up
         apiRateLimitCheckerThrottleForNormalize.checkApiRateLimit(listener, github);
 
-        while(System.currentTimeMillis() + 4500 < start)
+        while(System.currentTimeMillis() + 5500 < start)
         {
             Thread.sleep(25);
         }
@@ -614,11 +614,11 @@ public class ApiRateLimitCheckerTest {
 
         // Expect a triggered throttle for normalize
         assertEquals(2, handler.getView().stream().map(LogRecord::getMessage).filter(m -> m.contains("Current quota")).count());
-        assertEquals(8, handler.getView().stream().map(LogRecord::getMessage).filter(m -> m.contains("Still sleeping")).count());
+        assertEquals(2, handler.getView().stream().map(LogRecord::getMessage).filter(m -> m.contains("Still sleeping")).count());
     }
 
     /**
-     * Test will show the expected reset happens and notifications happen on time in the logs for OnOver
+     * Verify the expected reset happens and notifications happen on time in the logs for OnOver
      *
      * @author  Alex Taylor
      */
@@ -626,7 +626,7 @@ public class ApiRateLimitCheckerTest {
     public void ExpectedResetTimingOnOver() throws Exception {
         ApiRateLimitChecker.setEntropy(entropy);
         ApiRateLimitChecker.setExpirationWaitMillis(20);
-        ApiRateLimitChecker.setNotificationWaitMillis(500);
+        ApiRateLimitChecker.setNotificationWaitMillis(2000);
         // Set up scenarios
         List<JsonRateLimit> scenarios = new ArrayList<>();
         int limit = 1000;
@@ -635,7 +635,7 @@ public class ApiRateLimitCheckerTest {
         //Giving a bit of time to make sure the setup happens on time
         long start = System.currentTimeMillis() + 7000;
 
-        for (int i = 0; i <= 9; i++) {
+        for (int i = 0; i <= 3; i++) {
             scenarios.add(new JsonRateLimit(limit, buffer - 5, new Date(start)));
         }
         // Refresh rate limit
@@ -644,7 +644,7 @@ public class ApiRateLimitCheckerTest {
         // First server warm up
         apiRateLimitCheckerThrottleOnOver.checkApiRateLimit(listener, github);
 
-        while(System.currentTimeMillis() + 4500 < start)
+        while(System.currentTimeMillis() + 5500 < start)
         {
             Thread.sleep(25);
         }
@@ -653,6 +653,6 @@ public class ApiRateLimitCheckerTest {
 
         // We have 7 "notify" type messages and 2 "expired" type messages
         assertEquals(2, handler.getView().stream().map(LogRecord::getMessage).filter(m -> m.contains("Current quota")).count());
-        assertEquals(8, handler.getView().stream().map(LogRecord::getMessage).filter(m -> m.contains("Still sleeping")).count());
+        assertEquals(2, handler.getView().stream().map(LogRecord::getMessage).filter(m -> m.contains("Still sleeping")).count());
     }
 }
