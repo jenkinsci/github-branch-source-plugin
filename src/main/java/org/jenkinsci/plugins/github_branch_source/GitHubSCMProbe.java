@@ -53,7 +53,7 @@ import java.util.logging.Logger;
 class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = Logger.getLogger(GitHubSCMProbe.class.getName());
-    static /*mostly final*/ boolean JENKINS_54126_WORKAROUND = Boolean.parseBoolean(System.getProperty(GitHubSCMProbe.class.getName() + ".JENKINS_54126_WORKAROUND", Boolean.FALSE.toString()));
+    static /*mostly final*/ boolean JENKINS_54126_WORKAROUND = Boolean.parseBoolean(System.getProperty(GitHubSCMProbe.class.getName() + ".JENKINS_54126_WORKAROUND", Boolean.TRUE.toString()));
     static /*mostly final*/ boolean STAT_RETHROW_API_FNF = Boolean.parseBoolean(System.getProperty(GitHubSCMProbe.class.getName() + ".STAT_RETHROW_API_FNF", Boolean.TRUE.toString()));
     private final SCMRevision revision;
     private final transient GitHub gitHub;
