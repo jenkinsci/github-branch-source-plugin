@@ -39,14 +39,11 @@ import hudson.console.HyperlinkNote;
 import hudson.model.Action;
 import hudson.model.Item;
 import hudson.model.TaskListener;
-import hudson.plugins.git.GitSCM;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -55,7 +52,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
@@ -73,7 +69,6 @@ import jenkins.scm.api.trait.SCMNavigatorRequest;
 import jenkins.scm.api.trait.SCMNavigatorTrait;
 import jenkins.scm.api.trait.SCMNavigatorTraitDescriptor;
 import jenkins.scm.api.trait.SCMSourceTrait;
-import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.api.trait.SCMTraitDescriptor;
 import jenkins.scm.impl.UncategorizedSCMSourceCategory;
@@ -113,6 +108,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @NonNull
     private final String repoOwner;
+
     /**
      * The API endpoint for the GitHub server.
      */
@@ -930,9 +926,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 throw new AbortException(message);
             }
 
-            GitHubSCMNavigatorRequest request = new GitHubSCMNavigatorContext()
-                    .withTraits(traits) // TODO
-                    .newRequest(this, observer);
+            GitHubSCMNavigatorContext gitHubSCMNavigatorContext = new GitHubSCMNavigatorContext().withTraits(traits);
+            GitHubSCMNavigatorRequest request = gitHubSCMNavigatorContext.newRequest(this, observer);
+
             try {
                 SourceFactory sourceFactory = new SourceFactory(request);
                 WitnessImpl witness = new WitnessImpl(listener);
@@ -969,30 +965,28 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     }
                 }
 
-                GHOrganization org = null;
-                try {
-                    org = github.getOrganization(repoOwner);
-                } catch (RateLimitExceededException rle) {
-                    throw new AbortException(rle.getMessage());
-                } catch (FileNotFoundException fnf) {
-                    // may be an user... ok to ignore
-                }
+                GHOrganization org = getGhOrganization(github);
                 if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
                     listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                            "Looking up repositories of organization %s", repoOwner
-                    )));
-                    for (GHRepository repo : org.listRepositories(100)) {
+                            "Looking up repositories of organization %s", repoOwner)));
+                    final Iterable<GHRepository> repositories;
+                    if (StringUtils.isNotBlank(gitHubSCMNavigatorContext.getTeamSlug())) {
+                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                "Looking up repositories for team %s", gitHubSCMNavigatorContext.getTeamSlug())));
+                        repositories = org.getTeamBySlug(gitHubSCMNavigatorContext.getTeamSlug()).listRepositories().withPageSize(100);
+                    } else {
+                        repositories = org.listRepositories(100);
+                    }
+                    for (GHRepository repo : repositories) {
                         Connector.checkApiRateLimit(listener, github);
                         if (request.process(repo.getName(), sourceFactory, null, witness)) {
-                            listener.getLogger()
-                                    .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                            "%d repositories were processed (query completed)", witness.getCount()
-                                    )));
+                            listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                    "%d repositories were processed (query completed)", witness.getCount()
+                                                                                                                           )));
                         }
                     }
                     listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                            "%d repositories were processed", witness.getCount()
-                    )));
+                            "%d repositories were processed", witness.getCount())));
                     return;
                 }
 
@@ -1030,6 +1024,17 @@ public class GitHubSCMNavigator extends SCMNavigator {
         } finally {
             Connector.release(github);
         }
+    }
+
+    private GHOrganization getGhOrganization(final GitHub github) throws IOException {
+        try {
+            return github.getOrganization(repoOwner);
+        } catch (RateLimitExceededException rle) {
+            throw new AbortException(rle.getMessage());
+        } catch (FileNotFoundException fnf) {
+            // may be an user... ok to ignore
+        }
+        return null;
     }
 
     /**
@@ -1106,14 +1111,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
                 }
 
-                GHOrganization org = null;
-                try {
-                    org = github.getOrganization(repoOwner);
-                } catch (RateLimitExceededException rle) {
-                    throw new AbortException(rle.getMessage());
-                } catch (FileNotFoundException fnf) {
-                    // may be an user... ok to ignore
-                }
+                GHOrganization org = getGhOrganization(github);
                 if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
                     listener.getLogger()
                             .format("Looking up %s repository of organization %s%n%n", sourceName, repoOwner);
@@ -1359,7 +1357,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                                      @QueryParameter String apiUri,
                                                      @QueryParameter String credentialsId) {
             if (context == null
-                    ? !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER)
+                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
                     : !context.hasPermission(Item.EXTENDED_READ)) {
                 return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
@@ -1403,7 +1401,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @SuppressWarnings("unused") // jelly
         public List<NamedArrayList<? extends SCMTraitDescriptor<?>>> getTraitsDescriptorLists() {
             GitHubSCMSource.DescriptorImpl sourceDescriptor =
-                    Jenkins.getActiveInstance().getDescriptorByType(GitHubSCMSource.DescriptorImpl.class);
+                    Jenkins.get().getDescriptorByType(GitHubSCMSource.DescriptorImpl.class);
             List<SCMTraitDescriptor<?>> all = new ArrayList<>();
             all.addAll(SCMNavigatorTrait._for(this, GitHubSCMNavigatorContext.class, GitHubSCMSourceBuilder.class));
             all.addAll(SCMSourceTrait._for(sourceDescriptor, GitHubSCMSourceContext.class, null));
@@ -1427,9 +1425,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         }
                     },
                     true, result);
-            NamedArrayList.select(all, "Within repository", NamedArrayList.anyOf(NamedArrayList.withAnnotation(Discovery.class),NamedArrayList.withAnnotation(Selection.class)),
+            NamedArrayList.select(all, Messages.GitHubSCMNavigator_withinRepository(), NamedArrayList.anyOf(NamedArrayList.withAnnotation(Discovery.class),NamedArrayList.withAnnotation(Selection.class)),
                     true, result);
-            NamedArrayList.select(all, "General", null, true, result);
+            NamedArrayList.select(all, Messages.GitHubSCMNavigator_general(), null, true, result);
             return result;
         }
 

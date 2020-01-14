@@ -32,7 +32,6 @@ import java.net.URL;
 
 import static org.apache.commons.lang.StringUtils.removeEnd;
 import static org.jenkinsci.plugins.github_branch_source.GitHubSCMSource.GITHUB_COM;
-import static org.jenkinsci.plugins.github_branch_source.GitHubSCMSource.GITHUB_URL;
 
 /**
  * Used to compute values for GitHubSCMSource from a user-specified repository URL.

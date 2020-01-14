@@ -38,7 +38,6 @@ import hudson.model.Queue;
 import hudson.model.queue.Tasks;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
-import hudson.scm.SCMDescriptor;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -79,7 +78,7 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
      *                      credentials (typically anonymous but not always)
      */
     @DataBoundConstructor
-    public SSHCheckoutTrait(String credentialsId) {
+    public SSHCheckoutTrait(@CheckForNull String credentialsId) {
         if (GitHubSCMSource.DescriptorImpl.ANONYMOUS.equals(credentialsId)) {
             // legacy migration of "magic" credential ID.
             this.credentialsId = null;
@@ -158,7 +157,7 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
          * Form completion.
          *
          * @param context       the context.
-         * @param apiUri     the server url.
+         * @param apiUri        the server url.
          * @param credentialsId the current selection.
          * @return the form items.
          */
@@ -168,7 +167,7 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
                                                      @QueryParameter String apiUri,
                                                      @QueryParameter String credentialsId) {
             if (context == null
-                    ? !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER)
+                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
                     : !context.hasPermission(Item.EXTENDED_READ)) {
                 return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
@@ -176,7 +175,7 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
             result.add(Messages.SSHCheckoutTrait_useAgentKey(), "");
             return result.includeMatchingAs(
                     context instanceof Queue.Task
-                            ? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
+                            ? ((Queue.Task) context).getDefaultAuthentication()
                             : ACL.SYSTEM,
                     context,
                     StandardUsernameCredentials.class,
@@ -199,7 +198,7 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
                                                    @QueryParameter String serverUrl,
                                                    @QueryParameter String value) {
             if (context == null
-                    ? !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER)
+                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
                     : !context.hasPermission(Item.EXTENDED_READ)) {
                 return FormValidation.ok();
             }
@@ -207,23 +206,23 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
                 // use agent key
                 return FormValidation.ok();
             }
-            if (CredentialsMatchers.firstOrNull(
-                    CredentialsProvider
-                            .lookupCredentials(SSHUserPrivateKey.class, context, context instanceof Queue.Task
-                                    ? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
-                                    : ACL.SYSTEM, URIRequirementBuilder.fromUri(serverUrl).build()),
+            if (CredentialsMatchers.firstOrNull(CredentialsProvider.lookupCredentials(
+                    SSHUserPrivateKey.class,
+                    context,
+                    context instanceof Queue.Task ? ((Queue.Task) context).getDefaultAuthentication() : ACL.SYSTEM,
+                    URIRequirementBuilder.fromUri(serverUrl).build()),
                     CredentialsMatchers.withId(value)) != null) {
                 return FormValidation.ok();
             }
-            if (CredentialsMatchers.firstOrNull(CredentialsProvider
-                            .lookupCredentials(StandardUsernameCredentials.class, context, context instanceof Queue.Task
-                                    ? Tasks.getDefaultAuthenticationOf((Queue.Task) context)
-                                    : ACL.SYSTEM, URIRequirementBuilder.fromUri(serverUrl).build()),
+            if (CredentialsMatchers.firstOrNull(CredentialsProvider.lookupCredentials(
+                    StandardUsernameCredentials.class,
+                    context,
+                    context instanceof Queue.Task ? ((Queue.Task) context).getDefaultAuthentication() : ACL.SYSTEM,
+                    URIRequirementBuilder.fromUri(serverUrl).build()),
                     CredentialsMatchers.withId(value)) != null) {
                 return FormValidation.error(Messages.SSHCheckoutTrait_incompatibleCredentials());
             }
             return FormValidation.warning(Messages.SSHCheckoutTrait_missingCredentials());
         }
-
     }
 }

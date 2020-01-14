@@ -28,16 +28,11 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.List;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
 import org.apache.commons.lang.StringUtils;
-import org.kohsuke.github.GHCommit;
-import org.kohsuke.github.GHRepository;
 import org.kohsuke.stapler.export.Exported;
 
 /**

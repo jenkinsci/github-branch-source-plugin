@@ -33,7 +33,6 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMProbe;
 import jenkins.scm.api.SCMProbeStat;
 import jenkins.scm.api.SCMRevision;
-import jenkins.util.SystemProperties;
 import org.eclipse.jgit.lib.Constants;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHContent;
@@ -193,7 +192,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
                     final Connector.ForceValidationOkHttpConnector oldConnector = (Connector.ForceValidationOkHttpConnector) gitHub.getConnector();
                     try {
                         //TODO I'm not sure we are alone in using this connector so maybe concurrent modification problems
-                        gitHub.setConnector(oldConnector.getDelegate());
+                        gitHub.setConnector(oldConnector.getUncachedConnector());
                         return stat(path);
                     } finally {
                         gitHub.setConnector(oldConnector);

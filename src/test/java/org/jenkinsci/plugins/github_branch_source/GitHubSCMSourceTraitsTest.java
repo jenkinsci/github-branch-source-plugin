@@ -52,7 +52,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__configuredInstance__when__uninstantiating__then__deprecatedFieldsIgnored() throws Exception {
-        GitHubSCMSource instance = new GitHubSCMSource("repo-owner", "repo");
+        GitHubSCMSource instance = new GitHubSCMSource("repo-owner", "repo", null, false);
         instance.setId("test");
 
         DescribableModel model = DescribableModel.of(GitHubSCMSource.class);
@@ -80,7 +80,7 @@ public class GitHubSCMSourceTraitsTest {
                         + "repository=repo,"
                         + "traits=["
                         + "@gitHubBranchDiscovery$org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait(strategyId=1), "
-                        + "$OriginPullRequestDiscoveryTrait(strategyId=1), "
+                        + "@gitHubPullRequestDiscovery$OriginPullRequestDiscoveryTrait(strategyId=1), "
                         + "@gitHubForkDiscovery$ForkPullRequestDiscoveryTrait("
                         + "strategyId=2,"
                         + "trust=@gitHubTrustPermissions$TrustPermission()), "

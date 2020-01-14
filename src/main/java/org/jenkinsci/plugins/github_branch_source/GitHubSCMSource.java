@@ -1976,7 +1976,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                                      @QueryParameter String apiUri,
                                                      @QueryParameter String credentialsId) {
             if (context == null
-                    ? !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER)
+                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
                     : !context.hasPermission(Item.EXTENDED_READ)) {
                 return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
@@ -2003,7 +2003,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.error("Unable to validate repository information"); // not permitted to try connecting with these credentials
             }
-            GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
+            GitHubRepositoryInfo info;
+
+            try {
+                info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
+            } catch (IllegalArgumentException e) {
+                return FormValidation.error(e, e.getMessage());
+            }
 
             StandardCredentials credentials = Connector.lookupScanCredentials(context, info.getApiUri(), credentialsId);
             StringBuilder sb = new StringBuilder();
@@ -2107,7 +2113,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (credentialsId == null) {
                 return new ListBoxModel();
             }
-            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+            if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                     context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                 return new ListBoxModel(); // not supposed to be seeing this form
             }
@@ -2146,7 +2152,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (repoOwner == null) {
                 return new ListBoxModel();
             }
-            if (context == null && !Jenkins.getActiveInstance().hasPermission(Jenkins.ADMINISTER) ||
+            if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
                 context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                 return new ListBoxModel(); // not supposed to be seeing this form
             }
@@ -2284,11 +2290,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 }
             }
             List<NamedArrayList<? extends SCMTraitDescriptor<?>>> result = new ArrayList<>();
-            NamedArrayList.select(all, "Within repository", NamedArrayList
+            NamedArrayList.select(all, Messages.GitHubSCMNavigator_withinRepository(), NamedArrayList
                             .anyOf(NamedArrayList.withAnnotation(Discovery.class),
                                     NamedArrayList.withAnnotation(Selection.class)),
                     true, result);
-            NamedArrayList.select(all, "General", null, true, result);
+            NamedArrayList.select(all, Messages.GitHubSCMNavigator_general(), null, true, result);
             return result;
         }
 
@@ -2312,7 +2318,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     }
 
-    private class LazyPullRequests extends LazyIterable<GHPullRequest> implements Closeable {
+    @Restricted(NoExternalUse.class)
+    class LazyPullRequests extends LazyIterable<GHPullRequest> implements Closeable {
         private final GitHubSCMSourceRequest request;
         private final GHRepository repo;
         private Set<Integer> pullRequestMetadataKeys = new HashSet<>();
@@ -2368,7 +2375,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 // we needed a full scan and the scan was completed, so trim the cache entries
                 pullRequestMetadataCache.keySet().retainAll(pullRequestMetadataKeys);
                 pullRequestContributorCache.keySet().retainAll(pullRequestMetadataKeys);
-                if (Jenkins.getActiveInstance().getInitLevel().compareTo(InitMilestone.JOB_LOADED) > 0) {
+                if (Jenkins.get().getInitLevel().compareTo(InitMilestone.JOB_LOADED) > 0) {
                     // synchronization should be cheap as only writers would be looking for this just to
                     // write null
                     synchronized (pullRequestSourceMapLock) {
@@ -2434,7 +2441,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    private static class LazyBranches extends LazyIterable<GHBranch> {
+    @Restricted(NoExternalUse.class)
+    static class LazyBranches extends LazyIterable<GHBranch> {
         private final GitHubSCMSourceRequest request;
         private final GHRepository repo;
 

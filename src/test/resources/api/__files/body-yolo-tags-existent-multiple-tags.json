@@ -1,0 +1,22 @@
+[
+  {
+    "ref": "refs/tags/existent-multiple-tags1",
+    "node_id": "MDM6UmVmNTU1NDMyMjU6d29ya2Zsb3ctY3BzLTIuMA==",
+    "url": "https://api.github.com/repos/cloudbeers/yolo/git/refs/tags/existent-multiple-tags1",
+    "object": {
+      "sha": "bc691aee5d7df13d0e90a05885d9e1bdd662c40e",
+      "type": "tag",
+      "url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/git/tags/bc691aee5d7df13d0e90a05885d9e1bdd662c40e"
+    }
+  },
+  {
+    "ref": "refs/tags/existent-multiple-tags2",
+    "node_id": "MDM6UmVmNTU1NDMyMjU6d29ya2Zsb3ctY3BzLTIuMQ==",
+    "url": "https://api.github.com/repos/cloudbeers/yolo/git/refs/tags/existent-multiple-tags2",
+    "object": {
+      "sha": "5130ed00eabd3f808d0ac4998e539276c0df4ff2",
+      "type": "tag",
+      "url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/git/tags/5130ed00eabd3f808d0ac4998e539276c0df4ff2"
+    }
+  }
+]
