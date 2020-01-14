@@ -175,7 +175,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
                 // means that does not exist and this is handled below this try/catch block.
             }
             if (finicky && JENKINS_54126_WORKAROUND) {
-                LOG.log(Level.FINE, String.format("JENKINS-54126 Received finacky response from GitHub %s : %s", repo.getFullName(), ref), fnf);
+                LOG.log(Level.FINE, String.format("JENKINS-54126 Received finicky response from GitHub %s : %s", repo.getFullName(), ref), fnf);
                 final Optional<List<String>> status;
                 final Map<String, List<String>> responseHeaderFields = fnf.getResponseHeaderFields();
                 if (responseHeaderFields != null) {
