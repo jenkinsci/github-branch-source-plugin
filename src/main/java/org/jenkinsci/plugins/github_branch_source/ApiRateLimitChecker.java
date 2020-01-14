@@ -28,7 +28,7 @@ public enum ApiRateLimitChecker {
                 int burst = calculateNormalizedBurst(rateLimit.limit);
                 // the ideal is how much remaining we should have (after a burst)
                 long rateLimitResetMillis = rateLimit.getResetDate().getTime() - start;
-                double resetProgress = rateLimitResetMillis / MILLIS_PER_HOUR;
+                double resetProgress = Math.max(0, rateLimitResetMillis / MILLIS_PER_HOUR);
                 int ideal = (int) ((rateLimit.limit - buffer - burst) * resetProgress) + buffer;
                 if (rateLimit.remaining >= ideal && rateLimit.remaining < ideal + buffer) {
                     listener.getLogger().println(GitHubConsoleNote.create(start, String.format(
@@ -94,10 +94,10 @@ public enum ApiRateLimitChecker {
                 }
                 final long expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS);
                 listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                        "GitHub API Usage: Current quota has %d remaining (%d over buffer). Next quota of %d due in %s. Sleeping for %s sec.",
+                        "GitHub API Usage: Current quota has %d remaining (%d over buffer). Next quota of %d due in %s. Sleeping for %s.",
                         rateLimit.remaining, buffer - rateLimit.remaining, rateLimit.limit,
                         Util.getTimeSpanString(expiration - System.currentTimeMillis()),
-                        ((float) NOTIFICATION_WAIT_MILLIS/1000)
+                        Util.getTimeSpanString(NOTIFICATION_WAIT_MILLIS)
 
                 )));
                 waitUntilRateLimit(listener, github, rateLimit, expiration);
