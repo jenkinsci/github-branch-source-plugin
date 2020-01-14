@@ -28,11 +28,6 @@
           <f:select/>
         </f:entry>
         </j:when>
-        <j:otherwise>
-          <f:invisibleEntry>
-            <f:select field="apiUri"/>
-          </f:invisibleEntry>
-        </j:otherwise>
       </j:choose>
       <f:entry title ="${%Owner}" field="repoOwner">
         <f:textbox/>
