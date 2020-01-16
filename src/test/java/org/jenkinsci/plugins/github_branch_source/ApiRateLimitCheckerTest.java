@@ -145,7 +145,7 @@ public class ApiRateLimitCheckerTest {
         ApiRateLimitChecker.setExpirationWaitMillis(20);
 
         // Default the notification interval to a small but measurable time for testing
-        ApiRateLimitChecker.setExpirationWaitMillis(20);
+        ApiRateLimitChecker. setNotificationWaitMillis(60);
     }
 
     private void setupStubs(List<RateLimit> scenarios) {
