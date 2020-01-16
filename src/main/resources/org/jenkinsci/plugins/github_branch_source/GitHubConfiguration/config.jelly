@@ -1,5 +1,10 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    <f:section title="GitHub API usage">
+        <f:entry title="${%Github API usage rate limiting strategy}" field="apiRateLimitChecker">
+            <f:select />
+        </f:entry>
+    </f:section>
     <f:section title="${%GitHub Enterprise Servers}">
         <f:entry>
             <f:repeatableProperty field="endpoints">
