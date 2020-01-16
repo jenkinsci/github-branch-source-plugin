@@ -933,7 +933,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                   @NonNull SCMHeadObserver observer,
                                   @CheckForNull SCMHeadEvent<?> event,
                                   @NonNull final TaskListener listener) throws IOException, InterruptedException {
-        StandardCredentials credentials = Connector.lookupScanCredentials((Item)getOwner(), apiUri, credentialsId);
+        SCMSourceOwner owner = getOwner();
+        StandardCredentials credentials = Connector.lookupScanCredentials(owner, apiUri, credentialsId);
+
+        GitHubIncludeRegionsTrait.Match match = GitHubIncludeRegionsTrait.isBuildableSCMEvent(owner, event);
+        if (match == null) {
+            listener.getLogger().println("This event didnt match this items");
+            return;
+        }
+
+        listener.getLogger().println("Found a match dude!!!! continuing on bc of: " + match);
+
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
         try {
