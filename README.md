@@ -1,4 +1,4 @@
-# GitHub Branch Source plugin for Jenkins
+ # GitHub Branch Source Plugin
 
 [![Jenkins Plugin](https://img.shields.io/jenkins/plugin/v/github-branch-source)](https://plugins.jenkins.io/github-branch-source)
 [![Changelog](https://img.shields.io/github/v/tag/jenkinsci/github-branch-source-plugin?label=changelog)](https://github.com/jenkinsci/github-branch-source/blob/master/CHANGELOG.md)
@@ -10,6 +10,9 @@ The GitHub Branch Source plugin allows you to create a new project based on the 
 GitHub users or organizations. Complete documentation is 
 [hosted by CloudBees](https://docs.cloudbees.com/docs/admin-resources/latest/plugins/github-branch-source).
 
+## Version History
+
+See [the changelog](CHANGELOG.md).
 Older versions of this plugin may not be safe to use. Please review the following warnings before using an older version:
 
 -    [CSRF vulnerability and insufficient permission checks allow capturing credentials](https://jenkins.io/security/advisory/2017-07-10/)
