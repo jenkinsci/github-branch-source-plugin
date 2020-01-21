@@ -475,5 +475,3 @@ have been closed.
 ## Version 0.1-beta-1 (Oct 20, 2015)
 
 Initial release.
-
-  
