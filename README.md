@@ -13,8 +13,3 @@ GitHub users or organizations. Complete documentation is
 ## Version History
 
 See [the changelog](CHANGELOG.md).
-Older versions of this plugin may not be safe to use. Please review the following warnings before using an older version:
-
--    [CSRF vulnerability and insufficient permission checks allow capturing credentials](https://jenkins.io/security/advisory/2017-07-10/)
--    [Users with Overall/Read access can enumerate credential IDs](https://jenkins.io/security/advisory/2017-07-10/)
--    [Server-side request forgery](https://jenkins.io/security/advisory/2018-06-04/#SECURITY-806)
