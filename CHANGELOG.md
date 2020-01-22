@@ -1,6 +1,7 @@
 # Changelog
 
-## Version 2.5.8 (September 27, 2019)
+## Version 2.5.8
+Release date: 2019-09-27
 
 -   [JENKINS-58942](https://issues.jenkins-ci.org/browse/JENKINS-58942): Configurable webhook URL 
 
@@ -10,23 +11,27 @@
 
 -   [PR\#248](https://github.com/jenkinsci/github-branch-source-plugin/pull/248): Use HTTPS URLs in pom.xml
 
-## Version 2.5.7 (September 10, 2019)
+## Version 2.5.7
+(September 10, 2019)
 
 -   [JENKINS-58862](https://issues.jenkins-ci.org/browse/JENKINS-58862): Fix NPE when web hook triggers build on tag delete
 
-## Version 2.5.6 (August 15, 2019)
+## Version 2.5.6
+Release date: 2019-08-15
 
 -   [JENKINS-58862](https://issues.jenkins-ci.org/browse/JENKINS-58862): Fixed an issue where new projects using GitHub 
     Enterprise servers were being incorrectly configured to use github.com
 
-## Version 2.5.5 (July 26, 2019)
+## Version 2.5.5
+Release date: 2019-07-26
 
 #### Feature
 
 -   [JENKINS-50999](https://issues.jenkins-ci.org/browse/JENKINS-50999): Added option to enter repository URL manually 
     instead of from drop-downs to avoid query timeouts for large organizations
 
-## Version 2.5.4 (May 23, 2019)
+## Version 2.5.4
+Release date: 2019-05-23
 
 -   [JENKINS-43802](https://issues.jenkins-ci.org/browse/JENKINS-43802): Support Shared Library using folder-scoped 
     credentials 
@@ -34,23 +39,27 @@
 -   [JENKINS-42443](https://issues.jenkins-ci.org/browse/JENKINS-42443): f:select should show a spinner while AJAX requests 
 are in-flight (dependency on Jenkins Core v2.167)
 
-## Version 2.5.3 (May 23, 2019)
+## Version 2.5.3
+Release date: 2019-05-23
 
 -   [JENKINS-57583](https://issues.jenkins-ci.org/browse/JENKINS-57583): Fixed compatibility with the "Ignore target brach" setting
 
 -   [JENKINS-57371](https://issues.jenkins-ci.org/browse/JENKINS-57371): Added graceful fallback to cloning for PRs when needed 
 
-## Version 2.5.2 (May 8, 2019)
+## Version 2.5.2
+Release date: 2019-05-08
 
 -   [JENKINS-56996](https://issues.jenkins-ci.org/browse/JENKINS-56996): Errors when scan PRs no longer halts org/repo 
     scan.  PR will be ignored or marked orphaned and scan will continue. 
 
-## Version 2.5.1 (May 1, 2019)
+## Version 2.5.1
+Release date: 2019-05-01
 
 -   [JENKINS-57257](https://issues.jenkins-ci.org/browse/JENKINS-57257): Fixed regression in 2.5.0 that caused for PRs 
     from forks to fail
 
-## Version 2.5.0 (April 26, 2019)
+## Version 2.5.0
+Release date: 2019-04-26
 
 #### Feature
 
@@ -61,7 +70,8 @@ are in-flight (dependency on Jenkins Core v2.167)
   For details see: [JENKINS-43194](https://issues.jenkins-ci.org/browse/JENKINS-43194) - Lightweight checkout 
   for PR merge jobs.
 
-## Version 2.4.5 (March 27, 2019)
+## Version 2.4.5
+Release date: 2019-03-27
 
 -   Doc fixes: [\#194](https://github.com/jenkinsci/github-branch-source-plugin/pull/194), [\#184](https://github.com/jenkinsci/github-branch-source-plugin/pull/184), [\#196](https://github.com/jenkinsci/github-branch-source-plugin/pull/196), [\#201](https://github.com/jenkinsci/github-branch-source-plugin/pull/201)
 -   [JENKINS-45504](https://issues.jenkins-ci.org/browse/JENKINS-45504): Add @Symbol annotations to traits 
@@ -78,36 +88,43 @@ are in-flight (dependency on Jenkins Core v2.167)
 -   [JENKINS-54051](https://issues.jenkins-ci.org/browse/JENKINS-54051): GitHub-Branch-Source plugin 2.3.5 Security 
     Update causing error in adding GitHub Enterprise Servers [\#210](https://github.com/jenkinsci/github-branch-source-plugin/pull/210)
 
-## Version 2.4.2 (Jan 16, 2019)
+## Version 2.4.2
+Release date: 2019-01-16
 
 -   [JENKINS-52397](https://issues.jenkins-ci.org/browse/JENKINS-52397): Org Scan blows up when repository has no tags [\#191](https://github.com/jenkinsci/github-branch-source-plugin/pull/191)
 -   [INFRA-1934](https://issues.jenkins-ci.org/browse/INFRA-1934): Stop publishing to jenkinsci/jenkins repo on Docker Hub 
 
-## Version 2.4.1 (Oct 15, 2018)
+## Version 2.4.1
+Release date: 2018-10-15
 
 -   [JENKINS-54046](https://issues.jenkins-ci.org/browse/JENKINS-54046): Disabled the cache by default for Windows masters.
 
-## Version 2.4.0 (Oct 4, 2018) - Version 2.4.0-beta-1 (Oct 2, 2018)
+## Version 2.4.0
+Release date: 2018-10-04
 
 -   Added localization for Chinese
 -   [JENKINS-50323](https://issues.jenkins-ci.org/browse/JENKINS-50323):  PullRequestSCMHead and PullRequestSCMRevision external use Closed
 -   Basic GitHub API optimizations using a cache. Use `-Dorg.jenkinsci.plugins.github\_branch\_source.GitHubSCMSource.cacheSize=0`
     to disable
 
-## Version 2.3.6 (June 5, 2018)
+## Version 2.3.6
+Release date: 2018-06-05
 
 -   [JENKINS-47366](https://issues.jenkins-ci.org/browse/JENKINS-47366): Checkout in second stage sets SUCCESS on Github commit
 
-## Version 2.3.5 (June 4, 2018)
+## Version 2.3.5
+Release date: 2018-06-04
 
 -   Fix security issue ([security advisory](https://jenkins.io/security/advisory/2018-06-04/))
 
-## Version 2.3.4 (April 20, 2018)
+## Version 2.3.4
+Release date: 2018-04-20
 
 -   [JENKINS-50777](https://issues.jenkins-ci.org/browse/JENKINS-50777): Exported API for SCMRevisionAction & SCMSource
 -   [JENKINS-45860](https://issues.jenkins-ci.org/browse/JENKINS-45860): Support traits for ScmNavigators
 
-## Version 2.3.3 (March 14, 2018)
+## Version 2.3.3
+Release date: 2018-03-14
 
 -   [JENKINS-49945](https://issues.jenkins-ci.org/browse/JENKINS-49945): PR matching regex can never match strategies
 -   Switched default forked PR trust strategy from **Contributors** to
@@ -115,7 +132,8 @@ are in-flight (dependency on Jenkins Core v2.167)
     adding warnings in the UI about insecure strategies.
 -   Reduction in log noise.
 
-## Version 2.3.2 (December 18, 2017)
+## Version 2.3.2
+Release date: 2017-12-18
 
 -   [JENKINS-36574](https://issues.jenkins-ci.org/browse/JENKINS-36574): Allow extension plugins to control the notification context (contributed
     by Steven Foster)
@@ -127,14 +145,16 @@ are in-flight (dependency on Jenkins Core v2.167)
     ID \> Integer.MAX\_VALUE overflow
     ([08b3d32](https://github.com/jenkinsci/github-branch-source-plugin/commit/08b3d320281c74ef41c4d8ee064623fa75179c1d))
 
-## Version 2.3.1 (November 9, 2017)
+## Version 2.3.1
+Release date: 2017-11-09
 
 -   [JENKINS-47902](https://issues.jenkins-ci.org/browse/JENKINS-47902): The addition of tag support in 2.3.0 also 
     included changes that removed the need for a clone of the repository to master with some code paths using pipeline 
     shared libraries. The fix code did not include the fix for JENKINS-47824. This regression is now fixed on top of
     tag support.
 
-## Version 2.3.0 (November 7, 2017)
+## Version 2.3.0
+Release date: 2017-11-07
 
 #### Feature
 
@@ -158,17 +178,20 @@ are in-flight (dependency on Jenkins Core v2.167)
     [AngryBytes/jenkins-build-everything-strategy-plugin](https://github.com/AngryBytes/jenkins-build-everything-strategy-plugin)
     for a prototype example of such an extension plugin. 
 
-## Version 2.2.6 (November 4, 2017)
+## Version 2.2.6
+Release date: 2017-11-04
 
 -   [JENKINS-47824](https://issues.jenkins-ci.org/browse/JENKINS-47824): When using GitHub as a Modern SCM for shared 
     pipeline libraries, tag revisions did not work.
 
-## Version 2.2.5 (November 1, 2017)
+## Version 2.2.5
+Release date: 2017-11-01
 
 -   [JENKINS-47775](https://issues.jenkins-ci.org/browse/JENKINS-47775): Fix optimized event processing of PRs that 
 have been closed.
 
-## Version 2.2.4 (October 20, 2017)
+## Version 2.2.4
+Release date: 2017-10-20
 
 -   [JENKINS-46967](https://issues.jenkins-ci.org/browse/JENKINS-46967): Upgrade parent POM and upgrade the baseline 
     for github-branch-source
@@ -182,22 +205,26 @@ have been closed.
 -   [JENKINS-46364](https://issues.jenkins-ci.org/browse/JENKINS-46364): GitHub Branch Source Plugin can't create 
     status if credential restricted by spec
 
-## Version 2.2.3 (July 28, 2017)
+## Version 2.2.3
+Release date: 2017-07-28
 
 -   [JENKINS-45771](https://issues.jenkins-ci.org/browse/JENKINS-45771): Disable shallow clone when we know a merge 
     will take place.
 
-## Version 2.2.2 (July 20, 2017)
+## Version 2.2.2
+Release date: 2017-07-20
 
 -   [JENKINS-36240](https://issues.jenkins-ci.org/browse/JENKINS-36240): Added a trust strategy for forks that uses 
     the GitHub permissions API to check for Admin / Write permission
 
-## Version 2.2.1 (July 18, 2017)
+## Version 2.2.1
+Release date: 2017-07-18
 
 -   [JENKINS-45343](https://issues.jenkins-ci.org/browse/JENKINS-45343): Titles within inline help for Behaviors 
     should match the titles in the dropdown
 
-## Version 2.2.0 (July 17, 2017)
+## Version 2.2.0
+Release date: 2017-07-17
 
 -   [JENKINS-45574](https://issues.jenkins-ci.org/browse/JENKINS-45574): GitHub
     Branch Source lists all repositories of myself rather than just
@@ -227,23 +254,27 @@ have been closed.
 -   [JENKINS-43755](https://issues.jenkins-ci.org/browse/JENKINS-43755): GitHub
     username (repo owner) check is too restrictive
 
-## Version 2.0.8 (July 10, 2017)
+## Version 2.0.8
+Release date: 2017-07-10
 
 -   [Fix security issue](https://jenkins.io/security/advisory/2017-07-10/)
 
-## Version 2.0.7 (July 6, 2017)
+## Version 2.0.7
+Release date: 2017-07-06
 
 -   [JENKINS-45323](https://issues.jenkins-ci.org/browse/JENKINS-45323): BlueOcean
     needs methods to manipulate the list of GitHub servers
 
-## Version 2.0.6 (May 31, 2017)
+## Version 2.0.6
+Release date: 2017-05-31
 
 -   Upgrade dependency on [GitHub API Plugin](https://github.com/jenkinsci/github-api-plugin)) from 1.85 to 1.85.1 to 
     pick up fix for class conflicts
 -   ([JENKINS-44581](https://issues.jenkins-ci.org/browse/JENKINS-44581): Bundles Jackson2 rather than depending on 
     jackson2 plugin
 
-## Version 2.0.5 (Apr 5, 2017)
+## Version 2.0.5
+Release date: 2017-04-05
 
 -   Not building origin merge PRs when webhook is received ([pull
     \#131](https://github.com/jenkinsci/github-branch-source-plugin/pull/131))
@@ -251,7 +282,8 @@ have been closed.
     Non-trusted pull requests should use a probe against the trusted
     revision not the PR's revision
 
-## Version 2.0.4 (Mar 8, 2017)
+## Version 2.0.4
+Release date: 2017-03-08
 
 -   [JENKINS-42057](https://issues.jenkins-ci.org/browse/JENKINS-42057): Report
     build errors as GitHub status Error
@@ -272,7 +304,8 @@ have been closed.
     Use a custom select control in order to display indication of AJAX
     requests in-flight and errors populating drop-downs
 
-## Version 2.0.4-beta-1 (Mar 2, 2017)
+## Version 2.0.4-beta-1
+Release date: 2017-03-02
 
 -   [JENKINS-42057](https://issues.jenkins-ci.org/browse/JENKINS-42057):
     Report build errors as GitHub status Error
@@ -287,13 +320,15 @@ have been closed.
     (may still trip if API credentials are shared with another
     consumer) 
 
-## Version 2.0.3 (Feb 14, 2017)
+## Version 2.0.3
+Release date: 2017-02-14
 
 -   [JENKINS-42000](https://issues.jenkins-ci.org/browse/JENKINS-42000): Pick
     up API contract changes.   Upgrading Branch API plugin to version
     2.0.6 is required to resolve JENKINS-42000.
 
-## Version 2.0.2 (Feb 10, 2017)
+## Version 2.0.2
+Release date: 2017-02-10
 
 -   [JENKINS-41820](https://issues.jenkins-ci.org/browse/JENKINS-41820): Some
     comparisons of organization names were case sensitive by mistake
@@ -301,7 +336,8 @@ have been closed.
     event origin information to aid tracing why builds are being
     triggered
 
-## Version 2.0.1 (Feb 2, 2017)
+## Version 2.0.1
+Release date: 2017-02-02
 
 -   Please read [this Blog Post](https://jenkins.io/blog/2017/01/17/scm-api-2/) before
     upgrading
@@ -314,7 +350,8 @@ have been closed.
 -   [JENKINS-41244](https://issues.jenkins-ci.org/browse/JENKINS-41244): NoSuchMethodError
     when using with Git 3.0.0 or 3.0.1
 
-## Version 2.0.0 (Jan 16, 2017)
+## Version 2.0.0
+Release date: 2017-01-16
 
 -   Please read [this Blog Post](https://jenkins.io/blog/2017/01/17/scm-api-2/) before
     upgrading
@@ -349,7 +386,8 @@ have been closed.
 -   [JENKINS-38987](https://issues.jenkins-ci.org/browse/JENKINS-38987): SCMHead/SCMSource/SCMNavigator
     need getPronoun() to assist contextual naming
 
-## Version 2.0.0-beta-1 (Dec 16, 2016)
+## Version 2.0.0-beta-1
+Release date: 2016-12-16
 
 -   Available from the experimental update center only
 -   Update to be compatible with the SCM API 2.0 changes. These changes
@@ -369,11 +407,13 @@ have been closed.
     organization folders and multi-branch projects in order to ensure
     that the hooks and attached actions are correctly detected.
 
-## Version 1.10.1 (Nov 28, 2016)
+## Version 1.10.1
+Release date: 2016-11-28
 
 -   [JENKINS-39496](https://issues.jenkins-ci.org/browse/JENKINS-39496): Make `PullRequestSCMRevision` public
 
-## Version 1.10 (Sep 21, 2016)
+## Version 1.10
+Release date: 2016-09-21
 
 -   Changelog generation was incorrectly skipped for noninitial builds of pull request projects.
 -   Allowing Blue Ocean to supply alternate URLs for linking back to Jenkins.
@@ -382,16 +422,19 @@ have been closed.
 -   Use the maximum page size in the REST API to minimize HTTP requests.
 -   Demo improvements.
 
-## Version 1.9 (Aug 18, 2016)
+## Version 1.9
+Release date: 2016-08-18
 
 -   [JENKINS-36574](https://issues.jenkins-ci.org/browse/JENKINS-36574): As of 1.8, too many commit status contexts 
     were being sent for certain use cases. Now uses at most three.
 
-## Version 1.8.1 (Jul 05, 2016)
+## Version 1.8.1
+Release date: 2016-07-05
 
 -   No changes except for using the new wiki link.
 
-## Version 1.8 (Jul 05, 2016)
+## Version 1.8
+Release date: 2016-07-05
 
 -   [JENKINS-33161](https://issues.jenkins-ci.org/browse/JENKINS-33161): Allow finer-grained control of what kinds of builds
     are run, including support for pull requests filed from the origin
@@ -401,14 +444,16 @@ have been closed.
 -   [JENKINS-33623](https://issues.jenkins-ci.org/browse/JENKINS-33623): Proxy configuration not correctly handling wildcards.
 -   Added more logging about webhooks in pull requests.
 
-## Version 1.7 (May 13, 2016)
+## Version 1.7
+Release date: 2016-05-13
 
 -   [JENKINS-34727](https://issues.jenkins-ci.org/browse/JENKINS-34727): WebHook events are not always successfully 
     triggering Jenkins pipeline
 -   [JENKINS-34776](https://issues.jenkins-ci.org/browse/JENKINS-34776): Jobs are removed if the remote is unavailable
 -   Added extra log messages from WebHook processing
 
-## Version 1.6 (Apr 27, 2016)
+## Version 1.6
+Release date: 2016-04-27
 
 -   [JENKINS-34410](https://issues.jenkins-ci.org/browse/JENKINS-34410):
     Improve the search procedure of `SCRIPT_FILE`, when you work with
@@ -421,7 +466,8 @@ have been closed.
 -   [JENKINS-33305](https://issues.jenkins-ci.org/browse/JENKINS-33318):
     Branch name filters at GitHub Organization folder level
 
-## Version 1.5 (Apr 11, 2016)
+## Version 1.5
+Release date: 2016-04-11
 
 -   [JENKINS-33808](https://issues.jenkins-ci.org/browse/JENKINS-33808):
     Support for Item categorization. More information about this new
@@ -434,7 +480,8 @@ have been closed.
 -   [JENKINS-33815](https://issues.jenkins-ci.org/browse/JENKINS-33815):
     Validation for GitHub Organizations and GitHub User Accounts
 
-## Version 1.4 (Mar 14, 2016)
+## Version 1.4
+Release date: 2016-03-14
 
 -   [JENKINS-33256](https://issues.jenkins-ci.org/browse/JENKINS-33256): The ability to build pull requests to public
     repositories was restored. In the case of multibranch Pipeline projects, for submitters who are not collaborators 
@@ -448,17 +495,20 @@ have been closed.
 -   Sorting repositories in the GitHub branch source configuration screen.
 -   Miscellaneous UX improvements, including error messages.
 
-## Version 1.3 (Feb 26, 2015)
+## Version 1.3
+Release date: 2016-02-26
 
 -   Only pull requests in private GitHub repositories are built.
 
-## Version 1.2 (Feb 19, 2015)
+## Version 1.2
+Release date: 2016-02-26
 
 -   [JENKINS-32749](https://issues.jenkins-ci.org/browse/JENKINS-32749):
     Include support to build [Github Pull Requests](https://help.github.com/articles/using-pull-requests) and
     build status notifications through [GitHub Commit Statues](https://developer.github.com/v3/repos/statuses/).
 
-## Version 1.1 (Dec 17, 2015)
+## Version 1.1
+Release date: 2015-12-17
 
 -   [JENKINS-31574](https://issues.jenkins-ci.org/browse/JENKINS-31574):
     Improve validation for Scan Credentials and anonymous is allowed in
@@ -466,12 +516,14 @@ have been closed.
 -   [JENKINS-31462](https://issues.jenkins-ci.org/browse/JENKINS-31462):
     GitHub Enterprise Servers validation.
 
-## Version 1.0 (Nov 12, 2015)
+## Version 1.0
+Release date: 2015-11-12
 
 -   [JENKINS-31319](https://issues.jenkins-ci.org/browse/JENKINS-31319): Retrieve branch heads using GitHub API.
 -   [JENKINS-31445](https://issues.jenkins-ci.org/browse/JENKINS-31445): GitHub Enterprise support.
 -   [JENKINS-31482](https://issues.jenkins-ci.org/browse/JENKINS-31482): HTTP vs. HTTPS support.
 
-## Version 0.1-beta-1 (Oct 20, 2015)
+## Version 0.1-beta-1
+Release date: 2015-10-20
 
 Initial release.
