@@ -158,9 +158,14 @@ public class ApiRateLimitCheckerTest {
             String limit = Integer.toString(scenarioResponse.limit);
             String remaining = Integer.toString(scenarioResponse.remaining);
             String reset = Long.toString(scenarioResponse.reset.toInstant().getEpochSecond());
-            String body = "{ \"rate\": { \"limit\": " + limit + ", " +
-                    "\"remaining\": " + remaining + ", " +
-                    "\"reset\": " + reset + " } }";
+            String body = "{" +
+                String.format(" \"rate\": { \"limit\": %s, \"remaining\": %s, \"reset\": %s },", limit, remaining, reset) +
+                " \"resources\": {" +
+                String.format(" \"core\": { \"limit\": %s, \"remaining\": %s, \"reset\": %s },", limit, remaining, reset) +
+                String.format(" \"search\": { \"limit\": %s, \"remaining\": %s, \"reset\": %s },", limit, remaining, reset) +
+                String.format(" \"graphql\": { \"limit\": %s, \"remaining\": %s, \"reset\": %s },", limit, remaining, reset) +
+                String.format(" \"integration_manifest\": { \"limit\": %s, \"remaining\": %s, \"reset\": %s }", limit, remaining, reset) +
+                " } }";
             ScenarioMappingBuilder scenario = get(urlEqualTo("/rate_limit"))
                     .inScenario(scenarioName)
                     .whenScenarioStateIs(state)
