@@ -12,7 +12,7 @@ Release date: 2019-09-27
 -   [PR\#248](https://github.com/jenkinsci/github-branch-source-plugin/pull/248): Use HTTPS URLs in pom.xml
 
 ## Version 2.5.7
-(September 10, 2019)
+Release date: 09-10-2019
 
 -   [JENKINS-58862](https://issues.jenkins-ci.org/browse/JENKINS-58862): Fix NPE when web hook triggers build on tag delete
 
