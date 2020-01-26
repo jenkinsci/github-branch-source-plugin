@@ -33,6 +33,8 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.kohsuke.github.GHCommitState;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 /**
  * Parameter object used in notification strategies {@link AbstractGitHubNotificationStrategy}.
@@ -145,14 +147,37 @@ public final class GitHubNotificationContext {
      * @since TODO
      */
     public String getDefaultContext(TaskListener listener) {
+        String jenkinshost = System.getenv("JENKINS_ID");
+        if (jenkinshost == null || jenkinshost.isEmpty() ) {
+            BufferedReader bf = null;
+            try {
+                Process process;
+                process = Runtime.getRuntime().exec("hostname");
+                process.waitFor();
+                try {
+                    bf = new BufferedReader(new InputStreamReader(process.getInputStream(), "UTF-8"));
+                    if ((jenkinshost = bf.readLine()) != null) {
+                        jenkinshost = jenkinshost.split("\\.", 2)[0];
+                    }
+                } finally {
+                    bf.close();
+                }
+            } catch (RuntimeException e) {
+                throw e;
+            } catch (Exception e) {
+                jenkinshost = "jenkins";
+            }
+        }
+        if (jenkinshost == null || jenkinshost.isEmpty() ) {jenkinshost= "jenkins";}
+
         if (head instanceof PullRequestSCMHead) {
             if (((PullRequestSCMHead) head).isMerge()) {
-                return "continuous-integration/jenkins/pr-merge";
+                return String.format("continuous-integration/%s/pr-merge",jenkinshost);
             } else {
-                return "continuous-integration/jenkins/pr-head";
+                return String.format("continuous-integration/%s/pr-head",jenkinshost);
             }
         } else {
-            return "continuous-integration/jenkins/branch";
+            return String.format("continuous-integration/%s/branch",jenkinshost);
         }
     }
 
@@ -240,3 +265,4 @@ public final class GitHubNotificationContext {
         return null == build || null == build.getResult();
     }
 }
+
