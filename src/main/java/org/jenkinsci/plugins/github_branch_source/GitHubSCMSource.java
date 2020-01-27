@@ -347,8 +347,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
     @Deprecated
     public GitHubSCMSource(String repoOwner, String repository) {
         this();
-        this.repoOwner = repoOwner;
-        this.repository = repository;
+        this.setRepoOwner(repoOwner);
+        this.setRepository(repository);
     }
 
     /**
@@ -367,8 +367,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
     public GitHubSCMSource(String repoOwner, String repository, String repositoryUrl, boolean configuredByUrl) {
         this();
         if (!configuredByUrl) {
-            this.repoOwner = repoOwner;
-            this.repository = repository;
+            this.setRepoOwner(repoOwner);
+            this.setRepository(repository);
         } else {
             this.setRepositoryUrl(repositoryUrl);
         }

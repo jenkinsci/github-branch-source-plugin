@@ -57,6 +57,9 @@ import java.util.*;
 import jenkins.branch.BranchSource;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.GitSCMSource;
+
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -81,15 +84,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasProperty;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.sameInstance;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
@@ -151,11 +146,27 @@ public class GitHubSCMSourceTest {
     public static GitHubSCMSource[] revisions() {
         return new GitHubSCMSource[]{
                 new GitHubSCMSource("cloudbeers", "yolo"),
-                new GitHubSCMSource("https://github.com/cloudbeers/yolo")
+                new GitHubSCMSource("https://github.com/cloudbeers/yolo"),
+                createGitHubSCMSource(source -> {
+                    // If all three values are provided the URL is used.
+                    source.setRepository("yolo-bad");
+
+                    source.setRepositoryUrl("https://github.com/cloudbeers/yolo");
+
+                    // This is also possible.
+                    // getRepoOwner will be out of sync, but getRepositoryUrl will ignore
+                    source.setRepoOwner("invalid-owner");
+                })
             };
     }
 
-
+    static GitHubSCMSource createGitHubSCMSource(Consumer<GitHubSCMSource> initializer) {
+        GitHubSCMSource source = new GitHubSCMSource();
+        if (initializer != null) {
+            initializer.accept(source);
+        }
+        return source;
+    }
     @Before
     public void prepareMockGitHub() throws Exception {
         new File("src/test/resources/api/mappings").mkdirs();
