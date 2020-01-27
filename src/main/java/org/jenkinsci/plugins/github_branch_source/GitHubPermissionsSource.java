@@ -30,7 +30,7 @@ import org.kohsuke.github.GHPermissionType;
 /**
  * A deferred source of permission information about a repository.
  *
- * @since TODO
+ * @since 2.2.2
  */
 public abstract class GitHubPermissionsSource {
     /**

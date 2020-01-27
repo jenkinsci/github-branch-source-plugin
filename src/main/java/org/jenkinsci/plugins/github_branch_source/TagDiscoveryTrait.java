@@ -25,34 +25,25 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import hudson.util.ListBoxModel;
 import jenkins.plugins.git.GitTagSCMRevision;
-import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadOrigin;
-import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.trait.SCMHeadAuthority;
 import jenkins.scm.api.trait.SCMHeadAuthorityDescriptor;
-import jenkins.scm.api.trait.SCMHeadFilter;
 import jenkins.scm.api.trait.SCMSourceContext;
 import jenkins.scm.api.trait.SCMSourceRequest;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
-import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
 import jenkins.scm.impl.TagSCMHeadCategory;
 import jenkins.scm.impl.trait.Discovery;
 import org.jenkinsci.Symbol;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.github.GHPullRequest;
-import org.kohsuke.github.GHRepository;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * A {@link Discovery} trait for GitHub that will discover tags on the repository.
  *
- * @since TODO
+ * @since 2.3.0
  */
 public class TagDiscoveryTrait extends SCMSourceTrait {
     /**
@@ -60,7 +51,6 @@ public class TagDiscoveryTrait extends SCMSourceTrait {
      */
     @DataBoundConstructor
     public TagDiscoveryTrait() {
-
     }
 
     /**
@@ -112,7 +102,6 @@ public class TagDiscoveryTrait extends SCMSourceTrait {
         public Class<? extends SCMSource> getSourceClass() {
             return GitHubSCMSource.class;
         }
-
     }
 
     /**

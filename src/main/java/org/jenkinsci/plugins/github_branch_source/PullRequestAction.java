@@ -29,9 +29,7 @@ import hudson.model.InvisibleAction;
 import java.io.IOException;
 import java.net.URL;
 import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.actions.ChangeRequestAction;
 import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHPullRequest;
 

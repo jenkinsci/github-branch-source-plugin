@@ -39,7 +39,7 @@ import org.kohsuke.github.GHCommitState;
  * When creating a new point of notification (e.g. on build completion), populate this object with
  * the relevant details accessible at that point.
  * When implementing a notification strategy, be aware that some details may be absent depending on the point of notification.
- * @since TODO
+ * @since 2.3.2
  */
 public final class GitHubNotificationContext {
     private final Job<?, ?> job;
@@ -48,7 +48,7 @@ public final class GitHubNotificationContext {
     private final SCMHead head;
 
     /**
-     * @since TODO
+     * @since 2.3.2
      */
     private GitHubNotificationContext(Job<?, ?> job, Run<?, ?> build, SCMSource source, SCMHead head) {
         this.job = job;
@@ -64,7 +64,7 @@ public final class GitHubNotificationContext {
     /**
      * Returns the job, if any, associated with the planned notification event
      * @return Job
-     * @since TODO
+     * @since 2.3.2
      */
     public Job<?, ?> getJob() {
         return job;
@@ -73,7 +73,7 @@ public final class GitHubNotificationContext {
     /**
      * Returns the run, if any, associated with the planned notification event
      * @return Run
-     * @since TODO
+     * @since 2.3.2
      */
     public Run<?, ?> getBuild() {
         return build;
@@ -82,7 +82,7 @@ public final class GitHubNotificationContext {
     /**
      * Returns the SCMSource associated with the planned notification event
      * @return SCMSource
-     * @since TODO
+     * @since 2.3.2
      */
     public SCMSource getSource() {
         return source;
@@ -91,7 +91,7 @@ public final class GitHubNotificationContext {
     /**
      * Returns the SCMHead associated with the planned notification event
      * @return SCMHead
-     * @since TODO
+     * @since 2.3.2
      */
     public SCMHead getHead() {
         return head;
@@ -142,7 +142,7 @@ public final class GitHubNotificationContext {
      * Retrieves default context
      * @param listener Listener for the build, if any
      * @return Default notification context
-     * @since TODO
+     * @since 2.3.2
      */
     public String getDefaultContext(TaskListener listener) {
         if (head instanceof PullRequestSCMHead) {
@@ -160,7 +160,7 @@ public final class GitHubNotificationContext {
      * Retrieves default URL
      * @param listener Listener for the build, if any
      * @return Default notification URL backref
-     * @since TODO
+     * @since 2.3.2
      */
     public String getDefaultUrl(TaskListener listener) {
         String url = null;
@@ -184,7 +184,7 @@ public final class GitHubNotificationContext {
      * Retrieves default notification message
      * @param listener Listener for the build, if any
      * @return Default notification message
-     * @since TODO
+     * @since 2.3.2
      */
     public String getDefaultMessage(TaskListener listener) {
         if (null != build) {
@@ -210,7 +210,7 @@ public final class GitHubNotificationContext {
      * Retrieves default notification state
      * @param listener Listener for the build, if any
      * @return Default notification state
-     * @since TODO
+     * @since 2.3.2
      */
     public GHCommitState getDefaultState(TaskListener listener) {
         if (null != build && !build.isBuilding()) {
@@ -234,7 +234,7 @@ public final class GitHubNotificationContext {
      * Retrieves whether plugin should ignore errors when updating the GitHub status
      * @param listener Listener for the build, if any
      * @return Default ignore errors policy
-     * @since TODO
+     * @since 2.3.2
      */
     public boolean getDefaultIgnoreError(TaskListener listener) {
         return null == build || null == build.getResult();

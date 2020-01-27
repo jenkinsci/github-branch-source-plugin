@@ -28,17 +28,14 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import hudson.AbortException;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -51,9 +48,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceDescriptor;
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.time.FastDateFormat;
-import org.eclipse.jgit.lib.Constants;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;

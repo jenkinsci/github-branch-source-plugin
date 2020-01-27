@@ -4,14 +4,14 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.50</version>
+        <version>3.55</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
     <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
     <name>GitHub Branch Source Plugin</name>
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/GitHub+Branch+Source+Plugin</url>
+    <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
     <description>Multibranch projects and organization folders from GitHub. Maintained by CloudBees, Inc.</description>
     <licenses>
         <license>
@@ -23,12 +23,13 @@
     <properties>
         <revision>2.5.9</revision>
         <changelist>-SNAPSHOT</changelist>
+        <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
-        <jenkins.version>2.138.4</jenkins.version>
+        <jenkins.version>2.150.3</jenkins.version>
         <scm-api.version>2.6.3</scm-api.version>
-        <hamcrest.version>2.1</hamcrest.version>
+        <hamcrest.version>2.2</hamcrest.version>
         <useBeta>true</useBeta>
-        <jcasc.version>1.30</jcasc.version>
+        <jcasc.version>1.35</jcasc.version>
     </properties>
 
     <scm>
@@ -42,6 +43,11 @@
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>structs</artifactId>
             <version>1.19</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>jackson2-api</artifactId>
+            <version>2.10.2</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -192,10 +198,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.jenkins</groupId>
-            <artifactId>configuration-as-code</artifactId>
+            <groupId>io.jenkins.configuration-as-code</groupId>
+            <artifactId>test-harness</artifactId>
             <version>${jcasc.version}</version>
-            <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -247,24 +252,4 @@
             <url>https://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.jenkins-ci.tools</groupId>
-                <artifactId>maven-hpi-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate-taglib-interface</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <compatibleSinceVersion>2.2.0</compatibleSinceVersion>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
 </project>

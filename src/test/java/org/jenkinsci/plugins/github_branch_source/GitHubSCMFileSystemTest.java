@@ -38,7 +38,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import jenkins.plugins.git.AbstractGitSCMSource;
-import jenkins.plugins.git.GitSCMFileSystem;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMFileSystem;
 import jenkins.scm.api.SCMHead;
@@ -48,7 +47,6 @@ import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.Matchers;
-import org.hamcrest.core.IsNull;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;

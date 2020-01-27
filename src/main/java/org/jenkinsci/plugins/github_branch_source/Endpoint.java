@@ -25,7 +25,6 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import com.fasterxml.jackson.core.JsonParseException;
-import com.google.common.net.InternetDomainName;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
@@ -38,10 +37,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.Locale;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
@@ -145,7 +141,7 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
         @RequirePOST
         @Restricted(NoExternalUse.class)
         public FormValidation doCheckApiUri(@QueryParameter String apiUri) {
-            Jenkins.getActiveInstance().checkPermission(Jenkins.ADMINISTER);
+            Jenkins.get().checkPermission(Jenkins.ADMINISTER);
             if (Util.fixEmptyAndTrim(apiUri) == null) {
                 return FormValidation.warning("You must specify the API URL");
             }
