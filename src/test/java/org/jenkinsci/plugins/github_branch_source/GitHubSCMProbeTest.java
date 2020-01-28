@@ -57,27 +57,33 @@ public class GitHubSCMProbeTest {
     @Issue("JENKINS-54126")
     @Test
     public void statWhenRootIs404() throws Exception {
-        githubApi.stubFor(get(urlPathEqualTo("/repos/cloudbeers/yolo/contents/")).willReturn(aResponse().withStatus(404)));
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge")).willReturn(aResponse().withStatus(404)));
         assertFalse(probe.stat("Jenkinsfile").exists());
     }
 
     @Issue("JENKINS-54126")
     @Test()
     public void statWhenDirAndRootIs404() throws Exception {
-        githubApi.stubFor(get(urlPathEqualTo("/repos/cloudbeers/yolo/contents/")).willReturn(aResponse().withStatus(200)));
-        githubApi.stubFor(get(urlPathEqualTo("/repos/cloudbeers/yolo/contents/subdir")).willReturn(aResponse().withStatus(404)));
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge")).willReturn(aResponse().withStatus(200)));
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/subdir/?ref=refs%2Fpull%2F1%2Fmerge")).willReturn(aResponse().withStatus(404)));
+
+        assertTrue(probe.stat("/").exists());
+        assertFalse(probe.stat("subdir").exists());
         assertFalse(probe.stat("subdir/Jenkinsfile").exists());
     }
 
     @Issue("JENKINS-54126")
     @Test
     public void statWhenDirIs404() throws Exception {
-        githubApi.stubFor(get(urlPathEqualTo("/repos/cloudbeers/yolo/contents/subdir")).willReturn(aResponse().withStatus(404)));
-        githubApi.stubFor(get(urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge"))
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")
                         .withBodyFile("body-yolo-contents-8rd37.json")));
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/subdir/?ref=refs%2Fpull%2F1%2Fmerge")).willReturn(aResponse().withStatus(404)));
+
+        assertTrue(probe.stat("/").exists());
+        assertFalse(probe.stat("subdir").exists());
         assertFalse(probe.stat("subdir/Jenkinsfile").exists());
     }
 
@@ -109,29 +115,24 @@ public class GitHubSCMProbeTest {
         // ---> The github-api library automatically retries the request with "no-cache" to force refresh with valid data.
 
         // 1.
-        githubApi.stubFor(get(urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
-            .withHeader("Cache-Control", containing("max-age"))
-            .withHeader("If-None-Match", absent())
-            .withHeader("If-Modified-Since", absent())
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge"))
+            .withHeader("Cache-Control", equalTo("max-age=0"))
             .willReturn(aResponse().withStatus(404)
                 .withHeader("Date", "Tue, 06 Dec 2019 15:06:25 GMT")));
 
         // 2. - happens elsewhere
 
         // 3.
-        githubApi.stubFor(get(urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
-            .withHeader("Cache-Control", containing("max-age"))
-            .withHeader("If-None-Match", absent())
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge"))
+            .withHeader("Cache-Control", equalTo("max-age=0"))
             .withHeader("If-Modified-Since", equalTo("Tue, 06 Dec 2019 15:06:25 GMT"))
             .willReturn(aResponse().withStatus(304)
-                .withHeader("Date", "Tue, 06 Dec 2019 15:06:25 GMT")
+                .withHeader("Date", "Tue, 06 Dec 2019 15:06:26 GMT")
                 .withHeader("ETag", "something")));
 
         // 4.
-        githubApi.stubFor(get(urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
-            .withHeader("Cache-Control", containing("no-cache"))
-            .withHeader("If-Modified-Since", absent())
-            .withHeader("If-None-Match", absent())
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge"))
+            .withHeader("Cache-Control", equalTo("no-cache"))
             .willReturn(aResponse()
                     .withStatus(200)
                     .withHeader("Content-Type", "application/json")
