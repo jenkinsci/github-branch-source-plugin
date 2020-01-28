@@ -6,6 +6,7 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+import org.apache.commons.io.FileUtils;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -14,7 +15,7 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
-import java.io.FileNotFoundException;
+import java.io.File;
 
 import static org.junit.Assert.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -30,7 +31,15 @@ public class GitHubSCMProbeTest {
 
     @Before
     public void setUp() throws Exception {
+        // Clear all caches before each test
+        File cacheBaseDir = new File(j.jenkins.getRootDir(),
+            GitHubSCMProbe.class.getName() + ".cache");
+        if (cacheBaseDir.exists()) {
+            FileUtils.cleanDirectory(cacheBaseDir);
+        }
+
         final GitHub github = Connector.connect("http://localhost:" + githubApi.port(), null);
+
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo"))
                         .willReturn(aResponse()
@@ -46,6 +55,7 @@ public class GitHubSCMProbeTest {
     }
 
     @Issue("JENKINS-54126")
+    @Test
     public void statWhenRootIs404() throws Exception {
         githubApi.stubFor(get(urlPathEqualTo("/repos/cloudbeers/yolo/contents/")).willReturn(aResponse().withStatus(404)));
         assertFalse(probe.stat("Jenkinsfile").exists());
