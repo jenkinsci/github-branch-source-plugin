@@ -225,16 +225,21 @@ public class GitHubSCMFileSystemTest {
                 is("c0e024f89969b976da165eecaa71e09dc60c3da1"));
         SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
 
-        // On windows, if somebody has not configured Git correctly, the checkout may have "fixed" line endings
-        // So let's detect that and fix our expectations.
         String expected = "Some text\n";
-        try (InputStream is = getClass().getResourceAsStream("/raw/__files/body-fu-bar.txt-b4k4I.txt")) {
-            if (is != null) {
-                expected = IOUtils.toString(is, StandardCharsets.US_ASCII);
-            }
-        } catch (IOException e) {
-            // ignore
-        }
+        // In previous versions of github-api, GHContent.read() (called by contentAsString())
+        // would pull from the "raw" url of the GHContent instance.
+        // Thus on windows, if somebody did not configure Git correctly,
+        // the checkout may have "fixed" line endings that we needed to handle.
+        // The problem with the raw url data is that it can get out of sync when from the actual content.
+        // The GitHub API info stays sync'd and correct, so now GHContent.read() pulls from mime encoded data
+        // in the GHContent record itself. Keeping this for refence in case it changes again.
+//        try (InputStream inputStream = getClass().getResourceAsStream("/raw/__files/body-fu-bar.txt-b4k4I.txt")) {
+//            if (inputStream != null) {
+//                expected = IOUtils.toString(inputStream, StandardCharsets.US_ASCII);
+//            }
+//        } catch (IOException e) {
+//            // ignore
+//        }
         assertThat(fs.getRoot().child("fu/bar.txt").contentAsString(), is(expected));
     }
 
