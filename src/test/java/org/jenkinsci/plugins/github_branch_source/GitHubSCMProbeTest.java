@@ -83,7 +83,7 @@ public class GitHubSCMProbeTest {
 
     @Issue("JENKINS-54126")
     @Test
-    public void statWhenRootIs404AndCacheOnThenOff() throws Exception {
+    public void statWhenRoot404andThenIncorrectCached() throws Exception {
         GitHubSCMSource.setCacheSize(10);
 
         // JENKINS-54126 happens when:
