@@ -1,7 +1,12 @@
 {
   "request": {
     "url": "/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F9%2Fmerge",
-    "method": "GET"
+    "method": "GET",
+    "headers": {
+      "If-Modified-Since": {
+        "absent": true
+      }
+    }
   },
   "response": {
     "status": 200,
@@ -33,5 +38,5 @@
   },
   "persistent": true,
   "scenarioName": "cache-corruption",
-  "requiredScenarioState": "step-4"
+  "requiredScenarioState": "part-2"
 }

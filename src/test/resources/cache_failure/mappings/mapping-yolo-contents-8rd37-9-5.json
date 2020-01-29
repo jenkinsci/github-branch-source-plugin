@@ -3,8 +3,8 @@
     "url": "/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F9%2Fmerge",
     "method": "GET",
     "headers": {
-      "If-Modified-Since": {
-        "contains": "GMT"
+      "If-None-Match": {
+        "equalTo": "\"d3be5b35b8d84ef7ac03c0cc9c94ed81\""
       }
     }
   },
@@ -36,5 +36,5 @@
     }  },
   "persistent": true,
   "scenarioName": "cache-corruption",
-  "requiredScenarioState": "part-2"
+  "requiredScenarioState": "step-3"
 }

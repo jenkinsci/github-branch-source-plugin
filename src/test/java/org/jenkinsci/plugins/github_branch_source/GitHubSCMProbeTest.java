@@ -43,11 +43,11 @@ public class GitHubSCMProbeTest {
         }
 
         githubApi.stubFor(
-                get(urlEqualTo("/repos/cloudbeers/yolo"))
-                        .willReturn(aResponse()
-                                .withStatus(200)
-                                .withHeader("Content-Type", "application/json")
-                                .withBodyFile("body-cloudbeers-yolo-PucD6.json"))
+            get(urlEqualTo("/repos/cloudbeers/yolo"))
+                .willReturn(aResponse()
+                    .withStatus(200)
+                    .withHeader("Content-Type", "application/json")
+                    .withBodyFile("body-cloudbeers-yolo-PucD6.json"))
         );
     }
 
@@ -57,8 +57,8 @@ public class GitHubSCMProbeTest {
         final GHRepository repo = github.getRepository("cloudbeers/yolo");
         final PullRequestSCMHead head = new PullRequestSCMHead("PR-" + number, "cloudbeers", "yolo", "b", number, new BranchSCMHead("master"), new SCMHeadOrigin.Fork("rsandell"), ChangeRequestCheckoutStrategy.MERGE);
         probe = new GitHubSCMProbe(github, repo,
-                head,
-                new PullRequestSCMRevision(head, "a", "b"));
+            head,
+            new PullRequestSCMRevision(head, "a", "b"));
     }
 
     @Issue("JENKINS-54126")
@@ -119,28 +119,45 @@ public class GitHubSCMProbeTest {
         // Without 4. this would return false and would stay false.
         assertTrue(probe.stat("README.md").exists());
 
+        // 5. Verify caching is working
+        assertTrue(probe.stat("README.md").exists());
 
         // Verify the expected requests were made
-        // 1.
-        githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
-                .withHeader("Cache-Control", containing("max-age"))
+        if(hudson.Functions.isWindows()) {
+            // On windows caching is disabled by default, so the work around doesn't happen
+            githubApi.verify(3, RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                .withHeader("Cache-Control", equalTo("max-age=0"))
+                .withHeader("If-Modified-Since", absent())
+                .withHeader("If-None-Match", absent())
+            );
+        } else {
+            // 1.
+            githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                .withHeader("Cache-Control", equalTo("max-age=0"))
                 .withHeader("If-None-Match", absent())
                 .withHeader("If-Modified-Since", absent())
-        );
+            );
 
-        // 3.
-        githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
-            .withHeader("Cache-Control", containing("max-age"))
-            .withHeader("If-None-Match", absent())
-            .withHeader("If-Modified-Since", containing("GMT"))
-        );
+            // 3.
+            githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                .withHeader("Cache-Control", containing("max-age"))
+                .withHeader("If-None-Match", absent())
+                .withHeader("If-Modified-Since", containing("GMT"))
+            );
 
-        // 4.
-        githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
-            .withHeader("Cache-Control", equalTo("no-cache"))
-            .withHeader("If-Modified-Since", absent())
-            .withHeader("If-None-Match", absent())
-        );
+            // 4.
+            githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                .withHeader("Cache-Control", equalTo("no-cache"))
+                .withHeader("If-Modified-Since", absent())
+                .withHeader("If-None-Match", absent())
+            );
+
+            // 5.
+            githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                .withHeader("Cache-Control", equalTo("max-age=0"))
+                .withHeader("If-None-Match", equalTo("\"d3be5b35b8d84ef7ac03c0cc9c94ed81\""))
+            );
+        }
     }
 
 }

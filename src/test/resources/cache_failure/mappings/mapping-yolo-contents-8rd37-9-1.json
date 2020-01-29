@@ -32,5 +32,5 @@
   "persistent": true,
   "scenarioName": "cache-corruption",
   "requiredScenarioState": "Started",
-  "newScenarioState": "step-3"
+  "newScenarioState": "part-2"
 }
