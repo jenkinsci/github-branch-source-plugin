@@ -36,7 +36,6 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import com.squareup.okhttp.Cache;
-import com.squareup.okhttp.CacheControl;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.OkUrlFactory;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -47,7 +46,6 @@ import hudson.model.Item;
 import hudson.model.PeriodicWork;
 import hudson.model.Queue;
 import hudson.model.TaskListener;
-import hudson.model.queue.Tasks;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -394,12 +392,7 @@ public class Connector {
                 }
             }
 
-            if (client.getCache() != null) {
-                OkHttpClient clientNoCache = new OkHttpClient().setProxy(getProxy(host));
-                gb.withConnector(new ForceValidationOkHttpConnector(client, clientNoCache));
-            } else {
-                gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
-            }
+            gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
 
             if (username != null) {
                 gb.withPassword(username, password);
@@ -638,37 +631,5 @@ public class Connector {
                     '}';
         }
 
-    }
-
-    /**
-     * A {@link HttpConnector} that uses {@link OkHttpConnector} when caching is enabled.
-     * Starts with the {@code Cache-Control} header configured to always revalidate requests
-     * against the remote server using conditional GET requests.
-     * Allows Jenkins to fallback to uncached query if requests fail due to flaky caching.
-     */
-    @Restricted(NoExternalUse.class)
-    /*package*/ static class ForceValidationOkHttpConnector extends OkHttpConnector {
-        private static final String FORCE_VALIDATION = new CacheControl.Builder()
-                .maxAge(0, TimeUnit.SECONDS)
-                .build()
-                .toString();
-        private static final String HEADER_NAME = "Cache-Control";
-        private final OkHttpConnector uncachedConnector;
-
-        public ForceValidationOkHttpConnector(OkHttpClient client, OkHttpClient uncachedClient) {
-            super(new OkUrlFactory(client));
-            this.uncachedConnector = new OkHttpConnector(new OkUrlFactory(uncachedClient));
-        }
-
-        /*package*/ OkHttpConnector getUncachedConnector() {
-            return uncachedConnector;
-        }
-
-        @Override
-        public HttpURLConnection connect(URL url) throws IOException {
-            HttpURLConnection connection = super.connect(url);
-            connection.setRequestProperty(HEADER_NAME, FORCE_VALIDATION);
-            return connection;
-        }
     }
 }
