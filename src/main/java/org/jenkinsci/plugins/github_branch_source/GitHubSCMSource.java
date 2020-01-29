@@ -937,12 +937,20 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         StandardCredentials credentials = Connector.lookupScanCredentials(owner, apiUri, credentialsId);
 
         GitHubIncludeRegionsTrait.Match match = GitHubIncludeRegionsTrait.isBuildableSCMEvent(owner, event);
-        if (match == null) {
-            listener.getLogger().println("This event didnt match this items");
-            return;
-        }
 
-        listener.getLogger().println("Found a match dude!!!! continuing on bc of: " + match);
+        switch (match.getMatchType()) {
+            case MATCH:
+                listener.getLogger().format("%nMatched:" + match + "%n");
+                break;
+            case MISMATCH:
+                listener.getLogger().format(
+                        "%n Owner (%s) did not have any included regions that matched changed files in the event%n",
+                        owner.getFullDisplayName());
+                return;
+            case INVALID:
+                listener.getLogger().format("Invalid match, continuing forward.");
+                break;
+        }
 
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);

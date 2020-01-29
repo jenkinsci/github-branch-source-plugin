@@ -102,59 +102,74 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
         return category.isUncategorized();
     }
 
-    @CheckForNull
-    public Match matchFilesToIncludedRegions(List<String> changedFiles) {
-        for (String filePath : changedFiles) {
-            for (String includedRegionPattern : this.getIncludeRegionsList()) {
-                if (SelectorUtils.matchPath(includedRegionPattern, filePath)) {
-                    return new Match(filePath, includedRegionPattern);
+    @NotNull
+    public Match matchFilesToIncludedRegions(HashMap<String, List<String>> changedFiles) {
+        List<String> includedRegions = this.getIncludeRegionsList();
+        for (Map.Entry<String, List<String>> entry : changedFiles.entrySet()) {
+            for (String includedRegionPattern : includedRegions) {
+                for (String filePath : entry.getValue()) {
+                    if (SelectorUtils.matchPath(includedRegionPattern, filePath)) {
+                        return new Match(filePath, includedRegionPattern, entry.getKey(), MatchType.MATCH);
+                    }
                 }
             }
         }
-        return null;
+
+        return new Match(MatchType.MISMATCH);
     }
 
-    @CheckForNull
-    public static Match isBuildableSCMEvent(SCMSourceOwner owner, @CheckForNull SCMHeadEvent<?> event) {
+    public static Match isBuildableSCMEvent(@NotNull SCMSourceOwner owner, @CheckForNull SCMHeadEvent<?> event) {
         if (event == null) {
-            LOGGER.info("cant match on null event - returning null");
-            return null;
+            LOGGER.info("Cant match on null event - returning INVALID match");
+            return new Match(MatchType.INVALID);
         }
 
         GHEventPayload.Push payload;
         if (event.getPayload() instanceof GHEventPayload.Push) {
             payload = (GHEventPayload.Push) event.getPayload();
         } else {
-            LOGGER.info("can only operate on Github SCM events. Returning no match.");
-            return null;
+            LOGGER.info("Can only operate on Github SCM events. Returning no match.");
+            return new Match(MatchType.INVALID);
         }
 
-        List<String> commits = collectCommits(payload);
+        HashMap<String, List<String>> commits = collectCommits(payload);
+        boolean hasGHIncludedRegionTrait = false;
 
         for (SCMSource src : owner.getSCMSources()) {
+            LOGGER.info("source: {}", src.getPronoun());
             for (SCMSourceTrait trait : src.getTraits()) {
                 if (trait instanceof GitHubIncludeRegionsTrait) {
+                    hasGHIncludedRegionTrait = true;
                     GitHubIncludeRegionsTrait ghTrait = (GitHubIncludeRegionsTrait) trait;
                     GitHubIncludeRegionsTrait.Match match = ghTrait.matchFilesToIncludedRegions(commits);
-                    match.setProject(owner);
-                    if (match != null) {
+                    if (match.matchType == MatchType.MATCH) {
+                        match.setProject(owner);
                         return match;
                     }
                 }
             }
         }
-        return null;
+
+        if (hasGHIncludedRegionTrait) {
+            LOGGER.info("No commits in {} matched for job {}\n", commits.keySet(), owner.getFullDisplayName());
+            return new Match(MatchType.MISMATCH);
+        } else {
+            LOGGER.info("Job {} did not have any configured github included region traits -- returning invalid", owner.getFullDisplayName());
+            return new Match(MatchType.INVALID);
+        }
     }
 
     @NotNull
-    public static List<String> collectCommits(GHEventPayload.Push p) {
-        List<String> changes = new ArrayList<>();
+    public static HashMap<String, List<String>> collectCommits(GHEventPayload.Push p) {
+        HashMap<String, List<String>> changesBySha = new HashMap<>();
         for (GHEventPayload.Push.PushCommit commit : p.getCommits()) {
+            List<String> changes = new ArrayList<>();
             changes.addAll(commit.getAdded());
             changes.addAll(commit.getModified());
             changes.addAll(commit.getRemoved());
+            changesBySha.put(commit.getSha(), changes);
         }
-        return changes;
+        return changesBySha;
     }
 
     /**
@@ -190,23 +205,37 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
         }
     }
 
+    enum MatchType {
+        MATCH, // when there was gh included region and we found a matching file
+        MISMATCH, // when there was a gh included region and we didnt find a matching file
+        INVALID // an issue processing the event or payload, allowing SCMSource to move forward
+    }
+
     public static class Match<T extends Item> {
+        private final String matchedCommit;
         private final String matchedFile;
         private final String matchedPattern;
         private T project;
+        private MatchType matchType;
 
-        public Match(T project, String matchedFile, String matchedPattern) {
+        public Match(MatchType matchType) {
+            this(null, null, null, null, matchType);
+        }
+
+        public Match(String matchedFile, String matchedPattern, String matchedCommit, MatchType matchType) {
+            this(null, matchedFile, matchedPattern, matchedCommit, matchType);
+        }
+
+        public Match(T project, String matchedFile, String matchedPattern, String matchedCommit, MatchType matchType) {
             super();
             this.project = project;
             this.matchedFile = matchedFile;
             this.matchedPattern = matchedPattern;
+            this.matchedCommit = matchedCommit;
+            this.matchType = matchType;
         }
 
-        public Match(String matchedFile, String matchedPattern) {
-            this(null, matchedFile, matchedPattern);
-        }
-
-        public void setProject(T project) {
+        public void setProject(@NotNull T project) {
             this.project = project;
         }
 
@@ -227,6 +256,14 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
             return this.matchedPattern;
         }
 
+        public MatchType getMatchType() {
+            return this.matchType;
+        }
+
+        public String getMatchedCommit() {
+            return this.matchedCommit;
+        }
+
         public String toString() {
             return "\n[" +
                     "Project: " +
@@ -235,6 +272,8 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
                     this.getMatchedFile() +
                     ", Matched pattern: " +
                     this.getMatchedPattern() +
+                    ", Matched commit: " +
+                    this.getMatchedCommit() +
                 "]\n";
         }
     }
