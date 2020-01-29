@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.extension.responsetemplating.ResponseTemplateTransformer;
 import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
@@ -16,6 +17,7 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
 import java.io.File;
+import java.io.IOException;
 
 import static org.junit.Assert.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -26,7 +28,9 @@ public class GitHubSCMProbeTest {
     public JenkinsRule j = new JenkinsRule();
     public static WireMockRuleFactory factory = new WireMockRuleFactory();
     @Rule
-    public WireMockRule githubApi = factory.getRule(WireMockConfiguration.options().dynamicPort().usingFilesUnderClasspath("api"));
+    public WireMockRule githubApi = factory.getRule(WireMockConfiguration.options()
+        .dynamicPort().usingFilesUnderClasspath("cache_failure")
+        .extensions(ResponseTemplateTransformer.builder().global(true).maxCacheEntries(0L).build()));
     private GitHubSCMProbe probe;
 
     @Before
@@ -38,8 +42,6 @@ public class GitHubSCMProbeTest {
             FileUtils.cleanDirectory(cacheBaseDir);
         }
 
-        final GitHub github = Connector.connect("http://localhost:" + githubApi.port(), null);
-
         githubApi.stubFor(
                 get(urlEqualTo("/repos/cloudbeers/yolo"))
                         .willReturn(aResponse()
@@ -47,8 +49,13 @@ public class GitHubSCMProbeTest {
                                 .withHeader("Content-Type", "application/json")
                                 .withBodyFile("body-cloudbeers-yolo-PucD6.json"))
         );
+    }
+
+    void createProbeForPR(int number) throws IOException {
+        final GitHub github = Connector.connect("http://localhost:" + githubApi.port(), null);
+
         final GHRepository repo = github.getRepository("cloudbeers/yolo");
-        final PullRequestSCMHead head = new PullRequestSCMHead("PR-1", "cloudbeers", "yolo", "b", 1, new BranchSCMHead("master"), new SCMHeadOrigin.Fork("rsandell"), ChangeRequestCheckoutStrategy.MERGE);
+        final PullRequestSCMHead head = new PullRequestSCMHead("PR-" + number, "cloudbeers", "yolo", "b", number, new BranchSCMHead("master"), new SCMHeadOrigin.Fork("rsandell"), ChangeRequestCheckoutStrategy.MERGE);
         probe = new GitHubSCMProbe(github, repo,
                 head,
                 new PullRequestSCMRevision(head, "a", "b"));
@@ -57,32 +64,21 @@ public class GitHubSCMProbeTest {
     @Issue("JENKINS-54126")
     @Test
     public void statWhenRootIs404() throws Exception {
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge")).willReturn(aResponse().withStatus(404)));
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge")).willReturn(aResponse().withStatus(404)).atPriority(0));
+
+        createProbeForPR(1);
+
         assertFalse(probe.stat("Jenkinsfile").exists());
-    }
-
-    @Issue("JENKINS-54126")
-    @Test()
-    public void statWhenDirAndRootIs404() throws Exception {
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge")).willReturn(aResponse().withStatus(200)));
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/subdir/?ref=refs%2Fpull%2F1%2Fmerge")).willReturn(aResponse().withStatus(404)));
-
-        assertTrue(probe.stat("/").exists());
-        assertFalse(probe.stat("subdir").exists());
-        assertFalse(probe.stat("subdir/Jenkinsfile").exists());
     }
 
     @Issue("JENKINS-54126")
     @Test
     public void statWhenDirIs404() throws Exception {
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge"))
-                .willReturn(aResponse()
-                        .withStatus(200)
-                        .withHeader("Content-Type", "application/json")
-                        .withBodyFile("body-yolo-contents-8rd37.json")));
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/subdir/?ref=refs%2Fpull%2F1%2Fmerge")).willReturn(aResponse().withStatus(404)));
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/subdir?ref=refs%2Fpull%2F1%2Fmerge")).willReturn(aResponse().withStatus(404)).atPriority(0));
 
-        assertTrue(probe.stat("/").exists());
+        createProbeForPR(1);
+
+        assertTrue(probe.stat("README.md").exists());
         assertFalse(probe.stat("subdir").exists());
         assertFalse(probe.stat("subdir/Jenkinsfile").exists());
     }
@@ -91,6 +87,8 @@ public class GitHubSCMProbeTest {
     @Test
     public void statWhenRoot404andThenIncorrectCached() throws Exception {
         GitHubSCMSource.setCacheSize(10);
+
+        createProbeForPR(9);
 
         // JENKINS-54126 happens when:
         // 1. client asks for a resource "Z" that doesn't exist
@@ -115,30 +113,6 @@ public class GitHubSCMProbeTest {
         // ---> The github-api library automatically retries the request with "no-cache" to force refresh with valid data.
 
         // 1.
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge"))
-            .withHeader("Cache-Control", equalTo("max-age=0"))
-            .willReturn(aResponse().withStatus(404)
-                .withHeader("Date", "Tue, 06 Dec 2019 15:06:25 GMT")));
-
-        // 2. - happens elsewhere
-
-        // 3.
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge"))
-            .withHeader("Cache-Control", equalTo("max-age=0"))
-            .withHeader("If-Modified-Since", equalTo("Tue, 06 Dec 2019 15:06:25 GMT"))
-            .willReturn(aResponse().withStatus(304)
-                .withHeader("Date", "Tue, 06 Dec 2019 15:06:26 GMT")
-                .withHeader("ETag", "something")));
-
-        // 4.
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge"))
-            .withHeader("Cache-Control", equalTo("no-cache"))
-            .willReturn(aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBodyFile("body-yolo-contents-8rd37.json")));
-
-        // 1.
         assertFalse(probe.stat("README.md").exists());
 
         // 3.
@@ -158,12 +132,12 @@ public class GitHubSCMProbeTest {
         githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
             .withHeader("Cache-Control", containing("max-age"))
             .withHeader("If-None-Match", absent())
-            .withHeader("If-Modified-Since", equalTo("Tue, 06 Dec 2019 15:06:25 GMT"))
+            .withHeader("If-Modified-Since", containing("GMT"))
         );
 
         // 4.
         githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
-            .withHeader("Cache-Control", containing("no-cache"))
+            .withHeader("Cache-Control", equalTo("no-cache"))
             .withHeader("If-Modified-Since", absent())
             .withHeader("If-None-Match", absent())
         );
