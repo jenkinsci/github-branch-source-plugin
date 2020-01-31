@@ -33,7 +33,7 @@ import org.kohsuke.github.GHCommitState;
  * Notifications are differentiated by their Context label. If two notification requests with the same Context label are
  * provided, one will override the other.
  * @see <a href="https://developer.github.com/v3/repos/statuses/">Github API</a> for details of the purpose of each notification field.
- * @since TODO
+ * @since 2.3.2
  */
 public class GitHubNotificationRequest {
 
@@ -44,7 +44,7 @@ public class GitHubNotificationRequest {
     private final boolean ignoreError;
 
     /**
-     * @since TODO
+     * @since 2.3.2
      */
     private GitHubNotificationRequest(String context, String url, String message, GHCommitState state, boolean ignoreError) {
         this.context = context;
@@ -61,7 +61,7 @@ public class GitHubNotificationRequest {
     /**
      * Returns the context label to be used for a notification
      * @return context
-     * @since TODO
+     * @since 2.3.2
      */
     public String getContext() {
         return context;
@@ -70,7 +70,7 @@ public class GitHubNotificationRequest {
     /**
      * Returns the URL to be supplied with a notification
      * @return url
-     * @since TODO
+     * @since 2.3.2
      */
     public String getUrl() {
         return url;
@@ -79,7 +79,7 @@ public class GitHubNotificationRequest {
     /**
      * Returns the message for a notification
      * @return message
-     * @since TODO
+     * @since 2.3.2
      */
     public String getMessage() {
         return message;
@@ -88,7 +88,7 @@ public class GitHubNotificationRequest {
     /**
      * Returns the commit state of a notification
      * @return state
-     * @since TODO
+     * @since 2.3.2
      */
     public GHCommitState getState() {
         return state;
@@ -97,7 +97,7 @@ public class GitHubNotificationRequest {
     /**
      * Returns whether the notification processor should ignore errors when interacting with GitHub
      * @return ignoreError
-     * @since TODO
+     * @since 2.3.2
      */
     public boolean isIgnoreError() {
         return ignoreError;

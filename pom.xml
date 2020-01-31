@@ -4,14 +4,14 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.43</version>
+        <version>3.56</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
     <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
     <name>GitHub Branch Source Plugin</name>
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/GitHub+Branch+Source+Plugin</url>
+    <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
     <description>Multibranch projects and organization folders from GitHub. Maintained by CloudBees, Inc.</description>
     <licenses>
         <license>
@@ -21,12 +21,15 @@
     </licenses>
 
     <properties>
-        <revision>2.5.6</revision>
+        <revision>2.5.9</revision>
         <changelist>-SNAPSHOT</changelist>
+        <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
-        <jenkins.version>2.138.4</jenkins.version>
+        <jenkins.version>2.150.3</jenkins.version>
         <scm-api.version>2.6.3</scm-api.version>
+        <hamcrest.version>2.2</hamcrest.version>
         <useBeta>true</useBeta>
+        <jcasc.version>1.35</jcasc.version>
     </properties>
 
     <scm>
@@ -43,6 +46,11 @@
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>jackson2-api</artifactId>
+            <version>2.10.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>scm-api</artifactId>
             <version>${scm-api.version}</version>
         </dependency>
@@ -54,7 +62,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.95</version>
+            <version>1.106</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -153,25 +161,57 @@
         </dependency>
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
-            <artifactId>wiremock-standalone</artifactId>
-            <version>2.4.1</version>
+            <artifactId>wiremock-jre8-standalone</artifactId>
+            <version>2.25.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.hamcrest</groupId>
-            <artifactId>hamcrest-all</artifactId>
-            <version>1.3</version>
+            <artifactId>hamcrest</artifactId>
+            <version>${hamcrest.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- This is needed in order to force junit4 and JTH tests to use newer hamcrest version -->
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-core</artifactId>
+            <version>${hamcrest.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-library</artifactId>
+            <version>${hamcrest.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>1.9.5</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JCasC compatibility -->
+        <dependency>
+            <groupId>io.jenkins</groupId>
+            <artifactId>configuration-as-code</artifactId>
+            <version>${jcasc.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jenkins.configuration-as-code</groupId>
+            <artifactId>test-harness</artifactId>
+            <version>${jcasc.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-cps-global-lib</artifactId>
+            <version>2.12</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
-                    <groupId>org.hamcrest</groupId>
-                    <artifactId>hamcrest-core</artifactId>
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -191,7 +231,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.7</version>
+                <version>3.9</version>
             </dependency>
             <dependency>
                 <groupId>org.jenkins-ci.plugins</groupId>
@@ -203,33 +243,13 @@
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
-            <url>http://repo.jenkins-ci.org/public/</url>
+            <url>https://repo.jenkins-ci.org/public/</url>
         </repository>
     </repositories>
     <pluginRepositories>
         <pluginRepository>
             <id>repo.jenkins-ci.org</id>
-            <url>http://repo.jenkins-ci.org/public/</url>
+            <url>https://repo.jenkins-ci.org/public/</url>
         </pluginRepository>
     </pluginRepositories>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.jenkins-ci.tools</groupId>
-                <artifactId>maven-hpi-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate-taglib-interface</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <compatibleSinceVersion>2.2.0</compatibleSinceVersion>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
 </project>

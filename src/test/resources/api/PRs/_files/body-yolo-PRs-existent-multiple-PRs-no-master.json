@@ -1,0 +1,206 @@
+[
+  {
+    "name": "existent-branch2",
+    "commit": {
+      "sha": "cc41b33d0ded607195acda1447cb2c25c786639c",
+      "node_id": "MDY6Q29tbWl0NTU1NDMyMjU6Y2M0MWIzM2QwZGVkNjA3MTk1YWNkYTE0NDdjYjJjMjVjNzg2NjM5Yw==",
+      "commit": {
+        "author": {
+          "name": "Andrew Bayer",
+          "email": "andrew.bayer@gmail.com",
+          "date": "2019-09-24T15:08:37Z"
+        },
+        "committer": {
+          "name": "GitHub",
+          "email": "noreply@github.com",
+          "date": "2019-09-24T15:08:37Z"
+        },
+        "message": "Merge pull request #314 from RobiNino/artifactory-mismatch\n\n[JENKINS-58643] Ignore mismatch warnings when receiver is a plugin",
+        "tree": {
+          "sha": "86005ae0d16e3bb0ed0f21718517227d50fd8622",
+          "url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/git/trees/86005ae0d16e3bb0ed0f21718517227d50fd8622"
+        },
+        "url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/git/commits/cc41b33d0ded607195acda1447cb2c25c786639c",
+        "comment_count": 0,
+        "verification": {
+          "verified": true,
+          "reason": "valid",
+          "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJdijF1CRBK7hj4Ov3rIwAAdHIIAAQnDrXR+JbKh0Re+g5rF4Ii\n79ZaHypDBbftY14EejPue6YbtJhUyaRLzRA8snNMt/Dydsq1J1zgZa27/eAH/u5Z\nGUNiMLXlTLxHvIFXJL+PBJ9Ozid1zAe9tWCWcZDv7ldPZMnhnPMMFrS6vYG2fqqN\nX3aQZBp/WcPs4NLhDGuqrtY9m/X6+fmmUkcY9txK/1xohcMhYQMumxfDJ59AHckV\nTNFRw5vOMJD7blKTc8KDdCGbierFUDyOF4M1Bly9PmUH4G+U1hEIPO2QYEAONn/P\n0zJSj3RnKdbJ57Jc0wXc8f7/i8kkw9O3ppNcZoiRo0Az8HB90aa6UqhNd3ESwRY=\n=S5ED\n-----END PGP SIGNATURE-----\n",
+          "payload": "tree 86005ae0d16e3bb0ed0f21718517227d50fd8622\nparent 20e0af026214df4b836a2c41493c0a21081c426a\nparent b03dff0a6b3ae3ba797b0c80072592652ee26d49\nauthor Andrew Bayer <andrew.bayer@gmail.com> 1569337717 -0400\ncommitter GitHub <noreply@github.com> 1569337717 -0400\n\nMerge pull request #314 from RobiNino/artifactory-mismatch\n\n[JENKINS-58643] Ignore mismatch warnings when receiver is a plugin"
+        }
+      },
+      "url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/commits/cc41b33d0ded607195acda1447cb2c25c786639c",
+      "html_url": "https://github.com/jenkinsci/workflow-cps-plugin/commit/cc41b33d0ded607195acda1447cb2c25c786639c",
+      "comments_url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/commits/cc41b33d0ded607195acda1447cb2c25c786639c/comments",
+      "author": {
+        "login": "abayer",
+        "id": 120218,
+        "node_id": "MDQ6VXNlcjEyMDIxOA==",
+        "avatar_url": "https://avatars2.githubusercontent.com/u/120218?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/abayer",
+        "html_url": "https://github.com/abayer",
+        "followers_url": "https://api.github.com/users/abayer/followers",
+        "following_url": "https://api.github.com/users/abayer/following{/other_user}",
+        "gists_url": "https://api.github.com/users/abayer/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/abayer/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/abayer/subscriptions",
+        "organizations_url": "https://api.github.com/users/abayer/orgs",
+        "repos_url": "https://api.github.com/users/abayer/repos",
+        "events_url": "https://api.github.com/users/abayer/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/abayer/received_events",
+        "type": "User",
+        "site_admin": false
+      },
+      "committer": {
+        "login": "web-flow",
+        "id": 19864447,
+        "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+        "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/web-flow",
+        "html_url": "https://github.com/web-flow",
+        "followers_url": "https://api.github.com/users/web-flow/followers",
+        "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+        "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+        "organizations_url": "https://api.github.com/users/web-flow/orgs",
+        "repos_url": "https://api.github.com/users/web-flow/repos",
+        "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/web-flow/received_events",
+        "type": "User",
+        "site_admin": false
+      },
+      "parents": [
+        {
+          "sha": "20e0af026214df4b836a2c41493c0a21081c426a",
+          "url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/commits/20e0af026214df4b836a2c41493c0a21081c426a",
+          "html_url": "https://github.com/jenkinsci/workflow-cps-plugin/commit/20e0af026214df4b836a2c41493c0a21081c426a"
+        },
+        {
+          "sha": "b03dff0a6b3ae3ba797b0c80072592652ee26d49",
+          "url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/commits/b03dff0a6b3ae3ba797b0c80072592652ee26d49",
+          "html_url": "https://github.com/jenkinsci/workflow-cps-plugin/commit/b03dff0a6b3ae3ba797b0c80072592652ee26d49"
+        }
+      ]
+    },
+    "_links": {
+      "self": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/branches/master",
+      "html": "https://github.com/jenkinsci/workflow-cps-plugin/tree/master"
+    },
+    "protected": false,
+    "protection": {
+      "enabled": false,
+      "required_status_checks": {
+        "enforcement_level": "off",
+        "contexts": [
+
+        ]
+      }
+    },
+    "protection_url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/branches/master/protection"
+  },
+  {
+    "name": "existent-branch1",
+    "commit": {
+      "sha": "cc41b33d0ded607195acda1447cb2c25c786639c",
+      "node_id": "MDY6Q29tbWl0NTU1NDMyMjU6Y2M0MWIzM2QwZGVkNjA3MTk1YWNkYTE0NDdjYjJjMjVjNzg2NjM5Yw==",
+      "commit": {
+        "author": {
+          "name": "Andrew Bayer",
+          "email": "andrew.bayer@gmail.com",
+          "date": "2019-09-24T15:08:37Z"
+        },
+        "committer": {
+          "name": "GitHub",
+          "email": "noreply@github.com",
+          "date": "2019-09-24T15:08:37Z"
+        },
+        "message": "Merge pull request #314 from RobiNino/artifactory-mismatch\n\n[JENKINS-58643] Ignore mismatch warnings when receiver is a plugin",
+        "tree": {
+          "sha": "86005ae0d16e3bb0ed0f21718517227d50fd8622",
+          "url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/git/trees/86005ae0d16e3bb0ed0f21718517227d50fd8622"
+        },
+        "url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/git/commits/cc41b33d0ded607195acda1447cb2c25c786639c",
+        "comment_count": 0,
+        "verification": {
+          "verified": true,
+          "reason": "valid",
+          "signature": "-----BEGIN PGP SIGNATURE-----\n\nwsBcBAABCAAQBQJdijF1CRBK7hj4Ov3rIwAAdHIIAAQnDrXR+JbKh0Re+g5rF4Ii\n79ZaHypDBbftY14EejPue6YbtJhUyaRLzRA8snNMt/Dydsq1J1zgZa27/eAH/u5Z\nGUNiMLXlTLxHvIFXJL+PBJ9Ozid1zAe9tWCWcZDv7ldPZMnhnPMMFrS6vYG2fqqN\nX3aQZBp/WcPs4NLhDGuqrtY9m/X6+fmmUkcY9txK/1xohcMhYQMumxfDJ59AHckV\nTNFRw5vOMJD7blKTc8KDdCGbierFUDyOF4M1Bly9PmUH4G+U1hEIPO2QYEAONn/P\n0zJSj3RnKdbJ57Jc0wXc8f7/i8kkw9O3ppNcZoiRo0Az8HB90aa6UqhNd3ESwRY=\n=S5ED\n-----END PGP SIGNATURE-----\n",
+          "payload": "tree 86005ae0d16e3bb0ed0f21718517227d50fd8622\nparent 20e0af026214df4b836a2c41493c0a21081c426a\nparent b03dff0a6b3ae3ba797b0c80072592652ee26d49\nauthor Andrew Bayer <andrew.bayer@gmail.com> 1569337717 -0400\ncommitter GitHub <noreply@github.com> 1569337717 -0400\n\nMerge pull request #314 from RobiNino/artifactory-mismatch\n\n[JENKINS-58643] Ignore mismatch warnings when receiver is a plugin"
+        }
+      },
+      "url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/commits/cc41b33d0ded607195acda1447cb2c25c786639c",
+      "html_url": "https://github.com/jenkinsci/workflow-cps-plugin/commit/cc41b33d0ded607195acda1447cb2c25c786639c",
+      "comments_url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/commits/cc41b33d0ded607195acda1447cb2c25c786639c/comments",
+      "author": {
+        "login": "abayer",
+        "id": 120218,
+        "node_id": "MDQ6VXNlcjEyMDIxOA==",
+        "avatar_url": "https://avatars2.githubusercontent.com/u/120218?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/abayer",
+        "html_url": "https://github.com/abayer",
+        "followers_url": "https://api.github.com/users/abayer/followers",
+        "following_url": "https://api.github.com/users/abayer/following{/other_user}",
+        "gists_url": "https://api.github.com/users/abayer/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/abayer/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/abayer/subscriptions",
+        "organizations_url": "https://api.github.com/users/abayer/orgs",
+        "repos_url": "https://api.github.com/users/abayer/repos",
+        "events_url": "https://api.github.com/users/abayer/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/abayer/received_events",
+        "type": "User",
+        "site_admin": false
+      },
+      "committer": {
+        "login": "web-flow",
+        "id": 19864447,
+        "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+        "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/web-flow",
+        "html_url": "https://github.com/web-flow",
+        "followers_url": "https://api.github.com/users/web-flow/followers",
+        "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+        "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+        "organizations_url": "https://api.github.com/users/web-flow/orgs",
+        "repos_url": "https://api.github.com/users/web-flow/repos",
+        "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/web-flow/received_events",
+        "type": "User",
+        "site_admin": false
+      },
+      "parents": [
+        {
+          "sha": "20e0af026214df4b836a2c41493c0a21081c426a",
+          "url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/commits/20e0af026214df4b836a2c41493c0a21081c426a",
+          "html_url": "https://github.com/jenkinsci/workflow-cps-plugin/commit/20e0af026214df4b836a2c41493c0a21081c426a"
+        },
+        {
+          "sha": "b03dff0a6b3ae3ba797b0c80072592652ee26d49",
+          "url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/commits/b03dff0a6b3ae3ba797b0c80072592652ee26d49",
+          "html_url": "https://github.com/jenkinsci/workflow-cps-plugin/commit/b03dff0a6b3ae3ba797b0c80072592652ee26d49"
+        }
+      ]
+    },
+    "_links": {
+      "self": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/branches/master",
+      "html": "https://github.com/jenkinsci/workflow-cps-plugin/tree/master"
+    },
+    "protected": false,
+    "protection": {
+      "enabled": false,
+      "required_status_checks": {
+        "enforcement_level": "off",
+        "contexts": [
+
+        ]
+      }
+    },
+    "protection_url": "https://api.github.com/repos/jenkinsci/workflow-cps-plugin/branches/master/protection"
+  }
+]

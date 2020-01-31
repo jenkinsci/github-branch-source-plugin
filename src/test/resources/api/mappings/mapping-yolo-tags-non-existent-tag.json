@@ -1,0 +1,33 @@
+{
+  "request": {
+    "url": "/repos/cloudbeers/yolo/git/refs/tags/non-existent-tag",
+    "method": "GET"
+  },
+  "response": {
+    "status": 404,
+    "bodyFileName": "body-yolo-tags-non-existent-tag.json",
+    "headers": {
+      "Server": "GitHub.com",
+      "Date": "Mon, 29 Jul 2019 23:22:30 GMT",
+      "Content-Type": "application/json; charset=utf-8",
+      "Transfer-Encoding": "chunked",
+      "Status": "404 Not Found",
+      "X-RateLimit-Limit": "600",
+      "X-RateLimit-Remaining": "595",
+      "X-RateLimit-Reset": "1481048932",
+      "Cache-Control": "public, max-age=60, s-maxage=60",
+      "Vary": ["Accept", "Accept-Encoding"],
+      "ETag": "W/\"a466888c00a5eaf3354ccabe37f75dd9\"",
+      "X-GitHub-Media-Type": "github.v3; format=json",
+      "Access-Control-Expose-Headers": "ETag, Link, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval",
+      "Access-Control-Allow-Origin": "*",
+      "Content-Security-Policy": "default-src 'none'",
+      "Strict-Transport-Security": "max-age=31536000; includeSubdomains; preload",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "deny",
+      "X-XSS-Protection": "1; mode=block",
+      "X-Served-By": "88531cdcf1929112ec480e1806d44a33",
+      "X-GitHub-Request-Id": "BC8D23FA:31E4:269B4E33:5846F623"
+    }
+  }
+}

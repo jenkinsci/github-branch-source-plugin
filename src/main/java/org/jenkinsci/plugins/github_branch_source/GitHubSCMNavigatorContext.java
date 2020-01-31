@@ -34,6 +34,12 @@ import jenkins.scm.api.trait.SCMNavigatorContext;
  * @since 2.2.0
  */
 public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavigatorContext, GitHubSCMNavigatorRequest> {
+
+    /**
+     * The team name of the repositories to navigate.
+     */
+    private String teamSlug = "";
+
     /**
      * {@inheritDoc}
      */
@@ -41,5 +47,20 @@ public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavi
     @Override
     public GitHubSCMNavigatorRequest newRequest(@NonNull SCMNavigator navigator, @NonNull SCMSourceObserver observer) {
         return new GitHubSCMNavigatorRequest(navigator, this, observer);
+    }
+
+    /**
+     * Sets the name of the team who's repositories will be navigated.
+     */
+    void setTeamSlug(String teamSlug) {
+        this.teamSlug = teamSlug;
+    }
+
+    /**
+     * Gets the name of the team who's repositories will be navigated.
+     * @return teamSlug
+     */
+    public String getTeamSlug() {
+        return teamSlug;
     }
 }

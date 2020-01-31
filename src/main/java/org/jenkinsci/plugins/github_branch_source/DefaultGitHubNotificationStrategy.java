@@ -31,7 +31,7 @@ import java.util.List;
 
 /**
  * Default implementation of {@link AbstractGitHubNotificationStrategy}
- * @since TODO
+ * @since 2.3.2
  */
 public final class DefaultGitHubNotificationStrategy extends AbstractGitHubNotificationStrategy {
 
