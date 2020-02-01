@@ -97,7 +97,7 @@ class GitHubRepositoryInfo {
     }
 
     @NonNull
-    public static URL getTrimmedUrl(@NonNull String repositoryUrl) {
+    private static URL getTrimmedUrl(@NonNull String repositoryUrl) {
         String trimmedRepoUrl = repositoryUrl.trim();
         if (StringUtils.isBlank(trimmedRepoUrl)) {
             throw new IllegalArgumentException("Repository URL must not be empty");
@@ -114,7 +114,7 @@ class GitHubRepositoryInfo {
         return url;
     }
 
-    private static String guessApiUri(URL repositoryUrl) {
+    private static String guessApiUri(@NonNull URL repositoryUrl) {
         StringBuilder sb = new StringBuilder();
         sb.append(repositoryUrl.getProtocol());
         sb.append("://");
