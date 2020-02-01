@@ -211,7 +211,7 @@ public class GitHubSCMNavigatorTest {
     public void fetchOneRepo_BelongingToAuthenticatedUser_ExcludingArchived() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
-        navigator.setTraits(Collections.singletonList(new ExcludeArchivedTrait()));
+        navigator.setTraits(Collections.singletonList(new ExcludeArchivedRepositoriesTrait()));
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -232,7 +232,7 @@ public class GitHubSCMNavigatorTest {
 
     @Test
     public void fetchOneRepo_BelongingToOrg_ExcludingArchived() throws Exception {
-        navigator.setTraits(Collections.singletonList(new ExcludeArchivedTrait()));
+        navigator.setTraits(Collections.singletonList(new ExcludeArchivedRepositoriesTrait()));
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -255,7 +255,7 @@ public class GitHubSCMNavigatorTest {
     @Test
     public void fetchOneRepo_BelongingToUser_ExcludingArchived() throws Exception {
         navigator = navigatorForRepoOwner("stephenc", null);
-        navigator.setTraits(Collections.singletonList(new ExcludeArchivedTrait()));
+        navigator.setTraits(Collections.singletonList(new ExcludeArchivedRepositoriesTrait()));
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -280,7 +280,7 @@ public class GitHubSCMNavigatorTest {
     public void fetchRepos_BelongingToAuthenticatedUser_ExcludingArchived() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
-        navigator.setTraits(Collections.singletonList(new ExcludeArchivedTrait()));
+        navigator.setTraits(Collections.singletonList(new ExcludeArchivedRepositoriesTrait()));
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -302,7 +302,7 @@ public class GitHubSCMNavigatorTest {
 
     @Test
     public void fetchRepos_BelongingToOrg_ExcludingArchived() throws Exception {
-        navigator.setTraits(Collections.singletonList(new ExcludeArchivedTrait()));
+        navigator.setTraits(Collections.singletonList(new ExcludeArchivedRepositoriesTrait()));
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -326,7 +326,7 @@ public class GitHubSCMNavigatorTest {
     @Test
     public void fetchRepos_BelongingToUser_ExcludingArchived() throws Exception {
         navigator = navigatorForRepoOwner("stephenc", null);
-        navigator.setTraits(Collections.singletonList(new ExcludeArchivedTrait()));
+        navigator.setTraits(Collections.singletonList(new ExcludeArchivedRepositoriesTrait()));
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 

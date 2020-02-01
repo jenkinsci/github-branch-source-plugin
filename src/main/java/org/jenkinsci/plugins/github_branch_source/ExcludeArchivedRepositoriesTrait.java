@@ -13,13 +13,13 @@ import javax.annotation.Nonnull;
 /**
  * A {@link Selection} trait that will restrict the discovery of repositories that have been archived.
  */
-public class ExcludeArchivedTrait extends SCMNavigatorTrait {
+public class ExcludeArchivedRepositoriesTrait extends SCMNavigatorTrait {
 
     /**
      * Constructor for stapler.
      */
     @DataBoundConstructor
-    public ExcludeArchivedTrait() {
+    public ExcludeArchivedRepositoriesTrait() {
     }
 
     /**
@@ -29,13 +29,13 @@ public class ExcludeArchivedTrait extends SCMNavigatorTrait {
     protected void decorateContext(SCMNavigatorContext<?, ?> context) {
         super.decorateContext(context);
         GitHubSCMNavigatorContext ctx = (GitHubSCMNavigatorContext) context;
-        ctx.setExcludeArchived(true);
+        ctx.setExcludeArchivedRepositories(true);
     }
 
     /**
-     * Excluded archived repositories filter
+     * Exclude archived repositories filter
      */
-    @Symbol("archivedRepositoriesFilter")
+    @Symbol("gitHubExcludeArchivedRepositories")
     @Extension
     @Selection
     public static class DescriptorImpl extends SCMNavigatorTraitDescriptor {
@@ -48,7 +48,7 @@ public class ExcludeArchivedTrait extends SCMNavigatorTrait {
         @Nonnull
         @Override
         public String getDisplayName() {
-            return Messages.ExcludeArchivedTrait_displayName();
+            return Messages.ExcludeArchivedRepositoriesTrait_displayName();
         }
     }
 }

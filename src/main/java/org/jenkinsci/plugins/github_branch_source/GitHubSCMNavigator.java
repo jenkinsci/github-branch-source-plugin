@@ -952,7 +952,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                 continue; // ignore repos in other orgs when using GHMyself
                             }
 
-                            if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchived()) {
+                            if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                                 witness.record(repo.getName(), false);
                                 listener.getLogger()
                                         .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -987,7 +987,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     for (GHRepository repo : repositories) {
                         Connector.checkApiRateLimit(listener, github);
 
-                        if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchived()) {
+                        if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                             witness.record(repo.getName(), false);
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -1018,7 +1018,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     for (GHRepository repo : user.listRepositories(100)) {
                         Connector.checkApiRateLimit(listener, github);
 
-                        if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchived()) {
+                        if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                             witness.record(repo.getName(), false);
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -1116,7 +1116,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         GHRepository repo = myself.getRepository(sourceName);
                         if (repo != null && repo.getOwnerName().equals(repoOwner)) {
 
-                            if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchived()) {
+                            if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                                 witness.record(repo.getName(), false);
                                 listener.getLogger()
                                         .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -1146,7 +1146,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     GHRepository repo = org.getRepository(sourceName);
                     if (repo != null) {
 
-                        if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchived()) {
+                        if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                             witness.record(repo.getName(), false);
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -1178,7 +1178,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     GHRepository repo = user.getRepository(sourceName);
                     if (repo != null) {
 
-                        if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchived()) {
+                        if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                             witness.record(repo.getName(), false);
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
