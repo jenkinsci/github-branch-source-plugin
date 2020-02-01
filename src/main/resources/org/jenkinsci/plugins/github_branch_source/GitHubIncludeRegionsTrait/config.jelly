@@ -11,4 +11,7 @@
     <f:entry title="Trigger builds for included regions" field="includeRegions">
         <f:textarea />
     </f:entry>
+    <f:entry title="sha strings" field="matchedShas">
+        <f:textarea />
+    </f:entry>
 </j:jelly>

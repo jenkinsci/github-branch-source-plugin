@@ -117,21 +117,7 @@ import org.jenkinsci.plugins.structs.describable.UninstantiatedDescribable;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.github.GHBranch;
-import org.kohsuke.github.GHCommit;
-import org.kohsuke.github.GHException;
-import org.kohsuke.github.GHFileNotFoundException;
-import org.kohsuke.github.GHIssueState;
-import org.kohsuke.github.GHMyself;
-import org.kohsuke.github.GHOrganization;
-import org.kohsuke.github.GHPermissionType;
-import org.kohsuke.github.GHPullRequest;
-import org.kohsuke.github.GHRef;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GHTagObject;
-import org.kohsuke.github.GHUser;
-import org.kohsuke.github.GitHub;
-import org.kohsuke.github.HttpException;
+import org.kohsuke.github.*;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -936,20 +922,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         SCMSourceOwner owner = getOwner();
         StandardCredentials credentials = Connector.lookupScanCredentials(owner, apiUri, credentialsId);
 
-        GitHubIncludeRegionsTrait.Match match = GitHubIncludeRegionsTrait.isBuildableSCMEvent(owner, event);
-
-        switch (match.getMatchType()) {
-            case MATCH:
-                listener.getLogger().format("%nMatched:" + match + "%n");
-                break;
-            case MISMATCH:
-                listener.getLogger().format(
-                        "%n Owner (%s) did not have any included regions that matched changed files in the event%n",
-                        owner.getFullDisplayName());
-                return;
-            case INVALID:
-                listener.getLogger().format("Invalid match, continuing forward.");
-                break;
+        String shaToProcess = "";
+        if (owner != null && event != null) {
+            shaToProcess = GitHubIncludeRegionsTrait.isBuildableSCMEvent(owner, event);
         }
 
         // Github client and validation
@@ -1001,11 +976,32 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         int count = 0;
                         for (final GHBranch branch : request.getBranches()) {
                             count++;
+
                             String branchName = branch.getName();
                             listener.getLogger().format("%n    Checking branch %s%n", HyperlinkNote
                                     .encodeTo(resolvedRepositoryUrl + "/tree/" + branchName, branchName));
+
+                            SCMRevisionImpl revision;
                             BranchSCMHead head = new BranchSCMHead(branchName);
-                            if (request.process(head, new SCMRevisionImpl(head, branch.getSHA1()),
+                            String eventBranchName = GitHubIncludeRegionsTrait.getBranchFromEvent(event);
+
+                            // We're processing an event for a gh webhook, rely on sha to process from above
+                            if (branchName.equals(eventBranchName)) {
+                                listener.getLogger().format("%n    Processing webhook event for branch %s %n", eventBranchName);
+                                if (shaToProcess.equals("")) {
+                                    listener.getLogger().format("%n    Did not have SHA for previously built head commit.. using current branch SHA of %s %n", branch.getSHA1());
+                                    revision = new SCMRevisionImpl(head, branch.getSHA1());
+                                } else {
+                                    listener.getLogger().format("%n    Got commit SHA to process.. using %s %n", shaToProcess);
+                                    revision = new SCMRevisionImpl(head, shaToProcess);
+                                }
+                            } else { // we're not processing a webhook event, but rather a scan repo event
+                                listener.getLogger().format("%n    Processing repo scan...getting last built commit for branch %s %n", branch);
+                                String sha = GitHubIncludeRegionsTrait.getOrSetLastBuiltCommit(owner, branch);
+                                revision = new SCMRevisionImpl(head, sha);
+                            }
+
+                            if (request.process(head, revision,
                                     new SCMSourceRequest.ProbeLambda<BranchSCMHead, SCMRevisionImpl>() {
                                         @NonNull
                                         @Override

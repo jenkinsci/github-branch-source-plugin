@@ -25,7 +25,9 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
+
 import hudson.model.Item;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadEvent;
@@ -34,12 +36,15 @@ import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.trait.SCMSourceContext;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
+import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.impl.trait.Discovery;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.apache.tools.ant.types.selectors.SelectorUtils;
 import org.jenkinsci.Symbol;
+import org.kohsuke.github.GHBranch;
 import org.kohsuke.github.GHEventPayload;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +63,8 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
      * The regions to include for this multi branch project
      */
     private final String includeRegions;
+    private Map<String, String> lastMatchedShas;
+    private String matchedShas;
 
     /**
      * Constructor for stapler.
@@ -67,6 +74,8 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
     @DataBoundConstructor
     public GitHubIncludeRegionsTrait(String includeRegions) {
         this.includeRegions = includeRegions;
+        this.lastMatchedShas = new HashMap<>();
+        this.matchedShas = "";
     }
 
     /**
@@ -82,6 +91,71 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
         return Arrays.stream(this.includeRegions.split("\n"))
             .map(e -> e.trim())
             .collect(Collectors.toList());
+    }
+
+    @CheckForNull
+    public String getLastMatchedShaForBranch(String branch) {
+        return this.getMatchedShaMap().get(branch);// .getOrDefault(branch, "");
+    }
+
+    public void setLastMatchedShaForBranch(String branch, String lastMatchedSHA) {
+        Map<String, String> map = this.getMatchedShaMap();
+        map.put(branch, lastMatchedSHA);
+        this.setMatchedShaString();
+    }
+
+    public String getMatchedShas() {
+        return this.matchedShas;
+    }
+
+    @DataBoundSetter
+    public void setLastMatchedShas(Map<String, String> lastMatched) {
+        this.lastMatchedShas = lastMatched;
+    }
+
+    @DataBoundSetter
+    public void setMatchedShas(String shas) {
+        this.matchedShas = shas;
+    }
+
+    public Map<String, String> getMatchedShaMap() {
+        LOGGER.info("building sha map");
+        long start_time = System.nanoTime();
+
+        this.lastMatchedShas = new HashMap<>();
+        if (this.matchedShas == null) {
+            this.matchedShas = "";
+            return this.lastMatchedShas;
+        }
+
+        Arrays.stream(this.matchedShas.split("\n"))
+            .forEach(e -> {
+                String[] parts = e.split(":");
+                if (parts.length == 2) {
+                    this.lastMatchedShas.put(parts[0], parts[1]);
+                }
+            });
+
+        long end_time = System.nanoTime();
+        LOGGER.info("built map in {} ms", (end_time - start_time) / 1e6);
+        return this.lastMatchedShas;
+    }
+
+    public void setMatchedShaString() {
+        LOGGER.info("building matched sha string from map");
+        long start_time = System.nanoTime();
+
+        StringBuilder collectedMatches = new StringBuilder();
+        for (Map.Entry match : this.lastMatchedShas.entrySet()) {
+            collectedMatches.append(match.getKey());
+            collectedMatches.append(":");
+            collectedMatches.append(match.getValue());
+            collectedMatches.append("\n");
+        }
+
+        this.matchedShas = collectedMatches.toString();
+        long end_time = System.nanoTime();
+        LOGGER.info("built string in {} ms", (end_time - start_time) / 1e6);
     }
 
     /**
@@ -103,60 +177,139 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
     }
 
     @NotNull
-    public Match matchFilesToIncludedRegions(HashMap<String, List<String>> changedFiles) {
+    public boolean matchFilesToIncludedRegions(HashMap<String, List<String>> changedFiles) {
         List<String> includedRegions = this.getIncludeRegionsList();
         for (Map.Entry<String, List<String>> entry : changedFiles.entrySet()) {
             for (String includedRegionPattern : includedRegions) {
                 for (String filePath : entry.getValue()) {
                     if (SelectorUtils.matchPath(includedRegionPattern, filePath)) {
-                        return new Match(filePath, includedRegionPattern, entry.getKey(), MatchType.MATCH);
+                        LOGGER.info("Found commit {} with changed file {} matching pattern {}", entry.getKey(), filePath, includedRegionPattern);
+                        return true;
                     }
                 }
             }
         }
 
-        return new Match(MatchType.MISMATCH);
+        LOGGER.info("No commits had matching files changed");
+        return false;
     }
 
-    public static Match isBuildableSCMEvent(@NotNull SCMSourceOwner owner, @CheckForNull SCMHeadEvent<?> event) {
-        if (event == null) {
-            LOGGER.info("Cant match on null event - returning INVALID match");
-            return new Match(MatchType.INVALID);
-        }
+    public static String isBuildableSCMEvent(@NotNull SCMSourceOwner owner, @NotNull SCMHeadEvent event) {
+        String logPrefix = "[" + owner.getFullName() + "]:";
 
-        GHEventPayload.Push payload;
-        if (event.getPayload() instanceof GHEventPayload.Push) {
-            payload = (GHEventPayload.Push) event.getPayload();
-        } else {
-            LOGGER.info("Can only operate on Github SCM events. Returning no match.");
-            return new Match(MatchType.INVALID);
+        GHEventPayload.Push payload = getGHEventPayload(event);
+        String branch = getBranchFromEvent(event);
+        if (payload == null || branch == null) {
+            LOGGER.info("{} Could not parse payload: {} or branch: {}", logPrefix, payload, branch);
+            return "";
         }
 
         HashMap<String, List<String>> commits = collectCommits(payload);
-        boolean hasGHIncludedRegionTrait = false;
+        List<GitHubIncludeRegionsTrait> traits = collectTraitsFromOwner(owner);
 
+        // No GithubIncludedRegionTraits were defined for this job owner
+        if (traits.isEmpty()) {
+            return payload.getHead();
+        } else if (traits.size() > 1) {
+            LOGGER.warn("{} Found multiple GithubIncludedRegionTrait -- please only specify one per job. Continuing with the first one.", logPrefix);
+        }
+
+        GitHubIncludeRegionsTrait ghTrait = traits.get(0);
+        boolean matched = ghTrait.matchFilesToIncludedRegions(commits);
+
+        // No initial match against included regions
+        if (!matched) {
+            LOGGER.info("{} No files in commits {} matched any included regions for build {}", logPrefix, commits.keySet(), ghTrait.getIncludeRegionsList());
+            LOGGER.info("{} Attempting to get previously set matching commit", logPrefix);
+            String lastMatchedSha = ghTrait.getLastMatchedShaForBranch(branch);
+
+            // Found previously set match
+            if (lastMatchedSha != null) {
+                LOGGER.info("{} Found previously set match ({}) for branch ({})", logPrefix, lastMatchedSha, branch);
+                return lastMatchedSha;
+            }
+
+            ghTrait.setLastMatchedShaForBranch(branch, payload.getHead());
+            return payload.getHead();
+        }
+
+        // We found a match against included regions
+        LOGGER.info("{} Found a commit which matched our included regions -- setting last matched sha for branch {} to current head of {}", logPrefix, branch, payload.getHead());
+        ghTrait.setLastMatchedShaForBranch(branch, payload.getHead());
+        return payload.getHead();
+    }
+
+    public static List<GitHubIncludeRegionsTrait> collectTraitsFromOwner(@NotNull SCMSourceOwner owner) {
+        ArrayList<GitHubIncludeRegionsTrait> filtered = new ArrayList<>();
         for (SCMSource src : owner.getSCMSources()) {
-            LOGGER.info("source: {}", src.getPronoun());
-            for (SCMSourceTrait trait : src.getTraits()) {
+            List<SCMSourceTrait> traits = src.getTraits() != null ? src.getTraits() : new ArrayList<>();
+
+            for (SCMSourceTrait trait : traits) {
                 if (trait instanceof GitHubIncludeRegionsTrait) {
-                    hasGHIncludedRegionTrait = true;
-                    GitHubIncludeRegionsTrait ghTrait = (GitHubIncludeRegionsTrait) trait;
-                    GitHubIncludeRegionsTrait.Match match = ghTrait.matchFilesToIncludedRegions(commits);
-                    if (match.matchType == MatchType.MATCH) {
-                        match.setProject(owner);
-                        return match;
-                    }
+                    filtered.add((GitHubIncludeRegionsTrait) trait);
                 }
             }
         }
 
-        if (hasGHIncludedRegionTrait) {
-            LOGGER.info("No commits in {} matched for job {}\n", commits.keySet(), owner.getFullDisplayName());
-            return new Match(MatchType.MISMATCH);
-        } else {
-            LOGGER.info("Job {} did not have any configured github included region traits -- returning invalid", owner.getFullDisplayName());
-            return new Match(MatchType.INVALID);
+        return filtered;
+    }
+
+    public static String getOrSetLastBuiltCommit(@NotNull SCMSourceOwner owner, @NotNull GHBranch branch) {
+        List<GitHubIncludeRegionsTrait> traits = collectTraitsFromOwner(owner);
+        if (traits.isEmpty()) {
+            LOGGER.info("[{}]: No GithubIncludedRegionTrait for owner", owner.getFullName());
+            return branch.getSHA1();
         }
+
+        GitHubIncludeRegionsTrait ghTrait = traits.get(0);
+        String sha = ghTrait.getLastMatchedShaForBranch(branch.getName());
+        if (sha != null) {
+            return sha;
+        }
+
+        LOGGER.info("[{}]: No sha was set for branch {} - setting value to {}", owner.getFullName(), branch.getName(), branch.getSHA1());
+        ghTrait.setLastMatchedShaForBranch(branch.getName(), branch.getSHA1());
+        return branch.getSHA1();
+    }
+
+    public static GHEventPayload.Push getGHEventPayload(@Nullable SCMHeadEvent event) {
+        if (event == null) {
+            return null;
+        }
+
+        GHEventPayload.Push payload;
+
+        try {
+            payload = (GHEventPayload.Push) event.getPayload();
+        } catch (Exception e) {
+            LOGGER.error("Unable to cash event to GHEventPayload: " + e);
+            return null;
+        }
+
+        return payload;
+    }
+
+    @CheckForNull
+    public static String getBranchFromEvent(@Nullable SCMHeadEvent event) {
+        GHEventPayload.Push payload = getGHEventPayload(event);
+        return getBranchFromPayload(payload);
+    }
+
+    @CheckForNull
+    public static String getBranchFromPayload(@Nullable GHEventPayload.Push payload) {
+        if (payload == null) {
+            return null;
+        }
+
+        String[] parts = payload.getRef().split("/");
+        if (parts.length == 0) {
+            LOGGER.info("Could not parse branch from parts {}", parts.toString());
+            return null;
+        }
+
+        String branch = parts[parts.length - 1];
+        LOGGER.info("Got branch {}", branch);
+        return branch;
     }
 
     @NotNull
