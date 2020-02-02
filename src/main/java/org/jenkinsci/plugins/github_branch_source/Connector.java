@@ -220,7 +220,9 @@ public class Connector {
                         Connector.release(connector);
                     }
                 } catch (IllegalArgumentException | InvalidPrivateKeyException e) {
-                    return FormValidation.error(e.getMessage());
+                    String msg = "Exception validating credentials " + CredentialsNameProvider.name(credentials);
+                    LOGGER.log(Level.WARNING, msg, e);
+                    return FormValidation.error(e, msg);
                 } catch (IOException e) {
                     // ignore, never thrown
                     LOGGER.log(Level.WARNING, "Exception validating credentials {0} on {1}", new Object[]{
