@@ -425,7 +425,7 @@ public class Connector {
             if (username != null && !githubApp) {
                 gb.withPassword(username, password);
             } else if (username != null) {
-                gb.withOAuthToken(generateAppInstallationToken(username, password), "");
+                gb.withOAuthToken(generateAppInstallationToken(username, password, apiUrl), "");
             }
 
             hub = gb.build();
@@ -437,10 +437,10 @@ public class Connector {
     }
 
     @SuppressWarnings("deprecation") // preview features are required for GitHub app integration, GitHub api adds deprecated to all preview methods
-    private static String generateAppInstallationToken(String appId, String appPrivateKey) {
+    private static String generateAppInstallationToken(String appId, String appPrivateKey, String apiUrl) {
         try {
             String jwtToken = createJWT(appId, appPrivateKey);
-            GitHub gitHubApp = new GitHubBuilder().withJwtToken(jwtToken).build();
+            GitHub gitHubApp = new GitHubBuilder().withEndpoint(apiUrl).withJwtToken(jwtToken).build();
 
             GHApp app = gitHubApp.getApp();
 
