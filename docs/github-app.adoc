@@ -45,8 +45,11 @@ The only fields you need to fill out (currently) are:
 
 Permissions this plugin uses:
 
-- Commit statuses - read and write
-- Webhooks (optional) - if you want the plugin to manage webhooks for you, read and write
+- Commit statuses - Read and Write
+- Contents: Read-only (to read the Jenkinsfile)
+- Metadata: Read-only
+- Pull requests: Read-only
+- Webhooks (optional) - If you want the plugin to manage webhooks for you, Read and Write
 
 
 Click 'Create GitHub app'
