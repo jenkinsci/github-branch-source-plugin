@@ -2539,7 +2539,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             iterator = iterable.iterator();
                         } catch (Error e) {
                             if (e.getCause() instanceof GHFileNotFoundException) {
-                                return Collections.<GHRef>emptyList().iterator();
+                                return Collections.emptyIterator();
                             }
                             throw e;
                         }

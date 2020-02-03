@@ -170,7 +170,7 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
         //Expected: When initially getting multiple tags, there will then be a thrown filenotfound which returns an empty list
         //Then for the second tag iterator created it returns an IO error
         Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
-        assertEquals(Collections.<GHRef>emptyList().iterator(), tags);
+        assertEquals(Collections.emptyIterator(), tags);
         try{
             Iterator<GHRef> tags2 = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
             fail("This should throw an exception");
