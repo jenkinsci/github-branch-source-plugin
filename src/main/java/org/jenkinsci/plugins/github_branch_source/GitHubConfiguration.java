@@ -63,7 +63,7 @@ import org.kohsuke.stapler.StaplerRequest;
 
     @NonNull
     public synchronized List<Endpoint> getEndpoints() {
-        return endpoints == null ? Collections.<Endpoint>emptyList() : Collections.unmodifiableList(endpoints);
+        return endpoints == null ? Collections.emptyList() : Collections.unmodifiableList(endpoints);
     }
 
     @NonNull
@@ -122,7 +122,7 @@ import org.kohsuke.stapler.StaplerRequest;
     }
 
     public synchronized void setEndpoints(@CheckForNull List<Endpoint> endpoints) {
-        endpoints = new ArrayList<Endpoint>(endpoints == null ? Collections.<Endpoint>emptyList() : endpoints);
+        endpoints = new ArrayList<Endpoint>(endpoints == null ? Collections.emptyList() : endpoints);
         // remove duplicates and empty urls
         Set<String> apiUris = new HashSet<String>();
         for (Iterator<Endpoint> iterator = endpoints.iterator(); iterator.hasNext(); ) {

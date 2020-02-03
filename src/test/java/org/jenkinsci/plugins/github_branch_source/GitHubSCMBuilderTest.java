@@ -90,13 +90,12 @@ public class GitHubSCMBuilderTest {
         Credentials sshPrivateKeyCredential = new BasicSSHUserPrivateKey(CredentialsScope.GLOBAL, "user-key", "git",
                 new BasicSSHUserPrivateKey.UsersPrivateKeySource(), null, null);
         SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(),
-                Arrays.<Credentials>asList(userPasswordCredential, sshPrivateKeyCredential)));
+                Arrays.asList(userPasswordCredential, sshPrivateKeyCredential)));
     }
 
     @After
     public void tearDown() throws IOException, InterruptedException {
-        SystemCredentialsProvider.getInstance()
-                .setDomainCredentialsMap(Collections.<Domain, List<Credentials>>emptyMap());
+        SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.emptyMap());
         owner.delete();
     }
 

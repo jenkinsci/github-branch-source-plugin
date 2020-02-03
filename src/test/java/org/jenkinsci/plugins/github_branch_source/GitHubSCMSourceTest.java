@@ -163,11 +163,11 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase{
         WorkflowMultiBranchProject job = r.createProject(WorkflowMultiBranchProject.class);
         job.setSourcesList(Arrays.asList(new BranchSource(new GitSCMSource("file://tmp/something"))));
         Collection<GitHubRepositoryName> names = GitHubRepositoryNameContributor.parseAssociatedNames(job);
-        assertThat(names, Matchers.<GitHubRepositoryName>empty());
+        assertThat(names, Matchers.empty());
         //And specifically...
         names = new ArrayList<>();
         ExtensionList.lookup(GitHubRepositoryNameContributor.class).get(GitHubSCMSourceRepositoryNameContributor.class).parseAssociatedNames(job, names);
-        assertThat(names, Matchers.<GitHubRepositoryName>empty());
+        assertThat(names, Matchers.empty());
     }
 
     @Test
@@ -175,11 +175,11 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase{
     public void testGitHubRepositoryNameContributor_When_not_MultiBranch() throws IOException {
         FreeStyleProject job = r.createProject(FreeStyleProject.class);
         Collection<GitHubRepositoryName> names = GitHubRepositoryNameContributor.parseAssociatedNames((Item) job);
-        assertThat(names, Matchers.<GitHubRepositoryName>empty());
+        assertThat(names, Matchers.empty());
         //And specifically...
         names = new ArrayList<>();
         ExtensionList.lookup(GitHubRepositoryNameContributor.class).get(GitHubSCMSourceRepositoryNameContributor.class).parseAssociatedNames((Item) job, names);
-        assertThat(names, Matchers.<GitHubRepositoryName>empty());
+        assertThat(names, Matchers.empty());
     }
 
     @Test
@@ -634,15 +634,15 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase{
 
     @Test
     public void fetchActions() throws Exception {
-        assertThat(source.fetchActions(null, null), Matchers.<Action>containsInAnyOrder(
-                Matchers.<Action>is(
+        assertThat(source.fetchActions(null, null), Matchers.containsInAnyOrder(
+                Matchers.is(
                         new ObjectMetadataAction(null, "You only live once", "http://yolo.example.com")
                 ),
-                Matchers.<Action>is(
+                Matchers.is(
                         new GitHubDefaultBranch("cloudbeers", "yolo", "master")
                 ),
                 instanceOf(GitHubRepoMetadataAction.class),
-                Matchers.<Action>is(new GitHubLink("icon-github-repo", "https://github.com/cloudbeers/yolo"))));
+                Matchers.is(new GitHubLink("icon-github-repo", "https://github.com/cloudbeers/yolo"))));
     }
 
     @Test

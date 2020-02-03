@@ -44,8 +44,7 @@ public class ForkPullRequestDiscoveryTraitTest {
         assertThat(ctx.wantPRs(), is(true));
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assertThat(ctx.forkPRStrategies(),
-                Matchers.<Set<ChangeRequestCheckoutStrategy>>is(EnumSet.allOf(ChangeRequestCheckoutStrategy.class)));
+        assertThat(ctx.forkPRStrategies(), Matchers.is(EnumSet.allOf(ChangeRequestCheckoutStrategy.class)));
         assertThat(ctx.authorities(), (Matcher) hasItem(
                 instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class)
         ));
@@ -70,8 +69,7 @@ public class ForkPullRequestDiscoveryTraitTest {
         assertThat(ctx.wantPRs(), is(true));
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assertThat(ctx.forkPRStrategies(),
-                Matchers.<Set<ChangeRequestCheckoutStrategy>>is(EnumSet.of(ChangeRequestCheckoutStrategy.HEAD)));
+        assertThat(ctx.forkPRStrategies(), Matchers.is(EnumSet.of(ChangeRequestCheckoutStrategy.HEAD)));
         assertThat(ctx.authorities(), (Matcher) hasItem(
                 instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class)
         ));
@@ -96,8 +94,7 @@ public class ForkPullRequestDiscoveryTraitTest {
         assertThat(ctx.wantPRs(), is(true));
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assertThat(ctx.forkPRStrategies(),
-                Matchers.<Set<ChangeRequestCheckoutStrategy>>is(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE)));
+        assertThat(ctx.forkPRStrategies(), Matchers.is(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE)));
         assertThat(ctx.authorities(), (Matcher) hasItem(
                 instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class)
         ));
@@ -122,8 +119,7 @@ public class ForkPullRequestDiscoveryTraitTest {
         assertThat(ctx.wantPRs(), is(true));
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assertThat(ctx.forkPRStrategies(),
-                Matchers.<Set<ChangeRequestCheckoutStrategy>>is(EnumSet.allOf(ChangeRequestCheckoutStrategy.class)));
+        assertThat(ctx.forkPRStrategies(), Matchers.is(EnumSet.allOf(ChangeRequestCheckoutStrategy.class)));
         assertThat(ctx.authorities(), (Matcher) hasItem(
                 instanceOf(ForkPullRequestDiscoveryTrait.TrustEveryone.class)
         ));
