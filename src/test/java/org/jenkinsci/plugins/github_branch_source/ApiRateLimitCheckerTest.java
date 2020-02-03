@@ -404,7 +404,7 @@ public class ApiRateLimitCheckerTest {
             ApiRateLimitChecker.ThrottleOnOver.checkApiRateLimit(listener, github);
         }
 
-        //should be no ouput
+        //should be no output
         assertEquals(0, countOfOutputLinesContaining("Sleeping"));
 
         // check rate limit to hit the next 5 scenarios
@@ -525,9 +525,9 @@ public class ApiRateLimitCheckerTest {
 
         // Expect a triggered throttle for normalize
         assertEquals(12, countOfOutputLinesContaining("Current quota"));
-        //Making sure the budgets are correct
+        // Making sure the budgets are correct
         assertEquals(12, countOfOutputLinesContaining("0 under budget"));
-        // no occurences of sleeping
+        // no occurrences of sleeping
         assertEquals(0, countOfOutputLines(m -> m.matches("[sS]leeping")));
     }
 

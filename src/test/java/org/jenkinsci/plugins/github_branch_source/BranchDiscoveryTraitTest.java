@@ -23,7 +23,7 @@ public class BranchDiscoveryTraitTest {
     public static JenkinsRule j = new JenkinsRule();
 
     @Test
-    public void given__disoverAll__when__appliedToContext__then__noFilter() throws Exception {
+    public void given__discoverAll__when__appliedToContext__then__noFilter() throws Exception {
         GitHubSCMSourceContext ctx = new GitHubSCMSourceContext(null, SCMHeadObserver.none());
         assumeThat(ctx.wantBranches(), is(false));
         assumeThat(ctx.wantPRs(), is(false));

@@ -232,7 +232,7 @@ public class GitHubSCMFileSystemTest {
         // the checkout may have "fixed" line endings that we needed to handle.
         // The problem with the raw url data is that it can get out of sync when from the actual content.
         // The GitHub API info stays sync'd and correct, so now GHContent.read() pulls from mime encoded data
-        // in the GHContent record itself. Keeping this for refence in case it changes again.
+        // in the GHContent record itself. Keeping this for reference in case it changes again.
 //        try (InputStream inputStream = getClass().getResourceAsStream("/raw/__files/body-fu-bar.txt-b4k4I.txt")) {
 //            if (inputStream != null) {
 //                expected = IOUtils.toString(inputStream, StandardCharsets.US_ASCII);
