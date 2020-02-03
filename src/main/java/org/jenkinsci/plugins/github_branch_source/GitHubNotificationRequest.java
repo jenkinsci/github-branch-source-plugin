@@ -24,6 +24,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import java.util.Objects;
 import org.kohsuke.github.GHCommitState;
 
 /**
@@ -128,9 +129,9 @@ public class GitHubNotificationRequest {
         GitHubNotificationRequest that = (GitHubNotificationRequest) o;
 
         if (ignoreError != that.ignoreError) return false;
-        if (context != null ? !context.equals(that.context) : that.context != null) return false;
-        if (url != null ? !url.equals(that.url) : that.url != null) return false;
-        if (message != null ? !message.equals(that.message) : that.message != null) return false;
+        if (!Objects.equals(context, that.context)) return false;
+        if (!Objects.equals(url, that.url)) return false;
+        if (!Objects.equals(message, that.message)) return false;
         return state == that.state;
     }
 
