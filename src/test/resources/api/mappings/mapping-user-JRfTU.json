@@ -1,0 +1,34 @@
+{
+  "request" : {
+    "url" : "/user",
+    "method" : "GET",
+    "basicAuth": {
+      "username": "git-user",
+      "password": "git-secret"
+    }
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "body-users-stephenc-JRfTU.json",
+    "headers" : {
+      "Date" : "Thu, 30 Jan 2020 16:38:59 GMT",
+      "Content-Type" : "application/json; charset=utf-8",
+      "Server" : "GitHub.com",
+      "Transfer-Encoding": "chunked",
+      "Status" : "200 OK",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "X-RateLimit-Limit" : "60",
+      "X-RateLimit-Remaining" : "51",
+      "X-RateLimit-Reset" : "1580403200",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type",
+      "Access-Control-Allow-Origin" : "*",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "X-Frame-Options" : "deny",
+      "X-Content-Type-Options" : "nosniff",
+      "X-XSS-Protection" : "1; mode=block",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "Content-Security-Policy" : "default-src 'none'",
+      "X-GitHub-Request-Id" : "F6AC:12585:1435134:1835D1B:5E3306A3"
+    }
+  }
+}

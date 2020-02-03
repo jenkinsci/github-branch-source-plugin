@@ -1,0 +1,35 @@
+{
+  "id" : "ff960dbb-fe98-37d6-82ac-9f79ab7dd0de",
+  "request" : {
+    "urlPath" : "/user/repos",
+    "method" : "GET",
+    "basicAuth": {
+      "username": "git-user",
+      "password": "git-secret"
+    }
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "body-user-repos-O8W78.json",
+    "headers" : {
+      "Date" : "Fri, 31 Jan 2020 10:49:58 GMT",
+      "Content-Type" : "application/json; charset=utf-8",
+      "Server" : "GitHub.com",
+      "Status" : "200 OK",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "X-RateLimit-Limit" : "60",
+      "X-RateLimit-Remaining" : "54",
+      "X-RateLimit-Reset" : "1580469786",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type",
+      "Access-Control-Allow-Origin" : "*",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "X-Frame-Options" : "deny",
+      "X-Content-Type-Options" : "nosniff",
+      "X-XSS-Protection" : "1; mode=block",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "Content-Security-Policy" : "default-src 'none'",
+      "X-GitHub-Request-Id" : "C1F9:C8CD:5FFC805:7325FB9:5E340656"
+    }
+  },
+  "uuid" : "ff960dbb-fe98-37d6-82ac-9f79ab7dd0de"
+}
