@@ -38,7 +38,7 @@ public class OriginPullRequestDiscoveryTraitTest {
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
         assertThat(ctx.originPRStrategies(), Matchers.is(EnumSet.allOf(ChangeRequestCheckoutStrategy.class)));
-        assertThat(ctx.authorities(), (Matcher) hasItem(
+        assertThat(ctx.authorities(), hasItem(
                 instanceOf(OriginPullRequestDiscoveryTrait.OriginChangeRequestSCMHeadAuthority.class)
         ));
     }
@@ -62,7 +62,7 @@ public class OriginPullRequestDiscoveryTraitTest {
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
         assertThat(ctx.originPRStrategies(), Matchers.is(EnumSet.of(ChangeRequestCheckoutStrategy.HEAD)));
-        assertThat(ctx.authorities(), (Matcher) hasItem(
+        assertThat(ctx.authorities(), hasItem(
                 instanceOf(OriginPullRequestDiscoveryTrait.OriginChangeRequestSCMHeadAuthority.class)
         ));
     }
@@ -87,7 +87,7 @@ public class OriginPullRequestDiscoveryTraitTest {
         assertThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
         assertThat(ctx.originPRStrategies(),
                 Matchers.is(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE)));
-        assertThat(ctx.authorities(), (Matcher) hasItem(
+        assertThat(ctx.authorities(), hasItem(
                 instanceOf(OriginPullRequestDiscoveryTrait.OriginChangeRequestSCMHeadAuthority.class)
         ));
     }
@@ -111,7 +111,7 @@ public class OriginPullRequestDiscoveryTraitTest {
         assertThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
         assertThat(ctx.originPRStrategies(),
                 Matchers.is(EnumSet.allOf(ChangeRequestCheckoutStrategy.class)));
-        assertThat(ctx.authorities(), (Matcher) hasItem(
+        assertThat(ctx.authorities(), hasItem(
                 instanceOf(OriginPullRequestDiscoveryTrait.OriginChangeRequestSCMHeadAuthority.class)
         ));
     }
