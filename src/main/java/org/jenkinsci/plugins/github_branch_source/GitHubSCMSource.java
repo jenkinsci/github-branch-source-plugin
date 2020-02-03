@@ -568,9 +568,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
             this.setRepositoryUrl(json.get("repositoryUrl").toString());
         } else {
             this.repositoryUrl = null;
-            this.apiUri = json.get("apiUri").toString();
-            this.repoOwner = json.get("repoOwner").toString();
-            this.repository = json.get("repository").toString();
+            setApiUri(json.get("apiUri").toString());
+            setRepoOwner(json.get("repoOwner").toString());
+            setRepository(json.get("repository").toString());
         }
 
         return this;
@@ -2105,10 +2105,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
 
             try {
                 info = GitHubRepositoryInfo.forRepositoryUrl(repositoryUrl);
-            } catch (Throwable e) {
-                if (e instanceof IllegalArgumentException && e.getCause() != null) {
-                    e = e.getCause();
-                }
+            } catch (Exception e) {
                 return FormValidation.error(e, e.getMessage());
             }
 
