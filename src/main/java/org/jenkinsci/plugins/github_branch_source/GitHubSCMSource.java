@@ -2056,8 +2056,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
         @Nonnull
         public Map<String, Object> customInstantiate(@Nonnull Map<String, Object> arguments) {
             Map<String, Object> arguments2 = new TreeMap<>(arguments);
-            arguments2.remove("repositoryUrl");
-            arguments2.remove("configuredByUrl");
             return arguments2;
         }
 
@@ -2065,7 +2063,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
         public UninstantiatedDescribable customUninstantiate(@Nonnull UninstantiatedDescribable ud) {
             Map<String, Object> scmArguments = new TreeMap<>(ud.getArguments());
             scmArguments.remove("repositoryUrl");
-            scmArguments.remove("configuredByUrl");
             return ud.withArguments(scmArguments);
         }
 
