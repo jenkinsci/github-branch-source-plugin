@@ -33,7 +33,6 @@ import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.ExtensionList;
-import hudson.model.Action;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.TaskListener;

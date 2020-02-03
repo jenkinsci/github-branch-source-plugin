@@ -38,7 +38,6 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 
-import org.apache.tools.ant.taskdefs.condition.IsTrue;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
