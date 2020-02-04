@@ -32,7 +32,7 @@ public class ForkPullRequestDiscoveryTraitTest {
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not((Matcher) hasItem(
+        assumeThat(ctx.authorities(), not(hasItem(
                 instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class)
         )));
         ForkPullRequestDiscoveryTrait instance = new ForkPullRequestDiscoveryTrait(
@@ -57,7 +57,7 @@ public class ForkPullRequestDiscoveryTraitTest {
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not((Matcher) hasItem(
+        assumeThat(ctx.authorities(), not(hasItem(
                 instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class)
         )));
         ForkPullRequestDiscoveryTrait instance = new ForkPullRequestDiscoveryTrait(
@@ -82,7 +82,7 @@ public class ForkPullRequestDiscoveryTraitTest {
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not((Matcher) hasItem(
+        assumeThat(ctx.authorities(), not(hasItem(
                 instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class)
         )));
         ForkPullRequestDiscoveryTrait instance = new ForkPullRequestDiscoveryTrait(
@@ -107,7 +107,7 @@ public class ForkPullRequestDiscoveryTraitTest {
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not((Matcher) hasItem(
+        assumeThat(ctx.authorities(), not(hasItem(
                 instanceOf(ForkPullRequestDiscoveryTrait.TrustContributors.class)
         )));
         ForkPullRequestDiscoveryTrait instance = new ForkPullRequestDiscoveryTrait(
