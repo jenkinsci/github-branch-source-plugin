@@ -1468,6 +1468,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         @SuppressWarnings("unused") // jelly
+        @NonNull
         public List<SCMTrait<? extends SCMTrait<?>>> getTraitsDefaults() {
             return new ArrayList<>(delegate.getTraitsDefaults());
         }
