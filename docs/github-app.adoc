@@ -67,6 +67,10 @@ Now you need to convert the key into a different format that Jenkins can use:
 openssl pkcs8 -topk8 -inform PEM -outform PEM -in key-in-your-downloads-folder.pem -out converted-github-app.pem -nocrypt
 ----
 
+== Install the GitHub app
+
+- From the install app section of newly created app, install the app to your organization.
+
 == Adding the Jenkins credential
 
 - From the Jenkins main page click 'Credentials'
