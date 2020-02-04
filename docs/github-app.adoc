@@ -9,6 +9,7 @@ to authenticate to Jenkins.
 for a GitHub app scales with your organization size, whereas a user based token has a limit of 5000 regardless of
 how many repositories you have,
 - for organization's that have 2fa enforced - no need to manage 2fa tokens for a 'bot' user
+- to improve and tighten security: the Jenkins GitHub app requires a minimum, controlled set of privileges compared to a service user and its personal access token which has a much wider set of privileges
 
 == Getting started
 
