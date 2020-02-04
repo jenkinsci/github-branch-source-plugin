@@ -4,14 +4,14 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.50</version>
+        <version>3.56</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
     <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
     <name>GitHub Branch Source Plugin</name>
-    <url>https://wiki.jenkins-ci.org/display/JENKINS/GitHub+Branch+Source+Plugin</url>
+    <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
     <description>Multibranch projects and organization folders from GitHub. Maintained by CloudBees, Inc.</description>
     <licenses>
         <license>
@@ -21,15 +21,15 @@
     </licenses>
 
     <properties>
-        <revision>2.6.0</revision>
+        <revision>2.6.2</revision>
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
         <jenkins.version>2.150.3</jenkins.version>
         <scm-api.version>2.6.3</scm-api.version>
-        <hamcrest.version>2.1</hamcrest.version>
+        <hamcrest.version>2.2</hamcrest.version>
         <useBeta>true</useBeta>
-        <jcasc.version>1.30</jcasc.version>
+        <jcasc.version>1.35</jcasc.version>
     </properties>
 
     <scm>
@@ -46,6 +46,11 @@
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>jackson2-api</artifactId>
+            <version>2.10.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>scm-api</artifactId>
             <version>${scm-api.version}</version>
         </dependency>
@@ -57,7 +62,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.95</version>
+            <version>1.106</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -157,7 +162,7 @@
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-jre8-standalone</artifactId>
-            <version>2.24.1</version>
+            <version>2.25.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -193,10 +198,9 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>io.jenkins</groupId>
-            <artifactId>configuration-as-code</artifactId>
+            <groupId>io.jenkins.configuration-as-code</groupId>
+            <artifactId>test-harness</artifactId>
             <version>${jcasc.version}</version>
-            <classifier>tests</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -239,7 +243,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.7</version>
+                <version>3.9</version>
             </dependency>
             <dependency>
                 <groupId>org.jenkins-ci.plugins</groupId>

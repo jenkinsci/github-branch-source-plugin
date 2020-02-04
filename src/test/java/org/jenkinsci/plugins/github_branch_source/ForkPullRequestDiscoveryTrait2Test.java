@@ -74,7 +74,7 @@ public class ForkPullRequestDiscoveryTrait2Test {
             s = new GitHubSCMSource("nobody", "nowhere", null, false);
 
         p.setSourcesList(Collections.singletonList(new BranchSource(s)));
-        s.setTraits(Collections.<SCMSourceTrait>singletonList(new ForkPullRequestDiscoveryTrait(0, trust)));
+        s.setTraits(Collections.singletonList(new ForkPullRequestDiscoveryTrait(0, trust)));
         r.configRoundtrip(p);
         List<SCMSourceTrait> traits = ((GitHubSCMSource) p.getSourcesList().get(0).getSource()).getTraits();
         assertEquals(1, traits.size());

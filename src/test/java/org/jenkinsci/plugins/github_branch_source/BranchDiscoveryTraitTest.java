@@ -38,7 +38,7 @@ public class BranchDiscoveryTraitTest {
         assertThat(ctx.wantPRs(), is(false));
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assertThat(ctx.authorities(), (Matcher) hasItem(
+        assertThat(ctx.authorities(), hasItem(
                 instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
         ));
     }
@@ -60,7 +60,7 @@ public class BranchDiscoveryTraitTest {
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(),
                 contains(instanceOf(BranchDiscoveryTrait.ExcludeOriginPRBranchesSCMHeadFilter.class)));
-        assertThat(ctx.authorities(), (Matcher) hasItem(
+        assertThat(ctx.authorities(), hasItem(
                 instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
         ));
     }
@@ -81,7 +81,7 @@ public class BranchDiscoveryTraitTest {
         assertThat(ctx.wantPRs(), is(true));
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(), contains(instanceOf(BranchDiscoveryTrait.OnlyOriginPRBranchesSCMHeadFilter.class)));
-        assertThat(ctx.authorities(), (Matcher) hasItem(
+        assertThat(ctx.authorities(), hasItem(
                 instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
         ));
     }

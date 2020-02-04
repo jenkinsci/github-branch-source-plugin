@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.util.ListBoxModel;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -49,6 +50,8 @@ import org.kohsuke.stapler.StaplerRequest;
 
     private List<Endpoint> endpoints;
 
+    private ApiRateLimitChecker apiRateLimitChecker;
+
     public GitHubConfiguration() {
         load();
     }
@@ -60,7 +63,20 @@ import org.kohsuke.stapler.StaplerRequest;
 
     @NonNull
     public synchronized List<Endpoint> getEndpoints() {
-        return endpoints == null ? Collections.<Endpoint>emptyList() : Collections.unmodifiableList(endpoints);
+        return endpoints == null ? Collections.emptyList() : Collections.unmodifiableList(endpoints);
+    }
+
+    @NonNull
+    public synchronized ApiRateLimitChecker getApiRateLimitChecker() {
+        if (apiRateLimitChecker == null) {
+            return ApiRateLimitChecker.ThrottleForNormalize;
+        }
+        return apiRateLimitChecker;
+    }
+
+    public synchronized void setApiRateLimitChecker(@CheckForNull ApiRateLimitChecker apiRateLimitChecker) {
+        this.apiRateLimitChecker = apiRateLimitChecker;
+        save();
     }
 
     /**
@@ -106,7 +122,7 @@ import org.kohsuke.stapler.StaplerRequest;
     }
 
     public synchronized void setEndpoints(@CheckForNull List<Endpoint> endpoints) {
-        endpoints = new ArrayList<Endpoint>(endpoints == null ? Collections.<Endpoint>emptyList() : endpoints);
+        endpoints = new ArrayList<Endpoint>(endpoints == null ? Collections.emptyList() : endpoints);
         // remove duplicates and empty urls
         Set<String> apiUris = new HashSet<String>();
         for (Iterator<Endpoint> iterator = endpoints.iterator(); iterator.hasNext(); ) {
@@ -213,4 +229,11 @@ import org.kohsuke.stapler.StaplerRequest;
         return null;
     }
 
+    public ListBoxModel doFillApiRateLimitCheckerItems() {
+        ListBoxModel items = new ListBoxModel();
+        for (ApiRateLimitChecker mode : ApiRateLimitChecker.values()) {
+            items.add(mode.getDisplayName(), mode.name());
+        }
+        return items;
+    }
 }
