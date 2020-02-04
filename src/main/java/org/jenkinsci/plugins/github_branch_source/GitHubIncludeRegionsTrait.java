@@ -155,8 +155,7 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
         long start_time = System.nanoTime();
 
         StringBuilder collectedMatches = new StringBuilder();
-        Set<Map.Entry<String, String>> entries = this.getLastMatchedShas().entrySet();
-        for (Map.Entry match : entries) {
+        for (Map.Entry match : this.lastMatchedShas.entrySet()) {
             collectedMatches.append(match.getKey());
             collectedMatches.append(":");
             collectedMatches.append(match.getValue());
