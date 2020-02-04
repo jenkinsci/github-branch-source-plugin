@@ -59,7 +59,7 @@ public class GitHubNotificationTest {
     public void given__emptyStrategiesList__when__appliedToContext__then__defaultApplied() throws Exception {
         GitHubSCMSourceContext ctx = new GitHubSCMSourceContext(null, SCMHeadObserver.none());
         assumeThat(ctx.notificationStrategies().size(), is(1));
-        ctx.withNotificationStrategies(Collections.<AbstractGitHubNotificationStrategy>emptyList());
+        ctx.withNotificationStrategies(Collections.emptyList());
         assertThat(ctx.notificationStrategies().size(), is(1));
     }
 
@@ -67,7 +67,7 @@ public class GitHubNotificationTest {
     public void given__defaultStrategy__when__emptyStrategyList__then__strategyAdded() throws Exception {
         GitHubSCMSourceContext ctx = new GitHubSCMSourceContext(null, SCMHeadObserver.none());
         assumeThat(ctx.notificationStrategies().size(), is(1));
-        ctx.withNotificationStrategies(Collections.<AbstractGitHubNotificationStrategy>emptyList());
+        ctx.withNotificationStrategies(Collections.emptyList());
         assertThat(ctx.notificationStrategies().size(), is(1));
         ctx.withNotificationStrategy(new DefaultGitHubNotificationStrategy());
         assertThat(ctx.notificationStrategies().size(), is(1));
@@ -77,9 +77,9 @@ public class GitHubNotificationTest {
     public void given__defaultStrategyList__when__emptyStrategyList__then__strategyAdded() throws Exception {
         GitHubSCMSourceContext ctx = new GitHubSCMSourceContext(null, SCMHeadObserver.none());
         assumeThat(ctx.notificationStrategies().size(), is(1));
-        ctx.withNotificationStrategies(Collections.<AbstractGitHubNotificationStrategy>emptyList());
+        ctx.withNotificationStrategies(Collections.emptyList());
         assertThat(ctx.notificationStrategies().size(), is(1));
-        ctx.withNotificationStrategies(Collections.<AbstractGitHubNotificationStrategy>singletonList(new DefaultGitHubNotificationStrategy()));
+        ctx.withNotificationStrategies(Collections.singletonList(new DefaultGitHubNotificationStrategy()));
         assertThat(ctx.notificationStrategies().size(), is(1));
     }
 
@@ -90,7 +90,7 @@ public class GitHubNotificationTest {
         ctx.withNotificationStrategy(new TestNotificationStrategy());
         List<AbstractGitHubNotificationStrategy> strategies = ctx.notificationStrategies();
         assertThat(strategies.size(), is(1));
-        assertThat(strategies.get(0), Matchers.<AbstractGitHubNotificationStrategy>instanceOf(TestNotificationStrategy.class));
+        assertThat(strategies.get(0), Matchers.instanceOf(TestNotificationStrategy.class));
     }
 
     private final class TestNotificationStrategy extends AbstractGitHubNotificationStrategy {

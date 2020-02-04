@@ -319,8 +319,7 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                     }
                 }
                 if (!excluded) {
-                    return Collections.<SCMHead, SCMRevision>singletonMap(head,
-                            new AbstractGitSCMSource.SCMRevisionImpl(head, push.getHead()));
+                    return Collections.singletonMap(head, new AbstractGitSCMSource.SCMRevisionImpl(head, push.getHead()));
                 }
             }
             if (context.wantTags() && ref.startsWith(R_TAGS)) {
@@ -352,8 +351,7 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                     }
                 }
                 if (!excluded) {
-                    return Collections.<SCMHead, SCMRevision>singletonMap(head,
-                            new GitTagSCMRevision(head, push.getHead()));
+                    return Collections.singletonMap(head, new GitTagSCMRevision(head, push.getHead()));
                 }
             }
             return Collections.emptyMap();

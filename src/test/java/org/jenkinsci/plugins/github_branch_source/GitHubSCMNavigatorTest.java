@@ -347,12 +347,12 @@ public class GitHubSCMNavigatorTest {
 
     @Test
     public void fetchActions() throws Exception {
-        assertThat(navigator.fetchActions(Mockito.mock(SCMNavigatorOwner.class), null, null), Matchers.<Action>containsInAnyOrder(
-                Matchers.<Action>is(
+        assertThat(navigator.fetchActions(Mockito.mock(SCMNavigatorOwner.class), null, null), Matchers.containsInAnyOrder(
+                Matchers.is(
                         new ObjectMetadataAction("CloudBeers, Inc.", null, "https://github.com/cloudbeers")
                 ),
-                Matchers.<Action>is(new GitHubOrgMetadataAction("https://avatars.githubusercontent.com/u/4181899?v=3")),
-                Matchers.<Action>is(new GitHubLink("icon-github-logo", "https://github.com/cloudbeers"))));
+                Matchers.is(new GitHubOrgMetadataAction("https://avatars.githubusercontent.com/u/4181899?v=3")),
+                Matchers.is(new GitHubLink("icon-github-logo", "https://github.com/cloudbeers"))));
     }
 
     @Test

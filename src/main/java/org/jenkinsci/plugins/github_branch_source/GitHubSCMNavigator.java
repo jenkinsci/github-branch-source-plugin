@@ -1352,7 +1352,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @Override
         public SCMNavigator newInstance(String name) {
             GitHubSCMNavigator navigator = new GitHubSCMNavigator(name);
-            navigator.setTraits((List) getTraitsDefaults());
+            navigator.setTraits(getTraitsDefaults());
             return navigator;
         }
 
