@@ -988,19 +988,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             // We're processing an event for a gh webhook, rely on sha to process from above
                             if (branchName.equals(eventBranchName)) {
                                 listener.getLogger().format("%n    Processing webhook event for branch %s %n", eventBranchName);
-                                if (shaToProcess.equals("")) {
-                                    listener.getLogger().format("%n    Did not have SHA for previously built head commit.. using current branch SHA of %s %n", branch.getSHA1());
-                                    revision = new SCMRevisionImpl(head, branch.getSHA1());
-                                } else {
-                                    listener.getLogger().format("%n    Got commit SHA to process.. using %s %n", shaToProcess);
-                                    revision = new SCMRevisionImpl(head, shaToProcess);
-                                }
+                                listener.getLogger().format("%n    Got commit SHA to process.. using %s %n", shaToProcess);
+                                revision = new SCMRevisionImpl(head, shaToProcess);
                             } else { // we're not processing a webhook event, but rather a scan repo event
                                 listener.getLogger().format("%n    Processing repo scan...getting last built commit for branch %s %n", branch);
                                 String sha = GitHubIncludeRegionsTrait.getOrSetLastBuiltCommit(owner, branch);
                                 revision = new SCMRevisionImpl(head, sha);
                             }
 
+                            // TODO: fake processing this event if necessary / possible
                             if (request.process(head, revision,
                                     new SCMSourceRequest.ProbeLambda<BranchSCMHead, SCMRevisionImpl>() {
                                         @NonNull
