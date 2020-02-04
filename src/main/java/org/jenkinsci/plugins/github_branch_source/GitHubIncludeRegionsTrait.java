@@ -28,7 +28,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 
-import hudson.model.Item;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadEvent;
 import jenkins.scm.api.SCMSource;
@@ -36,7 +35,6 @@ import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.trait.SCMSourceContext;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
-import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.impl.trait.Discovery;
 import org.antlr.v4.runtime.misc.NotNull;
 import org.apache.tools.ant.types.selectors.SelectorUtils;
@@ -48,7 +46,14 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+
+import javax.annotation.Nonnull;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -56,6 +61,12 @@ import java.util.stream.Collectors;
  *
  * @since 2.2.0
  */
+
+
+/*
+    TODO: Update pull request logic to not create a PR job if PR event has no relevant changes to job pattern
+ */
+
 public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
     private static final Logger LOGGER = LoggerFactory.getLogger(GitHubIncludeRegionsTrait.class);
 
@@ -74,8 +85,8 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
     @DataBoundConstructor
     public GitHubIncludeRegionsTrait(String includeRegions) {
         this.includeRegions = includeRegions;
-        this.lastMatchedShas = new HashMap<>();
         this.matchedShas = "";
+        this.lastMatchedShas = new HashMap<>();
     }
 
     /**
@@ -87,6 +98,15 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
         return this.includeRegions;
     }
 
+    public synchronized String getMatchedShas() {
+        return this.matchedShas;
+    }
+
+    public Map<String, String> getLastMatchedShas() {
+        this.lastMatchedShas = getMatchedShaMap();
+        return this.lastMatchedShas;
+    }
+
     public List<String> getIncludeRegionsList() {
         return Arrays.stream(this.includeRegions.split("\n"))
             .map(e -> e.trim())
@@ -95,65 +115,55 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
 
     @CheckForNull
     public String getLastMatchedShaForBranch(String branch) {
-        return this.getMatchedShaMap().get(branch);// .getOrDefault(branch, "");
+        return this.getLastMatchedShas().get(branch);
     }
 
-    public void setLastMatchedShaForBranch(String branch, String lastMatchedSHA) {
-        Map<String, String> map = this.getMatchedShaMap();
-        map.put(branch, lastMatchedSHA);
+    public void putLastMatchedShaForBranch(String branch, String lastMatchedSHA) {
+        this.getLastMatchedShas().put(branch, lastMatchedSHA);
         this.setMatchedShaString();
     }
 
-    public String getMatchedShas() {
-        return this.matchedShas;
-    }
-
     @DataBoundSetter
-    public void setLastMatchedShas(Map<String, String> lastMatched) {
-        this.lastMatchedShas = lastMatched;
-    }
-
-    @DataBoundSetter
-    public void setMatchedShas(String shas) {
+    public synchronized void setMatchedShas(String shas) {
         this.matchedShas = shas;
     }
 
-    public Map<String, String> getMatchedShaMap() {
-        LOGGER.info("building sha map");
+    public synchronized Map<String, String> getMatchedShaMap() {
+        LOGGER.info("building sha map from string");
         long start_time = System.nanoTime();
 
-        this.lastMatchedShas = new HashMap<>();
-        if (this.matchedShas == null) {
-            this.matchedShas = "";
-            return this.lastMatchedShas;
+        HashMap<String, String> lastMatchedShas = new HashMap<>();
+        if (this.getMatchedShas() == null) {
+            this.setMatchedShas("");
         }
 
         Arrays.stream(this.matchedShas.split("\n"))
             .forEach(e -> {
                 String[] parts = e.split(":");
                 if (parts.length == 2) {
-                    this.lastMatchedShas.put(parts[0], parts[1]);
+                    lastMatchedShas.put(parts[0], parts[1]);
                 }
             });
 
         long end_time = System.nanoTime();
         LOGGER.info("built map in {} ms", (end_time - start_time) / 1e6);
-        return this.lastMatchedShas;
+        return lastMatchedShas;
     }
 
-    public void setMatchedShaString() {
-        LOGGER.info("building matched sha string from map");
+    public synchronized void setMatchedShaString() {
+        LOGGER.info("building sha string from map");
         long start_time = System.nanoTime();
 
         StringBuilder collectedMatches = new StringBuilder();
-        for (Map.Entry match : this.lastMatchedShas.entrySet()) {
+        Set<Map.Entry<String, String>> entries = this.getLastMatchedShas().entrySet();
+        for (Map.Entry match : entries) {
             collectedMatches.append(match.getKey());
             collectedMatches.append(":");
             collectedMatches.append(match.getValue());
             collectedMatches.append("\n");
         }
 
-        this.matchedShas = collectedMatches.toString();
+        this.setMatchedShas(collectedMatches.toString());
         long end_time = System.nanoTime();
         LOGGER.info("built string in {} ms", (end_time - start_time) / 1e6);
     }
@@ -209,37 +219,37 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
 
         // No GithubIncludedRegionTraits were defined for this job owner
         if (traits.isEmpty()) {
+            LOGGER.info("{} No GithubIncludedRegionTrait was defined. Proceeding with usual behavior", logPrefix);
             return payload.getHead();
-        } else if (traits.size() > 1) {
-            LOGGER.warn("{} Found multiple GithubIncludedRegionTrait -- please only specify one per job. Continuing with the first one.", logPrefix);
         }
 
         GitHubIncludeRegionsTrait ghTrait = traits.get(0);
         boolean matched = ghTrait.matchFilesToIncludedRegions(commits);
 
-        // No initial match against included regions
-        if (!matched) {
-            LOGGER.info("{} No files in commits {} matched any included regions for build {}", logPrefix, commits.keySet(), ghTrait.getIncludeRegionsList());
-            LOGGER.info("{} Attempting to get previously set matching commit", logPrefix);
-            String lastMatchedSha = ghTrait.getLastMatchedShaForBranch(branch);
-
-            // Found previously set match
-            if (lastMatchedSha != null) {
-                LOGGER.info("{} Found previously set match ({}) for branch ({})", logPrefix, lastMatchedSha, branch);
-                return lastMatchedSha;
-            }
-
-            ghTrait.setLastMatchedShaForBranch(branch, payload.getHead());
+        // We found a match against included regions
+        if (matched) {
+            LOGGER.info("{} Found a commit which matched our included regions -- setting last matched sha for branch {} to current head of {}", logPrefix, branch, payload.getHead());
+            ghTrait.putLastMatchedShaForBranch(branch, payload.getHead());
             return payload.getHead();
         }
 
-        // We found a match against included regions
-        LOGGER.info("{} Found a commit which matched our included regions -- setting last matched sha for branch {} to current head of {}", logPrefix, branch, payload.getHead());
-        ghTrait.setLastMatchedShaForBranch(branch, payload.getHead());
+        LOGGER.info("{} No files in commits: {} matched any included regions: {}", logPrefix, commits.keySet(), ghTrait.getIncludeRegionsList());
+        LOGGER.info("{} Attempting to get previously built commit for branch {}", logPrefix, branch);
+        String lastMatchedSha = ghTrait.getLastMatchedShaForBranch(branch);
+
+        // Found previously set match
+        if (lastMatchedSha != null) {
+            LOGGER.info("{} Found previously set match ({}) for branch ({})", logPrefix, lastMatchedSha, branch);
+            return lastMatchedSha;
+        }
+
+        LOGGER.info("{} Had no previously built commit for branch {} - using payload head {}", logPrefix, branch, payload.getHead());
+        ghTrait.putLastMatchedShaForBranch(branch, payload.getHead());
         return payload.getHead();
     }
 
-    public static List<GitHubIncludeRegionsTrait> collectTraitsFromOwner(@NotNull SCMSourceOwner owner) {
+    @NonNull
+    private static List<GitHubIncludeRegionsTrait> collectTraitsFromOwner(@NotNull SCMSourceOwner owner) {
         ArrayList<GitHubIncludeRegionsTrait> filtered = new ArrayList<>();
         for (SCMSource src : owner.getSCMSources()) {
             List<SCMSourceTrait> traits = src.getTraits() != null ? src.getTraits() : new ArrayList<>();
@@ -254,10 +264,16 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
         return filtered;
     }
 
-    public static String getOrSetLastBuiltCommit(@NotNull SCMSourceOwner owner, @NotNull GHBranch branch) {
+    static String getOrSetLastBuiltCommit(SCMSourceOwner owner, @NotNull GHBranch branch) {
+        if (owner == null) {
+            LOGGER.info("null owner - cant get or set last built commit for branch {}", branch.getName());
+            return branch.getSHA1();
+        }
+
+        String logPrefix = "[" + owner.getFullName() + "]:";
         List<GitHubIncludeRegionsTrait> traits = collectTraitsFromOwner(owner);
         if (traits.isEmpty()) {
-            LOGGER.info("[{}]: No GithubIncludedRegionTrait for owner", owner.getFullName());
+            LOGGER.info("{} No GithubIncludedRegionTrait for owner", logPrefix);
             return branch.getSHA1();
         }
 
@@ -267,12 +283,12 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
             return sha;
         }
 
-        LOGGER.info("[{}]: No sha was set for branch {} - setting value to {}", owner.getFullName(), branch.getName(), branch.getSHA1());
-        ghTrait.setLastMatchedShaForBranch(branch.getName(), branch.getSHA1());
+        LOGGER.info("{} No sha was set for branch {} - setting value to {}", logPrefix, branch.getName(), branch.getSHA1());
+        ghTrait.putLastMatchedShaForBranch(branch.getName(), branch.getSHA1());
         return branch.getSHA1();
     }
 
-    public static GHEventPayload.Push getGHEventPayload(@Nullable SCMHeadEvent event) {
+    private static GHEventPayload.Push getGHEventPayload(@Nullable SCMHeadEvent event) {
         if (event == null) {
             return null;
         }
@@ -290,13 +306,13 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
     }
 
     @CheckForNull
-    public static String getBranchFromEvent(@Nullable SCMHeadEvent event) {
+    static String getBranchFromEvent(@Nullable SCMHeadEvent event) {
         GHEventPayload.Push payload = getGHEventPayload(event);
         return getBranchFromPayload(payload);
     }
 
     @CheckForNull
-    public static String getBranchFromPayload(@Nullable GHEventPayload.Push payload) {
+    private static String getBranchFromPayload(@Nullable GHEventPayload.Push payload) {
         if (payload == null) {
             return null;
         }
@@ -313,7 +329,7 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
     }
 
     @NotNull
-    public static HashMap<String, List<String>> collectCommits(GHEventPayload.Push p) {
+    private static HashMap<String, List<String>> collectCommits(GHEventPayload.Push p) {
         HashMap<String, List<String>> changesBySha = new HashMap<>();
         for (GHEventPayload.Push.PushCommit commit : p.getCommits()) {
             List<String> changes = new ArrayList<>();
@@ -336,9 +352,9 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
         /**
          * {@inheritDoc}
          */
-        @Override
+        @Nonnull
         public String getDisplayName() {
-            return "GH Include Regions";
+            return "GitHub Include Regions";
         }
 
         /**
@@ -355,79 +371,6 @@ public class GitHubIncludeRegionsTrait extends SCMSourceTrait {
         @Override
         public Class<? extends SCMSource> getSourceClass() {
             return GitHubSCMSource.class;
-        }
-    }
-
-    enum MatchType {
-        MATCH, // when there was gh included region and we found a matching file
-        MISMATCH, // when there was a gh included region and we didnt find a matching file
-        INVALID // an issue processing the event or payload, allowing SCMSource to move forward
-    }
-
-    public static class Match<T extends Item> {
-        private final String matchedCommit;
-        private final String matchedFile;
-        private final String matchedPattern;
-        private T project;
-        private MatchType matchType;
-
-        public Match(MatchType matchType) {
-            this(null, null, null, null, matchType);
-        }
-
-        public Match(String matchedFile, String matchedPattern, String matchedCommit, MatchType matchType) {
-            this(null, matchedFile, matchedPattern, matchedCommit, matchType);
-        }
-
-        public Match(T project, String matchedFile, String matchedPattern, String matchedCommit, MatchType matchType) {
-            super();
-            this.project = project;
-            this.matchedFile = matchedFile;
-            this.matchedPattern = matchedPattern;
-            this.matchedCommit = matchedCommit;
-            this.matchType = matchType;
-        }
-
-        public void setProject(@NotNull T project) {
-            this.project = project;
-        }
-
-        public T getProject() {
-            return this.project;
-        }
-
-        public String getProjectName() {
-            if (this.project == null) return "";
-            return this.project.getFullDisplayName();
-        }
-
-        public String getMatchedFile() {
-            return this.matchedFile;
-        }
-
-        public String getMatchedPattern() {
-            return this.matchedPattern;
-        }
-
-        public MatchType getMatchType() {
-            return this.matchType;
-        }
-
-        public String getMatchedCommit() {
-            return this.matchedCommit;
-        }
-
-        public String toString() {
-            return "\n[" +
-                    "Project: " +
-                    this.getProjectName() +
-                    ", Changed file: " +
-                    this.getMatchedFile() +
-                    ", Matched pattern: " +
-                    this.getMatchedPattern() +
-                    ", Matched commit: " +
-                    this.getMatchedCommit() +
-                "]\n";
         }
     }
 }
