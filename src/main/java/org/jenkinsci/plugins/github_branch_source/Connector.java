@@ -113,7 +113,7 @@ public class Connector {
     };
     private static final Random ENTROPY = new Random();
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
-    private static final String ERROR_AUTHENTICATING_GITHUB_APP = "Couldn't find GitHub app installation %s";
+    private static final String ERROR_AUTHENTICATING_GITHUB_APP = "Couldn't authenticate with GitHub app ID %s";
 
     private Connector() {
         throw new IllegalAccessError("Utility class");
