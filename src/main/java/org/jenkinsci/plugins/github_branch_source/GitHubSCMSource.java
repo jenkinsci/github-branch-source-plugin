@@ -991,7 +991,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                 listener.getLogger().format("%n    Got commit SHA to process.. using %s %n", shaToProcess);
                                 revision = new SCMRevisionImpl(head, shaToProcess);
                             } else { // we're not processing a webhook event, but rather a scan repo event
-                                listener.getLogger().format("%n    Processing repo scan...getting last built commit for branch %s %n", branch);
+                                listener.getLogger().format("%n    Processing repo scan...getting last built commit for branch %s %n", branch.getName());
                                 String sha = GitHubIncludeRegionsTrait.getOrSetLastBuiltCommit(owner, branch);
                                 revision = new SCMRevisionImpl(head, sha);
                             }
