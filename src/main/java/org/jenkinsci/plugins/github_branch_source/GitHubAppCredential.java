@@ -31,15 +31,6 @@ public class GitHubAppCredential extends BaseStandardCredentials implements Stan
 
     private String apiUrl;
 
-    /**
-     * Constructor.
-     *
-     * @param scope       the credentials scope
-     * @param id          the ID or {@code null} to generate a new one.
-     * @param description the description.
-     * @param appID       the username.
-     * @param privateKey  the password.
-     */
     @DataBoundConstructor
     @SuppressWarnings("unused") // by stapler
     public GitHubAppCredential(

@@ -80,10 +80,10 @@ openssl pkcs8 -topk8 -inform PEM -outform PEM -in key-in-your-downloads-folder.p
 
 Fill out the form:
 
-- Kind: SSH username with private key
+- Kind: GitHub app
 - ID: i.e. github-app-<team-name>
-- Username: the github app ID, it can be found in the 'About' section of your GitHub app in the general tab.
-- Private key: enter directly, paste the contents of the converted private key
+- App ID: the github app ID, it can be found in the 'About' section of your GitHub app in the general tab.
+- Key: click add, paste the contents of the converted private key
 - Passphrase: do not fill this field, it will be ignored
 - Click OK
 

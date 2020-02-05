@@ -25,7 +25,6 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import com.cloudbees.jenkins.GitHubWebHook;
-import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.CredentialsMatcher;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
@@ -463,10 +462,8 @@ public class Connector {
     }
 
     private static CredentialsMatcher githubScanCredentialsMatcher() {
-        return anyOf(
-                instanceOf(StandardUsernamePasswordCredentials.class),
-                instanceOf(SSHUserPrivateKey.class)
-        );
+        // TODO OAuth credentials
+        return CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class));
     }
 
     static List<DomainRequirement> githubDomainRequirements(String apiUri) {

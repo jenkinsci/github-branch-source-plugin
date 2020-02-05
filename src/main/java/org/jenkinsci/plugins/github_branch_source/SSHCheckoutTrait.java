@@ -35,12 +35,12 @@ import hudson.Extension;
 import hudson.Util;
 import hudson.model.Item;
 import hudson.model.Queue;
+import hudson.model.queue.Tasks;
 import hudson.plugins.git.GitSCM;
 import hudson.scm.SCM;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import java.util.Objects;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.GitSCMBuilder;
 import jenkins.scm.api.SCMSource;
@@ -103,23 +103,6 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
     @Override
     protected void decorateBuilder(SCMBuilder<?,?> builder) {
         ((GitHubSCMBuilder)builder).withCredentials(credentialsId, GitHubSCMBuilder.SSH);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        SSHCheckoutTrait that = (SSHCheckoutTrait) o;
-        return Objects.equals(credentialsId, that.credentialsId);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(credentialsId);
     }
 
     /**
