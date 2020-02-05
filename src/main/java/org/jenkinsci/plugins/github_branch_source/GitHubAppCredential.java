@@ -7,16 +7,24 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.Util;
+import hudson.util.FormValidation;
+import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import java.io.IOException;
 import java.util.List;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHApp;
 import org.kohsuke.github.GHAppInstallation;
 import org.kohsuke.github.GHAppInstallationToken;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
+import static org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator.DescriptorImpl.getPossibleApiUriItems;
 import static org.jenkinsci.plugins.github_branch_source.JwtHelper.createJWT;
 
 public class GitHubAppCredential extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
@@ -29,7 +37,7 @@ public class GitHubAppCredential extends BaseStandardCredentials implements Stan
     @NonNull
     private final Secret privateKey;
 
-    private String apiUrl;
+    private String apiUri;
 
     @DataBoundConstructor
     @SuppressWarnings("unused") // by stapler
@@ -45,12 +53,13 @@ public class GitHubAppCredential extends BaseStandardCredentials implements Stan
         this.privateKey = privateKey;
     }
 
-    public String getApiUrl() {
-        return apiUrl;
+    public String getApiUri() {
+        return apiUri;
     }
 
-    public void setApiUrl(String apiUrl) {
-        this.apiUrl = apiUrl;
+    @DataBoundSetter
+    public void setApiUri(String apiUri) {
+        this.apiUri = apiUri;
     }
 
     @NonNull
@@ -92,11 +101,11 @@ public class GitHubAppCredential extends BaseStandardCredentials implements Stan
     @NonNull
     @Override
     public Secret getPassword() {
-        if (Util.fixEmpty(apiUrl) == null) {
-            apiUrl = "https://api.github.com";
+        if (Util.fixEmpty(apiUri) == null) {
+            apiUri = "https://api.github.com";
         }
 
-        String appInstallationToken = generateAppInstallationToken(appID, privateKey.getPlainText(), apiUrl);
+        String appInstallationToken = generateAppInstallationToken(appID, privateKey.getPlainText(), apiUri);
 
         return Secret.fromString(appInstallationToken);
     }
@@ -130,6 +139,46 @@ public class GitHubAppCredential extends BaseStandardCredentials implements Stan
         @Override
         public String getIconClassName() {
             return "icon-github-logo";
+        }
+
+        @SuppressWarnings("unused") // jelly
+        public boolean isApiUriSelectable() {
+            return !GitHubConfiguration.get().getEndpoints().isEmpty();
+        }
+
+        /**
+         * Returns the available GitHub endpoint items.
+         *
+         * @return the available GitHub endpoint items.
+         */
+        @SuppressWarnings("unused") // stapler
+        @Restricted(NoExternalUse.class) // stapler
+        public ListBoxModel doFillApiUriItems() {
+            return getPossibleApiUriItems();
+        }
+
+        @POST
+        @SuppressWarnings("unused") // stapler
+        @Restricted(NoExternalUse.class) // stapler
+        public FormValidation doTestConnection(
+                @QueryParameter("appID") final String appID,
+                @QueryParameter("privateKey") final String privateKey,
+                @QueryParameter("apiUri") final String apiUri
+
+        ) {
+            GitHubAppCredential gitHubAppCredential = new GitHubAppCredential(
+                    CredentialsScope.GLOBAL, "test-id-not-being-saved", null,
+                    appID, Secret.fromString(privateKey)
+            );
+            gitHubAppCredential.setApiUri(apiUri);
+
+            try {
+                GitHub connect = Connector.connect(apiUri, gitHubAppCredential);
+
+                return FormValidation.ok("Success, Remaining rate limit: " + connect.getRateLimit().getRemaining());
+            } catch (Exception e) {
+                return FormValidation.error(e, String.format(ERROR_AUTHENTICATING_GITHUB_APP, appID));
+            }
         }
     }
 }

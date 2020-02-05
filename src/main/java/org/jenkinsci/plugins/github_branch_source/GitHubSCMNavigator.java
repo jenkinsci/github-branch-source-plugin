@@ -1416,6 +1416,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @Restricted(NoExternalUse.class) // stapler
         @SuppressWarnings("unused") // stapler
         public ListBoxModel doFillApiUriItems() {
+            return getPossibleApiUriItems();
+        }
+
+        static ListBoxModel getPossibleApiUriItems() {
             ListBoxModel result = new ListBoxModel();
             result.add("GitHub", "");
             for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {
