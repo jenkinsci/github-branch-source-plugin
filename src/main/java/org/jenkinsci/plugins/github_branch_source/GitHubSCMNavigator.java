@@ -934,7 +934,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 SourceFactory sourceFactory = new SourceFactory(request);
                 WitnessImpl witness = new WitnessImpl(listener);
 
-                boolean githubAppAuthentication = credentials instanceof SSHUserPrivateKey;
+                boolean githubAppAuthentication = credentials instanceof GitHubAppCredential;
                 if (!github.isAnonymous() && !githubAppAuthentication) {
                     GHMyself myself;
                     try {

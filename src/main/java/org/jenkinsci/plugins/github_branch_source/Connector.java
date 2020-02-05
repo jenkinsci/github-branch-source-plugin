@@ -77,21 +77,14 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.github.GHApp;
-import org.kohsuke.github.GHAppInstallation;
-import org.kohsuke.github.GHAppInstallationToken;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
-import org.kohsuke.github.HttpConnector;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.OkHttpConnector;
 
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.anyOf;
 import static com.cloudbees.plugins.credentials.CredentialsMatchers.instanceOf;
 import static java.util.logging.Level.FINE;
-import static org.jenkinsci.plugins.github_branch_source.JwtHelper.createJWT;
 
 /**
  * Utilities that could perhaps be moved into {@code github-api}.
@@ -113,7 +106,6 @@ public class Connector {
     };
     private static final Random ENTROPY = new Random();
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
-    private static final String ERROR_AUTHENTICATING_GITHUB_APP = "Couldn't authenticate with GitHub app ID %s";
 
     private Connector() {
         throw new IllegalAccessError("Utility class");
@@ -206,7 +198,7 @@ public class Connector {
                     GitHub connector = Connector.connect(apiUri, credentials);
                     try {
                         try {
-                            boolean githubAppAuthentication = credentials instanceof SSHUserPrivateKey;
+                            boolean githubAppAuthentication = credentials instanceof GitHubAppCredential;
                             if (githubAppAuthentication) {
                                 int remaining = connector.getRateLimit().getRemaining();
                                 return FormValidation.ok("GHApp verified, remaining rate limit: %d", remaining);
@@ -327,9 +319,6 @@ public class Connector {
         } else if (credentials instanceof StandardUsernamePasswordCredentials) {
             StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
             hash = Util.getDigestOf(c.getPassword().getPlainText() + SALT);
-        } else if (credentials instanceof SSHUserPrivateKey) {
-            SSHUserPrivateKey c = (SSHUserPrivateKey) credentials;
-            hash = Util.getDigestOf(c.getPrivateKeys().get(0) + SALT);
         } else {
             // TODO OAuth support
             throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
@@ -352,7 +341,6 @@ public class Connector {
         String password;
         String hash;
         String authHash;
-        boolean githubApp = false;
         Jenkins jenkins = Jenkins.get();
         if (credentials == null) {
             username = null;
@@ -365,14 +353,6 @@ public class Connector {
             password = c.getPassword().getPlainText();
             hash = Util.getDigestOf(password + SALT); // want to ensure pooling by credential
             authHash = Util.getDigestOf(password + "::" + jenkins.getLegacyInstanceId());
-        } else if (credentials instanceof SSHUserPrivateKey) {
-            SSHUserPrivateKey c = (SSHUserPrivateKey) credentials;
-            username = c.getUsername();
-            password = c.getPrivateKeys().get(0);
-            hash = Util.getDigestOf(password + SALT);
-            authHash = Util.getDigestOf(password + "::" + jenkins.getLegacyInstanceId());
-
-            githubApp = true;
         } else {
             // TODO OAuth support
             throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
@@ -424,10 +404,8 @@ public class Connector {
 
             gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
 
-            if (username != null && !githubApp) {
+            if (username != null) {
                 gb.withPassword(username, password);
-            } else if (username != null) {
-                gb.withOAuthToken(generateAppInstallationToken(username, password, apiUrl), "");
             }
 
             hub = gb.build();
@@ -436,29 +414,6 @@ public class Connector {
             lastUsed.remove(hub);
             return hub;
         }
-    }
-
-    @SuppressWarnings("deprecation") // preview features are required for GitHub app integration, GitHub api adds deprecated to all preview methods
-    private static String generateAppInstallationToken(String appId, String appPrivateKey, String apiUrl) {
-        try {
-            String jwtToken = createJWT(appId, appPrivateKey);
-            GitHub gitHubApp = new GitHubBuilder().withEndpoint(apiUrl).withJwtToken(jwtToken).build();
-
-            GHApp app = gitHubApp.getApp();
-
-            List<GHAppInstallation> appInstallations = app.listInstallations().asList();
-            if (!appInstallations.isEmpty()) {
-                GHAppInstallation appInstallation = appInstallations.get(0);
-                GHAppInstallationToken appInstallationToken = appInstallation
-                        .createToken(appInstallation.getPermissions())
-                        .create();
-
-                return appInstallationToken.getToken();
-            }
-        } catch (IOException e) {
-            throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId), e);
-        }
-        throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId));
     }
 
     public static void release(@CheckForNull GitHub hub) {
