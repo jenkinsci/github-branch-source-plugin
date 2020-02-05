@@ -203,7 +203,7 @@ public class Connector {
                                 return FormValidation.ok("GHApp verified, remaining rate limit: %d", remaining);
                             }
 
-                            return FormValidation.ok("User %s", connector.isCredentialValid());
+                            return FormValidation.ok("User %s", connector.getMyself().getLogin());
                         } catch (Exception e) {
                             return FormValidation.error("Invalid credentials: %s", e.getMessage());
                         }
