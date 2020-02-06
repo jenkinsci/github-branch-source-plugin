@@ -25,7 +25,6 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import com.cloudbees.jenkins.GitHubWebHook;
-import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
@@ -934,7 +933,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 SourceFactory sourceFactory = new SourceFactory(request);
                 WitnessImpl witness = new WitnessImpl(listener);
 
-                boolean githubAppAuthentication = credentials instanceof GitHubAppCredential;
+                boolean githubAppAuthentication = credentials instanceof GitHubAppCredentials;
                 if (!github.isAnonymous() && !githubAppAuthentication) {
                     GHMyself myself;
                     try {

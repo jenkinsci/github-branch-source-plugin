@@ -27,7 +27,7 @@ import org.kohsuke.stapler.verb.POST;
 import static org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator.DescriptorImpl.getPossibleApiUriItems;
 import static org.jenkinsci.plugins.github_branch_source.JwtHelper.createJWT;
 
-public class GitHubAppCredential extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
+public class GitHubAppCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
 
     private static final String ERROR_AUTHENTICATING_GITHUB_APP = "Couldn't authenticate with GitHub app ID %s";
 
@@ -41,7 +41,7 @@ public class GitHubAppCredential extends BaseStandardCredentials implements Stan
 
     @DataBoundConstructor
     @SuppressWarnings("unused") // by stapler
-    public GitHubAppCredential(
+    public GitHubAppCredentials(
             CredentialsScope scope,
             String id,
             @CheckForNull String description,
@@ -130,7 +130,7 @@ public class GitHubAppCredential extends BaseStandardCredentials implements Stan
          */
         @Override
         public String getDisplayName() {
-            return Messages.GitHubAppCredential_displayName();
+            return Messages.GitHubAppCredentials_displayName();
         }
 
         /**
@@ -166,7 +166,7 @@ public class GitHubAppCredential extends BaseStandardCredentials implements Stan
                 @QueryParameter("apiUri") final String apiUri
 
         ) {
-            GitHubAppCredential gitHubAppCredential = new GitHubAppCredential(
+            GitHubAppCredentials gitHubAppCredential = new GitHubAppCredentials(
                     CredentialsScope.GLOBAL, "test-id-not-being-saved", null,
                     appID, Secret.fromString(privateKey)
             );

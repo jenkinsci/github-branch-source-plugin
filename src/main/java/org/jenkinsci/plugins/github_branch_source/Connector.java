@@ -81,8 +81,6 @@ import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.OkHttpConnector;
 
-import static com.cloudbees.plugins.credentials.CredentialsMatchers.anyOf;
-import static com.cloudbees.plugins.credentials.CredentialsMatchers.instanceOf;
 import static java.util.logging.Level.FINE;
 
 /**
@@ -197,7 +195,7 @@ public class Connector {
                     GitHub connector = Connector.connect(apiUri, credentials);
                     try {
                         try {
-                            boolean githubAppAuthentication = credentials instanceof GitHubAppCredential;
+                            boolean githubAppAuthentication = credentials instanceof GitHubAppCredentials;
                             if (githubAppAuthentication) {
                                 int remaining = connector.getRateLimit().getRemaining();
                                 return FormValidation.ok("GHApp verified, remaining rate limit: %d", remaining);
