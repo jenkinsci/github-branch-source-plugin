@@ -74,6 +74,8 @@ openssl pkcs8 -topk8 -inform PEM -outform PEM -in key-in-your-downloads-folder.p
 
 == Adding the Jenkins credential
 
+=== UI
+
 - From the Jenkins main page click 'Credentials'
 - Pick your credential store, normally `(global)`
 - Click 'Add credentials'
@@ -83,9 +85,26 @@ Fill out the form:
 - Kind: GitHub app
 - ID: i.e. github-app-<team-name>
 - App ID: the github app ID, it can be found in the 'About' section of your GitHub app in the general tab.
+- API endpoint (optional, only required for GitHub enterprise this will only show up if a GitHub enterprise server is configured).
 - Key: click add, paste the contents of the converted private key
 - Passphrase: do not fill this field, it will be ignored
 - Click OK
+
+=== link:https://github.com/jenkinsci/configuration-as-code-plugin[Configuration as Code Plugin]
+
+[source,yaml]
+----
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+        - gitHubApp:
+            appID: "1111"
+            description: "GitHub app"
+            id: "github-app"
+            # apiUri: https://my-custom-github-enterprise.com/api/v3 # optional only required for GitHub enterprise
+            privateKey: "${GITHUB_APP_KEY}"
+----
 
 == Configuring the github organization folder
 
@@ -94,6 +113,8 @@ for how to create a GitHub folder.
 
 - Load the folders configuration page
 - Select the GitHub app credentials in the 'Credentials field drop down
+- If you are using GitHub enterprise make sure the API url is set to your server,
+(note you currently need to set the API url on both the credential and the job).
 
 After selecting the credential you should see:
 
