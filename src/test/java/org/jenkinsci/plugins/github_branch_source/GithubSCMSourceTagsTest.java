@@ -149,7 +149,7 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void testExistingMultipleTagsGHFileNotFoundExceptionIteratable() throws IOException {
+    public void testExistingMultipleTagsGHFileNotFoundExceptionIterable() throws IOException {
         // Scenario: Requesting multiple tags but a FileNotFound is thrown
         // on the first returning the iterator and then an IO error is thrown on the iterator creation
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);

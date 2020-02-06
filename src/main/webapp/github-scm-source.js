@@ -37,7 +37,7 @@ Behaviour.specify("input[name$=_configuredByUrlRadio]", 'GitHubSCMSourceRadioCon
                 if (document.createEvent) {
                     var oEvent = document.createEvent("HTMLEvents");
                     oEvent.initEvent("change");
-                    // Gets the first Jelly entry afte the hidden value
+                    // Gets the first Jelly entry after the hidden value
                     var repoOwner = getNthParent(e, 3).nextElementSibling.nextElementSibling.childNodes[2].firstElementChild;
                     // if the first entry is a select for API URI, gets the following one (each Jelly entry has 3 elements)
                     if (repoOwner == null || repoOwner.tagName == "SELECT") {

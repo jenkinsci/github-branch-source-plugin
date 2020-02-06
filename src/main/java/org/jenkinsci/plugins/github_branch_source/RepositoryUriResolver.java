@@ -30,7 +30,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 /**
- * Resolves the URI of a GitHub repositort from the API URI, owner and repository name.
+ * Resolves the URI of a GitHub repository from the API URI, owner and repository name.
  */
 public abstract class RepositoryUriResolver {
 

@@ -1016,7 +1016,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         // Branches and tags are contained only the current repo, PRs go across forks
                         // FileNotFoundException can occur in a number of situations
                         // When this happens, it is not ideal behavior but it is better to let the PR be orphaned
-                        // and the the orphan stratgy control the result than for this error to stop scanning
+                        // and the orphan strategy control the result than for this error to stop scanning
                         // (For Org scanning this is particularly important.)
                         // If some more general IO exception is thrown, we will still fail.
 
@@ -2343,7 +2343,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     if (pullRequest.getState() != GHIssueState.OPEN) {
                         return Collections.emptyList();
                     }
-                    return new CacheUdatingIterable(Collections.singletonList(pullRequest));
+                    return new CacheUpdatingIterable(Collections.singletonList(pullRequest));
                 }
                 Set<String> branchNames = request.getRequestedOriginBranchNames();
                 if (branchNames != null && branchNames.size() == 1) { // TODO flag to check PRs are all origin PRs
@@ -2354,14 +2354,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     request.listener().getLogger().format(
                             "%n  Getting remote pull requests from branch %s...%n", branchName
                     );
-                    return new CacheUdatingIterable(repo.queryPullRequests()
+                    return new CacheUpdatingIterable(repo.queryPullRequests()
                             .state(GHIssueState.OPEN)
                             .head(repo.getOwnerName() + ":" + branchName)
                             .list());
                 }
                 request.listener().getLogger().format("%n  Getting remote pull requests...%n");
                 fullScanRequested = true;
-                return new CacheUdatingIterable(LazyPullRequests.this.repo.queryPullRequests()
+                return new CacheUpdatingIterable(LazyPullRequests.this.repo.queryPullRequests()
                         .state(GHIssueState.OPEN)
                         .list());
             } catch (IOException | InterruptedException e) {
@@ -2385,12 +2385,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
         }
 
-        private class CacheUdatingIterable extends SinglePassIterable<GHPullRequest> {
+        private class CacheUpdatingIterable extends SinglePassIterable<GHPullRequest> {
             /**
              * A map of all fully populated {@link GHUser} entries we have fetched, keyed by {@link GHUser#getLogin()}.
              */
             private Map<String, GHUser> users = new HashMap<>();
-            CacheUdatingIterable(Iterable<GHPullRequest> delegate) {
+            CacheUpdatingIterable(Iterable<GHPullRequest> delegate) {
                 super(delegate);
             }
 
