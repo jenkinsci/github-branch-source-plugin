@@ -14,7 +14,7 @@ GitHub Branch Source is one of the most widely used plugins in the Jenkins plugi
 It is relied upon by hundreds of thousands of people worldwide. Because of this huge install 
 base, caution must be exercised when making changes. Code changes are reviewed 
 with a high level of scrutiny, out of necessity. This level of thoroughness should not be interpreted 
-as a personal attack. (And, of course, someone feels it is a personal attack, that's why we have the 
+as a personal attack. (And, of course, if someone feels it is a personal attack, that's why we have the 
 [Code of Conduct](https://jenkins.io/project/conduct/) in place).
 
 ## How to submit your contribution
