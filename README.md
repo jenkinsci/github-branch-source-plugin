@@ -12,7 +12,7 @@ GitHub users or organizations. Complete documentation is
 
 ### Guides
 
-* [GitHub app authentication](docs/github-app.adoc)
+* [GitHub App authentication](docs/github-app.adoc)
 * [Extension points provided by this plugin](docs/implementation.adoc)
 
 ## Extension plugins
