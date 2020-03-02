@@ -243,12 +243,9 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
                     if (headRepo != null // head repo can be null if the PR is from a repo that has been deleted
                             && p.getBase().getRepository().getFullName().equalsIgnoreCase(headRepo.getFullName())
                             && p.getHead().getRef().equals(head.getName())) {
-                        LOGGER.log(Level.WARNING, "Ignoring branch {0} of repository {1} because "
+                        LOGGER.log(Level.WARNING, "Ignoring {} because "
                                 + "current strategy excludes branches that ARE also filed as a pull request"
-                                , new Object[]{
-                                        head.getName(),
-                                        headRepo.getFullName()
-                                });
+                                , new Object[]{head.toString()});
                         return true;
                     }
                 }
@@ -276,12 +273,9 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
                         return false;
                     }
                 }
-                LOGGER.log(Level.WARNING, "Ignoring branch {0} of repository {1} because "
+                LOGGER.log(Level.WARNING, "Ignoring {} because "
                         + "current strategy excludes branches that ARE NOT also filed as a pull request"
-                        , new Object[]{
-                                head.getName(),
-                                headRepo.getFullName()
-                        });
+                        , new Object[]{head.toString()});
                 return true;
             }
             return false;
