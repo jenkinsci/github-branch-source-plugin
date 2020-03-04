@@ -39,7 +39,6 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
-import jenkins.scm.api.mixin.TagSCMHead;
 import jenkins.scm.api.trait.SCMSourceRequest;
 import net.jcip.annotations.GuardedBy;
 import org.kohsuke.github.GHBranch;

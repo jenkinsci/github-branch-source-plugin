@@ -2,12 +2,10 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Set;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMHeadFilter;
 import jenkins.scm.api.trait.SCMHeadPrefilter;
-import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -26,7 +24,7 @@ public class OriginPullRequestDiscoveryTraitTest {
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not((Matcher) hasItem(
+        assumeThat(ctx.authorities(), not(hasItem(
                 instanceOf(OriginPullRequestDiscoveryTrait.OriginChangeRequestSCMHeadAuthority.class)
         )));
         OriginPullRequestDiscoveryTrait instance = new OriginPullRequestDiscoveryTrait(
@@ -50,7 +48,7 @@ public class OriginPullRequestDiscoveryTraitTest {
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not((Matcher) hasItem(
+        assumeThat(ctx.authorities(), not(hasItem(
                 instanceOf(OriginPullRequestDiscoveryTrait.OriginChangeRequestSCMHeadAuthority.class)
         )));
         OriginPullRequestDiscoveryTrait instance = new OriginPullRequestDiscoveryTrait(
@@ -74,7 +72,7 @@ public class OriginPullRequestDiscoveryTraitTest {
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not((Matcher) hasItem(
+        assumeThat(ctx.authorities(), not(hasItem(
                 instanceOf(OriginPullRequestDiscoveryTrait.OriginChangeRequestSCMHeadAuthority.class)
         )));
         OriginPullRequestDiscoveryTrait instance = new OriginPullRequestDiscoveryTrait(
@@ -99,7 +97,7 @@ public class OriginPullRequestDiscoveryTraitTest {
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not((Matcher) hasItem(
+        assumeThat(ctx.authorities(), not(hasItem(
                 instanceOf(OriginPullRequestDiscoveryTrait.OriginChangeRequestSCMHeadAuthority.class)
         )));
         OriginPullRequestDiscoveryTrait instance =

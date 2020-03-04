@@ -275,7 +275,7 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                     refName = "tags/" + head.getName();
                 } else if (head instanceof PullRequestSCMHead) {
                     refName = null;
-                    if (rev != null && rev instanceof PullRequestSCMRevision) {
+                    if (rev instanceof PullRequestSCMRevision) {
                         PullRequestSCMRevision prRev = (PullRequestSCMRevision) rev;
                         if (((PullRequestSCMHead)head).isMerge()) {
                             if (prRev.getMergeHash() == null) {

@@ -63,6 +63,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
@@ -619,7 +620,7 @@ public class Connector {
 
             Details details = (Details) o;
 
-            if (apiUrl == null ? details.apiUrl != null : !apiUrl.equals(details.apiUrl)) {
+            if (!Objects.equals(apiUrl, details.apiUrl)) {
                 return false;
             }
             return StringUtils.equals(credentialsHash, details.credentialsHash);

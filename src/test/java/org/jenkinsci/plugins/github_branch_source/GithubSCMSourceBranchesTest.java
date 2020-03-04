@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.github_branch_source;
 
-import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;

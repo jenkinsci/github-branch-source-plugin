@@ -339,7 +339,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @Override
     public void setTraits(@CheckForNull List<SCMTrait<? extends SCMTrait<?>>> traits) {
-        this.traits = traits != null ? new ArrayList<>(traits) : new ArrayList<SCMTrait<? extends SCMTrait<?>>>();
+        this.traits = traits != null ? new ArrayList<>(traits) : new ArrayList<>();
 
     }
 
@@ -927,9 +927,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
 
             GitHubSCMNavigatorContext gitHubSCMNavigatorContext = new GitHubSCMNavigatorContext().withTraits(traits);
-            GitHubSCMNavigatorRequest request = gitHubSCMNavigatorContext.newRequest(this, observer);
 
-            try {
+            try (GitHubSCMNavigatorRequest request = gitHubSCMNavigatorContext.newRequest(this, observer)) {
                 SourceFactory sourceFactory = new SourceFactory(request);
                 WitnessImpl witness = new WitnessImpl(listener);
 
@@ -1040,8 +1039,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
                 throw new AbortException(
                         repoOwner + " does not correspond to a known GitHub User Account or Organization");
-            } finally {
-                request.close();
             }
         } finally {
             Connector.release(github);
@@ -1095,9 +1092,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
 
             GitHubSCMNavigatorContext gitHubSCMNavigatorContext = new GitHubSCMNavigatorContext().withTraits(traits);
-            GitHubSCMNavigatorRequest request = gitHubSCMNavigatorContext.newRequest(this, observer);
 
-            try {
+            try (GitHubSCMNavigatorRequest request = gitHubSCMNavigatorContext.newRequest(this, observer)) {
                 SourceFactory sourceFactory = new SourceFactory(request);
                 WitnessImpl witness = new WitnessImpl(listener);
 
@@ -1200,8 +1196,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
                 throw new AbortException(
                         repoOwner + " does not correspond to a known GitHub User Account or Organization");
-            } finally {
-                request.close();
             }
         } finally {
             Connector.release(github);
@@ -1479,10 +1473,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         @SuppressWarnings("unused") // jelly
+        @NonNull
         public List<SCMTrait<? extends SCMTrait<?>>> getTraitsDefaults() {
-            List<SCMTrait<? extends SCMTrait<?>>> result = new ArrayList<>();
-            result.addAll(delegate.getTraitsDefaults());
-            return result;
+            return new ArrayList<>(delegate.getTraitsDefaults());
         }
 
         static {

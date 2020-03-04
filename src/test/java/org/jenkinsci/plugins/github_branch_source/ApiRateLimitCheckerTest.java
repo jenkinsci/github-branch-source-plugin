@@ -328,7 +328,7 @@ public class ApiRateLimitCheckerTest {
         assertEquals(1, countOfOutputLinesContaining("under budget"));
 
         // The last scenario will trigger back to under budget with a full limit but no new messages
-        assertEquals(8, handler.getView().stream().count());
+        assertEquals(8, handler.getView().size());
     }
 
     /**

@@ -1824,7 +1824,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             GitHubLink repoLink = ((Actionable) owner).getAction(GitHubLink.class);
             if (repoLink != null) {
                 String url;
-                ObjectMetadataAction metadataAction = null;
+                ObjectMetadataAction metadataAction;
                 if (head instanceof PullRequestSCMHead) {
                     // pull request to this repository
                     int number = ((PullRequestSCMHead) head).getNumber();
@@ -2539,7 +2539,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             iterator = iterable.iterator();
                         } catch (Error e) {
                             if (e.getCause() instanceof GHFileNotFoundException) {
-                                return Collections.<GHRef>emptyList().iterator();
+                                return Collections.emptyIterator();
                             }
                             throw e;
                         }
