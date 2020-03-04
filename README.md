@@ -10,6 +10,16 @@ The GitHub Branch Source plugin allows you to create a new project based on the 
 GitHub users or organizations. Complete documentation is 
 [hosted by CloudBees](https://docs.cloudbees.com/docs/admin-resources/latest/plugins/github-branch-source).
 
+### Guides
+
+* [GitHub App authentication](docs/github-app.adoc)
+* [Extension points provided by this plugin](docs/implementation.adoc)
+
+## Extension plugins
+
+* [github-scm-trait-notification-context](https://github.com/jenkinsci/github-scm-trait-notification-context-plugin) -
+allows overriding the `continuous-integration/jenkins/<context>` commit status name.
+
 ## Version History
 
 See [the changelog](CHANGELOG.md).
