@@ -1,0 +1,104 @@
+{
+  "name": "release/version-132",
+  "commit": {
+    "sha": "a5223ef8db4f717400489f42007ef73c6ce6dab7",
+    "node_id": "MDY6Q29tbWl0NzY0OTczNDA6YTUyMjNlZjhkYjRmNzE3NDAwNDg5ZjQyMDA3ZWY3M2M2Y2U2ZGFiNw==",
+    "commit": {
+      "author": {
+        "name": "Release Manager",
+        "email": "stephenc@somemail.com",
+        "date": "2018-09-19T13:14:30Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2018-09-19T13:14:30Z"
+      },
+      "message": "Merge pull request #145 from stephenc/branchRelease-backports",
+      "tree": {
+        "sha": "5f8e3d0f46ba4b071f543a921e34879b017ad479",
+        "url": "https://api.github.com/repos/cloudbeers/yolo/git/trees/5f8e3d0f46ba4b071f543a921e34879b017ad479"
+      },
+      "url": "https://api.github.com/repos/cloudbeers/yolo/git/commits/a5223ef8db4f717400489f42007ef73c6ce6dab7",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nPGP=HASH==\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 5f8e3d0f46ba4b071f543a921e34879b017ad479\nparent 2734e2ba489ce3b9fdba21e0ea1a7e2576ee9aeb\nparent 3d1abda5673d995df0278b6216b179156c30ff54\nauthor Release Manager <stephenc@somemail.com> 1537362870 +0200\ncommitter GitHub <noreply@github.com> 1537362870 +0200\n\nMerge pull request #145 from stephenc/branchRelease-backports"
+      }
+    },
+    "url": "https://api.github.com/repos/cloudbeers/yolo/commits/a5223ef8db4f717400489f42007ef73c6ce6dab7",
+    "html_url": "https://github.com/cloudbeers/yolo/commit/a5223ef8db4f717400489f42007ef73c6ce6dab7",
+    "comments_url": "https://api.github.com/repos/cloudbeers/yolo/commits/a5223ef8db4f717400489f42007ef73c6ce6dab7/comments",
+    "author": {
+      "login": "stephenc",
+      "id": 209336,
+      "node_id": "MDQ6VXNlcjkyMTE5Nw==",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/209336?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/stephenc",
+      "html_url": "https://github.com/stephenc",
+      "followers_url": "https://api.github.com/users/stephenc/followers",
+      "following_url": "https://api.github.com/users/stephenc/following{/other_user}",
+      "gists_url": "https://api.github.com/users/stephenc/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/stephenc/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/stephenc/subscriptions",
+      "organizations_url": "https://api.github.com/users/stephenc/orgs",
+      "repos_url": "https://api.github.com/users/stephenc/repos",
+      "events_url": "https://api.github.com/users/stephenc/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/stephenc/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "2734e2ba489ce3b9fdba21e0ea1a7e2576ee9aeb",
+        "url": "https://api.github.com/repos/cloudbeers/yolo/commits/2734e2ba489ce3b9fdba21e0ea1a7e2576ee9aeb",
+        "html_url": "https://github.com/cloudbeers/yolo/commit/2734e2ba489ce3b9fdba21e0ea1a7e2576ee9aeb"
+      },
+      {
+        "sha": "3d1abda5673d995df0278b6216b179156c30ff54",
+        "url": "https://api.github.com/repos/cloudbeers/yolo/commits/3d1abda5673d995df0278b6216b179156c30ff54",
+        "html_url": "https://github.com/cloudbeers/yolo/commit/3d1abda5673d995df0278b6216b179156c30ff54"
+      }
+    ]
+  },
+  "_links": {
+    "self": "https://api.github.com/repos/cloudbeers/yolo/branches/release/version-132",
+    "html": "https://github.com/cloudbeers/yolo/tree/release/version-132"
+  },
+  "protected": true,
+  "protection": {
+    "enabled": true,
+    "required_status_checks": {
+      "enforcement_level": "everyone",
+      "contexts": [
+        "continuous-integration/jenkins/pr-head",
+        "continuous-integration/jenkins/pr-merge",
+        "continuous-integration/travis-ci"
+      ]
+    }
+  },
+  "protection_url": "https://api.github.com/repos/cloudbeers/yolo/branches/release/version-132/protection"
+}
