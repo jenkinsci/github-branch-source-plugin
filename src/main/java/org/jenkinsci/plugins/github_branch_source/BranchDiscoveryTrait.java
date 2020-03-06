@@ -26,8 +26,6 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.util.ListBoxModel;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadOrigin;
@@ -54,8 +52,6 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * @since 2.2.0
  */
 public class BranchDiscoveryTrait extends SCMSourceTrait {
-    private static final Logger LOGGER = Logger.getLogger(Connector.class.getName());
-
     /**
      * The strategy encoded as a bit-field.
      */
@@ -243,9 +239,10 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
                     if (headRepo != null // head repo can be null if the PR is from a repo that has been deleted
                             && p.getBase().getRepository().getFullName().equalsIgnoreCase(headRepo.getFullName())
                             && p.getHead().getRef().equals(head.getName())) {
-                        LOGGER.log(Level.WARNING, "Ignoring {} because "
-                                + "current strategy excludes branches that ARE also filed as a pull request"
-                                , new Object[]{head.toString()});
+                        request.listener().getLogger().printf(
+                                "Ignoring %s because current strategy excludes branches "
+                                + "that ARE also filed as a pull request"
+                                , head.toString());
                         return true;
                     }
                 }
@@ -273,9 +270,10 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
                         return false;
                     }
                 }
-                LOGGER.log(Level.WARNING, "Ignoring {} because "
-                        + "current strategy excludes branches that ARE NOT also filed as a pull request"
-                        , new Object[]{head.toString()});
+                request.listener().getLogger().printf(
+                        "Ignoring %s because current strategy excludes branches "
+                        + "that ARE NOT also filed as a pull request"
+                        , head.toString());
                 return true;
             }
             return false;
