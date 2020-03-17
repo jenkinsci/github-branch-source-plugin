@@ -1,5 +1,7 @@
 # Changelog
 
+For version 2.6.0 and beyond, see the [GitHub releases](https://github.com/jenkinsci/github-branch-source-plugin/releases) list. 
+
 ## Version 2.5.8
 Release date: 2019-09-27
 
