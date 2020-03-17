@@ -17,13 +17,13 @@
             trusted file (e.g. <code>Jenkinsfile</code>) the contents of that file will be retrieved from the
             target branch on the origin repository and not from the pull request branch on the fork repository.
         </dd>
-        <dt>Contributors</dt>
+        <dt>Collaborators</dt>
         <dd>
             Pull requests from <a href="https://developer.github.com/v3/repos/collaborators/" target="_blank">collaborators</a>
             to the origin repository will be treated as trusted, all other pull requests from fork repositories
             will be treated as untrusted.
             Note that if credentials used by Jenkins for scanning the repository does not have permission to
-            query the list of contributors to the origin repository then only the origin account will be treated
+            query the list of collaborators to the origin repository then only the origin account will be treated
             as trusted - i.e. this will fall back to <code>Nobody</code>.
             <strong>NOTE:</strong> all collaborators are trusted, even if they are only members of a team with read permission.
         </dd>
