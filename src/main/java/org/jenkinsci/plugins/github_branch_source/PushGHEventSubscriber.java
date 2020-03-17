@@ -319,8 +319,7 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                     }
                 }
                 if (!excluded) {
-                    return Collections.<SCMHead, SCMRevision>singletonMap(head,
-                            new AbstractGitSCMSource.SCMRevisionImpl(head, push.getHead()));
+                    return Collections.singletonMap(head, new AbstractGitSCMSource.SCMRevisionImpl(head, push.getHead()));
                 }
             }
             if (context.wantTags() && ref.startsWith(R_TAGS)) {
@@ -332,7 +331,7 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                 //
                 // Event consumers are supposed to *not* trust the details reported by an event, it's just a hint.
                 // All we really want is that we report enough of a head to provide the head.getName()
-                // then the event consumer is supposed to turn arround and do a fetch(..., event, ...)
+                // then the event consumer is supposed to turn around and do a fetch(..., event, ...)
                 // and as GitHubSCMSourceRequest strips out the timestamp in calculating the requested
                 // tag names, we have a winner.
                 //
@@ -352,8 +351,7 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                     }
                 }
                 if (!excluded) {
-                    return Collections.<SCMHead, SCMRevision>singletonMap(head,
-                            new GitTagSCMRevision(head, push.getHead()));
+                    return Collections.singletonMap(head, new GitTagSCMRevision(head, push.getHead()));
                 }
             }
             return Collections.emptyMap();

@@ -165,7 +165,7 @@ public class GitHubSCMSourceContext
      */
     public final List<AbstractGitHubNotificationStrategy> notificationStrategies() {
         if (notificationStrategies.isEmpty()) {
-            return Collections.<AbstractGitHubNotificationStrategy>singletonList(new DefaultGitHubNotificationStrategy());
+            return Collections.singletonList(new DefaultGitHubNotificationStrategy());
         }
         return Collections.unmodifiableList(notificationStrategies);
     }

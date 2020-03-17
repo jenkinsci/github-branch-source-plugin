@@ -1,5 +1,7 @@
 # Changelog
 
+For version 2.6.0 and beyond, see the [GitHub releases](https://github.com/jenkinsci/github-branch-source-plugin/releases) list. 
+
 ## Version 2.5.8
 Release date: 2019-09-27
 
@@ -42,7 +44,7 @@ are in-flight (dependency on Jenkins Core v2.167)
 ## Version 2.5.3
 Release date: 2019-05-23
 
--   [JENKINS-57583](https://issues.jenkins-ci.org/browse/JENKINS-57583): Fixed compatibility with the "Ignore target brach" setting
+-   [JENKINS-57583](https://issues.jenkins-ci.org/browse/JENKINS-57583): Fixed compatibility with the "Ignore target branch" setting
 
 -   [JENKINS-57371](https://issues.jenkins-ci.org/browse/JENKINS-57371): Added graceful fallback to cloning for PRs when needed 
 

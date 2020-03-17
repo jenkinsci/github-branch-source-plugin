@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.EnumSet;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 
 public class GitSCMSourceBase{
 

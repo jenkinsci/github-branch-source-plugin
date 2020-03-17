@@ -1,0 +1,9 @@
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+        - gitHubApp:
+            appID: "1111"
+            description: "GitHub app 1111"
+            id: "github-app"
+            privateKey: "${GITHUB_APP_KEY}"
