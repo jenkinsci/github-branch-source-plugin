@@ -48,10 +48,33 @@
             <artifactId>github-api</artifactId>
             <version>1.106</version>
         </dependency>
+        <!-- TODO: after upgrading jenkins.version >= 2.171, migrate dependency -->
+        <dependency>
+            <groupId>io.jenkins.temp.jelly</groupId>
+            <artifactId>multiline-secrets-ui</artifactId>
+            <version>1.0</version>
+        </dependency>
         <dependency>
             <groupId>com.coravy.hudson.plugins.github</groupId>
             <artifactId>github</artifactId>
             <version>1.29.3</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>${jjwt.version}</version>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
