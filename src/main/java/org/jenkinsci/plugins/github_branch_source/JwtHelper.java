@@ -42,7 +42,8 @@ class JwtHelper {
                 .setIssuer(githubAppId)
                 .signWith(signingKey, signatureAlgorithm);
 
-        long expMillis = nowMillis + (60 * 1000 * 10);
+        long oneMinuteInMillis = 60L * 1000L;
+        long expMillis = nowMillis + (oneMinuteInMillis * 8);
         Date exp = new Date(expMillis);
         builder.setExpiration(exp);
 
