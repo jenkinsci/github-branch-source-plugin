@@ -87,7 +87,7 @@ Fill out the form:
 - App ID: the github app ID, it can be found in the 'About' section of your GitHub app in the general tab.
 - API endpoint (optional, only required for GitHub enterprise this will only show up if a GitHub enterprise server is configured).
 - Key: click add, paste the contents of the converted private key
-- Advanced: (optional) If you've installed your same GitHub app on multiple organisations you need the next step
+- Advanced: (optional) If you've installed your same GitHub app on multiple organizations you need the next step
   * Owner: the name of the organisation or user, i.e. jenkinsci for https://github.com/jenkinsci
 - Click OK
 
