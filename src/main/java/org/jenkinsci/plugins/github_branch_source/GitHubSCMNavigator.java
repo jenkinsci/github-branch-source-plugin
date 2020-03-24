@@ -33,6 +33,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
@@ -43,6 +44,7 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -84,6 +86,7 @@ import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
+import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -100,6 +103,7 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
+import org.kohsuke.github.GHEvent;
 
 public class GitHubSCMNavigator extends SCMNavigator {
 
@@ -1247,6 +1251,28 @@ public class GitHubSCMNavigator extends SCMNavigator {
         try {
             // FIXME MINOR HACK ALERT
             StandardCredentials credentials = Connector.lookupScanCredentials((Item)owner, getApiUri(), credentialsId);
+            if (credentials instanceof GitHubAppCredentials) {
+                try {
+                    List<GHEvent> handledEvents = ((GitHubAppCredentials) credentials).getAppInstallation().getEvents();
+                    Method eventsM = GHEventsSubscriber.class.getMethod("events"); // TODO protected
+                    eventsM.setAccessible(true);
+                    boolean good = true;
+                    for (GHEventsSubscriber subscriber : GHEventsSubscriber.all()) {
+                        @SuppressWarnings("unchecked")
+                        Set<GHEvent> subscribedEvents = (Set<GHEvent>) eventsM.invoke(subscriber);
+                        if (!handledEvents.containsAll(subscribedEvents)) {
+                            DescriptorImpl.LOGGER.log(Level.WARNING, "The GitHub App is not configured to receive some desired events: {0}", subscribedEvents);
+                            good = false;
+                        }
+                    }
+                    if (good) {
+                        DescriptorImpl.LOGGER.info("The GitHub App is configured to receive some desired events; no additional webhook need be installed on the organization");
+                        return;
+                    }
+                } catch (Exception x) {
+                    DescriptorImpl.LOGGER.log(Level.WARNING, "Could not check whether the GitHub App receives all desired events", x);
+                }
+            }
             GitHub hub = Connector.connect(getApiUri(), credentials);
             try {
                 GitHubOrgWebHook.register(hub, repoOwner);

@@ -52,6 +52,13 @@ Permissions this plugin uses:
 - Pull requests: Read-only
 - Webhooks (optional) - If you want the plugin to manage webhooks for you, Read and Write
 
+You can let the app handle all events needed by this plugin.
+In that case it will not try to manage webhooks for you (and does not need webhook permissions).
+You should ask it to receive at least the following events:
+
+- Pull request
+- Push
+- Repository (additionally requires read-only Administration permission)
 
 Click 'Create GitHub app'
 

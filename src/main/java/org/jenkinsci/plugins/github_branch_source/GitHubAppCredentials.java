@@ -73,16 +73,31 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     }
 
     @SuppressWarnings("deprecation") // preview features are required for GitHub app integration, GitHub api adds deprecated to all preview methods
-    static String generateAppInstallationToken(String appId, String appPrivateKey, String apiUrl) {
+    @CheckForNull
+    GHAppInstallation getAppInstallation() {
+        String jwtToken = createJWT(appID, privateKey.getPlainText());
+        GitHubBuilder ghb = new GitHubBuilder();
+        if (Util.fixEmpty(apiUri) != null) {
+            ghb = ghb.withEndpoint(apiUri);
+        }
+        GitHub gitHubApp = ghb.withJwtToken(jwtToken).build();
+
+        GHApp app = gitHubApp.getApp();
+
+        List<GHAppInstallation> appInstallations = app.listInstallations().asList();
+        if (appInstallations.isEmpty()) {
+            return null;
+        } else {
+            // TODO make sensitive to contextual organization
+            return appInstallations.get(0);
+        }
+    }
+
+    @SuppressWarnings("deprecation") // preview features are required for GitHub app integration, GitHub api adds deprecated to all preview methods
+    private String generateAppInstallationToken() {
         try {
-            String jwtToken = createJWT(appId, appPrivateKey);
-            GitHub gitHubApp = new GitHubBuilder().withEndpoint(apiUrl).withJwtToken(jwtToken).build();
-
-            GHApp app = gitHubApp.getApp();
-
-            List<GHAppInstallation> appInstallations = app.listInstallations().asList();
-            if (!appInstallations.isEmpty()) {
-                GHAppInstallation appInstallation = appInstallations.get(0);
+            GHAppInstallation appInstallation = getAppInstallation();
+            if (appInstallation != null) {
                 GHAppInstallationToken appInstallationToken = appInstallation
                         .createToken(appInstallation.getPermissions())
                         .create();
@@ -90,9 +105,9 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 return appInstallationToken.getToken();
             }
         } catch (IOException e) {
-            throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId), e);
+            throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appID), e);
         }
-        throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId));
+        throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appID));
     }
 
     /**
@@ -101,11 +116,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     @NonNull
     @Override
     public Secret getPassword() {
-        if (Util.fixEmpty(apiUri) == null) {
-            apiUri = "https://api.github.com";
-        }
-
-        String appInstallationToken = generateAppInstallationToken(appID, privateKey.getPlainText(), apiUri);
+        String appInstallationToken = generateAppInstallationToken();
 
         return Secret.fromString(appInstallationToken);
     }
