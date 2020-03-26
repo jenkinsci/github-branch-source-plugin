@@ -17,9 +17,9 @@ import java.util.concurrent.TimeUnit;
 class JwtHelper {
 
     /**
-     * @see <a href="https://developer.github.com/apps/building-github-apps/authenticating-with-github-apps/#authenticating-as-a-github-app">maximum JWT validity</a>
+     * Somewhat less than the <a href="https://developer.github.com/apps/building-github-apps/authenticating-with-github-apps/#authenticating-as-a-github-app">maximum JWT validity</a>.
      */
-    static final long VALIDITY_MS = TimeUnit.MINUTES.toMillis(10);
+    static final long VALIDITY_MS = TimeUnit.MINUTES.toMillis(8);
 
     /**
      * Create a JWT for authenticating to GitHub as an app installation
