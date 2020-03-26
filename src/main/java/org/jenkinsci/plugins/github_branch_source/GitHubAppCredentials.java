@@ -12,6 +12,7 @@ import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHApp;
@@ -38,6 +39,9 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     private final Secret privateKey;
 
     private String apiUri;
+
+    private transient String cachedToken;
+    private transient long tokenCacheTime;
 
     @DataBoundConstructor
     @SuppressWarnings("unused") // by stapler
@@ -105,7 +109,15 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             apiUri = "https://api.github.com";
         }
 
-        String appInstallationToken = generateAppInstallationToken(appID, privateKey.getPlainText(), apiUri);
+        long now = System.currentTimeMillis();
+        String appInstallationToken;
+        if (cachedToken != null && now - tokenCacheTime < JwtHelper.VALIDITY_MS - /* takes some time to send requests */ TimeUnit.SECONDS.toMillis(10)) {
+            appInstallationToken = cachedToken;
+        } else {
+            appInstallationToken = generateAppInstallationToken(appID, privateKey.getPlainText(), apiUri);
+            cachedToken = appInstallationToken;
+            tokenCacheTime = now;
+        }
 
         return Secret.fromString(appInstallationToken);
     }
