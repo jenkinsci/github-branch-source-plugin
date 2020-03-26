@@ -111,7 +111,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
         long now = System.currentTimeMillis();
         String appInstallationToken;
-        if (cachedToken != null && now - tokenCacheTime < JwtHelper.VALIDITY_MS - /* takes some time to send requests */ TimeUnit.SECONDS.toMillis(10)) {
+        if (cachedToken != null && now - tokenCacheTime < JwtHelper.VALIDITY_MS /* extra buffer */ / 2) {
             appInstallationToken = cachedToken;
         } else {
             appInstallationToken = generateAppInstallationToken(appID, privateKey.getPlainText(), apiUri);
