@@ -92,7 +92,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     @DataBoundSetter
     public void setOwner(String owner) {
-        this.owner = owner;
+        this.owner = Util.fixEmpty(owner);
     }
 
     @SuppressWarnings("deprecation") // preview features are required for GitHub app integration, GitHub api adds deprecated to all preview methods
