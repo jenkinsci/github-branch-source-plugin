@@ -190,6 +190,17 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             return getPossibleApiUriItems();
         }
 
+        public FormValidation doCheckAppID(@QueryParameter String appID) {
+            if (!appID.isEmpty()) {
+                try {
+                    Integer.parseInt(appID);
+                } catch (NumberFormatException x) {
+                    return FormValidation.warning("An app ID is likely to be a number, distinct from the app name");
+                }
+            }
+            return FormValidation.ok();
+        }
+
         @POST
         @SuppressWarnings("unused") // stapler
         @Restricted(NoExternalUse.class) // stapler
