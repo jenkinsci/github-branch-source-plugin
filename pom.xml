@@ -46,7 +46,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.106</version>
+            <version>1.109-SNAPSHOT</version>
         </dependency>
         <!-- TODO: after upgrading jenkins.version >= 2.171, migrate dependency -->
         <dependency>

@@ -1,4 +1,4 @@
-[{
+{
         "id": 1,
         "node_id": "MDQ6VGVhbTE=",
         "url": "https://api.github.com/teams/1",
@@ -10,5 +10,4 @@
         "members_url": "https://api.github.com/teams/1/members{/member}",
         "repositories_url": "https://api.github.com/teams/1/repos",
         "parent": null
-    }
-]
+}
