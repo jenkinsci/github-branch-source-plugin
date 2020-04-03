@@ -73,10 +73,12 @@ public class GitSCMSourceBase{
 
     @Before
     public void prepareMockGitHub() throws Exception {
-        githubApi.stubFor(
-                get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
-        githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
-                .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
+        // Uncomment this when creating tests
+        // If active at other times it will mask missing stubs
+        // githubApi.stubFor(
+        //         get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
+        // githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
+        //         .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
 
         if (source.isConfiguredByUrl()) {
             source = new GitHubSCMSource("cloudbeers", "yolo", "http://localhost:" + githubApi.port() + "/cloudbeers/yolo", true);

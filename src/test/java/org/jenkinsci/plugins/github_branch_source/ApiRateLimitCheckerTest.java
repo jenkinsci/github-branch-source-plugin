@@ -124,10 +124,12 @@ public class ApiRateLimitCheckerTest {
                 new SingleRootFileSource("src/test/resources/raw/__files"));
 
 
-        githubApi.stubFor(
-                get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
-        githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
-                .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
+        // Uncomment this when creating tests
+        // If active at other times it will mask missing stubs
+        // githubApi.stubFor(
+        //         get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
+        // githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
+        //         .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
 
         github = Connector.connect("http://localhost:" + githubApi.port(), null);
 
