@@ -420,6 +420,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     /**
+     * Forces the apiUri to a specific value.
+     * FOR TESTING ONLY.
+     *
+     * @param apiUri the api uri
+     */
+    void forceApiUri(@Nonnull String apiUri) {
+        this.apiUri = apiUri;
+    }
+
+    /**
      * Gets the credentials used to access the GitHub REST API (also used as the default credentials for checking out
      * sources.
      * @return the credentials used to access the GitHub REST API or {@code null} to access anonymously
