@@ -25,16 +25,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import com.github.tomakehurst.wiremock.common.FileSource;
-import com.github.tomakehurst.wiremock.common.SingleRootFileSource;
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.extension.Parameters;
-import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
-import com.github.tomakehurst.wiremock.http.Request;
-import com.github.tomakehurst.wiremock.http.Response;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import hudson.AbortException;
-import java.io.File;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMFileSystem;
@@ -44,16 +35,12 @@ import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.jvnet.hudson.test.JenkinsRule;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
@@ -61,19 +48,11 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeThat;
 
 @RunWith(Parameterized.class)
-public class GitHubSCMFileSystemTest {
-    /**
-     * All tests in this class only use Jenkins for the extensions
-     */
-    @ClassRule
-    public static JenkinsRule r = new JenkinsRule();
+public class GitHubSCMFileSystemTest extends AbstractGitHubWireMockTest {
 
-    public static WireMockRuleFactory factory = new WireMockRuleFactory();
     public static SCMHead master = new BranchSCMHead("master");
     private final SCMRevision revision;
 
@@ -105,43 +84,6 @@ public class GitHubSCMFileSystemTest {
         "c0e024f89969b976da165eecaa71e09dc60c3da1",
         PullRequestSCMRevision.NOT_MERGEABLE_HASH);
 
-
-    @Rule
-    public WireMockRule githubRaw = factory.getRule(WireMockConfiguration.options()
-            .dynamicPort()
-            .usingFilesUnderClasspath("raw")
-    );
-    @Rule
-    public WireMockRule githubApi = factory.getRule(WireMockConfiguration.options()
-            .dynamicPort()
-            .usingFilesUnderClasspath("api")
-            .extensions(
-                    new ResponseTransformer() {
-                        @Override
-                        public Response transform(Request request, Response response, FileSource files,
-                                                  Parameters parameters) {
-                            if ("application/json"
-                                    .equals(response.getHeaders().getContentTypeHeader().mimeTypePart())) {
-                                return Response.Builder.like(response)
-                                        .but()
-                                        .body(response.getBodyAsString()
-                                                .replace("https://api.github.com/",
-                                                        "http://localhost:" + githubApi.port() + "/")
-                                                .replace("https://raw.githubusercontent.com/",
-                                                        "http://localhost:" + githubRaw.port() + "/")
-                                        )
-                                        .build();
-                            }
-                            return response;
-                        }
-
-                        @Override
-                        public String getName() {
-                            return "url-rewrite";
-                        }
-
-                    })
-    );
     private GitHubSCMSource source;
 
     public GitHubSCMFileSystemTest(String revision) {
@@ -158,30 +100,22 @@ public class GitHubSCMFileSystemTest {
     }
 
     @Before
-    public void prepareMockGitHub() throws Exception {
-        new File("src/test/resources/api/mappings").mkdirs();
-        new File("src/test/resources/api/__files").mkdirs();
-        new File("src/test/resources/raw/mappings").mkdirs();
-        new File("src/test/resources/raw/__files").mkdirs();
-        githubApi.enableRecordMappings(new SingleRootFileSource("src/test/resources/api/mappings"),
-                new SingleRootFileSource("src/test/resources/api/__files"));
-        githubRaw.enableRecordMappings(new SingleRootFileSource("src/test/resources/raw/mappings"),
-                new SingleRootFileSource("src/test/resources/raw/__files"));
+    @Override
+    public void prepareMockGitHub() {
+        super.prepareMockGitHub();
+        source = new GitHubSCMSource(null, "http://localhost:" + githubApi.port(), GitHubSCMSource.DescriptorImpl.SAME, null, "cloudbeers", "yolo");
+    }
 
+    @Override
+    void prepareMockGitHubFileMappings() {
+        super.prepareMockGitHubFileMappings();
         githubApi.stubFor(
             get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
-            .willReturn(
-                aResponse()
-                .withHeader("Content-Type", "application/json; charset=utf-8")
-                .withBodyFile("body-yolo-pulls-2-mergeable-true.json")));
+                .willReturn(
+                    aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile("body-yolo-pulls-2-mergeable-true.json")));
 
-        // Uncomment this when creating tests
-        // If active at other times it will mask missing stubs
-        // githubApi.stubFor(
-        //         get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
-        // githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
-        //         .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
-        source = new GitHubSCMSource(null, "http://localhost:" + githubApi.port(), GitHubSCMSource.DescriptorImpl.SAME, null, "cloudbeers", "yolo");
     }
 
     @Test
