@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.56</version>
+        <version>3.57</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
@@ -46,7 +46,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.106</version>
+            <version>1.110</version>
         </dependency>
         <!-- TODO: after upgrading jenkins.version >= 2.171, migrate dependency -->
         <dependency>
