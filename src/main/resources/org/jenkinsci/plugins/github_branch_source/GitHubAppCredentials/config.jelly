@@ -24,7 +24,13 @@
     <secretTextarea xmlns="/io/jenkins/temp/jelly"/>
   </f:entry>
 
+  <f:advanced>
+    <f:entry title="${%Owner}" field="owner">
+      <f:textbox/>
+    </f:entry>
+  </f:advanced>
+
   <f:validateButton
       title="${%Test Connection}" progress="${%Testing...}"
-      method="testConnection" with="appID,apiUri,privateKey" />
+      method="testConnection" with="appID,apiUri,privateKey,owner" />
 </j:jelly>

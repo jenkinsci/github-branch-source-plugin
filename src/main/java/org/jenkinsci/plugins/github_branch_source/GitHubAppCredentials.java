@@ -30,6 +30,9 @@ import static org.jenkinsci.plugins.github_branch_source.JwtHelper.createJWT;
 public class GitHubAppCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
 
     private static final String ERROR_AUTHENTICATING_GITHUB_APP = "Couldn't authenticate with GitHub app ID %s";
+    private static final String NOT_INSTALLED = ", has it been installed to your GitHub organisation / user?";
+
+    private static final String ERROR_NOT_INSTALLED = ERROR_AUTHENTICATING_GITHUB_APP + NOT_INSTALLED;
 
     @NonNull
     private final String appID;
@@ -38,6 +41,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     private final Secret privateKey;
 
     private String apiUri;
+
+    private String owner;
 
     @DataBoundConstructor
     @SuppressWarnings("unused") // by stapler
@@ -72,8 +77,26 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         return privateKey;
     }
 
+    /**
+     * Owner of this installation, i.e. a user or organisation,
+     * used to differeniate app installations when the app is installed to multiple organisations / users.
+     *
+     * If this is null then call listInstallations and if there's only one in the list then use that installation.
+     *
+     * @return the owner of the organisation or null.
+     */
+    @CheckForNull
+    public String getOwner() {
+        return owner;
+    }
+
+    @DataBoundSetter
+    public void setOwner(String owner) {
+        this.owner = Util.fixEmpty(owner);
+    }
+
     @SuppressWarnings("deprecation") // preview features are required for GitHub app integration, GitHub api adds deprecated to all preview methods
-    static String generateAppInstallationToken(String appId, String appPrivateKey, String apiUrl) {
+    static String generateAppInstallationToken(String appId, String appPrivateKey, String apiUrl, String owner) {
         try {
             String jwtToken = createJWT(appId, appPrivateKey);
             GitHub gitHubApp = new GitHubBuilder().withEndpoint(apiUrl).withJwtToken(jwtToken).build();
@@ -81,18 +104,28 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             GHApp app = gitHubApp.getApp();
 
             List<GHAppInstallation> appInstallations = app.listInstallations().asList();
-            if (!appInstallations.isEmpty()) {
-                GHAppInstallation appInstallation = appInstallations.get(0);
-                GHAppInstallationToken appInstallationToken = appInstallation
-                        .createToken(appInstallation.getPermissions())
-                        .create();
-
-                return appInstallationToken.getToken();
+            if (appInstallations.isEmpty()) {
+                throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId));
             }
+            GHAppInstallation appInstallation;
+            if (appInstallations.size() == 1) {
+                appInstallation = appInstallations.get(0);
+            } else {
+                appInstallation = appInstallations.stream()
+                        .filter(installation -> installation.getAccount().getLogin().equals(owner))
+                        .findAny()
+                        .orElseThrow(() -> new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId)));
+            }
+
+            GHAppInstallationToken appInstallationToken = appInstallation
+                    .createToken(appInstallation.getPermissions())
+                    .create();
+
+            return appInstallationToken.getToken();
         } catch (IOException e) {
             throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId), e);
         }
-        throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId));
+
     }
 
     /**
@@ -105,7 +138,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             apiUri = "https://api.github.com";
         }
 
-        String appInstallationToken = generateAppInstallationToken(appID, privateKey.getPlainText(), apiUri);
+        String appInstallationToken = generateAppInstallationToken(appID, privateKey.getPlainText(), apiUri, owner);
 
         return Secret.fromString(appInstallationToken);
     }
@@ -174,7 +207,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         public FormValidation doTestConnection(
                 @QueryParameter("appID") final String appID,
                 @QueryParameter("privateKey") final String privateKey,
-                @QueryParameter("apiUri") final String apiUri
+                @QueryParameter("apiUri") final String apiUri,
+                @QueryParameter("owner") final String owner
 
         ) {
             GitHubAppCredentials gitHubAppCredential = new GitHubAppCredentials(
@@ -182,10 +216,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                     appID, Secret.fromString(privateKey)
             );
             gitHubAppCredential.setApiUri(apiUri);
+            gitHubAppCredential.setOwner(owner);
 
             try {
                 GitHub connect = Connector.connect(apiUri, gitHubAppCredential);
-
                 return FormValidation.ok("Success, Remaining rate limit: " + connect.getRateLimit().getRemaining());
             } catch (Exception e) {
                 return FormValidation.error(e, String.format(ERROR_AUTHENTICATING_GITHUB_APP, appID));
