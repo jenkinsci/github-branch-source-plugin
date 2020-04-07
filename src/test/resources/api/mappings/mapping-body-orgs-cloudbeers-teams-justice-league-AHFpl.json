@@ -1,11 +1,11 @@
 {
   "request" : {
-    "url" : "/orgs/cloudbeers/teams",
+    "url" : "/orgs/cloudbeers/teams/justice-league",
     "method" : "GET"
   },
   "response" : {
     "status" : 200,
-    "bodyFileName" : "body-orgs-cloudbeers-teams-AHFpl.json",
+    "bodyFileName" : "body-orgs-cloudbeers-teams-justice-league-AHFpl.json",
     "headers" : {
       "Server" : "GitHub.com",
       "Date" : "Wed, 07 Dec 2016 23:37:43 GMT",
