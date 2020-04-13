@@ -10,11 +10,16 @@ import java.security.PrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.util.Base64;
 import java.util.Date;
-import java.util.Objects;
 
 import static java.util.Objects.requireNonNull;
+import java.util.concurrent.TimeUnit;
 
 class JwtHelper {
+
+    /**
+     * Somewhat less than the <a href="https://developer.github.com/apps/building-github-apps/authenticating-with-github-apps/#authenticating-as-a-github-app">maximum JWT validity</a>.
+     */
+    static final long VALIDITY_MS = TimeUnit.MINUTES.toMillis(8);
 
     /**
      * Create a JWT for authenticating to GitHub as an app installation
@@ -42,9 +47,7 @@ class JwtHelper {
                 .setIssuer(githubAppId)
                 .signWith(signingKey, signatureAlgorithm);
 
-        long oneMinuteInMillis = 60L * 1000L;
-        long expMillis = nowMillis + (oneMinuteInMillis * 8);
-        Date exp = new Date(expMillis);
+        Date exp = new Date(nowMillis + VALIDITY_MS);
         builder.setExpiration(exp);
 
         return builder.compact();

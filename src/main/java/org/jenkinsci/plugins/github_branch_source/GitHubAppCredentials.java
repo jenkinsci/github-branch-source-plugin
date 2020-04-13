@@ -5,6 +5,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
 import hudson.util.FormValidation;
@@ -27,6 +28,7 @@ import org.kohsuke.stapler.verb.POST;
 import static org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator.DescriptorImpl.getPossibleApiUriItems;
 import static org.jenkinsci.plugins.github_branch_source.JwtHelper.createJWT;
 
+@SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "XStream")
 public class GitHubAppCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
 
     private static final String ERROR_AUTHENTICATING_GITHUB_APP = "Couldn't authenticate with GitHub app ID %s";
@@ -43,6 +45,9 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     private String apiUri;
 
     private String owner;
+
+    private transient String cachedToken;
+    private transient long tokenCacheTime;
 
     @DataBoundConstructor
     @SuppressWarnings("unused") // by stapler
@@ -138,7 +143,15 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             apiUri = "https://api.github.com";
         }
 
-        String appInstallationToken = generateAppInstallationToken(appID, privateKey.getPlainText(), apiUri, owner);
+        long now = System.currentTimeMillis();
+        String appInstallationToken;
+        if (cachedToken != null && now - tokenCacheTime < JwtHelper.VALIDITY_MS /* extra buffer */ / 2) {
+            appInstallationToken = cachedToken;
+        } else {
+            appInstallationToken = generateAppInstallationToken(appID, privateKey.getPlainText(), apiUri, owner);
+            cachedToken = appInstallationToken;
+            tokenCacheTime = now;
+        }
 
         return Secret.fromString(appInstallationToken);
     }
