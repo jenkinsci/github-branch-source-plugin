@@ -3,7 +3,7 @@
 == Extension Points
 
 === AbstractGitHubNotificationStrategy
-This extension points allows traits to modify the contents of a Github status notification for a build.
+This API allows traits to modify the contents of a GitHub status notification for a build.
 There are currently 3 points in a build lifecycle where notifications are sent:
 
 * On entering the queue
