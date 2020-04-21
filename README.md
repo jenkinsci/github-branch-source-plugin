@@ -1,7 +1,7 @@
  # GitHub Branch Source Plugin
 
 [![Jenkins Plugin](https://img.shields.io/jenkins/plugin/v/github-branch-source)](https://plugins.jenkins.io/github-branch-source)
-[![Changelog](https://img.shields.io/github/v/tag/jenkinsci/github-branch-source-plugin?label=changelog)](https://github.com/jenkinsci/github-branch-source-plugin/blob/master/CHANGELOG.md)
+[![Changelog](https://img.shields.io/github/v/tag/jenkinsci/github-branch-source-plugin?label=changelog)](https://github.com/jenkinsci/github-branch-source-plugin/releases)
 [![Jenkins Plugin Installs](https://img.shields.io/jenkins/plugin/i/github-branch-source?color=blue)](https://plugins.jenkins.io/github-branch-source)
 [![Contributors](https://img.shields.io/github/contributors/jenkinsci/github-branch-source-plugin.svg)](https://github.com/jenkinsci/github-branch-source-plugin/contributors)
 
