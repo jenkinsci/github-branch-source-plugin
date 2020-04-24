@@ -25,7 +25,7 @@
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
-        <jenkins.version>2.150.3</jenkins.version>
+        <jenkins.version>2.164.3</jenkins.version>
         <useBeta>true</useBeta>
         <jcasc.version>1.35</jcasc.version>
         <jjwt.version>0.10.5</jjwt.version>
@@ -123,8 +123,8 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.150.x</artifactId>
-                <version>5</version>
+                <artifactId>bom-2.164.x</artifactId>
+                <version>9</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
