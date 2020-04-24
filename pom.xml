@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <revision>2.7.0-beta2</revision>
+        <revision>2.7.0</revision>
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
