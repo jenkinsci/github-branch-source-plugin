@@ -54,6 +54,11 @@ public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavi
     private boolean excludeArchivedRepositories;
 
     /**
+     * If true, public repositories will be ignored.
+     */
+    private boolean excludePublicRepositories;
+
+    /**
      * {@inheritDoc}
      */
     @NonNull
@@ -100,9 +105,23 @@ public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavi
     }
 
     /**
+     * @return True if public repositories should be ignored, false if they should be included.
+     */
+    public boolean isExcludePublicRepositories() {
+        return excludePublicRepositories;
+    }
+
+    /**
      * @param excludeArchivedRepositories Set true to exclude archived repositories
      */
     public void setExcludeArchivedRepositories(boolean excludeArchivedRepositories) {
         this.excludeArchivedRepositories = excludeArchivedRepositories;
+    }
+
+    /**
+     * @param excludePublicRepositories Set true to exclude public repositories
+     */
+    public void setExcludePublicRepositories(boolean excludePublicRepositories) {
+        this.excludePublicRepositories = excludePublicRepositories;
     }
 }
