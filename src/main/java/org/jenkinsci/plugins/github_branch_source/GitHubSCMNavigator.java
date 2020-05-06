@@ -1132,9 +1132,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         )));
                         return;
                     }
-                } else {
-                    listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
-                            apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
                 }
 
                 GHOrganization org = getGhOrganization(github);
