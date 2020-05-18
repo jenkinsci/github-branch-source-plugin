@@ -3,11 +3,13 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
+import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Util;
+import hudson.remoting.Channel;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
@@ -164,6 +166,13 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     public String getUsername() {
         return appID;
     }
+
+     private Object writeReplace() {
+        if (/* XStream */Channel.current() == null) {
+            return this;
+        }
+        return new UsernamePasswordCredentialsImpl(getScope(), getId(), getDescription(), getUsername(), getPassword().getPlainText());
+     }
 
     /**
      * {@inheritDoc}
