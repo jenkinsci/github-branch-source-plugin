@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsSnapshotTaker;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -167,7 +168,17 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         return appID;
     }
 
-     private Object writeReplace() {
+    /**
+     * Ensures that the credentials state as serialized via Remoting to an agent includes fields which are {@code transient} for purposes of XStream.
+     * This provides a ~2× performance improvement over reconstructing the object without that state,
+     * in the normal case that {@link #cachedToken} is valid and will remain valid for the brief time that elapses before the agent calls {@link #getPassword}:
+     * <ul>
+     * <li>We do not need to make API calls to GitHub to obtain a new token.
+     * <li>We can avoid the considerable amount of class loading associated with the JWT library, Jackson data binding, Bouncy Castle, etc.
+     * </ul>
+     * @see CredentialsSnapshotTaker
+     */
+    private Object writeReplace() {
         if (/* XStream */Channel.current() == null) {
             return this;
         }
