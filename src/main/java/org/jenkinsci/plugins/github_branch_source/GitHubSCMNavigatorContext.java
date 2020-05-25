@@ -23,6 +23,8 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
+import java.util.ArrayList;
+
 import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMSourceObserver;
@@ -39,6 +41,11 @@ public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavi
      * The team name of the repositories to navigate.
      */
     private String teamSlug = "";
+
+    /**
+     * The topic which the repositories must have.
+     */
+    private ArrayList<String> topics = new ArrayList<String>();
 
     /**
      * If true, archived repositories will be ignored.
@@ -67,6 +74,21 @@ public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavi
      */
     public String getTeamSlug() {
         return teamSlug;
+    }
+
+    /**
+     * Sets the topics which the repositories must have.
+     */
+    void setTopics(ArrayList<String> topics) {
+        this.topics = topics;
+    }
+
+    /**
+     * Gets the topics which the repositories must have.
+     * @return topics
+     */
+    public ArrayList<String> getTopics() {
+        return topics;
     }
 
     /**
