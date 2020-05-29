@@ -50,8 +50,8 @@ Permissions this plugin uses:
 - Contents: Read-only (to read the `Jenkinsfile` and the repository content during `git fetch`). You may need "Read & write" to update the repository such as tagging releases
 - Metadata: Read-only
 - Pull requests: Read-only
-- Webhooks (optional) - If you want the plugin to manage webhooks for you, Read and Write
 
+Under _Subscribe to events_, enable all events.
 
 Click 'Create GitHub app'
 
