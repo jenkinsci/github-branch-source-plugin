@@ -933,7 +933,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 WitnessImpl witness = new WitnessImpl(listener);
 
                 boolean githubAppAuthentication = credentials instanceof GitHubAppCredentials;
-                if (!github.isAnonymous() && !githubAppAuthentication) {
+                if (github.isAnonymous()) {
+                    listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
+                            apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);                
+                } else if (!githubAppAuthentication) {
                     GHMyself myself;
                     try {
                         // Requires an authenticated access
@@ -1097,7 +1100,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 SourceFactory sourceFactory = new SourceFactory(request);
                 WitnessImpl witness = new WitnessImpl(listener);
 
-                if (!github.isAnonymous()) {
+                boolean githubAppAuthentication = credentials instanceof GitHubAppCredentials;
+                if (github.isAnonymous()) {
+                    listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
+                            apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);                
+                } else if (!githubAppAuthentication) {
                     listener.getLogger()
                             .format("Connecting to %s using %s%n", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri,
                                     CredentialsNameProvider.name(credentials));
@@ -1131,9 +1138,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         )));
                         return;
                     }
-                } else {
-                    listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
-                            apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
                 }
 
                 GHOrganization org = getGhOrganization(github);
