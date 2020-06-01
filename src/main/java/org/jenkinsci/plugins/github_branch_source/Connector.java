@@ -35,9 +35,8 @@ import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import com.squareup.okhttp.Cache;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.OkUrlFactory;
+import okhttp3.Cache;
+import okhttp3.OkHttpClient;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.Extension;
@@ -80,7 +79,7 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
-import org.kohsuke.github.extras.OkHttpConnector;
+import org.kohsuke.github.extras.okhttp3.OkHttpConnector;
 
 import static java.util.logging.Level.FINE;
 
@@ -104,6 +103,8 @@ public class Connector {
     };
     private static final Random ENTROPY = new Random();
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
+    private static final OkHttpClient baseClient = new OkHttpClient();
+
 
     private Connector() {
         throw new IllegalAccessError("Utility class");
@@ -374,7 +375,8 @@ public class Connector {
             gb.withEndpoint(apiUrl);
             gb.withRateLimitHandler(CUSTOMIZED);
 
-            OkHttpClient client = new OkHttpClient().setProxy(getProxy(host));
+            OkHttpClient.Builder clientBuilder = baseClient.newBuilder();
+            clientBuilder.proxy(getProxy(host));
 
             int cacheSize = GitHubSCMSource.getCacheSize();
             if (cacheSize > 0) {
@@ -396,11 +398,11 @@ public class Connector {
                 }
                 if (cacheDir != null) {
                     Cache cache = new Cache(cacheDir, cacheSize * 1024L * 1024L);
-                    client.setCache(cache);
+                    clientBuilder.cache(cache);
                 }
             }
 
-            gb.withConnector(new OkHttpConnector(new OkUrlFactory(client)));
+            gb.withConnector(new OkHttpConnector(clientBuilder.build()));
 
             if (username != null) {
                 gb.withPassword(username, password);
