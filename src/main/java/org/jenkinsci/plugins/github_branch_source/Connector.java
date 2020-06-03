@@ -76,6 +76,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
+import org.kohsuke.github.GHAppInstallationToken;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
@@ -364,45 +365,10 @@ public class Connector {
                 usage.put(hub, count == null ? 1 : Math.max(count + 1, 1));
                 return hub;
             }
-            String host;
-            try {
-                host = new URL(apiUrl).getHost();
-            } catch (MalformedURLException e) {
-                throw new IOException("Invalid GitHub API URL: " + apiUrl, e);
-            }
 
-            GitHubBuilder gb = new GitHubBuilder();
-            gb.withEndpoint(apiUrl);
-            gb.withRateLimitHandler(CUSTOMIZED);
+            Cache cache = getCache(jenkins, apiUrl, authHash, username);
 
-            OkHttpClient.Builder clientBuilder = baseClient.newBuilder();
-            clientBuilder.proxy(getProxy(host));
-
-            int cacheSize = GitHubSCMSource.getCacheSize();
-            if (cacheSize > 0) {
-                File cacheBase = new File(jenkins.getRootDir(),
-                        GitHubSCMProbe.class.getName() + ".cache");
-                File cacheDir = null;
-                try {
-                    MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-                    sha256.update(apiUrl.getBytes(StandardCharsets.UTF_8));
-                    sha256.update("::".getBytes(StandardCharsets.UTF_8));
-                    if (username != null) {
-                        sha256.update(username.getBytes(StandardCharsets.UTF_8));
-                    }
-                    sha256.update("::".getBytes(StandardCharsets.UTF_8));
-                    sha256.update(authHash.getBytes(StandardCharsets.UTF_8));
-                    cacheDir = new File(cacheBase, Base64.encodeBase64URLSafeString(sha256.digest()));
-                } catch (NoSuchAlgorithmException e) {
-                    // no cache for you mr non-spec compliant JVM
-                }
-                if (cacheDir != null) {
-                    Cache cache = new Cache(cacheDir, cacheSize * 1024L * 1024L);
-                    clientBuilder.cache(cache);
-                }
-            }
-
-            gb.withConnector(new OkHttpConnector(clientBuilder.build()));
+            GitHubBuilder gb = createGitHubBuilder(apiUrl, cache);
 
             if (username != null) {
                 gb.withPassword(username, password);
@@ -414,6 +380,73 @@ public class Connector {
             lastUsed.remove(hub);
             return hub;
         }
+    }
+
+    /**
+     * Creates a {@link GitHubBuilder} that can be used to build a {@link GitHub} instance.
+     *
+     * This method creates and configures a new {@link GitHubBuilder}.
+     * This should be used only when {@link #connect(String, StandardCredentials)} cannot be used,
+     * such as when using {@link GitHubBuilder#withJwtToken(String)} to getting the {@link GHAppInstallationToken}.
+     *
+     * This method intentionally does not support caching requests or {@link GitHub} instances.
+     *
+     * @param apiUrl the GitHub API URL to be used for the connection
+     * @return a configured GitHubBuilder instance
+     * @throws IOException if I/O error occurs
+     */
+    static GitHubBuilder createGitHubBuilder(@Nonnull String apiUrl) throws IOException {
+        return createGitHubBuilder(apiUrl, null);
+    }
+
+    @Nonnull
+    private static GitHubBuilder createGitHubBuilder(@Nonnull String apiUrl, @CheckForNull Cache cache) throws IOException {
+        String host;
+        try {
+            host = new URL(apiUrl).getHost();
+        } catch (MalformedURLException e) {
+            throw new IOException("Invalid GitHub API URL: " + apiUrl, e);
+        }
+
+        GitHubBuilder gb = new GitHubBuilder();
+        gb.withEndpoint(apiUrl);
+        gb.withRateLimitHandler(CUSTOMIZED);
+
+        OkHttpClient.Builder clientBuilder = baseClient.newBuilder();
+        clientBuilder.proxy(getProxy(host));
+        if (cache != null) {
+            clientBuilder.cache(cache);
+        }
+        gb.withConnector(new OkHttpConnector(clientBuilder.build()));
+        return gb;
+    }
+
+    @CheckForNull
+    private static Cache getCache(@Nonnull Jenkins jenkins, @Nonnull String apiUrl, @Nonnull String authHash, @CheckForNull String username) {
+        Cache cache = null;
+        int cacheSize = GitHubSCMSource.getCacheSize();
+        if (cacheSize > 0) {
+            File cacheBase = new File(jenkins.getRootDir(),
+                    GitHubSCMProbe.class.getName() + ".cache");
+            File cacheDir = null;
+            try {
+                MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+                sha256.update(apiUrl.getBytes(StandardCharsets.UTF_8));
+                sha256.update("::".getBytes(StandardCharsets.UTF_8));
+                if (username != null) {
+                    sha256.update(username.getBytes(StandardCharsets.UTF_8));
+                }
+                sha256.update("::".getBytes(StandardCharsets.UTF_8));
+                sha256.update(authHash.getBytes(StandardCharsets.UTF_8));
+                cacheDir = new File(cacheBase, Base64.encodeBase64URLSafeString(sha256.digest()));
+            } catch (NoSuchAlgorithmException e) {
+                // no cache for you mr non-spec compliant JVM
+            }
+            if (cacheDir != null) {
+                cache = new Cache(cacheDir, cacheSize * 1024L * 1024L);
+            }
+        }
+        return cache;
     }
 
     public static void release(@CheckForNull GitHub hub) {
