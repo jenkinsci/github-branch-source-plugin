@@ -400,7 +400,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase{
             .willSetStateTo(Scenario.STARTED));
 
         githubApi.stubFor(
-            get(urlMatching("(/api/v3)?/repos/cloudbeers/yolo/git/refs/heads/master"))
+            get(urlMatching("(/api/v3)?/repos/cloudbeers/yolo/git/ref/heads/master"))
             .inScenario("PR 2 Master 404")
             .whenScenarioStateIs(Scenario.STARTED)
             .willReturn(
@@ -411,7 +411,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase{
             .willSetStateTo("Master 200"));
 
         githubApi.stubFor(
-            get(urlMatching("(/api/v3)?/repos/cloudbeers/yolo/git/refs/heads/master"))
+            get(urlMatching("(/api/v3)?/repos/cloudbeers/yolo/git/ref/heads/master"))
             .inScenario("PR 2 Master 404")
             .whenScenarioStateIs("Master 200")
             .willReturn(

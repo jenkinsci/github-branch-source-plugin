@@ -1,6 +1,6 @@
 {
   "request": {
-    "url": "/repos/cloudbeers/yolo/git/refs/tags/existent-tag",
+    "url": "/repos/cloudbeers/yolo/git/ref/tags/existent-tag",
     "method": "GET"
   },
   "response": {
