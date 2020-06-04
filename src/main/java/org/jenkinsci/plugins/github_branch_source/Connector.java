@@ -63,6 +63,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
@@ -76,11 +77,8 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
-import org.kohsuke.github.HttpConnector;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.OkHttpConnector;
 
@@ -198,13 +196,23 @@ public class Connector {
                     GitHub connector = Connector.connect(apiUri, credentials);
                     try {
                         try {
+                            boolean githubAppAuthentication = credentials instanceof GitHubAppCredentials;
+                            if (githubAppAuthentication) {
+                                int remaining = connector.getRateLimit().getRemaining();
+                                return FormValidation.ok("GHApp verified, remaining rate limit: %d", remaining);
+                            }
+
                             return FormValidation.ok("User %s", connector.getMyself().getLogin());
-                        } catch (IOException e){
-                            return FormValidation.error("Invalid credentials");
+                        } catch (Exception e) {
+                            return FormValidation.error("Invalid credentials: %s", e.getMessage());
                         }
                     } finally {
                         Connector.release(connector);
                     }
+                } catch (IllegalArgumentException | InvalidPrivateKeyException e) {
+                    String msg = "Exception validating credentials " + CredentialsNameProvider.name(credentials);
+                    LOGGER.log(Level.WARNING, msg, e);
+                    return FormValidation.error(e, msg);
                 } catch (IOException e) {
                     // ignore, never thrown
                     LOGGER.log(Level.WARNING, "Exception validating credentials {0} on {1}", new Object[]{
@@ -512,7 +520,7 @@ public class Connector {
             return true;
         } else {
             try {
-                gitHub.getMyself();
+                gitHub.getRateLimit();
                 return true;
             } catch (IOException e) {
                 if (LOGGER.isLoggable(FINE)) {
@@ -612,7 +620,7 @@ public class Connector {
 
             Details details = (Details) o;
 
-            if (apiUrl == null ? details.apiUrl != null : !apiUrl.equals(details.apiUrl)) {
+            if (!Objects.equals(apiUrl, details.apiUrl)) {
                 return false;
             }
             return StringUtils.equals(credentialsHash, details.credentialsHash);

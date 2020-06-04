@@ -1,0 +1,36 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler">
+  <st:include page="id-and-description" class="${descriptor.clazz}"/>
+  <f:entry title="${%App ID}" field="appID">
+    <f:textbox/>
+  </f:entry>
+  <j:choose>
+    <j:when test="${descriptor.apiUriSelectable}">
+      <f:entry title="${%API endpoint}" field="apiUri">
+        <f:select/>
+      </f:entry>
+    </j:when>
+    <j:otherwise>
+      <f:invisibleEntry>
+        <f:select field="apiUri"/>
+      </f:invisibleEntry>
+    </j:otherwise>
+  </j:choose>
+
+  <f:entry title="${%Key}" field="privateKey">
+    <!-- TODO: after upgrading jenkins.version >= 2.171, remove xmlns below and use f:secretTextArea
+     e.g. https://github.com/jenkinsci/ssh-credentials-plugin/commit/68ce416ec00b88a13579285df5cacaea8f39d435
+     -->
+    <secretTextarea xmlns="/io/jenkins/temp/jelly"/>
+  </f:entry>
+
+  <f:advanced>
+    <f:entry title="${%Owner}" field="owner">
+      <f:textbox/>
+    </f:entry>
+  </f:advanced>
+
+  <f:validateButton
+      title="${%Test Connection}" progress="${%Testing...}"
+      method="testConnection" with="appID,apiUri,privateKey,owner" />
+</j:jelly>

@@ -31,17 +31,8 @@ import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
-import com.github.tomakehurst.wiremock.common.FileSource;
-import com.github.tomakehurst.wiremock.common.SingleRootFileSource;
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.extension.Parameters;
-import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
-import com.github.tomakehurst.wiremock.http.Request;
-import com.github.tomakehurst.wiremock.http.Response;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-import hudson.model.Action;
 import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.model.User;
@@ -51,7 +42,6 @@ import hudson.security.AuthorizationStrategy;
 import hudson.security.SecurityRealm;
 import hudson.util.ListBoxModel;
 import hudson.util.LogTaskListener;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -69,69 +59,15 @@ import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.impl.NoOpProjectObserver;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.MockFolder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
-public class GitHubSCMNavigatorTest {
-    /**
-     * All tests in this class only use Jenkins for the extensions
-     */
-    @ClassRule
-    public static JenkinsRule r = new JenkinsRule();
-
-    public static WireMockRuleFactory factory = new WireMockRuleFactory();
-
-    @Rule
-    public WireMockRule githubRaw = factory.getRule(WireMockConfiguration.options()
-            .dynamicPort()
-            .usingFilesUnderClasspath("raw")
-    );
-    @Rule
-    public WireMockRule githubApi = factory.getRule(WireMockConfiguration.options()
-            .dynamicPort()
-            .usingFilesUnderClasspath("api")
-            .extensions(
-                    new ResponseTransformer() {
-                        @Override
-                        public Response transform(Request request, Response response, FileSource files,
-                                                  Parameters parameters) {
-                            if ("application/json"
-                                    .equals(response.getHeaders().getContentTypeHeader().mimeTypePart())) {
-                                return Response.Builder.like(response)
-                                        .but()
-                                        .body(response.getBodyAsString()
-                                                .replace("https://api.github.com/",
-                                                        "http://localhost:" + githubApi.port() + "/")
-                                                .replace("https://raw.githubusercontent.com/",
-                                                        "http://localhost:" + githubRaw.port() + "/")
-                                        )
-                                        .build();
-                            }
-                            return response;
-                        }
-
-                        @Override
-                        public String getName() {
-                            return "url-rewrite";
-                        }
-
-                    })
-    );
+public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
 
     @Mock
     private SCMSourceOwner scmSourceOwner;
@@ -142,20 +78,9 @@ public class GitHubSCMNavigatorTest {
     private GitHubSCMNavigator navigator;
 
     @Before
+    @Override
     public void prepareMockGitHub() {
-        new File("src/test/resources/api/mappings").mkdirs();
-        new File("src/test/resources/api/__files").mkdirs();
-        new File("src/test/resources/raw/mappings").mkdirs();
-        new File("src/test/resources/raw/__files").mkdirs();
-        githubApi.enableRecordMappings(new SingleRootFileSource("src/test/resources/api/mappings"),
-                new SingleRootFileSource("src/test/resources/api/__files"));
-        githubRaw.enableRecordMappings(new SingleRootFileSource("src/test/resources/raw/mappings"),
-                new SingleRootFileSource("src/test/resources/raw/__files"));
-        githubApi.stubFor(
-                get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom("https://api.github.com/")));
-        githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
-                .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
-
+        super.prepareMockGitHub();
         setCredentials(Collections.emptyList());
         navigator = navigatorForRepoOwner("cloudbeers", null);
     }

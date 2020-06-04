@@ -339,7 +339,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @Override
     public void setTraits(@CheckForNull List<SCMTrait<? extends SCMTrait<?>>> traits) {
-        this.traits = traits != null ? new ArrayList<>(traits) : new ArrayList<SCMTrait<? extends SCMTrait<?>>>();
+        this.traits = traits != null ? new ArrayList<>(traits) : new ArrayList<>();
 
     }
 
@@ -927,13 +927,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
 
             GitHubSCMNavigatorContext gitHubSCMNavigatorContext = new GitHubSCMNavigatorContext().withTraits(traits);
-            GitHubSCMNavigatorRequest request = gitHubSCMNavigatorContext.newRequest(this, observer);
 
-            try {
+            try (GitHubSCMNavigatorRequest request = gitHubSCMNavigatorContext.newRequest(this, observer)) {
                 SourceFactory sourceFactory = new SourceFactory(request);
                 WitnessImpl witness = new WitnessImpl(listener);
 
-                if (!github.isAnonymous()) {
+                boolean githubAppAuthentication = credentials instanceof GitHubAppCredentials;
+                if (github.isAnonymous()) {
+                    listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
+                            apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);                
+                } else if (!githubAppAuthentication) {
                     GHMyself myself;
                     try {
                         // Requires an authenticated access
@@ -1039,8 +1042,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
                 throw new AbortException(
                         repoOwner + " does not correspond to a known GitHub User Account or Organization");
-            } finally {
-                request.close();
             }
         } finally {
             Connector.release(github);
@@ -1094,13 +1095,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
 
             GitHubSCMNavigatorContext gitHubSCMNavigatorContext = new GitHubSCMNavigatorContext().withTraits(traits);
-            GitHubSCMNavigatorRequest request = gitHubSCMNavigatorContext.newRequest(this, observer);
 
-            try {
+            try (GitHubSCMNavigatorRequest request = gitHubSCMNavigatorContext.newRequest(this, observer)) {
                 SourceFactory sourceFactory = new SourceFactory(request);
                 WitnessImpl witness = new WitnessImpl(listener);
 
-                if (!github.isAnonymous()) {
+                boolean githubAppAuthentication = credentials instanceof GitHubAppCredentials;
+                if (github.isAnonymous()) {
+                    listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
+                            apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);                
+                } else if (!githubAppAuthentication) {
                     listener.getLogger()
                             .format("Connecting to %s using %s%n", apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri,
                                     CredentialsNameProvider.name(credentials));
@@ -1134,9 +1138,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         )));
                         return;
                     }
-                } else {
-                    listener.getLogger().format("Connecting to %s with no credentials, anonymous access%n",
-                            apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
                 }
 
                 GHOrganization org = getGhOrganization(github);
@@ -1199,8 +1200,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
                 throw new AbortException(
                         repoOwner + " does not correspond to a known GitHub User Account or Organization");
-            } finally {
-                request.close();
             }
         } finally {
             Connector.release(github);
@@ -1414,6 +1413,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @Restricted(NoExternalUse.class) // stapler
         @SuppressWarnings("unused") // stapler
         public ListBoxModel doFillApiUriItems() {
+            return getPossibleApiUriItems();
+        }
+
+        static ListBoxModel getPossibleApiUriItems() {
             ListBoxModel result = new ListBoxModel();
             result.add("GitHub", "");
             for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {
@@ -1474,10 +1477,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         @SuppressWarnings("unused") // jelly
+        @NonNull
         public List<SCMTrait<? extends SCMTrait<?>>> getTraitsDefaults() {
-            List<SCMTrait<? extends SCMTrait<?>>> result = new ArrayList<>();
-            result.addAll(delegate.getTraitsDefaults());
-            return result;
+            return new ArrayList<>(delegate.getTraitsDefaults());
         }
 
         static {

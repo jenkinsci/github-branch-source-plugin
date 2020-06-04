@@ -1,6 +1,6 @@
 {
   "request": {
-    "url": "/users/notauser",
+    "url": "/orgs/stephenc",
     "method": "GET"
   },
   "response": {
