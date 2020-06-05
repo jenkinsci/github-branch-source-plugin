@@ -87,7 +87,7 @@ public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavi
      * Gets the topics which the repositories must have.
      * @return topics
      */
-    public ArrayList<String> getTopics() {
+    public List<String> getTopics() {
         return topics;
     }
 
