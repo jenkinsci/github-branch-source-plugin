@@ -24,6 +24,7 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMNavigator;
@@ -79,7 +80,7 @@ public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavi
     /**
      * Sets the topics which the repositories must have.
      */
-    void setTopics(ArrayList<String> topics) {
+    public void setTopics(ArrayList<String> topics) {
         this.topics = topics;
     }
 
@@ -87,7 +88,7 @@ public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavi
      * Gets the topics which the repositories must have.
      * @return topics
      */
-    public ArrayList<String> getTopics() {
+    public List<String> getTopics() {
         return topics;
     }
 
