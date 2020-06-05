@@ -4,11 +4,11 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.57</version>
+        <version>4.2</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
-    <version>${revision}${changelist}</version>
+    <version>2.8.0</version>
     <packaging>hpi</packaging>
     <name>GitHub Branch Source Plugin</name>
     <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <revision>2.7.2</revision>
+        <revision>2.8.0</revision>
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
@@ -35,7 +35,7 @@
         <connection>scm:git:git://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/${project.artifactId}-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
-        <tag>${scmTag}</tag>
+        <tag>github-branch-source-2.8.0</tag>
     </scm>
     <dependencies>
         <dependency>
@@ -46,7 +46,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.110</version>
+            <version>1.111.4</version>
         </dependency>
         <!-- TODO: after upgrading jenkins.version >= 2.171, migrate dependency -->
         <dependency>
