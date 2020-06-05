@@ -23,6 +23,7 @@ public class TopicsTrait extends SCMNavigatorTrait {
      */
     @NonNull
     private final ArrayList<String> topics;
+    private final String topicList;
 
     /**
      * Stapler constructor.
@@ -31,6 +32,7 @@ public class TopicsTrait extends SCMNavigatorTrait {
      */
     @DataBoundConstructor
     public TopicsTrait(@NonNull String topicList) {
+        this.topicList = topicList;
         this.topics = new ArrayList<String>();
 
         for (String topic : topicList.split(",")) {
@@ -47,6 +49,11 @@ public class TopicsTrait extends SCMNavigatorTrait {
     @NonNull
     public ArrayList<String> getTopics() {
         return topics;
+    }
+
+    @NonNull
+    public String getTopicList() {
+        return topicList;
     }
 
     @Override
