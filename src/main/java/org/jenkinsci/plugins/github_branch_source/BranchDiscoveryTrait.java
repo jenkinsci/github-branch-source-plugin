@@ -54,6 +54,12 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public class BranchDiscoveryTrait extends SCMSourceTrait {
     /**
      * The strategy encoded as a bit-field.
+     * <dl>
+     *     <dt>Bit 0</dt>
+     *     <dd>Build branches that are not filed as a PR</dd>
+     *     <dt>Bit 1</dt>
+     *     <dd>Build branches that are filed as a PR</dd>
+     * </dl>
      */
     private final int strategyId;
 
