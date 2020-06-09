@@ -274,7 +274,6 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
                     if (headRepo != null // head repo can be null if the PR is from a repo that has been deleted
                             && p.getBase().getRepository().getFullName().equalsIgnoreCase(headRepo.getFullName())
                             && p.getHead().getRef().equals(head.getName())) {
-
                         return false;
                     }
                 }
