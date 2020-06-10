@@ -35,6 +35,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import jenkins.util.JenkinsJVM;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -513,13 +514,16 @@ public class Connector {
      */
     @Nonnull
     private static Proxy getProxy(@Nonnull String host) {
-        Jenkins jenkins = GitHubWebHook.getJenkinsInstance();
+        if (JenkinsJVM.isJenkinsJVM()) {
+            Jenkins jenkins = Jenkins.get();
 
-        if (jenkins.proxy == null) {
-            return Proxy.NO_PROXY;
-        } else {
-            return jenkins.proxy.createProxy(host);
+            if (jenkins.proxy == null) {
+                return Proxy.NO_PROXY;
+            } else {
+                return jenkins.proxy.createProxy(host);
+            }
         }
+        return Proxy.NO_PROXY;
     }
 
     /**
