@@ -133,7 +133,7 @@ public class GitHubOrgWebHook {
             rootUrl = Jenkins.get().getRootUrl();
         }
         if (rootUrl == null) {
-            return null;
+            return rootUrl;
         }
 
         return rootUrl + "github-webhook/";
