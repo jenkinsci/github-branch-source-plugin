@@ -49,19 +49,16 @@ public class GitHubOrgWebHook {
     private static final List<GHEvent> EVENTS = Arrays.asList(GHEvent.REPOSITORY, GHEvent.PUSH, GHEvent.PULL_REQUEST, GHEvent.PULL_REQUEST_REVIEW_COMMENT);
 
     public static void register(GitHub hub, String orgName) throws IOException {
-        String rootUrl = System.getProperty("jenkins.hook.url");
-        if (rootUrl == null) {
-            rootUrl = Jenkins.get().getRootUrl();
-        }
-        if (rootUrl == null) {
+        String url = getWebhookUrl();
+        if (url == null) {
             return;
         }
+
         GHUser u = hub.getUser(orgName);
         FileBoolean orghook = new FileBoolean(getTrackingFile(orgName));
         if (orghook.isOff()) {
             try {
                 GHOrganization org = hub.getOrganization(orgName);
-                String url = rootUrl + "github-webhook/";
                 boolean found = false;
                 for (GHHook hook : org.getHooks()) {
                     if (hook.getConfig().get("url").equals(url)) {
@@ -96,16 +93,16 @@ public class GitHubOrgWebHook {
     }
 
     public static void deregister(GitHub hub, String orgName) throws IOException {
-        String rootUrl = Jenkins.get().getRootUrl();
-        if (rootUrl == null) {
+        String url = getWebhookUrl();
+        if (url == null) {
             return;
         }
+
         GHUser u = hub.getUser(orgName);
         FileBoolean orghook = new FileBoolean(getTrackingFile(orgName));
         if (orghook.isOn()) {
             try {
                 GHOrganization org = hub.getOrganization(orgName);
-                String url = rootUrl + "github-webhook/";
                 for (GHHook hook : org.getHooks()) {
                     if (hook.getConfig().get("url").equals(url)) {
                         hook.delete();
@@ -128,6 +125,18 @@ public class GitHubOrgWebHook {
                 LOGGER.log(Level.WARNING, "Failed to deregister GitHub Org hook to " + u.getHtmlUrl(), e);
             }
         }
+    }
+
+    private static String getWebhookUrl() {
+        String rootUrl = System.getProperty("jenkins.hook.url");
+        if (rootUrl == null) {
+            rootUrl = Jenkins.get().getRootUrl();
+        }
+        if (rootUrl == null) {
+            return;
+        }
+
+        return rootUrl + "github-webhook/";
     }
 
 }
