@@ -138,4 +138,4 @@ Finished: SUCCESS
 === Help?
 
 Raise an issue on link:https://issues.jenkins-ci.org/[Jenkins jira]
-setting the 'component' to be `github-brance-source-plugin`
+setting the 'component' to be `github-branch-source-plugin`

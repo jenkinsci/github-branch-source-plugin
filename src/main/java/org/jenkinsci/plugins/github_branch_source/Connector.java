@@ -24,7 +24,6 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsMatcher;
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
@@ -72,6 +71,7 @@ import javax.annotation.CheckForNull;
 import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSourceOwner;
+import jenkins.util.JenkinsJVM;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
@@ -413,7 +413,9 @@ public class Connector {
         gb.withRateLimitHandler(CUSTOMIZED);
 
         OkHttpClient.Builder clientBuilder = baseClient.newBuilder();
-        clientBuilder.proxy(getProxy(host));
+        if (JenkinsJVM.isJenkinsJVM()) {
+            clientBuilder.proxy(getProxy(host));
+        }
         if (cache != null) {
             clientBuilder.cache(cache);
         }
@@ -513,9 +515,8 @@ public class Connector {
      */
     @Nonnull
     private static Proxy getProxy(@Nonnull String host) {
-        Jenkins jenkins = GitHubWebHook.getJenkinsInstance();
-
-        if (jenkins.proxy == null) {
+        Jenkins jenkins = Jenkins.getInstanceOrNull();
+        if (jenkins == null || jenkins.proxy == null) {
             return Proxy.NO_PROXY;
         } else {
             return jenkins.proxy.createProxy(host);
