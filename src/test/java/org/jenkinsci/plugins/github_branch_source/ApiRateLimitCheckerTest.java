@@ -169,6 +169,27 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
     }
 
     /**
+     * Verify that "ThrottleNone" does not throttle in any case.
+     *
+     * @author Marc Salles Navarro
+     */
+    @Test
+    public void ThrottleNoneTestShouldNotThrottle() throws Exception {
+        // set up scenarios
+        List<RateLimit> scenarios = new ArrayList<>();
+        int limit = 5000;
+         // Keep decreasing quota until there's none left
+        for (int i = 500; i >= 0; i--) {
+            scenarios.add(new RateLimit(limit, i, soon));
+        }
+        setupStubs(scenarios);
+        ApiRateLimitChecker.ThrottleNone.checkApiRateLimit(listener, github);
+
+
+        assertEquals(0, countOfOutputLinesContaining("Sleeping"));
+    }
+
+    /**
      * Verify exactly when the throttle is occurring in "OnOver"
      *
      * @author Julian V. Modesto

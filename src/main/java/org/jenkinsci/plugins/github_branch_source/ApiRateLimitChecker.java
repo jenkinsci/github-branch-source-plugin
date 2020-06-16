@@ -107,7 +107,18 @@ public enum ApiRateLimitChecker {
                 waitUntilRateLimit(listener, github, rateLimit, expiration);
             }
         }
-    };
+    },
+    /**
+     * Ignore GitHub API Rate limit. Useful for GitHub Enterprise instances that might not have a limit set up.
+     */
+    ThrottleNone(Messages.ApiRateLimitChecker_ThrottleNone()) {
+
+                @Override
+                public void checkApiRateLimit(@NonNull TaskListener listener, GitHub github) throws IOException, InterruptedException {
+                    // Nothing needed
+                }
+            }
+    ;
 
 
     private static final double MILLIS_PER_HOUR = TimeUnit.HOURS.toMillis(1);
