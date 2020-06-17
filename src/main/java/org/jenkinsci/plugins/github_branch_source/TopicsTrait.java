@@ -65,7 +65,7 @@ public class TopicsTrait extends SCMNavigatorTrait {
     /**
      * Topics descriptor.
      */
-    @Symbol("topicsFilter")
+    @Symbol("gitHubTopicsFilter")
     @Extension
     @Selection
     public static class DescriptorImpl extends SCMNavigatorTraitDescriptor {
