@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>3.57</version>
+        <version>4.2</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <revision>2.7.3</revision>
+        <revision>2.8.3</revision>
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
@@ -46,7 +46,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.110</version>
+            <version>1.111.4</version>
         </dependency>
         <!-- TODO: after upgrading jenkins.version >= 2.171, migrate dependency -->
         <dependency>

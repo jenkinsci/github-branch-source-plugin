@@ -107,7 +107,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     static String generateAppInstallationToken(String appId, String appPrivateKey, String apiUrl, String owner) {
         try {
             String jwtToken = createJWT(appId, appPrivateKey);
-            GitHub gitHubApp = new GitHubBuilder().withEndpoint(apiUrl).withJwtToken(jwtToken).build();
+            GitHub gitHubApp = Connector
+                .createGitHubBuilder(apiUrl)
+                .withJwtToken(jwtToken)
+                .build();
 
             GHApp app = gitHubApp.getApp();
 
