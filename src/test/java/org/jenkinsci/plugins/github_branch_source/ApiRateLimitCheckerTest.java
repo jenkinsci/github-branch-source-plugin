@@ -260,7 +260,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         assertEquals(1, countOfOutputLinesContaining("under budget"));
 
         // The last scenario will trigger back to under budget with a full limit but no new messages
-        assertEquals(8, handler.getView().size());
+        assertEquals(10, handler.getView().size());
     }
 
     /**
@@ -292,11 +292,11 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
 
         // Expect a triggered throttle for normalize
         assertEquals(1, countOfOutputLinesContaining(
-            "Current quota has 0 remaining (250 over budget). Next quota of 5000 due now. Sleeping for 7 ms."));
+            "Current quota for Github API usage has 0 remaining (250 over budget). Next quota of 5000 due now. Sleeping for 7 ms."));
         assertEquals(1, countOfOutputLinesContaining(
-            "Current quota has 0 remaining (250 over budget). Next quota of 5000 due now. Sleeping for 15 ms."));
+            "Current quota for Github API usage has 0 remaining (250 over budget). Next quota of 5000 due now. Sleeping for 15 ms."));
         assertEquals(1, countOfOutputLinesContaining(
-            "Current quota has 0 remaining (250 over budget). Next quota of 5000 due now. Sleeping for 16 ms."));
+            "Current quota for Github API usage has 0 remaining (250 over budget). Next quota of 5000 due now. Sleeping for 16 ms."));
         assertEquals(4, countOfOutputLinesContaining("Sleeping"));
         // Expect that we stopped waiting on a refresh
         assertEquals(1, countOfOutputLinesContaining("refreshed"));
