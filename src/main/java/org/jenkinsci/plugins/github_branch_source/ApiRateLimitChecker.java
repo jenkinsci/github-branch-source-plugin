@@ -103,7 +103,7 @@ public enum ApiRateLimitChecker {
 
                 )));
                 listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(),
-                        "Jenkins is using \"Throttle on Over\" to restrict GitHub API requests only when near or above the rate limit. Use \"Throttle on Over\" to try and evenly distribute GitHub API requests."));
+                        "Jenkins is using \"Throttle on Over\" to restrict GitHub API requests only when near or above the rate limit. Use \"Throttle for Normalize\" to try and evenly distribute GitHub API requests."));
                 waitUntilRateLimit(listener, github, rateLimit, expiration);
             }
         }

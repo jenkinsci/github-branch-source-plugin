@@ -297,6 +297,8 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
             "Current quota for Github API usage has 0 remaining (250 over budget). Next quota of 5000 due now. Sleeping for 15 ms."));
         assertEquals(1, countOfOutputLinesContaining(
             "Current quota for Github API usage has 0 remaining (250 over budget). Next quota of 5000 due now. Sleeping for 16 ms."));
+        assertEquals(4, countOfOutputLinesContaining(
+            "Jenkins is using \"Throttle for Normalize\" to try and evenly distribute GitHub API requests. Use \"Throttle on Over\" to have Jenkins restrict GitHub API requests only when near or above the rate limit."));
         assertEquals(4, countOfOutputLinesContaining("Sleeping"));
         // Expect that we stopped waiting on a refresh
         assertEquals(1, countOfOutputLinesContaining("refreshed"));
@@ -495,6 +497,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         assertEquals(1, countOfOutputLinesContaining("Current quota"));
         //Making sure the budget messages are correct
         assertEquals(1, countOfOutputLinesContaining("1 over buffer"));
+        assertEquals(1, countOfOutputLinesContaining("Jenkins is using \"Throttle on Over\" to restrict GitHub API requests only when near or above the rate limit. Use \"Throttle for Normalize\" to try and evenly distribute GitHub API requests."));
     }
 
     /**
