@@ -258,6 +258,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         assertEquals(3, countOfOutputLinesContaining("Still sleeping"));
         assertEquals(2, countOfOutputLinesContaining("Sleeping for"));
         assertEquals(1, countOfOutputLinesContaining("under budget"));
+        assertEquals(2, countOfOutputLinesContaining("Jenkins is using \"Throttle for Normalize\""));
 
         // The last scenario will trigger back to under budget with a full limit but no new messages
         assertEquals(10, handler.getView().size());
