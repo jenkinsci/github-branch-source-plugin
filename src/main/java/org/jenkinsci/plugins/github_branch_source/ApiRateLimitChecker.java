@@ -72,7 +72,7 @@ public enum ApiRateLimitChecker {
                         )));
                     }
                     listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(),
-                            "Jenkins is using \"Throttle for Normalize\" to try and evenly distribute GitHub API requests. Use \"Throttle on Over\" to have Jenkins restrict GitHub API requests only when near or above the rate limit."));
+                            "Jenkins is attempting to evenly distribute GitHub API requests. To configure a different rate limiting strategy, such as having Jenkins attempt to evenly distribute GitHub API requests, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings."));
                     waitUntilRateLimit(listener, github, rateLimit, expiration);
                 }
             }
@@ -103,7 +103,7 @@ public enum ApiRateLimitChecker {
 
                 )));
                 listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(),
-                        "Jenkins is using \"Throttle on Over\" to restrict GitHub API requests only when near or above the rate limit. Use \"Throttle for Normalize\" to try and evenly distribute GitHub API requests."));
+                        "Jenkins is restricting GitHub API requests only when near or above the rate limit. To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings."));
                 waitUntilRateLimit(listener, github, rateLimit, expiration);
             }
         }
