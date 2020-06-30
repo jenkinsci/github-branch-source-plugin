@@ -498,7 +498,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         assertEquals(1, countOfOutputLinesContaining("Current quota"));
         //Making sure the budget messages are correct
         assertEquals(1, countOfOutputLinesContaining("1 over buffer"));
-        assertEquals(1, countOfOutputLinesContaining("Jenkins is restricting GitHub API requests only when near or above the rate limit. To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings."));
+        assertEquals(1, countOfOutputLinesContaining("Jenkins is restricting GitHub API requests only when near or above the rate limit. To configure a different rate limiting strategy, such as having Jenkins attempt to evenly distribute GitHub API requests, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings."));
     }
 
     /**
