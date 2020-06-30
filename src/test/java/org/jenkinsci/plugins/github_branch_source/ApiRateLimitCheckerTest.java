@@ -258,7 +258,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         assertEquals(3, countOfOutputLinesContaining("Still sleeping"));
         assertEquals(2, countOfOutputLinesContaining("Sleeping for"));
         assertEquals(1, countOfOutputLinesContaining("under budget"));
-        assertEquals(2, countOfOutputLinesContaining("Jenkins is using \"Throttle for Normalize\""));
+        assertEquals(2, countOfOutputLinesContaining("Jenkins is attempting to evenly distribute GitHub API requests"));
 
         // The last scenario will trigger back to under budget with a full limit but no new messages
         assertEquals(10, handler.getView().size());
@@ -299,7 +299,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         assertEquals(1, countOfOutputLinesContaining(
             "Current quota for Github API usage has 0 remaining (250 over budget). Next quota of 5000 due now. Sleeping for 16 ms."));
         assertEquals(4, countOfOutputLinesContaining(
-            "Jenkins is using \"Throttle for Normalize\" to try and evenly distribute GitHub API requests. Use \"Throttle on Over\" to have Jenkins restrict GitHub API requests only when near or above the rate limit."));
+            "Jenkins is attempting to evenly distribute GitHub API requests. To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings."));
         assertEquals(4, countOfOutputLinesContaining("Sleeping"));
         // Expect that we stopped waiting on a refresh
         assertEquals(1, countOfOutputLinesContaining("refreshed"));
@@ -498,7 +498,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         assertEquals(1, countOfOutputLinesContaining("Current quota"));
         //Making sure the budget messages are correct
         assertEquals(1, countOfOutputLinesContaining("1 over buffer"));
-        assertEquals(1, countOfOutputLinesContaining("Jenkins is using \"Throttle on Over\" to restrict GitHub API requests only when near or above the rate limit. Use \"Throttle for Normalize\" to try and evenly distribute GitHub API requests."));
+        assertEquals(1, countOfOutputLinesContaining("Jenkins is restricting GitHub API requests only when near or above the rate limit. To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings."));
     }
 
     /**
