@@ -1,0 +1,11 @@
+<div>
+    <p>
+        <b>Normalize API requests</b>: Attempt to evenly distribute GitHub API requests. This strategy can be helpful when there are numerous pipelines
+        that are managed by multiple users and/or there are many concurrent builds, making it difficult to know when a pipeline has been paused
+        due to exceeding the GitHub API usage limit.
+    </p>
+    <p>
+        <b>Throttle at/near rate limit</b>: Restrict GitHub API requests only when near or above rate limit. This strategy may be preferred over "Throttle for Normalize"
+        if there are relatively few/infrequent queries to the GitHub API.
+    </p>
+</div>

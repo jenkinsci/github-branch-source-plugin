@@ -32,7 +32,7 @@ public enum ApiRateLimitChecker {
                 int ideal = (int) ((rateLimit.limit - buffer - burst) * resetProgress) + buffer;
                 if (rateLimit.remaining >= ideal && rateLimit.remaining < ideal + buffer) {
                     listener.getLogger().println(GitHubConsoleNote.create(start, String.format(
-                            "GitHub API Usage: Current quota has %d remaining (%d under budget). Next quota of %d in %s",
+                            "Jenkins-Imposed API Limiter: Current quota for Github API usage has %d remaining (%d under budget). Next quota of %d in %s",
                             rateLimit.remaining, rateLimit.remaining - ideal, rateLimit.limit,
                             Util.getTimeSpanString(rateLimitResetMillis)
                     )));
@@ -46,14 +46,14 @@ public enum ApiRateLimitChecker {
                         if (rateLimitResetMillis < 0) {
                             expiration = System.currentTimeMillis() + ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS);
                             listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                    "GitHub API Usage: Current quota has %d remaining (%d over budget). Next quota of %d due now. Sleeping for %s.",
+                                    "Jenkins-Imposed API Limiter: Current quota for Github API usage has %d remaining (%d over budget). Next quota of %d due now. Sleeping for %s.",
                                     rateLimit.remaining, ideal - rateLimit.remaining, rateLimit.limit,
                                     Util.getTimeSpanString(expiration - System.currentTimeMillis())
                             )));
                         } else {
                             expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS);
                             listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                    "GitHub API Usage: Current quota has %d remaining (%d over budget). Next quota of %d in %s. Sleeping until reset.",
+                                    "Jenkins-Imposed API Limiter: Current quota for Github API usage has %d remaining (%d over budget). Next quota of %d in %s. Sleeping until reset.",
                                     rateLimit.remaining, ideal - rateLimit.remaining, rateLimit.limit,
                                     Util.getTimeSpanString(rateLimitResetMillis)
                             )));
@@ -65,12 +65,14 @@ public enum ApiRateLimitChecker {
                                 - Math.max(0, (long) (targetFraction * MILLIS_PER_HOUR))
                                 + ENTROPY.nextInt(1000);
                         listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                "GitHub API Usage: Current quota has %d remaining (%d over budget). Next quota of %d in %s. Sleeping for %s.",
+                                "Jenkins-Imposed API Limiter: Current quota for Github API usage has %d remaining (%d over budget). Next quota of %d in %s. Sleeping for %s.",
                                 rateLimit.remaining, ideal - rateLimit.remaining, rateLimit.limit,
                                 Util.getTimeSpanString(rateLimitResetMillis),
                                 Util.getTimeSpanString(expiration - System.currentTimeMillis())
                         )));
                     }
+                    listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(),
+                            "Jenkins is attempting to evenly distribute GitHub API requests. To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings."));
                     waitUntilRateLimit(listener, github, rateLimit, expiration);
                 }
             }
@@ -94,12 +96,14 @@ public enum ApiRateLimitChecker {
                 }
                 final long expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS);
                 listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                        "GitHub API Usage: Current quota has %d remaining (%d over buffer). Next quota of %d due in %s. Sleeping for %s.",
+                        "Jenkins-Imposed API Limiter: Current quota for Github API usage has %d remaining (%d over buffer). Next quota of %d due in %s. Sleeping for %s.",
                         rateLimit.remaining, buffer - rateLimit.remaining, rateLimit.limit,
                         Util.getTimeSpanString(expiration - System.currentTimeMillis()),
                         Util.getTimeSpanString(NOTIFICATION_WAIT_MILLIS)
 
                 )));
+                listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(),
+                        "Jenkins is restricting GitHub API requests only when near or above the rate limit. To configure a different rate limiting strategy, such as having Jenkins attempt to evenly distribute GitHub API requests, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings."));
                 waitUntilRateLimit(listener, github, rateLimit, expiration);
             }
         }
@@ -165,12 +169,12 @@ public enum ApiRateLimitChecker {
                 if (current.remaining > rateLimit.remaining
                         || current.getResetDate().getTime() > rateLimit.getResetDate().getTime()) {
                     listener.getLogger().println(GitHubConsoleNote.create(now,
-                            "GitHub API Usage: The quota may have been refreshed earlier than expected, rechecking..."
+                            "Jenkins-Imposed API Limiter: The Github API usage quota may have been refreshed earlier than expected, rechecking..."
                     ));
                     break;
                 }
                 listener.getLogger().println(GitHubConsoleNote.create(now, String.format(
-                        "GitHub API Usage: Still sleeping, now only %s remaining.",
+                        "Jenkins-Imposed API Limiter: Still sleeping, now only %s remaining.",
                         Util.getTimeSpanString(expiration - now)
                 )));
             }
