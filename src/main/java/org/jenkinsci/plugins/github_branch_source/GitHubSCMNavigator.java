@@ -1183,6 +1183,13 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                             "Skipping repository %s because it is missing one or more of the following topics: '%s'", repo.getName(), gitHubSCMNavigatorContext.getTopics())));
+                        } else if (StringUtils.isNotBlank(gitHubSCMNavigatorContext.getTeamSlug())  && !isRepositoryVisibleToTeam(org, repo, gitHubSCMNavigatorContext.getTeamSlug()) ) {
+                            listener.getLogger()
+                                .println(GitHubConsoleNote.create(System.currentTimeMillis(),
+                                    String.format(
+                                        "Skipping repository %s because it is not in team %s",
+                                        repo.getName(),
+                                        gitHubSCMNavigatorContext.getTeamSlug())));
                         } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -1240,6 +1247,17 @@ public class GitHubSCMNavigator extends SCMNavigator {
         } finally {
             Connector.release(github);
         }
+    }
+
+    private boolean isRepositoryVisibleToTeam(GHOrganization org, GHRepository repo, String teamSlug) throws IOException {
+        final Iterable<GHRepository> repositories = org.getTeamBySlug(teamSlug).listRepositories()
+            .withPageSize(100);
+        for (GHRepository item : repositories) {
+            if (repo.getFullName().equals(item.getFullName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
