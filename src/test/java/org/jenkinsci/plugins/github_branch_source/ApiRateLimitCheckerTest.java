@@ -2,6 +2,7 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
+import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import hudson.util.LogTaskListener;
@@ -24,6 +25,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.resetAllScenarios;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
 
@@ -169,7 +171,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
     }
 
     /**
-     * Verify that "NoThrottle" does not throttle in any case.
+     * Verify that "NoThrottle" does not contact the GitHub api nor output any logs
      *
      * @author Marc Salles Navarro
      */
@@ -184,9 +186,10 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         }
         setupStubs(scenarios);
         ApiRateLimitChecker.NoThrottle.checkApiRateLimit(listener, github);
-
-
-        assertEquals(0, countOfOutputLinesContaining("Sleeping"));
+        // there should be no output
+        assertEquals(0, countOfOutputLines(m -> m.matches("[sS]leeping")));
+        // github rate_limit endpoint should not be contacted
+        assertEquals(0, getRequestCount(githubApi));
     }
 
     /**
