@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
 import hudson.model.TaskListener;
+import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
 
@@ -115,6 +116,13 @@ public enum ApiRateLimitChecker {
 
                 @Override
                 public void checkApiRateLimit(@NonNull TaskListener listener, GitHub github) throws IOException, InterruptedException {
+                    if (GitHubServerConfig.GITHUB_URL.equals(github.getApiUrl())) {
+
+                        // If the GitHub public API is being used, this will fallback to ThrottleOnOver
+                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(),
+                                "GitHub throttling is disabled, which is not allowed for public GitHub usage, so ThrottleOnOver will be used instead. To configure a different rate limiting strategy, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings."));
+                        ThrottleOnOver.checkApiRateLimit(listener, github);
+                    }
                     // Nothing needed
                 }
             }
