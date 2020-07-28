@@ -1922,7 +1922,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * to return the size of repository.
      */
     @Extension
-    public static class RepositoryAPI extends GitToolChooser.RepositorySizeAPI {
+    public static class RepositorySizeAPI extends GitToolChooser.RepositorySizeAPI {
 
         @Override
         public boolean isApplicableTo(String repoUrl) {
