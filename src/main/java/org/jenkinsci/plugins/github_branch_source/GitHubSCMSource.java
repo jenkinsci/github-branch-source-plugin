@@ -80,6 +80,7 @@ import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource;
+import jenkins.plugins.git.GitRepoSizeEstimator;
 import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.plugins.git.MergeWithGitSCMExtension;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
@@ -1913,6 +1914,27 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         SCMSourceOwner owner = getOwner();
         if (owner != null) {
             GitHubWebHook.get().registerHookFor(owner);
+        }
+    }
+
+    /**
+     * This extension intends to perform a GET request without any credentials on the provided repository URL
+     * to return the size of repository.
+     */
+    @Extension
+    public static class RepositoryAPI extends GitToolChooser.RepositorySizeAPI {
+
+        @Override
+        public boolean isApplicableTo(String repoUrl) {
+            return repoUrl.contains("github");
+        }
+
+        @Override
+        public Long getSizeOfRepository(String repoUrl) throws Exception {
+            GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repoUrl);
+            GitHub github = Connector.connect(info.getApiUri(), null);
+            GHRepository ghRepository = github.getRepository(info.getRepoOwner() + '/' + info.getRepository());
+            return (long) ghRepository.getSize();
         }
     }
 
