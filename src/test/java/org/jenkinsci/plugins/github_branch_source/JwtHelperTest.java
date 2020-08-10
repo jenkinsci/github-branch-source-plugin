@@ -91,12 +91,60 @@ public class JwtHelperTest {
             "WXeajzno43UHZksae1LP1B3J1+0adxpykCMzWl19XZkxtVkYVi0Q3g==\n" +
             "-----END RSA PRIVATE KEY-----";
 
+    private static final String PKCS8_PRIVATE_KEY_CONTAINING_RSA_CHARS = "-----BEGIN PRIVATE KEY-----\n"
+        + "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDGKsPHpCMqBVUw\n"
+        + "BBxD33j/WShTVB0vdmu+SqgZeNULSy0+ipBaDRgTbyhB0mA2l9M24mH7B/vY0Cjn\n"
+        + "rN+42bV92fMFQRCvxgQ9cRsi2bgL4XOgSdJB9cH/GWev04kUqWRihjm5quPzp62z\n"
+        + "RPmNoSbrbLWVtjcfAYOSDA1SP4XBdRaWW8CjQU7VB73RGacJp7mODvi1gqccsWK6\n"
+        + "Qiu6fbGjTeimrWTnEPFFGdsvKgLrGqKyZBGBj9uKKC5o+l4HXvSeKSUrYJbt0bWs\n"
+        + "uOeirDqQ2y2QY1OxoiXGH2N5FVIJ/opVyOq/LyGgVoOSqjUzmRW2DuZT7LQm/Gl9\n"
+        + "EmhuEUBfAgMBAAECggEBAJWRx41SpLvdpIuGPrM348KPT7F9Rj4BmpbZEIGRQvOw\n"
+        + "PSj8OrHNOkPI3VC48aei9mdxfNSVFRBzJLygLYf+wk6IBzYLAwY4ZhDd4sZuH8zP\n"
+        + "0I7FyS3ByTe6vBjoh4mRxNPcTYuGoWDRSXiKcfTlElQVDAVAr9/2K5E7CX7vtQvq\n"
+        + "+R3Pi+5HGv88FxbRn7uh4PQDUBvArvJdLZVSLiq2EBkmwHGa4DZSoqm5mG8Y5W1B\n"
+        + "usDU5YSQhqd0t7RPeOh7VV7p0mnF9Pn0Kmc3e182N05spOzhOmP8nm9b9eGecPWE\n"
+        + "fqqdmWBuellCHTe0VGUBXHUCUFcItt/6xaZvwaSzJzkCgYEA5YsgIJkiy7sxqqTD\n"
+        + "QZLmfS4Zr2VCLlEtdBaJG6FIrKkq7YJ3njL0CyFQ4qT7Nba1uiLYL6wH3O2MaVvD\n"
+        + "JqRJbWfJjhcmNGnsMesFAZid12shLq5oB1Ptg2VRnNcTzdLY30MF5JIHA8YUV8/s\n"
+        + "xWl5PQ/L08rgHILNMpndSHee8LsCgYEA3QHaCM+N78GV03r1Rw1S9ggcJHmNa8C2\n"
+        + "tUSVzkIE2RgOZ+PJCt9ij0OYxD6DDdLZDd9OUw2tvMqZoag2TeprP6qtu0HKSEQj\n"
+        + "7YjA5BMAWqqyn8RXada0swr/y3ARKe+1haZKKzS/7qeNjD8GGTQp+NvtOgQ5DfJl\n"
+        + "hDDolKOhlq0CgYEAnsPQr9tbXtCV9LJLPwKtGy4Uo+UElmadaqrfoFW4n3vObkKM\n"
+        + "G8agV0Zu3KRCAI/kN9876hUxxxQixwip/QMqqlpb5USLrzsIHCqy5ry5h7LYW6JT\n"
+        + "36WkJPqiLTnxv62zRRDldYevBGQv0+DDonNmYN6ZG186DV5HMVWM4T+jllsCgYAe\n"
+        + "iEj0+qejPd1TECOeo0qYztoEd/5/qmoTdNw1WI2O6HHlDGUT6XSWUkJiqjg0yrJN\n"
+        + "5lHNy4/7CwpaeQC3lvEmJJBH1Hj7rt4/zKrJV46u9/IhfGCPMKhaK+TW2C6m2oT7\n"
+        + "Z9PLUEhL0j4N6A8RoFFEHi4R289+C8TWlGMtVcXXKQKBgEd1zPh3okoOEBLWBswc\n"
+        + "rYeW6a5YMUlWdjv3AaVGWvXCBVQV/nHLbHePDw8/Lj71+tW+aJP3/RSA38T1EbJc\n"
+        + "NbI/fRyHodR+Cf7jCm8DWg/lORzzGSA7FGZyV8M/AW4WQ/NjFuHme4Dg7qULEuk+\n"
+        + "CK428WLq7hhesv0p8tsmJP+n\n"
+        + "-----END PRIVATE KEY-----";
+
+    private static final String PKCS8_PUBLIC_KEY_CONTAINING_RSA_CHARS = "-----BEGIN PUBLIC KEY-----\n"
+        + "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxirDx6QjKgVVMAQcQ994\n"
+        + "/1koU1QdL3ZrvkqoGXjVC0stPoqQWg0YE28oQdJgNpfTNuJh+wf72NAo56zfuNm1\n"
+        + "fdnzBUEQr8YEPXEbItm4C+FzoEnSQfXB/xlnr9OJFKlkYoY5uarj86ets0T5jaEm\n"
+        + "62y1lbY3HwGDkgwNUj+FwXUWllvAo0FO1Qe90RmnCae5jg74tYKnHLFiukIrun2x\n"
+        + "o03opq1k5xDxRRnbLyoC6xqismQRgY/biiguaPpeB170niklK2CW7dG1rLjnoqw6\n"
+        + "kNstkGNTsaIlxh9jeRVSCf6KVcjqvy8hoFaDkqo1M5kVtg7mU+y0JvxpfRJobhFA\n"
+        + "XwIDAQAB\n"
+        + "-----END PUBLIC KEY-----";
+
     @Test
     public void createJWT_is_valid() throws Exception {
         String jwt = createJWT("123", PKCS8_PRIVATE_KEY);
         Jws<Claims> parsedJwt = Jwts.parser()
                 .setSigningKey(getPublicKeyFromString(PKCS8_PUBLIC_KEY))
                 .parseClaimsJws(jwt);
+        assertThat(parsedJwt.getBody().getIssuer(), is("123"));
+    }
+
+    @Test
+    public void createJWT_with_key_containing_RSA_is_valid() throws Exception {
+        String jwt = createJWT("123", PKCS8_PRIVATE_KEY_CONTAINING_RSA_CHARS);
+        Jws<Claims> parsedJwt = Jwts.parser()
+            .setSigningKey(getPublicKeyFromString(PKCS8_PUBLIC_KEY_CONTAINING_RSA_CHARS))
+            .parseClaimsJws(jwt);
         assertThat(parsedJwt.getBody().getIssuer(), is("123"));
     }
 
