@@ -27,7 +27,7 @@
         <java.level>8</java.level>
         <jenkins.version>2.176.4</jenkins.version>
         <useBeta>true</useBeta>
-        <jcasc.version>1.35</jcasc.version>
+        <jcasc.version>1.43</jcasc.version>
         <jjwt.version>0.10.5</jjwt.version>
     </properties>
 
