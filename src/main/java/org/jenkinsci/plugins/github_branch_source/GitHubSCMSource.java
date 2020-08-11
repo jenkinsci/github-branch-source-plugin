@@ -80,7 +80,6 @@ import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource;
-import jenkins.plugins.git.GitToolChooser;
 import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.plugins.git.MergeWithGitSCMExtension;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
