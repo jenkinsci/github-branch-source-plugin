@@ -6,6 +6,7 @@ import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
+import hudson.model.Item;
 import hudson.model.TopLevelItem;
 import hudson.plugins.git.BranchSpec;
 import hudson.plugins.git.GitSCM;
@@ -15,6 +16,7 @@ import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.DisableRemotePoll;
 import hudson.triggers.SCMTrigger;
 import jenkins.model.Jenkins;
+import jenkins.plugins.git.GitToolChooser;
 import org.jenkinsci.plugins.gitclient.JGitTool;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
@@ -22,17 +24,38 @@ import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.kohsuke.github.GitHub;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-public class GitHubRepoSizeEstimatorTest {
+@RunWith(Parameterized.class)
+public class GitHubRepoSizeEstimatorTest extends GitSCMSourceBase {
+
+    public GitHubRepoSizeEstimatorTest(GitHubSCMSource source) {
+        this.source = source;
+    }
+
+    @Parameterized.Parameters(name = "{index}: revision={0}")
+    public static GitHubSCMSource[] revisions() {
+        return new GitHubSCMSource[]{
+                new GitHubSCMSource("cloudbeers", "yolo", null, false),
+                new GitHubSCMSource("", "", "https://github.com/cloudbeers/yolo", true)
+        };
+    }
 
     @Rule
     public final JenkinsRule j = new JenkinsRule();
@@ -53,56 +76,23 @@ public class GitHubRepoSizeEstimatorTest {
     }
 
     @Test
-    public void testExtensionApplicability() throws Exception {
-        GitHubRepoSizeEstimator.RepositorySizeGithubAPI repositorySizeGithubAPI = new GitHubRepoSizeEstimator.RepositorySizeGithubAPI();
-
-        String url = "https://github.com/jenkinsci/github-branch-source-plugin.git";
-
+    public void isApplicableToTest() throws Exception {
+        GitHubRepoSizeEstimator.RepositorySizeGithubAPI api =  j.jenkins.getExtensionList(GitToolChooser.RepositorySizeAPI.class).get(GitHubRepoSizeEstimator.RepositorySizeGithubAPI.class);
+        Item context = Mockito.mock(Item.class);
         store.addCredentials(Domain.global(), createCredential(CredentialsScope.GLOBAL, "github"));
         store.save();
 
-//        WorkflowJob p = j.jenkins.createProject(WorkflowJob.class, "p");
-//        p.setDefinition(new CpsFlowDefinition(
-//                "node {\n"
-//                        + "  checkout(\n"
-//                        + "    [$class: 'GitSCM', \n"
-//                        + "      userRemoteConfigs: [[credentialsId: 'github', url: $/" + url + "/$]]]\n"
-//                        + "  )"
-//                        + "}", true));
-//        WorkflowRun b = j.assertBuildStatusSuccess(p.scheduleBuild2(0));
-//        j.waitForMessage("using credential github", b);
-        List<UserRemoteConfig> repos = new ArrayList<>();
-        repos.add(new UserRemoteConfig(url, "origin", null, "github"));
-        FreeStyleProject projectWithMaster = setupProject(repos, Collections.singletonList(new BranchSpec("master")), null, false);
-        projectWithMaster.scheduleBuild2(0);
+        githubApi.stubFor(
+                get(urlEqualTo("/"))
+                        .willReturn(
+                                aResponse()
+                                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                                        .withBodyFile("../__files/body-(root)-XwEI7.json")));
 
-        List<TopLevelItem> items =  j.jenkins.getItems();
-
-        assertThat(repositorySizeGithubAPI.isApplicableTo(url, items.get(0), "github"), is(true));
+        assertThat(api.isApplicableTo("https://github.com/rishabhBudhouliya/zoom-suspender.git", context, "github"), is(false));
     }
 
     private StandardCredentials createCredential(CredentialsScope scope, String id) {
-        return new UsernamePasswordCredentialsImpl(scope, id, "desc: " + id, "rishabhBudhouliya", "rishabh2020");
-    }
-
-    protected FreeStyleProject setupProject(List<UserRemoteConfig> repos, List<BranchSpec> branchSpecs,
-                                            String scmTriggerSpec, boolean disableRemotePoll) throws Exception {
-        FreeStyleProject project = j.createFreeStyleProject();
-        GitSCM scm = new GitSCM(
-                repos,
-                branchSpecs,
-                false, Collections.<SubmoduleConfig>emptyList(),
-                null, JGitTool.MAGIC_EXENAME,
-                Collections.<GitSCMExtension>emptyList());
-        if(disableRemotePoll) scm.getExtensions().add(new DisableRemotePoll());
-        project.setScm(scm);
-        if(scmTriggerSpec != null) {
-            SCMTrigger trigger = new SCMTrigger(scmTriggerSpec);
-            project.addTrigger(trigger);
-            trigger.start(project, true);
-        }
-        //project.getBuildersList().add(new CaptureEnvironmentBuilder());
-        project.save();
-        return project;
+        return new UsernamePasswordCredentialsImpl(scope, id, "desc: " + id, "username", "password");
     }
 }
