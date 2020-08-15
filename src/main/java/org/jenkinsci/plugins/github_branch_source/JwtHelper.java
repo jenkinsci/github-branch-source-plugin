@@ -67,7 +67,9 @@ class JwtHelper {
             );
         }
 
-        String privateKeyContent = key.replaceAll("\\n", "")
+        String privateKeyContent = key
+                .replaceAll("\\n", "")
+                .replaceAll("\\r", "")
                 .replace("-----BEGIN PRIVATE KEY-----", "")
                 .replace("-----END PRIVATE KEY-----", "");
 
