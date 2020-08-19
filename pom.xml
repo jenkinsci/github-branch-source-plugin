@@ -27,7 +27,7 @@
         <java.level>8</java.level>
         <jenkins.version>2.176.4</jenkins.version>
         <useBeta>true</useBeta>
-        <jjwt.version>0.10.5</jjwt.version>
+        <jjwt.version>0.11.2</jjwt.version>
     </properties>
 
     <scm>
