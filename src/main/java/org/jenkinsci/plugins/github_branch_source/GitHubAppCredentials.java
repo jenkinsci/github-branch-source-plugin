@@ -291,7 +291,11 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
             try {
                 GitHub connect = Connector.connect(apiUri, gitHubAppCredential);
-                return FormValidation.ok("Success, Remaining rate limit: " + connect.getRateLimit().getRemaining());
+                try {
+                    return FormValidation.ok("Success, Remaining rate limit: " + connect.getRateLimit().getRemaining());
+                } finally {
+                    Connector.release(connect);
+                }
             } catch (Exception e) {
                 return FormValidation.error(e, String.format(ERROR_AUTHENTICATING_GITHUB_APP, appID));
             }

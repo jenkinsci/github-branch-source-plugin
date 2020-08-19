@@ -2025,15 +2025,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             StringBuilder sb = new StringBuilder();
             try {
                 GitHub github = Connector.connect(info.getApiUri(), credentials);
-                if (github.isCredentialValid()){
-                    sb.append("Credentials ok.");
-                }
+                try {
+                    if (github.isCredentialValid()){
+                        sb.append("Credentials ok.");
+                    }
 
-                GHRepository repo = github.getRepository(info.getRepoOwner() + "/" + info.getRepository());
-                if (repo != null) {
-                    sb.append(" Connected to ");
-                    sb.append(repo.getHtmlUrl());
-                    sb.append(".");
+                    GHRepository repo = github.getRepository(info.getRepoOwner() + "/" + info.getRepository());
+                    if (repo != null) {
+                        sb.append(" Connected to ");
+                        sb.append(repo.getHtmlUrl());
+                        sb.append(".");
+                    }
+                } finally {
+                    Connector.release(github);
                 }
             } catch (IOException e) {
                 return FormValidation.error(e, "Error validating repository information. " + sb.toString());
@@ -2133,12 +2137,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             try {
                 StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, credentialsId);
                 GitHub github = Connector.connect(apiUri, credentials);
-                if (!github.isAnonymous()) {
-                    ListBoxModel model = new ListBoxModel();
-                    for (Map.Entry<String,GHOrganization> entry : github.getMyOrganizations().entrySet()) {
-                        model.add(entry.getKey(), entry.getValue().getAvatarUrl());
+                try {
+                    if (!github.isAnonymous()) {
+                        ListBoxModel model = new ListBoxModel();
+                        for (Map.Entry<String,GHOrganization> entry : github.getMyOrganizations().entrySet()) {
+                            model.add(entry.getKey(), entry.getValue().getAvatarUrl());
+                        }
+                        return model;
                     }
-                    return model;
+                } finally {
+                    Connector.release(github);
                 }
             }
              catch (FillErrorResponse e) {
