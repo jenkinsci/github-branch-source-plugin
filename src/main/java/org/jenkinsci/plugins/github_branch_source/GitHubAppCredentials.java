@@ -189,10 +189,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         if (/* XStream */Channel.current() == null) {
             return this;
         }
-        return new AgentSide(this);
+        return new DelegatingGitHubAppCredentials(this);
      }
 
-    private static final class AgentSide extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
+    private static final class DelegatingGitHubAppCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
 
         static final String SEP = "%%%";
 
@@ -200,7 +200,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         private final String data;
         private transient Channel ch;
 
-        AgentSide(GitHubAppCredentials onMaster) {
+        DelegatingGitHubAppCredentials(GitHubAppCredentials onMaster) {
             super(onMaster.getScope(), onMaster.getId(), onMaster.getDescription());
             JenkinsJVM.checkJenkinsJVM();
             appID = onMaster.appID;
