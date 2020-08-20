@@ -218,13 +218,13 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         @Override
         public Secret getPassword() {
             try {
-                return Secret.fromString(ch.call(new GetPassword(data)));
+                return ch.call(new GetPassword(data));
             } catch (IOException | InterruptedException x) {
                 throw new RuntimeException(x);
             }
         }
 
-        private static final class GetPassword extends SlaveToMasterCallable<String, RuntimeException> {
+        private static final class GetPassword extends SlaveToMasterCallable<Secret, RuntimeException> {
 
             private final String data;
 
@@ -233,9 +233,9 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             }
 
             @Override
-            public String call() throws RuntimeException {
+            public Secret call() throws RuntimeException {
                 String[] fields = Secret.fromString(data).getPlainText().split(SEP);
-                return generateAppInstallationToken(fields[0], fields[1], fields[2], fields[3]);
+                return Secret.fromString(generateAppInstallationToken(fields[0], fields[1], fields[2], fields[3]));
             }
 
         }
