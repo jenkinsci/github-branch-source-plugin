@@ -14,15 +14,14 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.List;
+import jenkins.security.SlaveToMasterCallable;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHApp;
 import org.kohsuke.github.GHAppInstallation;
 import org.kohsuke.github.GHAppInstallationToken;
 import org.kohsuke.github.GitHub;
-import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -139,22 +138,22 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     }
 
+    @NonNull String actualApiUri() {
+        return Util.fixEmpty(apiUri) == null ? "https://api.github.com" : apiUri;
+    }
+
     /**
      * {@inheritDoc}
      */
     @NonNull
     @Override
     public Secret getPassword() {
-        if (Util.fixEmpty(apiUri) == null) {
-            apiUri = "https://api.github.com";
-        }
-
         long now = System.currentTimeMillis();
         String appInstallationToken;
         if (cachedToken != null && now - tokenCacheTime < JwtHelper.VALIDITY_MS /* extra buffer */ / 2) {
             appInstallationToken = cachedToken;
         } else {
-            appInstallationToken = generateAppInstallationToken(appID, privateKey.getPlainText(), apiUri, owner);
+            appInstallationToken = generateAppInstallationToken(appID, privateKey.getPlainText(), actualApiUri(), owner);
             cachedToken = appInstallationToken;
             tokenCacheTime = now;
         }
@@ -172,12 +171,16 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     }
 
     /**
-     * Ensures that the credentials state as serialized via Remoting to an agent includes fields which are {@code transient} for purposes of XStream.
-     * This provides a ~2× performance improvement over reconstructing the object without that state,
-     * in the normal case that {@link #cachedToken} is valid and will remain valid for the brief time that elapses before the agent calls {@link #getPassword}:
+     * Ensures that the credentials state as serialized via Remoting to an agent calls back to the controller.
+     * Benefits:
      * <ul>
-     * <li>We do not need to make API calls to GitHub to obtain a new token.
+     * <li>The agent never needs to have access to the plaintext private key.
      * <li>We can avoid the considerable amount of class loading associated with the JWT library, Jackson data binding, Bouncy Castle, etc.
+     * <li>The agent need not be able to contact GitHub.
+     * </ul>
+     * Drawbacks:
+     * <ul>
+     * <li>There is no caching, so every access requires GitHub API traffic as well as Remoting traffic.
      * </ul>
      * @see CredentialsSnapshotTaker
      */
@@ -185,43 +188,76 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         if (/* XStream */Channel.current() == null) {
             return this;
         }
-        return new Replacer(this);
+        return new AgentSide(this);
      }
 
-     private static final class Replacer implements Serializable {
+    private static final class AgentSide extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
 
-         private final CredentialsScope scope;
-         private final String id;
-         private final String description;
-         private final String appID;
-         private final Secret privateKey;
-         private final String apiUri;
-         private final String owner;
-         private final String cachedToken;
-         private final long tokenCacheTime;
+        static final String SEP = "%%%";
 
-         Replacer(GitHubAppCredentials onMaster) {
-             scope = onMaster.getScope();
-             id = onMaster.getId();
-             description = onMaster.getDescription();
-             appID = onMaster.appID;
-             privateKey = onMaster.privateKey;
-             apiUri = onMaster.apiUri;
-             owner = onMaster.owner;
-             cachedToken = onMaster.cachedToken;
-             tokenCacheTime = onMaster.tokenCacheTime;
-         }
+        private final String data;
+        private Channel ch;
 
-         private Object readResolve() {
-             GitHubAppCredentials clone = new GitHubAppCredentials(scope, id, description, appID, privateKey);
-             clone.apiUri = apiUri;
-             clone.owner = owner;
-             clone.cachedToken = cachedToken;
-             clone.tokenCacheTime = tokenCacheTime;
-             return clone;
-         }
+        AgentSide(GitHubAppCredentials onMaster) {
+            super(onMaster.getScope(), onMaster.getId(), onMaster.getDescription());
+            data = Secret.fromString(onMaster.appID + SEP + onMaster.privateKey.getPlainText() + SEP + onMaster.actualApiUri() + SEP + onMaster.owner).getEncryptedValue();
+        }
 
-     }
+        private Object readResolve() {
+            ch = Channel.currentOrFail();
+            return this;
+        }
+
+        @Override
+        public String getUsername() {
+            try {
+                return ch.call(new GetUsername(data));
+            } catch (IOException | InterruptedException x) {
+                throw new RuntimeException(x);
+            }
+        }
+
+        @Override
+        public Secret getPassword() {
+            try {
+                return Secret.fromString(ch.call(new GetPassword(data)));
+            } catch (IOException | InterruptedException x) {
+                throw new RuntimeException(x);
+            }
+        }
+
+        private static final class GetUsername extends SlaveToMasterCallable<String, RuntimeException> {
+
+            private final String data;
+
+            GetUsername(String data) {
+                this.data = data;
+            }
+
+            @Override
+            public String call() throws RuntimeException {
+                return Secret.fromString(data).getPlainText().split(SEP)[0];
+            }
+
+        }
+
+        private static final class GetPassword extends SlaveToMasterCallable<String, RuntimeException> {
+
+            private final String data;
+
+            GetPassword(String data) {
+                this.data = data;
+            }
+
+            @Override
+            public String call() throws RuntimeException {
+                String[] fields = Secret.fromString(data).getPlainText().split(SEP);
+                return generateAppInstallationToken(fields[0], fields[1], fields[2], fields[3]);
+            }
+
+        }
+
+    }
 
     /**
      * {@inheritDoc}
