@@ -196,7 +196,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         static final String SEP = "%%%";
 
         private final String data;
-        private Channel ch;
+        private transient Channel ch;
 
         AgentSide(GitHubAppCredentials onMaster) {
             super(onMaster.getScope(), onMaster.getId(), onMaster.getDescription());
