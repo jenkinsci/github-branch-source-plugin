@@ -195,11 +195,13 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
         static final String SEP = "%%%";
 
+        private final String appID;
         private final String data;
         private transient Channel ch;
 
         AgentSide(GitHubAppCredentials onMaster) {
             super(onMaster.getScope(), onMaster.getId(), onMaster.getDescription());
+            appID = onMaster.appID;
             data = Secret.fromString(onMaster.appID + SEP + onMaster.privateKey.getPlainText() + SEP + onMaster.actualApiUri() + SEP + onMaster.owner).getEncryptedValue();
         }
 
@@ -210,11 +212,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
         @Override
         public String getUsername() {
-            try {
-                return ch.call(new GetUsername(data));
-            } catch (IOException | InterruptedException x) {
-                throw new RuntimeException(x);
-            }
+            return appID;
         }
 
         @Override
@@ -224,21 +222,6 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             } catch (IOException | InterruptedException x) {
                 throw new RuntimeException(x);
             }
-        }
-
-        private static final class GetUsername extends SlaveToMasterCallable<String, RuntimeException> {
-
-            private final String data;
-
-            GetUsername(String data) {
-                this.data = data;
-            }
-
-            @Override
-            public String call() throws RuntimeException {
-                return Secret.fromString(data).getPlainText().split(SEP)[0];
-            }
-
         }
 
         private static final class GetPassword extends SlaveToMasterCallable<String, RuntimeException> {
