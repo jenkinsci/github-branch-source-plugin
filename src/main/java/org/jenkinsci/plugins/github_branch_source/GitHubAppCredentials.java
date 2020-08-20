@@ -16,6 +16,7 @@ import hudson.util.Secret;
 import java.io.IOException;
 import java.util.List;
 import jenkins.security.SlaveToMasterCallable;
+import jenkins.util.JenkinsJVM;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHApp;
@@ -201,11 +202,13 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
         AgentSide(GitHubAppCredentials onMaster) {
             super(onMaster.getScope(), onMaster.getId(), onMaster.getDescription());
+            JenkinsJVM.checkJenkinsJVM();
             appID = onMaster.appID;
             data = Secret.fromString(onMaster.appID + SEP + onMaster.privateKey.getPlainText() + SEP + onMaster.actualApiUri() + SEP + onMaster.owner).getEncryptedValue();
         }
 
         private Object readResolve() {
+            JenkinsJVM.checkNotJenkinsJVM();
             ch = Channel.currentOrFail();
             return this;
         }
@@ -217,6 +220,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
         @Override
         public Secret getPassword() {
+            JenkinsJVM.checkNotJenkinsJVM();
             try {
                 return ch.call(new GetPassword(data));
             } catch (IOException | InterruptedException x) {
@@ -234,6 +238,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
             @Override
             public Secret call() throws RuntimeException {
+                JenkinsJVM.checkJenkinsJVM();
                 String[] fields = Secret.fromString(data).getPlainText().split(SEP);
                 return Secret.fromString(generateAppInstallationToken(fields[0], fields[1], fields[2], fields[3]));
             }
