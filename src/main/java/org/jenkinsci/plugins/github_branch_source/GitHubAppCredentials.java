@@ -14,7 +14,6 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.List;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -22,7 +21,6 @@ import org.kohsuke.github.GHApp;
 import org.kohsuke.github.GHAppInstallation;
 import org.kohsuke.github.GHAppInstallationToken;
 import org.kohsuke.github.GitHub;
-import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -172,55 +170,21 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     }
 
     /**
-     * Ensures that the credentials state as serialized via Remoting to an agent includes fields which are {@code transient} for purposes of XStream.
-     * This provides a ~2× performance improvement over reconstructing the object without that state,
-     * in the normal case that {@link #cachedToken} is valid and will remain valid for the brief time that elapses before the agent calls {@link #getPassword}:
+     * Ensures that the credentials state as serialized via Remoting to an agent includes no state and just a reference to the original object.
+     * This has several benefits:
      * <ul>
-     * <li>We do not need to make API calls to GitHub to obtain a new token.
+     * <li>The agent JVM does not get access to the original private key, only the temporary token for this app.
+     * <li>We do not need to make API calls to GitHub to obtain a new token if the master side still has a token cached.
      * <li>We can avoid the considerable amount of class loading associated with the JWT library, Jackson data binding, Bouncy Castle, etc.
      * </ul>
      * @see CredentialsSnapshotTaker
      */
     private Object writeReplace() {
-        if (/* XStream */Channel.current() == null) {
+        Channel ch = Channel.current();
+        if (ch == null) { // XStream
             return this;
         }
-        return new Replacer(this);
-     }
-
-     private static final class Replacer implements Serializable {
-
-         private final CredentialsScope scope;
-         private final String id;
-         private final String description;
-         private final String appID;
-         private final Secret privateKey;
-         private final String apiUri;
-         private final String owner;
-         private final String cachedToken;
-         private final long tokenCacheTime;
-
-         Replacer(GitHubAppCredentials onMaster) {
-             scope = onMaster.getScope();
-             id = onMaster.getId();
-             description = onMaster.getDescription();
-             appID = onMaster.appID;
-             privateKey = onMaster.privateKey;
-             apiUri = onMaster.apiUri;
-             owner = onMaster.owner;
-             cachedToken = onMaster.cachedToken;
-             tokenCacheTime = onMaster.tokenCacheTime;
-         }
-
-         private Object readResolve() {
-             GitHubAppCredentials clone = new GitHubAppCredentials(scope, id, description, appID, privateKey);
-             clone.apiUri = apiUri;
-             clone.owner = owner;
-             clone.cachedToken = cachedToken;
-             clone.tokenCacheTime = tokenCacheTime;
-             return clone;
-         }
-
+        return ch.export(StandardUsernamePasswordCredentials.class, this);
      }
 
     /**
