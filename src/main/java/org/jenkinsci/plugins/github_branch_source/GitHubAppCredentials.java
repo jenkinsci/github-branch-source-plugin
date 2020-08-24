@@ -14,7 +14,13 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import java.io.IOException;
+import java.io.Serializable;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import jenkins.security.SlaveToMasterCallable;
 import jenkins.util.JenkinsJVM;
 import org.kohsuke.accmod.Restricted;
@@ -34,6 +40,8 @@ import static org.jenkinsci.plugins.github_branch_source.JwtHelper.createJWT;
 @SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "XStream")
 public class GitHubAppCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
 
+    private static final Logger LOGGER = Logger.getLogger(GitHubAppCredentials.class.getName());
+
     private static final String ERROR_AUTHENTICATING_GITHUB_APP = "Couldn't authenticate with GitHub app ID %s";
     private static final String NOT_INSTALLED = ", has it been installed to your GitHub organisation / user?";
 
@@ -49,8 +57,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     private String owner;
 
-    private transient String cachedToken;
-    private transient long tokenCacheTime;
+    private transient AppInstallationToken cachedToken;
 
     @DataBoundConstructor
     @SuppressWarnings("unused") // by stapler
@@ -104,7 +111,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     }
 
     @SuppressWarnings("deprecation") // preview features are required for GitHub app integration, GitHub api adds deprecated to all preview methods
-    static String generateAppInstallationToken(String appId, String appPrivateKey, String apiUrl, String owner) {
+    static AppInstallationToken generateAppInstallationToken(String appId, String appPrivateKey, String apiUrl, String owner) {
         try {
             String jwtToken = createJWT(appId, appPrivateKey);
             GitHub gitHubApp = Connector
@@ -132,11 +139,29 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                     .createToken(appInstallation.getPermissions())
                     .create();
 
-            return appInstallationToken.getToken();
+            long expiration = getExpirationSeconds(appInstallationToken);
+
+            LOGGER.log(Level.FINE, "Generated App Installation Token for app ID {0}", appId);
+
+            return new AppInstallationToken(appInstallationToken.getToken(), expiration);
         } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Failed to retrieve GitHub App installation token for app ID " + appId, e);
             throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId), e);
         }
+    }
 
+    private static long getExpirationSeconds(GHAppInstallationToken appInstallationToken) {
+        try {
+            return appInstallationToken.getExpiresAt()
+                .toInstant()
+                .getEpochSecond();
+        } catch (Exception e) {
+            // if we fail to calculate the expiration, guess at a reasonable value.
+            LOGGER.log(Level.WARNING,
+                "Unable to get GitHub App installation token expiration",
+                e);
+            return Instant.now().getEpochSecond() + AppInstallationToken.MAXIMUM_AGE_SECONDS;
+        }
     }
 
     @NonNull String actualApiUri() {
@@ -149,15 +174,15 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     @NonNull
     @Override
     public Secret getPassword() {
-        long now = System.currentTimeMillis();
         String appInstallationToken;
-        if (cachedToken != null && now - tokenCacheTime < JwtHelper.VALIDITY_MS /* extra buffer */ / 2) {
-            appInstallationToken = cachedToken;
-        } else {
-            appInstallationToken = generateAppInstallationToken(appID, privateKey.getPlainText(), actualApiUri(), owner);
-            cachedToken = appInstallationToken;
-            tokenCacheTime = now;
+        synchronized (this) {
+            if (cachedToken == null || cachedToken.isStale()) {
+                LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0}", appID);
+                cachedToken = generateAppInstallationToken(appID, privateKey.getPlainText(), actualApiUri(), owner);
+            }
+            appInstallationToken = cachedToken.getToken();
         }
+        LOGGER.log(Level.FINER, "Returned GitHub App Installation Token for app ID {0}", appID);
 
         return Secret.fromString(appInstallationToken);
     }
@@ -171,17 +196,82 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         return appID;
     }
 
+    static class AppInstallationToken implements Serializable {
+        /**
+         * {@link #getPassword()} checks that the token is still valid before returning it.
+         * The token will not expire for at least this amount of time after it is returned.
+         *
+         * Using a larger value will result in longer time-to-live for the token, but also more network
+         * calls related to getting new tokens.  Setting a smaller value will result in less token generation
+         * but runs the the risk of the token expiring while it is still being used.
+         *
+         * The time-to-live for the token may be less than this if the initial expiration for the token when
+         * it is returned from GitHub is less than this.
+         */
+        private final static long MINIMUM_SECONDS_UNTIL_EXPIRATION = Duration.ofMinutes(45).getSeconds();
+
+        /**
+         * Any token older than this is considered stale.
+         *
+         * This is a back stop to ensure that, in case of unforeseen error,
+         * expired tokens are not accidentally retained past their expiration.
+         */
+        private static final long MAXIMUM_AGE_SECONDS = Duration.ofMinutes(30).getSeconds();
+
+        private final String token;
+        private final long tokenStaleEpochSeconds;
+
+        /**
+         * Create a AppInstallationToken instance.
+         *
+         * @param token the token string
+         * @param tokenExpirationEpochSeconds the time in epoch seconds that this token will expire
+         */
+        public AppInstallationToken(String token, long tokenExpirationEpochSeconds) {
+            long nextSecond = Instant.now().getEpochSecond() + 1;
+
+            // Tokens go stale a while before they will expire
+            long tokenStaleEpochSeconds = tokenExpirationEpochSeconds - MINIMUM_SECONDS_UNTIL_EXPIRATION;
+
+            // Tokens are not stale as soon as they are made
+            if (tokenStaleEpochSeconds < nextSecond) {
+                tokenStaleEpochSeconds = nextSecond;
+            } else {
+                // Tokens have a maximum age at which they go stale
+                tokenStaleEpochSeconds = Math.min(tokenExpirationEpochSeconds, nextSecond + MAXIMUM_AGE_SECONDS);
+            }
+
+            this.token = token;
+            this.tokenStaleEpochSeconds = tokenStaleEpochSeconds;
+        }
+
+        public String getToken() {
+            return token;
+        }
+
+        /**
+         * Whether a token is stale and should be replaced with a new token.
+         *
+         * {@link #getPassword()} checks that the token is not "stale" before returning it.
+         * If a token is "stale" if it has expired, exceeded {@link #MAXIMUM_AGE_SECONDS}, or
+         * will expire in less than {@link #MINIMUM_SECONDS_UNTIL_EXPIRATION}.
+         *
+         * @return {@code true} if token should be refreshed, otherwise {@code false}.
+         */
+        public boolean isStale() {
+            return Instant.now().getEpochSecond() >= tokenStaleEpochSeconds;
+        }
+
+    }
+
     /**
      * Ensures that the credentials state as serialized via Remoting to an agent calls back to the controller.
      * Benefits:
      * <ul>
+     * <li>The token is cached locally and used until it is stale.
      * <li>The agent never needs to have access to the plaintext private key.
-     * <li>We can avoid the considerable amount of class loading associated with the JWT library, Jackson data binding, Bouncy Castle, etc.
+     * <li>We avoid the considerable amount of class loading associated with the JWT library, Jackson data binding, Bouncy Castle, etc.
      * <li>The agent need not be able to contact GitHub.
-     * </ul>
-     * Drawbacks:
-     * <ul>
-     * <li>There is no caching, so every access requires GitHub API traffic as well as Remoting traffic.
      * </ul>
      * @see CredentialsSnapshotTaker
      */
@@ -190,29 +280,37 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             return this;
         }
         return new DelegatingGitHubAppCredentials(this);
-     }
+    }
 
     private static final class DelegatingGitHubAppCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
 
-        static final String SEP = "%%%";
+        private static final String SEP = "%%%";
 
         private final String appID;
-        private final String data;
+        private final String tokenRefreshData;
+        private AppInstallationToken cachedToken;
+
         private transient Channel ch;
 
         DelegatingGitHubAppCredentials(GitHubAppCredentials onMaster) {
             super(onMaster.getScope(), onMaster.getId(), onMaster.getDescription());
             JenkinsJVM.checkJenkinsJVM();
             appID = onMaster.appID;
-            data = Secret.fromString(onMaster.appID + SEP + onMaster.privateKey.getPlainText() + SEP + onMaster.actualApiUri() + SEP + onMaster.owner).getEncryptedValue();
+            tokenRefreshData = Secret.fromString(onMaster.appID + SEP + onMaster.privateKey.getPlainText() + SEP + onMaster.actualApiUri() + SEP + onMaster.owner).getEncryptedValue();
+            synchronized (onMaster) {
+                cachedToken = onMaster.cachedToken;
+            }
         }
 
         private Object readResolve() {
             JenkinsJVM.checkNotJenkinsJVM();
-            ch = Channel.currentOrFail();
+            synchronized (this) {
+                ch = Channel.currentOrFail();
+            }
             return this;
         }
 
+        @NonNull
         @Override
         public String getUsername() {
             return appID;
@@ -222,29 +320,41 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         public Secret getPassword() {
             JenkinsJVM.checkNotJenkinsJVM();
             try {
-                return ch.call(new GetPassword(data));
+                String appInstallationToken;
+                synchronized (this) {
+                    if (cachedToken == null || cachedToken.isStale()) {
+                        cachedToken = ch.call(new GetToken(tokenRefreshData));
+                    }
+                    appInstallationToken = cachedToken.getToken();
+                }
+                LOGGER.log(Level.FINER, "Returned GitHub App Installation Token for app ID {0} on agent", appID);
+
+                return Secret.fromString(appInstallationToken);
             } catch (IOException | InterruptedException x) {
+                LOGGER.log(Level.WARNING, "Failed to get GitHub App Installation token on agent: " + getId(), x);
                 throw new RuntimeException(x);
             }
         }
 
-        private static final class GetPassword extends SlaveToMasterCallable<Secret, RuntimeException> {
+        private static final class GetToken extends SlaveToMasterCallable<AppInstallationToken, RuntimeException> {
 
             private final String data;
 
-            GetPassword(String data) {
+            GetToken(String data) {
                 this.data = data;
             }
 
             @Override
-            public Secret call() throws RuntimeException {
+            public AppInstallationToken call() throws RuntimeException {
                 JenkinsJVM.checkJenkinsJVM();
                 String[] fields = Secret.fromString(data).getPlainText().split(SEP);
-                return Secret.fromString(generateAppInstallationToken(fields[0], fields[1], fields[2], fields[3]));
+                LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0} for agent", fields[0]);
+                return generateAppInstallationToken(fields[0],
+                    fields[1],
+                    fields[2],
+                    fields[3]);
             }
-
         }
-
     }
 
     /**
