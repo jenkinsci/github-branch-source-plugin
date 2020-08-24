@@ -140,10 +140,12 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                     .create();
 
             long expiration = getExpirationSeconds(appInstallationToken);
+            LOGGER.log(Level.FINEST, "Token raw expiration epoch seconds: {0}", expiration);
 
+            AppInstallationToken token = new AppInstallationToken(appInstallationToken.getToken(), expiration);
             LOGGER.log(Level.FINE, "Generated App Installation Token for app ID {0}", appId);
 
-            return new AppInstallationToken(appInstallationToken.getToken(), expiration);
+            return token;
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Failed to retrieve GitHub App installation token for app ID " + appId, e);
             throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId), e);
@@ -240,6 +242,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 // Tokens have a maximum age at which they go stale
                 tokenStaleEpochSeconds = Math.min(tokenExpirationEpochSeconds, nextSecond + MAXIMUM_AGE_SECONDS);
             }
+            LOGGER.log(Level.FINER, "Token stale time epoch seconds: {0}", tokenStaleEpochSeconds);
 
             this.token = token;
             this.tokenStaleEpochSeconds = tokenStaleEpochSeconds;
