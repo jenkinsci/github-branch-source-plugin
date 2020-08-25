@@ -294,6 +294,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         private static final String SEP = "%%%";
 
         private final String appID;
+        /** 
+         * An encrypted form of all data needed to refresh the token.
+         * Used to prevent {@link GetToken} from being abused by compromised build agents.
+         */
         private final String tokenRefreshData;
         private AppInstallationToken cachedToken;
 
