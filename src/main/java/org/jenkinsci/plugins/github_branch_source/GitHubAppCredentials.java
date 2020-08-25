@@ -210,7 +210,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          * The time-to-live for the token may be less than this if the initial expiration for the token when
          * it is returned from GitHub is less than this.
          */
-        private final static long MINIMUM_SECONDS_UNTIL_EXPIRATION = Duration.ofMinutes(45).getSeconds();
+        static final long MINIMUM_SECONDS_UNTIL_EXPIRATION = Duration.ofMinutes(45).getSeconds();
 
         /**
          * Any token older than this is considered stale.
@@ -218,7 +218,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          * This is a back stop to ensure that, in case of unforeseen error,
          * expired tokens are not accidentally retained past their expiration.
          */
-        private static final long MAXIMUM_AGE_SECONDS = Duration.ofMinutes(30).getSeconds();
+        static final long MAXIMUM_AGE_SECONDS = Duration.ofMinutes(30).getSeconds();
 
         private final String token;
         private final long tokenStaleEpochSeconds;
@@ -227,25 +227,25 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          * Create a AppInstallationToken instance.
          *
          * @param token the token string
-         * @param tokenExpirationEpochSeconds the time in epoch seconds that this token will expire
+         * @param expirationEpochSeconds the time in epoch seconds that this token will expire
          */
-        public AppInstallationToken(String token, long tokenExpirationEpochSeconds) {
+        public AppInstallationToken(String token, long expirationEpochSeconds) {
             long nextSecond = Instant.now().getEpochSecond() + 1;
 
             // Tokens go stale a while before they will expire
-            long tokenStaleEpochSeconds = tokenExpirationEpochSeconds - MINIMUM_SECONDS_UNTIL_EXPIRATION;
+            long staleEpochSeconds = expirationEpochSeconds - MINIMUM_SECONDS_UNTIL_EXPIRATION;
 
             // Tokens are not stale as soon as they are made
-            if (tokenStaleEpochSeconds < nextSecond) {
-                tokenStaleEpochSeconds = nextSecond;
+            if (staleEpochSeconds < nextSecond) {
+                staleEpochSeconds = nextSecond;
             } else {
                 // Tokens have a maximum age at which they go stale
-                tokenStaleEpochSeconds = Math.min(tokenExpirationEpochSeconds, nextSecond + MAXIMUM_AGE_SECONDS);
+                staleEpochSeconds = Math.min(staleEpochSeconds, nextSecond + MAXIMUM_AGE_SECONDS);
             }
-            LOGGER.log(Level.FINER, "Token stale time epoch seconds: {0}", tokenStaleEpochSeconds);
+            LOGGER.log(Level.FINER, "Token stale time epoch seconds: {0}", staleEpochSeconds);
 
             this.token = token;
-            this.tokenStaleEpochSeconds = tokenStaleEpochSeconds;
+            this.tokenStaleEpochSeconds = staleEpochSeconds;
         }
 
         public String getToken() {
@@ -263,6 +263,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          */
         public boolean isStale() {
             return Instant.now().getEpochSecond() >= tokenStaleEpochSeconds;
+        }
+
+        long getTokenStaleEpochSeconds() {
+            return tokenStaleEpochSeconds;
         }
 
     }
