@@ -1,6 +1,8 @@
 package org.jenkinsci.plugins.github_branch_source;
 
+import org.junit.ClassRule;
 import org.junit.Test;
+import org.jvnet.hudson.test.JenkinsRule;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -8,7 +10,7 @@ import java.time.Instant;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
-public class GitHubAppCredentialsTest {
+public class GithubAppCredentialsAppInstallationTokenTest {
 
     @Test
     public void testAppInstallationTokenStale() throws Exception {
@@ -38,14 +40,18 @@ public class GitHubAppCredentialsTest {
 
         now = Instant.now().getEpochSecond();
         token = new GitHubAppCredentials.AppInstallationToken("",
-            now + GitHubAppCredentials.AppInstallationToken.MINIMUM_SECONDS_UNTIL_EXPIRATION + Duration.ofMinutes(7).getSeconds());
+            now + GitHubAppCredentials.AppInstallationToken.MINIMUM_SECONDS_UNTIL_EXPIRATION + Duration
+                .ofMinutes(7)
+                .getSeconds());
         assertThat(token.isStale(), is(false));
-        assertThat(token.getTokenStaleEpochSeconds(), equalTo(now + Duration.ofMinutes(7).getSeconds()));
+        assertThat(token.getTokenStaleEpochSeconds(),
+            equalTo(now + Duration.ofMinutes(7).getSeconds()));
 
         now = Instant.now().getEpochSecond();
         token = new GitHubAppCredentials.AppInstallationToken("",
             now + Duration.ofMinutes(90).getSeconds());
         assertThat(token.isStale(), is(false));
-        assertThat(token.getTokenStaleEpochSeconds(), equalTo(now + GitHubAppCredentials.AppInstallationToken.MAXIMUM_AGE_SECONDS + 1));
+        assertThat(token.getTokenStaleEpochSeconds(),
+            equalTo(now + GitHubAppCredentials.AppInstallationToken.MAXIMUM_AGE_SECONDS + 1));
     }
 }
