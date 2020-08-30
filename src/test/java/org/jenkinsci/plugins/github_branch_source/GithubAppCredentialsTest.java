@@ -122,6 +122,15 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                 "    sleep " + (GitHubAppCredentials.AppInstallationToken.NOT_STALE_FOR_ATLEAST_SECONDS + 2),
                 // Checkout after token expires refreshes via remoting
                 "    checkout scm",
+                // ISSUE: This should not refresh the agent credentials again, but it does.
+                // The previous call refreshes credentials is on the agent,
+                // but each step gets a new instance from the controller.
+                // Refreshing the token on the agent does not refresh the token held on the controller.
+                // We could mitigate this by checking staleness during writeReplace(), but that causes refresh from agent
+                // to be skipped (rarely stale on agent) and also seems like it could cause instability.
+                // What we really want is for the controller's cached token to be updated when the agent requests a new token.
+                // Multiple checkouts in quick succession should use newly cached token
+                "    checkout scm",
                 "}");
 
 
@@ -145,10 +154,14 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             //Verify correct messages from GitHubAppCredential logger indicating token was retrieved on agent
             assertThat("Creds should cache on master, pass to agent, and refresh agent from master once",
                 credentialsLog, contains(
-                "Generating App Installation Token for app ID 54321",
-                "Generated App Installation Token for app ID 54321",
-                "Generating App Installation Token for app ID 54321 for agent",
-                "Generated App Installation Token for app ID 54321"));
+                    "Generating App Installation Token for app ID 54321",
+                    "Generated App Installation Token for app ID 54321",
+                    "Generating App Installation Token for app ID 54321 for agent",
+                    "Generated App Installation Token for app ID 54321",
+                    // ISSUE: as noted above, this is not terrible but it should not be happening
+                    "Generating App Installation Token for app ID 54321 for agent",
+                    "Generated App Installation Token for app ID 54321"
+                ));
         } finally {
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_FOR_ATLEAST_SECONDS = notStaleSeconds;
         }
