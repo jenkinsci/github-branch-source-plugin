@@ -1,53 +1,48 @@
 package org.jenkinsci.plugins.github_branch_source;
 
-import com.cloudbees.hudson.plugins.folder.computed.FolderComputation;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.domains.Domain;
+import hudson.logging.LogRecorder;
+import hudson.logging.LogRecorderManager;
 import hudson.model.Slave;
-import hudson.util.LogTaskListener;
-import hudson.util.RingBufferLogHandler;
 import hudson.util.Secret;
-import jenkins.branch.BranchSource;
-import jenkins.plugins.git.GitSCMSource;
 import jenkins.plugins.git.GitSampleRepoRule;
 import jenkins.plugins.git.GitStep;
 import org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
-import javax.annotation.Nonnull;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
-import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.hamcrest.Matchers.*;
 
 public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
-    private RingBufferLogHandler handler;
-
     private static Slave agent;
-    private WorkflowMultiBranchProject owner;
     private static final String myAppCredentialsId = "myAppCredentialsId";
     private static CredentialsStore store;
     private static GitHubAppCredentials appCredentials;
+    private static LogRecorder logRecorder;
 
     @Rule
     public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
@@ -61,18 +56,17 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
         appCredentials.setOwner("cloudbeers");
         store.addCredentials(Domain.global(), appCredentials);
 
+        LogRecorderManager mgr = r.jenkins.getLog();
+        logRecorder = new LogRecorder(GitHubAppCredentials.class.getName());
+        mgr.logRecorders.put(GitHubAppCredentials.class.getName(), logRecorder);
+        LogRecorder.Target t = new LogRecorder.Target(GitHubAppCredentials.class.getName(), Level.FINER);
+        logRecorder.targets.add(t);
+        logRecorder.save();
+        t.enable();
+
         // Add agent
         agent = r.createOnlineSlave();
         agent.setLabelString("my-agent");
-    }
-
-    @Before
-    public void setUpLogging() throws Exception {
-        handler = new RingBufferLogHandler(1000);
-        handler.setFormatter(new SimpleFormatter());
-        final Logger logger = Logger.getLogger(GitHubAppCredentials.class.getName());
-        logger.setLevel(Level.FINE);
-        logger.addHandler(handler);
     }
 
     @Before
@@ -90,8 +84,79 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                     aResponse()
                         .withHeader("Content-Type", "application/json; charset=utf-8")
                         .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations.json")));
+
+        final String scenarioName = "credentials-accesstoken";
+
         githubApi.stubFor(
             post(urlEqualTo("/app/installations/654321/access_tokens"))
+                .inScenario(scenarioName)
+                .whenScenarioStateIs("Started")
+                .willSetStateTo("1")
+                .withRequestBody(
+                    equalToJson(
+                        "{\"permissions\":{\"pull_requests\":\"write\",\"metadata\":\"read\",\"checks\":\"write\",\"contents\":\"read\"}}", true, false))
+                .willReturn(
+                    aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBody("{\n" +
+                            "  \"token\": \"super-secret-token\",\n" +
+                            // This token will go stale at the soonest allowed time but will no be expired for the duration of the test
+                            "  \"expires_at\": \"" + printDate(new Date(System.currentTimeMillis() + Duration.ofMinutes(10).toMillis())) + "\"" + // 2019-08-10T05:54:58Z
+                            "}")));
+
+        // Force an error to test fallback refreshing from agent
+        githubApi.stubFor(
+            post(urlEqualTo("/app/installations/654321/access_tokens"))
+                .inScenario(scenarioName)
+                .whenScenarioStateIs("1")
+                .willSetStateTo("2")
+                .withRequestBody(
+                    equalToJson(
+                        "{\"permissions\":{\"pull_requests\":\"write\",\"metadata\":\"read\",\"checks\":\"write\",\"contents\":\"read\"}}", true, false))
+                .willReturn(
+                    aResponse()
+                        .withStatus(404)
+                        .withStatusMessage("404 Not Found")
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBody("{\"message\": \"File not found\"}")));
+
+        // Force an error to test fallback to returning unexpired token
+        githubApi.stubFor(
+            post(urlEqualTo("/app/installations/654321/access_tokens"))
+                .inScenario(scenarioName)
+                .whenScenarioStateIs("1")
+                .willSetStateTo("2")
+                .withRequestBody(
+                    equalToJson(
+                        "{\"permissions\":{\"pull_requests\":\"write\",\"metadata\":\"read\",\"checks\":\"write\",\"contents\":\"read\"}}", true, false))
+                .willReturn(
+                    aResponse()
+                        .withStatus(404)
+                        .withStatusMessage("404 Not Found")
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBody("{\"message\": \"File not found\"}")));
+
+        // Force an error to test fallback refreshing from agent
+        githubApi.stubFor(
+            post(urlEqualTo("/app/installations/654321/access_tokens"))
+                .inScenario(scenarioName)
+                .whenScenarioStateIs("2")
+                .willSetStateTo("3")
+                .withRequestBody(
+                    equalToJson(
+                        "{\"permissions\":{\"pull_requests\":\"write\",\"metadata\":\"read\",\"checks\":\"write\",\"contents\":\"read\"}}", true, false))
+                .willReturn(
+                    aResponse()
+                        .withStatus(404)
+                        .withStatusMessage("404 Not Found")
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBody("{\"message\": \"File not found\"}")));
+
+        githubApi.stubFor(
+            post(urlEqualTo("/app/installations/654321/access_tokens"))
+                .inScenario(scenarioName)
+                .whenScenarioStateIs("3")
+                .willSetStateTo("4")
                 .withRequestBody(
                     equalToJson(
                         "{\"permissions\":{\"pull_requests\":\"write\",\"metadata\":\"read\",\"checks\":\"write\",\"contents\":\"read\"}}", true, false))
@@ -99,17 +164,18 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                     aResponse()
                         .withHeader("Content-Type", "application/json; charset=utf-8")
                         .withBodyFile("../AppCredentials/files/body-githubapp-create-installation-accesstokens.json")));
+
     }
 
     @Test
     public void testAgentRefresh() throws Exception {
-        long notStaleSeconds = GitHubAppCredentials.AppInstallationToken.NOT_STALE_FOR_ATLEAST_SECONDS;
+        long notStaleSeconds = GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
         try {
             appCredentials.setApiUri(githubApi.baseUrl());
 
             // We want to demonstrate successful caching without waiting for a the default 1 minute
             // Must set this to a large enough number to avoid flaky test
-            GitHubAppCredentials.AppInstallationToken.NOT_STALE_FOR_ATLEAST_SECONDS = 15;
+            GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = 15;
 
             final String jenkinsfile = String.join(
                 "\n",
@@ -119,17 +185,12 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                 "    checkout scm",
                 // Multiple checkouts in quick succession should cached token
                 "    checkout scm",
-                "    sleep " + (GitHubAppCredentials.AppInstallationToken.NOT_STALE_FOR_ATLEAST_SECONDS + 2),
-                // Checkout after token expires refreshes via remoting
+                "    sleep " + (GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS + 2),
+                // Checkout after token expires refreshes via remoting - error on controller is not catastrophic
                 "    checkout scm",
-                // ISSUE: This should not refresh the agent credentials again, but it does.
-                // The previous call refreshes credentials is on the agent,
-                // but each step gets a new instance from the controller.
-                // Refreshing the token on the agent does not refresh the token held on the controller.
-                // We could mitigate this by checking staleness during writeReplace(), but that causes refresh from agent
-                // to be skipped (rarely stale on agent) and also seems like it could cause instability.
-                // What we really want is for the controller's cached token to be updated when the agent requests a new token.
-                // Multiple checkouts in quick succession should use newly cached token
+                // Checkout after error will refresh again on controller
+                "    checkout scm",
+                // Multiple checkouts in quick succession should use cached token
                 "    checkout scm",
                 "}");
 
@@ -147,48 +208,59 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             WorkflowRun run = job.scheduleBuild2(0).waitForStart();
             r.waitForCompletion(run);
 
-            // System.out.println(JenkinsRule.getLog(run));
-            List<String> credentialsLog = getOutputLines();
+            System.out.println(JenkinsRule.getLog(run));
 
+            List<String> credentialsLog = getOutputLines();
 
             //Verify correct messages from GitHubAppCredential logger indicating token was retrieved on agent
             assertThat("Creds should cache on master, pass to agent, and refresh agent from master once",
                 credentialsLog, contains(
+                    // node ('my-agent') {
                     "Generating App Installation Token for app ID 54321",
+                    "Token will become stale after 15 seconds",
                     "Generated App Installation Token for app ID 54321",
+                    "Retrieved GitHub App Installation Token for app ID 54321",
+                    // checkout scm
+                    // checkout scm
+                    // sleep
+                    // (^^^ No token generation for these three steps)
+                    // checkout scm
+                    "Generating App Installation Token for app ID 54321",
+                    // (error forced by wiremock)
+                    "Failed to retrieve GitHub App installation token for app ID 54321",
+                    "Keeping cached GitHub App Installation Token for app ID 54321: token is stale but has not expired",
+                    // (error forced by wiremock - failed refresh on the agent)
                     "Generating App Installation Token for app ID 54321 for agent",
+                    "Failed to retrieve GitHub App installation token for app ID 54321",
+                    "Keeping cached GitHub App Installation Token for app ID 54321 on agent: token is stale but has not expired",
+                    // checkout scm - refresh on controller
+                    "Generating App Installation Token for app ID 54321",
+                    "Token will become stale after 15 seconds",
                     "Generated App Installation Token for app ID 54321",
-                    // ISSUE: as noted above, this is not terrible but it should not be happening
-                    "Generating App Installation Token for app ID 54321 for agent",
-                    "Generated App Installation Token for app ID 54321"
+                    "Retrieved GitHub App Installation Token for app ID 54321"
+                    // checkout scm
+                    // (No token generation)
                 ));
         } finally {
-            GitHubAppCredentials.AppInstallationToken.NOT_STALE_FOR_ATLEAST_SECONDS = notStaleSeconds;
+            GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
+            logRecorder.doClear();
         }
-    }
-
-    public static @Nonnull
-    WorkflowJob findBranchProject(@Nonnull WorkflowMultiBranchProject mp, @Nonnull String name) throws Exception {
-        WorkflowJob p = mp.getItem(name);
-        showIndexing(mp);
-        if (p == null) {
-            fail(name + " project not found");
-        }
-        return p;
     }
 
     private List<String> getOutputLines() {
-        final Formatter formatter = handler.getFormatter();
-        List<LogRecord> result = new ArrayList<>(handler.getView());
-        Collections.reverse(result);
-        return result.stream().map(formatter::formatMessage).collect(Collectors.toList());
+        final Formatter formatter = new SimpleFormatter();
+        List<LogRecord> result = new ArrayList<>(logRecorder.getLogRecords());
+        result.addAll(logRecorder.getSlaveLogRecords().get(agent.toComputer()));
+        return result.stream()
+            // order by millis maintaining sequence within milli
+            .sorted(Comparator.comparingLong(record -> record.getMillis() * 100L + record.getSequenceNumber()))
+            .map(formatter::formatMessage)
+            .collect(Collectors.toList());
     }
 
-    static void showIndexing(@Nonnull WorkflowMultiBranchProject mp) throws Exception {
-        FolderComputation<?> indexing = mp.getIndexing();
-        System.out.println("---%<--- " + indexing.getUrl());
-        indexing.writeWholeLogTo(System.out);
-        System.out.println("---%<--- ");
+    static String printDate(Date dt) {
+        return DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(dt.getTime()).truncatedTo(
+            ChronoUnit.SECONDS));
     }
 
 }
