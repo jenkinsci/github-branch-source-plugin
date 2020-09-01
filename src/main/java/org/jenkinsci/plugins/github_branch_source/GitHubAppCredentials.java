@@ -24,6 +24,7 @@ import java.util.logging.Logger;
 
 import jenkins.security.SlaveToMasterCallable;
 import jenkins.util.JenkinsJVM;
+import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.workflow.support.concurrent.Timeout;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -350,8 +351,6 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     private static final class DelegatingGitHubAppCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
 
-        private static final String SEP = "%%%";
-
         private final String appID;
         /** 
          * An encrypted form of all data needed to refresh the token.
@@ -366,7 +365,12 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             super(onMaster.getScope(), onMaster.getId(), onMaster.getDescription());
             JenkinsJVM.checkJenkinsJVM();
             appID = onMaster.appID;
-            tokenRefreshData = Secret.fromString(onMaster.appID + SEP + onMaster.privateKey.getPlainText() + SEP + onMaster.actualApiUri() + SEP + onMaster.owner).getEncryptedValue();
+            JSONObject j = new JSONObject();
+            j.put("appID", appID);
+            j.put("privateKey", onMaster.privateKey.getPlainText());
+            j.put("apiUri", onMaster.actualApiUri());
+            j.put("owner", onMaster.owner);
+            tokenRefreshData = Secret.fromString(j.toString()).getEncryptedValue();
 
             // Check token is valid before sending it to the agent.
             // Ensuring the cached token is not stale before sending it to agents keeps agents from having to
@@ -445,15 +449,16 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             @Override
             public AppInstallationToken call() throws RuntimeException {
                 JenkinsJVM.checkJenkinsJVM();
-                String[] fields = Secret.fromString(data).getPlainText().split(SEP);
-                LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0} for agent", fields[0]);
-                AppInstallationToken token = generateAppInstallationToken(fields[0],
-                    fields[1],
-                    fields[2],
-                    fields[3]);
+                JSONObject fields = JSONObject.fromObject(Secret.fromString(data).getPlainText());
+                LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0} for agent", fields.get("appID"));
+                AppInstallationToken token = generateAppInstallationToken(
+                    (String)fields.get("appID"),
+                    (String)fields.get("privateKey"),
+                    (String)fields.get("apiUri"),
+                    (String)fields.get("owner"));
                 LOGGER.log(Level.FINER,
                     "Retrieved GitHub App Installation Token for app ID {0} for agent",
-                    fields[0]);
+                    fields.get("appID"));
                 return token;
             }
         }
