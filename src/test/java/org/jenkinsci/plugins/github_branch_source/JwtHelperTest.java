@@ -24,8 +24,10 @@ public class JwtHelperTest {
 
     // https://stackoverflow.com/a/22176759/4951015
     public static final String PKCS8_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\n" +
-            "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQD7vHsVwyDV8cj7\n" +
-            "5yR4WWl6rlgf/e5zmeBgtm0PCgnitcSbD5FU33301DPY5a7AtqVBOwEnE14L9XS7\n" +
+            // Windows line ending
+            "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQD7vHsVwyDV8cj7\r\n" +
+            // This should also work
+            "5yR4WWl6rlgf/e5zmeBgtm0PCgnitcSbD5FU33301DPY5a7AtqVBOwEnE14L9XS7\r" +
             "ov61U+x1m4aQmqR/dPQaA2ayh2cYPszWNQMp42ArDIfg7DhSrvsRJKHsbPXlPjqe\n" +
             "c0udLqhSLVIO9frNLf+dAsLsgYk8O39PKGb33akGG7tWTe0J+akNQjgbS7vOi8sS\n" +
             "NLwHIdYfz/Am+6Xmm+J4yVs6+Xt3kOeLdFBkz8H/HGsJq854MbIAK/HuId1MOPS0\n" +
