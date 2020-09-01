@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -215,6 +216,8 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             //Verify correct messages from GitHubAppCredential logger indicating token was retrieved on agent
             assertThat("Creds should cache on master, pass to agent, and refresh agent from master once",
                 credentialsLog, contains(
+                    // (agent log added out of order, see below)
+                    "Keeping cached GitHub App Installation Token for app ID 54321 on agent: token is stale but has not expired",
                     // node ('my-agent') {
                     "Generating App Installation Token for app ID 54321",
                     "Token will become stale after 15 seconds",
@@ -232,7 +235,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                     // (error forced by wiremock - failed refresh on the agent)
                     "Generating App Installation Token for app ID 54321 for agent",
                     "Failed to retrieve GitHub App installation token for app ID 54321",
-                    "Keeping cached GitHub App Installation Token for app ID 54321 on agent: token is stale but has not expired",
+                    // (agent log added out of order) "Keeping cached GitHub App Installation Token for app ID 54321 on agent: token is stale but has not expired",
                     // checkout scm - refresh on controller
                     "Generating App Installation Token for app ID 54321",
                     "Token will become stale after 15 seconds",
@@ -240,7 +243,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                     "Retrieved GitHub App Installation Token for app ID 54321"
                     // checkout scm
                     // (No token generation)
-                ));
+                    ));
         } finally {
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
             logRecorder.doClear();
@@ -251,9 +254,8 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
         final Formatter formatter = new SimpleFormatter();
         List<LogRecord> result = new ArrayList<>(logRecorder.getLogRecords());
         result.addAll(logRecorder.getSlaveLogRecords().get(agent.toComputer()));
+        Collections.reverse(result);
         return result.stream()
-            // order by millis maintaining sequence within milli
-            .sorted(Comparator.comparingLong(record -> record.getMillis() * 100L + record.getSequenceNumber()))
             .map(formatter::formatMessage)
             .collect(Collectors.toList());
     }
