@@ -23,7 +23,7 @@ public class JwtHelperTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     // https://stackoverflow.com/a/22176759/4951015
-    private static final String PKCS8_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\n" +
+    public static final String PKCS8_PRIVATE_KEY = "-----BEGIN PRIVATE KEY-----\n" +
             // Windows line ending
             "MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQD7vHsVwyDV8cj7\r\n" +
             // This should also work
@@ -54,7 +54,7 @@ public class JwtHelperTest {
             "Nw9bewRvqjySBlDJ9/aNSeEY\n" +
             "-----END PRIVATE KEY-----";
 
-    private static final String PKCS8_PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----\n" +
+    public static final String PKCS8_PUBLIC_KEY = "-----BEGIN PUBLIC KEY-----\n" +
             "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA+7x7FcMg1fHI++ckeFlp\n" +
             "eq5YH/3uc5ngYLZtDwoJ4rXEmw+RVN999NQz2OWuwLalQTsBJxNeC/V0u6L+tVPs\n" +
             "dZuGkJqkf3T0GgNmsodnGD7M1jUDKeNgKwyH4Ow4Uq77ESSh7Gz15T46nnNLnS6o\n" +
