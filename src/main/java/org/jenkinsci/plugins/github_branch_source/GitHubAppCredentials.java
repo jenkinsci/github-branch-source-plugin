@@ -7,6 +7,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
+import hudson.Functions;
 import hudson.Util;
 import hudson.remoting.Channel;
 import hudson.util.FormValidation;
@@ -121,7 +122,12 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 .withJwtToken(jwtToken)
                 .build();
 
-            GHApp app = gitHubApp.getApp();
+            GHApp app;
+            try {
+                app = gitHubApp.getApp();
+            } catch (IOException e) {
+                throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId), e);
+            }
 
             List<GHAppInstallation> appInstallations = app.listInstallations().asList();
             if (appInstallations.isEmpty()) {
@@ -134,9 +140,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 appInstallation = appInstallations.stream()
                     .filter(installation -> installation.getAccount().getLogin().equals(owner))
                     .findAny()
-                    .orElseThrow(() -> new IllegalArgumentException(String.format(
-                        ERROR_NOT_INSTALLED,
-                        appId)));
+                    .orElseThrow(() -> new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId)));
             }
 
             GHAppInstallationToken appInstallationToken = appInstallation
@@ -144,20 +148,15 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 .create();
 
             long expiration = getExpirationSeconds(appInstallationToken);
-            LOGGER.log(Level.FINEST,
-                "Token raw expiration epoch seconds: {0,number,#}",
-                expiration);
-
             AppInstallationToken token = new AppInstallationToken(appInstallationToken.getToken(),
                 expiration);
-            LOGGER.log(Level.FINE,
+            LOGGER.log(Level.FINER,
                 "Generated App Installation Token for app ID {0}",
                 appId);
 
             return token;
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Failed to retrieve GitHub App installation token for app ID " + appId, e);
-            throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId), e);
+            throw new IllegalArgumentException("Failed to generate GitHub App installation token for app ID " + appId , e);
         }
     }
 
@@ -202,7 +201,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                     // This minimizes failures due to occasional network instability,
                     // while only slightly increasing the chance that tokens will expire while in use.
                     LOGGER.log(Level.WARNING,
-                        "Keeping cached GitHub App Installation Token for app ID {0}: token is stale but has not expired", appID);
+                        "Failed to generate new GitHub App Installation Token for app ID " + appID + ": cached token is stale but has not expired",
+                        e);
                 } else {
                     throw e;
                 }
@@ -298,7 +298,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 secondsUntilStale = maximumAllowedAge;
             }
 
-            LOGGER.log(Level.FINER, "Token will become stale after {0,number,#} seconds", secondsUntilStale);
+            LOGGER.log(Level.FINER, "Token will become stale after " + secondsUntilStale + " seconds");
 
             this.token = token;
             this.expirationEpochSeconds = expirationEpochSeconds;
@@ -377,7 +377,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 LOGGER.log(Level.FINEST, "Checking App Installation Token for app ID {0} before sending to agent", onMaster.appID);
                 onMaster.getPassword();
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Failed to refresh stale GitHub App installation token before sending to agent for app ID " + onMaster.getAppID(), e);
+                LOGGER.log(Level.WARNING, "Failed to update stale GitHub App installation token for app ID " + onMaster.getAppID() + " before sending to agent", e);
             }
 
             cachedToken = onMaster.getCachedToken();
@@ -405,10 +405,9 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 synchronized (this) {
                     try {
                         if (cachedToken == null || cachedToken.isStale()) {
+                            LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0} on agent", appID);
                             cachedToken = ch.call(new GetToken(tokenRefreshData));
-                            LOGGER.log(Level.INFO,
-                                "Retrieved GitHub App Installation Token for app ID {0} on agent",
-                                appID);
+                            LOGGER.log(Level.FINER, "Retrieved GitHub App Installation Token for app ID {0} on agent", appID);
                         }
                     } catch (Exception e) {
                         if (cachedToken != null && !cachedToken.isExpired()) {
@@ -416,8 +415,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                             // This minimizes failures due to occasional network instability,
                             // while only slightly increasing the chance that tokens will expire while in use.
                             LOGGER.log(Level.WARNING,
-                                "Keeping cached GitHub App Installation Token for app ID {0} on agent: token is stale but has not expired",
-                                appID);
+                                "Failed to generate new GitHub App Installation Token for app ID " + appID + " on agent: cached token is stale but has not expired");
+                            // Logging the exception here caused a security exeception when trying to read the agent logs during testing
+                            // Added the exception to a secondary log message that can be viewed if it is needed
+                            LOGGER.log(Level.FINER, () -> Functions.printThrowable(e));
                         } else {
                             throw e;
                         }
@@ -429,7 +430,6 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
                 return Secret.fromString(appInstallationToken);
             } catch (IOException | InterruptedException x) {
-                LOGGER.log(Level.WARNING, "Failed to get GitHub App Installation token on agent: " + getId(), x);
                 throw new RuntimeException(x);
             }
         }
