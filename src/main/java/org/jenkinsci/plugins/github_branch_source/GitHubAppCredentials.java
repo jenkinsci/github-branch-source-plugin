@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsSnapshotTaker;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -24,7 +25,6 @@ import java.util.logging.Logger;
 
 import jenkins.security.SlaveToMasterCallable;
 import jenkins.util.JenkinsJVM;
-import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.workflow.support.concurrent.Timeout;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -76,6 +76,13 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         this.privateKey = privateKey;
     }
 
+
+    private GitHubAppCredentials(GitHubAppCredentials base) {
+        this(base.getScope(), base.getId(), base.getDescription(), base.getAppID(), base.getPrivateKey());
+        this.apiUri = base.getApiUri();
+        this.owner = base.getOwner();
+    }
+
     public String getApiUri() {
         return apiUri;
     }
@@ -116,6 +123,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     @SuppressWarnings("deprecation") // preview features are required for GitHub app integration, GitHub api adds deprecated to all preview methods
     static AppInstallationToken generateAppInstallationToken(String appId, String appPrivateKey, String apiUrl, String owner) {
         // We expect this to be fast but if anything hangs in here we do not want to block indefinitely
+        apiUrl = Util.fixEmpty(apiUrl) == null ? "https://api.github.com" : apiUrl;
         try (Timeout timeout = Timeout.limit(30, TimeUnit.SECONDS)) {
             String jwtToken = createJWT(appId, appPrivateKey);
             GitHub gitHubApp = Connector
@@ -175,26 +183,29 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         }
     }
 
-    @NonNull String actualApiUri() {
-        return Util.fixEmpty(apiUri) == null ? "https://api.github.com" : apiUri;
-    }
-
     /**
      * {@inheritDoc}
      */
     @NonNull
     @Override
     public Secret getPassword() {
-        String appInstallationToken;
+        AppInstallationToken token = getValidToken();
+        Secret password = Secret.fromString(token.getToken());
+
+        LOGGER.log(Level.FINEST, "Returned GitHub App Installation Token for app ID {0}", appID);
+
+        return password;
+    }
+
+    @NonNull
+    private AppInstallationToken getValidToken() {
         synchronized (this) {
             try {
                 if (cachedToken == null || cachedToken.isStale()) {
-                    LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0}", appID);
-                    cachedToken = generateAppInstallationToken(appID,
-                        privateKey.getPlainText(),
-                        actualApiUri(),
-                        owner);
-                    LOGGER.log(Level.FINER, "Retrieved GitHub App Installation Token for app ID {0}", appID);
+                    refreshStaleToken();
+                    LOGGER.log(Level.FINER,
+                        "Retrieved GitHub App Installation Token for app ID {0}",
+                        appID);
                 }
             } catch (Exception e) {
                 if (cachedToken != null && !cachedToken.isExpired()) {
@@ -202,18 +213,23 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                     // This minimizes failures due to occasional network instability,
                     // while only slightly increasing the chance that tokens will expire while in use.
                     LOGGER.log(Level.WARNING,
-                        "Failed to generate new GitHub App Installation Token for app ID " + appID + ": cached token is stale but has not expired",
-                        e);
+                        "Failed to generate new GitHub App Installation Token for app ID " + getAppID() + ": cached token is stale but has not expired");
+                    // Logging the exception here caused a security exception when trying to read the agent logs during testing
+                    // Added the exception to a secondary log message that can be viewed if it is needed
+                    LOGGER.log(Level.FINER, () -> Functions.printThrowable(e));
                 } else {
                     throw e;
                 }
             }
-            appInstallationToken = cachedToken.getToken();
+            return cachedToken;
         }
+    }
 
-        LOGGER.log(Level.FINEST, "Returned GitHub App Installation Token for app ID {0}", appID);
-
-        return Secret.fromString(appInstallationToken);
+    void refreshStaleToken() {
+        LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0}", appID);
+        synchronized (this) {
+            cachedToken = generateAppInstallationToken(appID, privateKey.getPlainText(), apiUri, owner);
+        }
     }
 
     /**
@@ -223,6 +239,12 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     @Override
     public String getUsername() {
         return appID;
+    }
+
+    void setCachedToken(AppInstallationToken token) {
+        synchronized (this) {
+            this.cachedToken = token;
+        }
     }
 
     private AppInstallationToken getCachedToken() {
@@ -342,123 +364,87 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
      * <li>The agent need not be able to contact GitHub.
      * </ul>
      */
-    private Object writeReplace() {
-        if (/* XStream */Channel.current() == null) {
-            return this;
+    @Extension
+    public static final class SnapshotTaker extends CredentialsSnapshotTaker<GitHubAppCredentials> {
+        @Override
+        public Class<GitHubAppCredentials> type() {
+            return GitHubAppCredentials.class;
         }
-        return new DelegatingGitHubAppCredentials(this);
-    }
-
-    private static final class DelegatingGitHubAppCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
-
-        private final String appID;
-        /** 
-         * An encrypted form of all data needed to refresh the token.
-         * Used to prevent {@link GetToken} from being abused by compromised build agents.
-         */
-        private final String tokenRefreshData;
-        private AppInstallationToken cachedToken;
-
-        private transient Channel ch;
-
-        DelegatingGitHubAppCredentials(GitHubAppCredentials onMaster) {
-            super(onMaster.getScope(), onMaster.getId(), onMaster.getDescription());
-            JenkinsJVM.checkJenkinsJVM();
-            appID = onMaster.appID;
-            JSONObject j = new JSONObject();
-            j.put("appID", appID);
-            j.put("privateKey", onMaster.privateKey.getPlainText());
-            j.put("apiUri", onMaster.actualApiUri());
-            j.put("owner", onMaster.owner);
-            tokenRefreshData = Secret.fromString(j.toString()).getEncryptedValue();
-
+        @Override
+        public GitHubAppCredentials snapshot(GitHubAppCredentials credentials) {
             // Check token is valid before sending it to the agent.
             // Ensuring the cached token is not stale before sending it to agents keeps agents from having to
             // immediately refresh the token.
             // This is intentionally only a best-effort attempt.
             // If this fails, the agent will fallback to making the request (which may or may not fail).
             try {
-                LOGGER.log(Level.FINEST, "Checking App Installation Token for app ID {0} before sending to agent", onMaster.appID);
-                onMaster.getPassword();
+                LOGGER.log(Level.FINEST, "Checking App Installation Token for app ID {0} before sending to agent", credentials.appID);
+                credentials.getPassword();
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Failed to update stale GitHub App installation token for app ID " + onMaster.getAppID() + " before sending to agent", e);
+                LOGGER.log(Level.WARNING, "Failed to update stale GitHub App installation token for app ID " + credentials.appID + " before sending to agent", e);
             }
+            return new DelegatingGitHubAppCredentials(credentials);
+        }
+    }
 
-            cachedToken = onMaster.getCachedToken();
+    private static final class DelegatingGitHubAppCredentials extends GitHubAppCredentials {
+        private AppInstallationToken snapshotToken;
+        private transient Channel ch;
+
+        DelegatingGitHubAppCredentials(GitHubAppCredentials baseCredentials) {
+            super(baseCredentials);
+            this.snapshotToken = baseCredentials.getCachedToken();
         }
 
         private Object readResolve() {
-            JenkinsJVM.checkNotJenkinsJVM();
-            synchronized (this) {
-                ch = Channel.currentOrFail();
-            }
-            return this;
-        }
-
-        @NonNull
-        @Override
-        public String getUsername() {
-            return appID;
-        }
-
-        @Override
-        public Secret getPassword() {
-            JenkinsJVM.checkNotJenkinsJVM();
-            try {
-                String appInstallationToken;
+            if (!JenkinsJVM.isJenkinsJVM()) {
                 synchronized (this) {
-                    try {
-                        if (cachedToken == null || cachedToken.isStale()) {
-                            LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0} on agent", appID);
-                            cachedToken = ch.call(new GetToken(tokenRefreshData));
-                            LOGGER.log(Level.FINER, "Retrieved GitHub App Installation Token for app ID {0} on agent", appID);
-                        }
-                    } catch (Exception e) {
-                        if (cachedToken != null && !cachedToken.isExpired()) {
-                            // Requesting a new token failed. If the cached token is not expired, continue to use it.
-                            // This minimizes failures due to occasional network instability,
-                            // while only slightly increasing the chance that tokens will expire while in use.
-                            LOGGER.log(Level.WARNING,
-                                "Failed to generate new GitHub App Installation Token for app ID " + appID + " on agent: cached token is stale but has not expired");
-                            // Logging the exception here caused a security exeception when trying to read the agent logs during testing
-                            // Added the exception to a secondary log message that can be viewed if it is needed
-                            LOGGER.log(Level.FINER, () -> Functions.printThrowable(e));
-                        } else {
-                            throw e;
-                        }
-                    }
-                    appInstallationToken = cachedToken.getToken();
+                    ch = Channel.currentOrFail();
+                    this.setCachedToken(snapshotToken);
                 }
+                // snapshot is only needed during transport
+                snapshotToken = null;
+                return this;
+            } else {
+                GitHubAppCredentials resolved = new GitHubAppCredentials(this);
+                resolved.setCachedToken(this.snapshotToken);
+                return resolved;
+            }
+        }
 
-                LOGGER.log(Level.FINEST, "Returned GitHub App Installation Token for app ID {0} on agent", appID);
-
-                return Secret.fromString(appInstallationToken);
-            } catch (IOException | InterruptedException x) {
-                throw new RuntimeException(x);
+        @Override
+        void refreshStaleToken() {
+            JenkinsJVM.checkNotJenkinsJVM();
+            LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0} on agent", getAppID());
+            synchronized (this) {
+                try {
+                    setCachedToken(ch.call(new GetToken(this)));
+                } catch (IOException | InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
             }
         }
 
         private static final class GetToken extends SlaveToMasterCallable<AppInstallationToken, RuntimeException> {
 
-            private final String data;
+            private final GitHubAppCredentials data;
 
-            GetToken(String data) {
+            GetToken(GitHubAppCredentials data) {
                 this.data = data;
             }
 
             @Override
             public AppInstallationToken call() throws RuntimeException {
                 JenkinsJVM.checkJenkinsJVM();
-                JSONObject fields = JSONObject.fromObject(Secret.fromString(data).getPlainText());
-                LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0} for agent", fields.get("appID"));
+                LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0} for agent", data.appID);
                 AppInstallationToken token = generateAppInstallationToken(
-                    (String)fields.get("appID"),
-                    (String)fields.get("privateKey"),
-                    (String)fields.get("apiUri"),
-                    (String)fields.get("owner"));
+                    data.appID,
+                    data.privateKey.getPlainText(),
+                    data.apiUri,
+                    data.owner);
                 LOGGER.log(Level.FINER,
                     "Retrieved GitHub App Installation Token for app ID {0} for agent",
-                    fields.get("appID"));
+                    data.appID);
                 return token;
             }
         }

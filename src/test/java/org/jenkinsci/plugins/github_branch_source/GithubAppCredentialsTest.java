@@ -260,7 +260,6 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             WorkflowRun run = job.scheduleBuild2(0).waitForStart();
             r.waitUntilNoActivity();
 
-            assertThat(run.getResult(), equalTo(Result.SUCCESS));
             System.out.println(JenkinsRule.getLog(run));
 
             List<String> credentialsLog = getOutputLines();
@@ -270,7 +269,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                 credentialsLog, contains(
                     // (agent log added out of order, see below)
                     "Generating App Installation Token for app ID 54321 on agent", // 1
-                    "Failed to generate new GitHub App Installation Token for app ID 54321 on agent: cached token is stale but has not expired", // 2
+                    "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired", // 2
                     "Generating App Installation Token for app ID 54321 on agent", // 3
                     // node ('my-agent') {
                     // checkout scm
@@ -285,7 +284,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                     // (error forced by wiremock - failed refresh on the agent)
                     // "Generating App Installation Token for app ID 54321 on agent", // 1
                     "Generating App Installation Token for app ID 54321 for agent",
-                    // (agent log added out of order) "Keeping cached GitHub App Installation Token for app ID 54321 on agent: token is stale but has not expired", // 2
+                    // (agent log added out of order) "Keeping cached GitHub App Installation Token for app ID 54321: token is stale but has not expired", // 2
                     // checkout scm - refresh on controller
                     "Generating App Installation Token for app ID 54321",
                     // sleep
@@ -300,6 +299,9 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                     // checkout scm
                     // (No token generation)
                     ));
+
+            assertThat(run.getResult(), equalTo(Result.SUCCESS));
+
         } finally {
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
             logRecorder.doClear();
