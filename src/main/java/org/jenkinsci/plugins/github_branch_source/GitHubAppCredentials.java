@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import com.cloudbees.plugins.credentials.CredentialsScope;
+import com.cloudbees.plugins.credentials.CredentialsSnapshotTaker;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
@@ -349,6 +350,30 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         return new DelegatingGitHubAppCredentials(this);
     }
 
+    @Extension
+    public static final class SnapshotTaker extends CredentialsSnapshotTaker<GitHubAppCredentials> {
+        @Override
+        public Class<GitHubAppCredentials> type() {
+            return GitHubAppCredentials.class;
+        }
+        @Override
+        public GitHubAppCredentials snapshot(GitHubAppCredentials credentials) {
+            // Check token is valid before sending it to the agent(s).
+            // Doing this here will update cached token in the credential on the controller.
+            // Waiting to check until on the agent could result in the agent(s) immediately asking for a new token,
+            // with none of those requests updating token cached on the controller.
+            // This is intentionally only a best-effort attempt that ignores all exceptions.
+            // If this fails, the agent(s) will fallback to making the request, which worse behavior but not fatal.
+            try {
+                LOGGER.log(Level.FINEST, "Checking App Installation Token for app ID {0} before sending to agent", credentials.appID);
+                credentials.getPassword();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Failed to update stale GitHub App installation token for app ID " + credentials.appID + " before sending to agent", e);
+            }
+            return credentials;
+        }
+    }
+
     private static final class DelegatingGitHubAppCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
 
         private final String appID;
@@ -371,19 +396,6 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             j.put("apiUri", onMaster.actualApiUri());
             j.put("owner", onMaster.owner);
             tokenRefreshData = Secret.fromString(j.toString()).getEncryptedValue();
-
-            // Check token is valid before sending it to the agent.
-            // Ensuring the cached token is not stale before sending it to agents keeps agents from having to
-            // immediately refresh the token.
-            // This is intentionally only a best-effort attempt.
-            // If this fails, the agent will fallback to making the request (which may or may not fail).
-            try {
-                LOGGER.log(Level.FINEST, "Checking App Installation Token for app ID {0} before sending to agent", onMaster.appID);
-                onMaster.getPassword();
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Failed to update stale GitHub App installation token for app ID " + onMaster.getAppID() + " before sending to agent", e);
-            }
-
             cachedToken = onMaster.getCachedToken();
         }
 
