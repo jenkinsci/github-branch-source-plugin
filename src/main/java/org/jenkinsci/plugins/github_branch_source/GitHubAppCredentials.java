@@ -115,6 +115,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     @SuppressWarnings("deprecation") // preview features are required for GitHub app integration, GitHub api adds deprecated to all preview methods
     static AppInstallationToken generateAppInstallationToken(String appId, String appPrivateKey, String apiUrl, String owner) {
+        JenkinsJVM.checkJenkinsJVM();
         // We expect this to be fast but if anything hangs in here we do not want to block indefinitely
         try (Timeout timeout = Timeout.limit(30, TimeUnit.SECONDS)) {
             String jwtToken = createJWT(appId, appPrivateKey);
@@ -149,7 +150,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 .create();
 
             long expiration = getExpirationSeconds(appInstallationToken);
-            AppInstallationToken token = new AppInstallationToken(appInstallationToken.getToken(),
+            AppInstallationToken token = new AppInstallationToken(
+                Secret.fromString(appInstallationToken.getToken()),
                 expiration);
             LOGGER.log(Level.FINER,
                 "Generated App Installation Token for app ID {0}",
@@ -185,7 +187,6 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     @NonNull
     @Override
     public Secret getPassword() {
-        String appInstallationToken;
         synchronized (this) {
             try {
                 if (cachedToken == null || cachedToken.isStale()) {
@@ -208,12 +209,11 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                     throw e;
                 }
             }
-            appInstallationToken = cachedToken.getToken();
+            LOGGER.log(Level.FINEST, "Returned GitHub App Installation Token for app ID {0}", appID);
+
+            return cachedToken.getToken();
         }
 
-        LOGGER.log(Level.FINEST, "Returned GitHub App Installation Token for app ID {0}", appID);
-
-        return Secret.fromString(appInstallationToken);
     }
 
     /**
@@ -265,7 +265,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          */
         static long NOT_STALE_MINIMUM_SECONDS = Duration.ofMinutes(1).getSeconds();
 
-        private final String token;
+        private final Secret token;
         private final long expirationEpochSeconds;
         private final long staleEpochSeconds;
 
@@ -281,7 +281,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          * @param token the token string
          * @param expirationEpochSeconds the time in epoch seconds that this token will expire
          */
-        public AppInstallationToken(String token, long expirationEpochSeconds) {
+        public AppInstallationToken(Secret token, long expirationEpochSeconds) {
             long now = Instant.now().getEpochSecond();
             long minimumAllowedAge = Math.max(1, NOT_STALE_MINIMUM_SECONDS);
             long maximumAllowedAge = Math.max(1, 1 + STALE_AFTER_SECONDS);
@@ -306,7 +306,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             this.staleEpochSeconds = now + secondsUntilStale;
         }
 
-        public String getToken() {
+        public Secret getToken() {
             return token;
         }
 
@@ -405,7 +405,6 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         public Secret getPassword() {
             JenkinsJVM.checkNotJenkinsJVM();
             try {
-                String appInstallationToken;
                 synchronized (this) {
                     try {
                         if (cachedToken == null || cachedToken.isStale()) {
@@ -427,12 +426,11 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                             throw e;
                         }
                     }
-                    appInstallationToken = cachedToken.getToken();
+                    LOGGER.log(Level.FINEST, "Returned GitHub App Installation Token for app ID {0} on agent", appID);
+
+                    return cachedToken.getToken();
                 }
 
-                LOGGER.log(Level.FINEST, "Returned GitHub App Installation Token for app ID {0} on agent", appID);
-
-                return Secret.fromString(appInstallationToken);
             } catch (IOException | InterruptedException x) {
                 throw new RuntimeException(x);
             }
