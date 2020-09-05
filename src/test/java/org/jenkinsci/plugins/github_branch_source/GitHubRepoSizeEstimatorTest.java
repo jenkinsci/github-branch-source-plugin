@@ -70,7 +70,7 @@ public class GitHubRepoSizeEstimatorTest extends GitSCMSourceBase {
                                         .withHeader("Content-Type", "application/json; charset=utf-8")
                                         .withBodyFile("../__files/body-(root)-XwEI7.json")));
 
-        assertThat(api.isApplicableTo("https://github.com/rishabhBudhouliya/zoom-suspender.git", context, "github"), is(false));
+        assertThat(api.isApplicableTo(githubApi.baseUrl(), context, "github"), is(false));
     }
 
     private StandardCredentials createCredential(CredentialsScope scope, String id) {
