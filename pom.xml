@@ -21,11 +21,11 @@
     </licenses>
 
     <properties>
-        <revision>2.9.1</revision>
+        <revision>2.10.0</revision>
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
-        <jenkins.version>2.176.4</jenkins.version>
+        <jenkins.version>2.204.1</jenkins.version>
         <useBeta>true</useBeta>
         <jjwt.version>0.11.2</jjwt.version>
     </properties>
@@ -51,35 +51,6 @@
             <groupId>com.coravy.hudson.plugins.github</groupId>
             <artifactId>github</artifactId>
             <version>1.31.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jenkins-ci.plugins</groupId>
-                    <artifactId>git</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>git</artifactId>
-            <version>4.4.0</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.jenkins-ci.plugins</groupId>
-                    <artifactId>ssh-credentials</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.jenkins-ci.plugins</groupId>
-                    <artifactId>git-client</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>ssh-credentials</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>git-client</artifactId>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -132,7 +103,29 @@
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>trilead-api</artifactId>
+            <version>1.0.8</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>git-client</artifactId>
+            <version>3.4.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>git</artifactId>
+            <version>4.4.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpclient</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>git</artifactId>
+            <version>4.4.0</version>
             <classifier>tests</classifier>
             <scope>test</scope>
             <exclusions>
@@ -165,10 +158,15 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.176.x</artifactId>
+                <artifactId>bom-2.204.x</artifactId>
                 <version>11</version>
                 <scope>import</scope>
                 <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.jenkins-ci.plugins</groupId>
+                <artifactId>git</artifactId>
+                <version>4.4.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
