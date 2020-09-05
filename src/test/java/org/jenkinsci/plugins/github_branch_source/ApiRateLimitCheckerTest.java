@@ -2,13 +2,17 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
+import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import hudson.util.LogTaskListener;
 import hudson.util.RingBufferLogHandler;
+import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.junit.Test;
 import org.junit.Before;
 import org.kohsuke.github.GitHub;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -24,6 +28,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.resetAllScenarios;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
 
@@ -169,6 +174,51 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
     }
 
     /**
+     * Verify that "NoThrottle" does not contact the GitHub api nor output any logs
+     *
+     * @author Marc Salles Navarro
+     */
+    @Test
+    public void NoThrottleTestShouldNotThrottle() throws Exception {
+        // set up scenarios
+        List<RateLimit> scenarios = new ArrayList<>();
+        int limit = 5000;
+         // Keep decreasing quota until there's none left
+        for (int i = 500; i >= 0; i--) {
+            scenarios.add(new RateLimit(limit, i, soon));
+        }
+        setupStubs(scenarios);
+        ApiRateLimitChecker.NoThrottle.checkApiRateLimit(listener, github);
+        // there should be no output
+        assertEquals(0, countOfOutputLines(m -> m.matches(".*[sS]leeping.*")));
+        // github rate_limit endpoint should not be contacted
+        assertEquals(0, getRequestCount(githubApi));
+    }
+
+    /**
+     * Verify that "NoThrottle" falls back to "ThrottleOnOver" if using GitHub.com
+     *
+     * @author Marc Salles Navarro
+     */
+    @Test
+    public void NoThrottleTestShouldFallbackToThrottleOnOverForGitHubDotCom() throws Exception {
+        GitHub spy = Mockito.spy(github);
+        Mockito.when(spy.getApiUrl()).thenReturn(GitHubServerConfig.GITHUB_URL).thenReturn(github.getApiUrl());
+        // set up scenarios
+        List<RateLimit> scenarios = new ArrayList<>();
+        int limit = 5000;
+        int buffer = ApiRateLimitChecker.calculateBuffer(limit);
+        scenarios.add(new RateLimit(limit, buffer -1, soon));
+        scenarios.add(new RateLimit(limit, limit, new Date(soon.getTime() + 2000)));
+        setupStubs(scenarios);
+        ApiRateLimitChecker.NoThrottle.checkApiRateLimit(listener, spy);
+
+        assertEquals(1, countOfOutputLines(m -> m.matches(".*[sS]leeping.*")));
+        // github rate_limit endpoint should be contacted by ThrottleOnOver
+        assertEquals(3, getRequestCount(githubApi));
+    }
+
+    /**
      * Verify exactly when the throttle is occurring in "OnOver"
      *
      * @author Julian V. Modesto
@@ -198,7 +248,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         }
 
         //should be no output
-        assertEquals(0, countOfOutputLines(m -> m.matches("[sS]leeping")));
+        assertEquals(0, countOfOutputLines(m -> m.matches(".*[sS]leeping.*")));
 
         assertEquals(11, getRequestCount(githubApi));
 
@@ -491,7 +541,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         // Making sure the budgets are correct
         assertEquals(12, countOfOutputLinesContaining("0 under budget"));
         // no occurrences of sleeping
-        assertEquals(0, countOfOutputLines(m -> m.matches("[sS]leeping")));
+        assertEquals(0, countOfOutputLines(m -> m.matches(".*[sS]leeping.*")));
     }
 
     /**
