@@ -20,11 +20,11 @@ public class GitHubRepoSizeEstimator {
         @Override
         public boolean isApplicableTo(String repoUrl, Item context, String credentialsId) {
             StandardCredentials credentials = Connector.lookupScanCredentials(context, repoUrl, credentialsId);
-            GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repoUrl);
             try {
+                GitHubRepositoryInfo info = GitHubRepositoryInfo.forRepositoryUrl(repoUrl);
                 GitHub gitHub = Connector.connect(info.getApiUri(), credentials);
                 gitHub.checkApiUrlValidity();
-            } catch (IOException e) {
+            } catch (Exception e) {
                 return false;
             }
             return true;
