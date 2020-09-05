@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.2</version>
+        <version>4.7</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
@@ -21,14 +21,13 @@
     </licenses>
 
     <properties>
-        <revision>2.8.4</revision>
+        <revision>2.9.1</revision>
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
         <jenkins.version>2.176.4</jenkins.version>
         <useBeta>true</useBeta>
-        <jcasc.version>1.35</jcasc.version>
-        <jjwt.version>0.10.5</jjwt.version>
+        <jjwt.version>0.11.2</jjwt.version>
     </properties>
 
     <scm>
@@ -83,6 +82,10 @@
             <artifactId>git-client</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-support</artifactId>
+        </dependency>
+        <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
             <version>${jjwt.version}</version>
@@ -108,13 +111,13 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-multibranch</artifactId>
-            <version>2.20</version>
+            <version>2.22</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-jre8-standalone</artifactId>
-            <version>2.25.1</version>
+            <version>2.27.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -122,18 +125,34 @@
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins.workflow</groupId>
+            <artifactId>workflow-basic-steps</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>git</artifactId>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.httpcomponents</groupId>
+                    <artifactId>httpclient</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
 
         <!-- JCasC compatibility -->
         <dependency>
             <groupId>io.jenkins</groupId>
             <artifactId>configuration-as-code</artifactId>
-            <version>${jcasc.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.jenkins.configuration-as-code</groupId>
             <artifactId>test-harness</artifactId>
-            <version>${jcasc.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

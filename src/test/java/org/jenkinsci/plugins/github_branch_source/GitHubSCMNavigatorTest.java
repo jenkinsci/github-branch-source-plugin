@@ -222,6 +222,19 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
+    public void fetchOneRepo_ExcludingPublic() throws Exception {
+        setCredentials(Collections.singletonList(credentials));
+        navigator = navigatorForRepoOwner("stephenc", credentials.getId());
+        navigator.setTraits(Collections.singletonList(new ExcludePublicRepositoriesTrait()));
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(SCMSourceObserver.filter(observer, "yolo-private"));
+
+        assertThat(projectNames, containsInAnyOrder("yolo-private"));
+    }
+
+    @Test
     public void fetchOneRepo_BelongingToOrg() throws Exception {
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
@@ -314,6 +327,18 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
+    public void fetchRepos_BelongingToOrg_ExcludingPublic() throws Exception {
+        navigator.setTraits(Collections.singletonList(new ExcludePublicRepositoriesTrait()));
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(
+                SCMSourceObserver.filter(observer, "Hello-World", "github-branch-source-plugin", "yolo-private"));
+
+        assertThat(projectNames, containsInAnyOrder("yolo-private"));
+    }
+
+    @Test
     public void fetchRepos_BelongingToUser() throws Exception {
         navigator = navigatorForRepoOwner("stephenc", null);
         final Set<String> projectNames = new HashSet<>();
@@ -321,7 +346,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
 
         navigator.visitSources(observer);
 
-        assertThat(projectNames, containsInAnyOrder("yolo", "yolo-archived"));
+        assertThat(projectNames, containsInAnyOrder("yolo", "yolo-archived", "yolo-private"));
     }
 
     @Test

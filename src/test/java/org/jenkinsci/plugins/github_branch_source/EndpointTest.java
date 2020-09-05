@@ -95,8 +95,8 @@ public class EndpointTest {
             client = j.createWebClient();
         }
 
-        final WebRequest request = new WebRequest(new URL(client.getContextPath() + relative), client.getBrowserVersion().getHtmlAcceptHeader());
-        request.setHttpMethod(HttpMethod.POST);
+        final WebRequest request = new WebRequest(new URL(client.getContextPath() + relative), HttpMethod.POST);
+        request.setAdditionalHeader("Accept", client.getBrowserVersion().getHtmlAcceptHeader());
         request.setRequestParameters(Arrays.asList(new NameValuePair(Functions.getCrumbRequestField(), Functions.getCrumb(null))));
         return client.getPage(request);
     }
