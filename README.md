@@ -9,7 +9,7 @@
 ## Introduction
 The GitHub Branch Source plugin allows you to create a new project based on the repository structure from one or more 
 GitHub users or organizations. Complete documentation is 
-[hosted by CloudBees](https://docs.cloudbees.com/docs/admin-resources/latest/plugins/github-branch-source).
+[hosted by CloudBees](https://docs.cloudbees.com/docs/cloudbees-ci/latest/cloud-admin-guide/github-branch-source-plugin).
 
 ### Guides
 
