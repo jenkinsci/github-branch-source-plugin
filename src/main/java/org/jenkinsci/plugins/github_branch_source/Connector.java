@@ -644,7 +644,7 @@ public class Connector {
             }
         }
 
-        private static void removeAllUnused(long threshold) {
+        private static void removeAllUnused(long threshold) throws IOException {
             for (Iterator<Map.Entry<ConnectionId, GitHubConnection>> iterator = connections.entrySet().iterator();
                  iterator.hasNext(); ) {
                 GitHubConnection record = Objects.requireNonNull(iterator.next().getValue());
@@ -652,6 +652,10 @@ public class Connector {
                 if (record.usageCount == 0 && lastUse < threshold) {
                     iterator.remove();
                     reverseLookup.remove(record.gitHub);
+                    if (record.cache != null) {
+                        record.cache.delete();
+                        record.cache.close();
+                    }
                 }
             }
         }
