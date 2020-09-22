@@ -371,7 +371,7 @@ public class Connector {
                     gb.withPassword(username, password);
                 }
 
-                record = GitHubConnection.connect(connectionId, gb.build(), cache);
+                record = GitHubConnection.connect(connectionId, gb.build(), cache, credentials instanceof GitHubAppCredentials);
             }
 
             return record.getGitHub();
@@ -598,12 +598,14 @@ public class Connector {
         @CheckForNull
         private final Cache cache;
 
+        private final boolean cleanupCacheFolder;
         private int usageCount = 1;
         private Long lastUsed = System.currentTimeMillis();
 
-        private GitHubConnection(GitHub gitHub, Cache cache) {
+        private GitHubConnection(GitHub gitHub, Cache cache, boolean cleanupCacheFolder) {
             this.gitHub = gitHub;
             this.cache = cache;
+            this.cleanupCacheFolder = cleanupCacheFolder;
         }
 
         /**
@@ -627,8 +629,8 @@ public class Connector {
         }
 
         @NonNull
-        private static GitHubConnection connect(@NonNull ConnectionId connectionId, @NonNull GitHub gitHub, @CheckForNull Cache cache) {
-            GitHubConnection record = new GitHubConnection(gitHub, cache);
+        private static GitHubConnection connect(@NonNull ConnectionId connectionId, @NonNull GitHub gitHub, @CheckForNull Cache cache, boolean cleanupCacheFolder) {
+            GitHubConnection record = new GitHubConnection(gitHub, cache, cleanupCacheFolder);
             connections.put(connectionId, record);
             reverseLookup.put(record.gitHub, record);
             return record;
@@ -652,7 +654,7 @@ public class Connector {
                 if (record.usageCount == 0 && lastUse < threshold) {
                     iterator.remove();
                     reverseLookup.remove(record.gitHub);
-                    if (record.cache != null) {
+                    if (record.cache != null && record.cleanupCacheFolder) {
                         record.cache.delete();
                         record.cache.close();
                     }
