@@ -91,7 +91,7 @@ public class Connector {
     private static final Logger LOGGER = Logger.getLogger(Connector.class.getName());
 
     private static final Map<GitHub,Long> lastUsed = new HashMap<>();
-    private static final Map<Details, GitHub> githubs = new HashMap<>();
+    private static final Map<ConnectionId, GitHub> githubs = new HashMap<>();
     private static final Map<GitHub, Integer> usage = new HashMap<>();
     private static final Map<TaskListener, Map<GitHub,Void>> checked = new WeakHashMap<>();
     private static final long API_URL_REVALIDATE_MILLIS = TimeUnit.MINUTES.toMillis(5);
@@ -358,8 +358,8 @@ public class Connector {
             throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
         }
         synchronized (githubs) {
-            Details details = new Details(apiUrl, hash);
-            GitHub hub = githubs.get(details);
+            ConnectionId connectionId = new ConnectionId(apiUrl, hash);
+            GitHub hub = githubs.get(connectionId);
             if (hub != null) {
                 Integer count = usage.get(hub);
                 usage.put(hub, count == null ? 1 : Math.max(count + 1, 1));
@@ -375,7 +375,7 @@ public class Connector {
             }
 
             hub = gb.build();
-            githubs.put(details, hub);
+            githubs.put(connectionId, hub);
             usage.put(hub, 1);
             lastUsed.remove(hub);
             return hub;
@@ -485,9 +485,9 @@ public class Connector {
                 usage.remove(hub);
                 // we could use multiple maps, but we expect only a handful of entries and mostly the shared path
                 // so we can just walk the forward map
-                for (Iterator<Map.Entry<Details, GitHub>> iterator = githubs.entrySet().iterator();
+                for (Iterator<Map.Entry<ConnectionId, GitHub>> iterator = githubs.entrySet().iterator();
                      iterator.hasNext(); ) {
-                    Map.Entry<Details, GitHub> entry = iterator.next();
+                    Map.Entry<ConnectionId, GitHub> entry = iterator.next();
                     if (hub == entry.getValue()) {
                         iterator.remove();
                         break;
@@ -636,11 +636,11 @@ public class Connector {
         }
     }
 
-    private static class Details {
+    private static class ConnectionId {
         private final String apiUrl;
         private final String credentialsHash;
 
-        private Details(String apiUrl, String credentialsHash) {
+        private ConnectionId(String apiUrl, String credentialsHash) {
             this.apiUrl = apiUrl;
             this.credentialsHash = credentialsHash;
         }
@@ -654,12 +654,12 @@ public class Connector {
                 return false;
             }
 
-            Details details = (Details) o;
+            ConnectionId that = (ConnectionId) o;
 
-            if (!Objects.equals(apiUrl, details.apiUrl)) {
+            if (!Objects.equals(apiUrl, that.apiUrl)) {
                 return false;
             }
-            return StringUtils.equals(credentialsHash, details.credentialsHash);
+            return StringUtils.equals(credentialsHash, that.credentialsHash);
         }
 
         @Override
@@ -669,7 +669,7 @@ public class Connector {
 
         @Override
         public String toString() {
-            return "Details{" +
+            return "ConnectionId{" +
                     "apiUrl='" + apiUrl + '\'' +
                     ", credentialsHash=" + credentialsHash +
                     '}';
