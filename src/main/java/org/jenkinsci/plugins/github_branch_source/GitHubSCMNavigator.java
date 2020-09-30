@@ -24,10 +24,43 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import javax.inject.Inject;
+
+import org.apache.commons.lang.StringUtils;
+import org.jenkins.ui.icon.Icon;
+import org.jenkins.ui.icon.IconSet;
+import org.jenkins.ui.icon.IconSpec;
+import org.jenkinsci.Symbol;
+import org.jenkinsci.plugins.github.config.GitHubServerConfig;
+import org.kohsuke.accmod.Restricted;
+import org.kohsuke.accmod.restrictions.DoNotUse;
+import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.github.*;
+import org.kohsuke.stapler.AncestorInPath;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.interceptor.RequirePOST;
+
 import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -41,18 +74,6 @@ import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.inject.Inject;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
 import jenkins.scm.api.SCMNavigator;
@@ -78,28 +99,6 @@ import jenkins.scm.impl.trait.RegexSCMSourceFilterTrait;
 import jenkins.scm.impl.trait.Selection;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
 import net.jcip.annotations.GuardedBy;
-import org.apache.commons.lang.StringUtils;
-import org.jenkins.ui.icon.Icon;
-import org.jenkins.ui.icon.IconSet;
-import org.jenkins.ui.icon.IconSpec;
-import org.jenkinsci.Symbol;
-import org.jenkinsci.plugins.github.config.GitHubServerConfig;
-import org.kohsuke.accmod.Restricted;
-import org.kohsuke.accmod.restrictions.DoNotUse;
-import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.github.GHMyself;
-import org.kohsuke.github.GHOrganization;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GHUser;
-import org.kohsuke.github.GitHub;
-import org.kohsuke.github.HttpException;
-import org.kohsuke.stapler.AncestorInPath;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.DataBoundSetter;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.interceptor.RequirePOST;
-
-import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
 
 public class GitHubSCMNavigator extends SCMNavigator {
 
@@ -888,7 +887,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @NonNull
     @Override
     protected String id() {
-        return StringUtils.defaultIfBlank(apiUri, GitHubSCMSource.GITHUB_URL) + "::" + repoOwner;
+        GitHubSCMNavigatorContext gitHubSCMNavigatorContext = new GitHubSCMNavigatorContext().withTraits(getTraits());
+        return StringUtils.defaultIfBlank(apiUri, GitHubSCMSource.GITHUB_URL) + "::" + repoOwner + "::" + String.join("::", gitHubSCMNavigatorContext.getTopics());
     }
 
     /**
@@ -926,7 +926,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 throw new AbortException(message);
             }
 
-            GitHubSCMNavigatorContext gitHubSCMNavigatorContext = new GitHubSCMNavigatorContext().withTraits(traits);
+            GitHubSCMNavigatorContext gitHubSCMNavigatorContext = new GitHubSCMNavigatorContext().withTraits(getTraits());
 
             try (GitHubSCMNavigatorRequest request = gitHubSCMNavigatorContext.newRequest(this, observer)) {
                 SourceFactory sourceFactory = new SourceFactory(request);
@@ -949,7 +949,19 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                             "Looking up repositories of myself %s", repoOwner
                                     )));
-                        for (GHRepository repo : myself.listRepositories(100)) {
+                        final Iterable<GHRepository> repositories;
+                        if (!gitHubSCMNavigatorContext.getTopics().isEmpty() ) {
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                            "Looking up repositories for topics: '%s'", gitHubSCMNavigatorContext.getTopics())));
+                            GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
+                            gitHubSCMNavigatorContext.getTopics().forEach(t -> ghRepositorySearchBuilder.q("topic:" + t));
+                            repositories = ghRepositorySearchBuilder.q("org:3shapeinternal").list();
+                        } else {
+                            repositories = myself.listRepositories(100);
+                        }
+
+                        for (GHRepository repo : repositories) {
                             Connector.checkApiRateLimit(listener, github);
                             if (!repo.getOwnerName().equals(repoOwner)) {
                                 continue; // ignore repos in other orgs when using GHMyself
@@ -985,7 +997,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         return;
                     }
                 }
-
                 GHOrganization org = getGhOrganization(github);
                 if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
                     listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -996,6 +1007,13 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                 "Looking up repositories for team %s", gitHubSCMNavigatorContext.getTeamSlug())));
                         repositories = org.getTeamBySlug(gitHubSCMNavigatorContext.getTeamSlug()).listRepositories().withPageSize(100);
+                    } else if (!gitHubSCMNavigatorContext.getTopics().isEmpty() ) {
+                        listener.getLogger()
+                                .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                        "Looking up repositories for topics: '%s'", gitHubSCMNavigatorContext.getTopics())));
+                        GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
+                        gitHubSCMNavigatorContext.getTopics().forEach(t -> ghRepositorySearchBuilder.q("topic:" + t));
+                        repositories = ghRepositorySearchBuilder.q("org:3shapeinternal").list();
                     } else {
                         repositories = org.listRepositories(100);
                     }
