@@ -35,6 +35,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
+import hudson.Functions;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
@@ -1037,7 +1038,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                 retrievePullRequest(github, ghRepository, pr, strategies, request, listener);
                             } catch (FileNotFoundException e) {
                                 listener.getLogger().format("%n  Error while processing pull request %d%n", number);
-                                listener.getLogger().format("%n  Reason: %s%n", e);
+                                Functions.printStackTrace(e, listener.getLogger());
                                 errorCount++;
                             }
                             count++;
