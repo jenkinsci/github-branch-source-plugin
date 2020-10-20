@@ -136,9 +136,6 @@ public class Connector {
      */
     @NonNull
     public static ListBoxModel listScanCredentials(@CheckForNull Item context, String apiUri) {
-//        if(isBlank(apiUri)){
-//            apiUri = GitHubServerConfig.GITHUB_URL;//fix in the UI
-//        }
         return new StandardListBoxModel()
                 .includeEmptyValue()
                 .includeMatchingAs(
@@ -228,7 +225,7 @@ public class Connector {
                 }
             }
         } else {
-            return FormValidation.warning("C "+ "apiURI" + apiUri + " creds " + scanCredentialsId );
+            return FormValidation.warning("Credentials are recommended");
         }
     }
 

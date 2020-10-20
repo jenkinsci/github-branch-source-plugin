@@ -8,14 +8,9 @@
       </f:entry>
     </j:when>
     <j:otherwise>
-<!--      <f:invisibleEntry>-->
-<!--        <f:select field="apiUri"/>-->
       <f:entry title="${%API endpoint}" field="apiUri">
-<!--        <f:select/>-->
         <f:textbox readonly="readonly"/>
-
       </f:entry>
-<!--      </f:invisibleEntry>-->
     </j:otherwise>
   </j:choose>
   <f:entry title="${%Credentials}" field="credentialsId">
