@@ -83,6 +83,7 @@ import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.okhttp3.OkHttpConnector;
 
 import static java.util.logging.Level.FINE;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * Utilities that could perhaps be moved into {@code github-api}.
@@ -190,7 +191,7 @@ public class Connector {
             if (context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.ok("Credentials found");
             }
-            StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
+            StandardCredentials credentials = Connector.lookupScanCredentials(context, StringUtils.defaultIfEmpty(apiUri, GitHubServerConfig.GITHUB_URL), scanCredentialsId);
             if (credentials == null) {
                 return FormValidation.error("Credentials not found");
             } else {
@@ -503,7 +504,7 @@ public class Connector {
     }
 
     static List<DomainRequirement> githubDomainRequirements(String apiUri) {
-        return URIRequirementBuilder.fromUri(StringUtils.defaultIfEmpty(apiUri, "https://github.com")).build();
+        return URIRequirementBuilder.fromUri(StringUtils.defaultIfEmpty(apiUri, GitHubServerConfig.GITHUB_URL)).build();
     }
 
     /**

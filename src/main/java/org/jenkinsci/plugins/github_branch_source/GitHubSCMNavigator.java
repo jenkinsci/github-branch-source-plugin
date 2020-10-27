@@ -100,6 +100,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
+import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
 
 public class GitHubSCMNavigator extends SCMNavigator {
@@ -262,8 +263,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @DataBoundSetter
     public void setApiUri(String apiUri) {
-        apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmptyAndTrim(apiUri));
-        this.apiUri = GitHubServerConfig.GITHUB_URL.equals(apiUri) ? null : apiUri;
+        if(isBlank(apiUri)){
+            this.apiUri = GitHubServerConfig.GITHUB_URL;
+        }else {
+            this.apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmptyAndTrim(apiUri));
+        }
     }
 
     /**
@@ -1458,6 +1462,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         public SCMNavigator newInstance(String name) {
             GitHubSCMNavigator navigator = new GitHubSCMNavigator(name);
             navigator.setTraits(getTraitsDefaults());
+            navigator.setApiUri(GitHubServerConfig.GITHUB_URL);
             return navigator;
         }
 
