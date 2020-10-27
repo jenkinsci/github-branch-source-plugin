@@ -889,7 +889,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @NonNull
     @Override
     protected String id() {
-        final GitHubSCMNavigatorContext gitHubSCMNavigatorContext = new GitHubSCMNavigatorContext().withTraits(getTraits());
+        final GitHubSCMNavigatorContext gitHubSCMNavigatorContext = new GitHubSCMNavigatorContext().withTraits(traits);
         if (!gitHubSCMNavigatorContext.getTopics().isEmpty()) {
             return StringUtils.defaultIfBlank(apiUri, GitHubSCMSource.GITHUB_URL) + "::" + repoOwner + "::" + String.join("::", gitHubSCMNavigatorContext.getTopics());
         }
