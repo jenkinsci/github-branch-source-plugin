@@ -16,7 +16,9 @@ import org.junit.Test;
 import org.junit.rules.TestName;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.WithoutJenkins;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -27,7 +29,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+
 
 public class GitHubSCMNavigatorTraitsTest {
     @ClassRule
@@ -1558,6 +1560,7 @@ public class GitHubSCMNavigatorTraitsTest {
         );
     }
 
+    @WithoutJenkins
     @Test
     public void given__legacyCode__when__constructor_cloud__then__discoveryTraitDefaults() throws Exception {
         GitHubSCMNavigator instance = new GitHubSCMNavigator(
@@ -1568,7 +1571,7 @@ public class GitHubSCMNavigatorTraitsTest {
         );
         assertThat(instance.id(), is("https://api.github.com::cloudbeers"));
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
-        assertThat(instance.getApiUri(), is(nullValue()));
+        assertThat(instance.getApiUri(), is("https://api.github.com"));
         assertThat(instance.getCredentialsId(), is("bcaef157-f105-407f-b150-df7722eab6c1"));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(
@@ -1676,11 +1679,12 @@ public class GitHubSCMNavigatorTraitsTest {
         assertThat(instance.getCredentialsId(), is("test"));
     }
 
+    @WithoutJenkins
     @Test
-    public void given__instance__when__setApiUri_null__then__nullApplied() {
+    public void given__instance__when__setApiUri_null__then__set__to_api_github_com() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setApiUri(null);
-        assertThat(instance.getApiUri(), is(nullValue()));
+        assertThat(instance.getApiUri(), is("https://api.github.com"));
     }
 
     @Test
