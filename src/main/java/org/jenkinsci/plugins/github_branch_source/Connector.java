@@ -56,6 +56,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -73,6 +74,7 @@ import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.util.JenkinsJVM;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
@@ -107,6 +109,8 @@ public class Connector {
     private static final Random ENTROPY = new Random();
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
     private static final OkHttpClient baseClient = new OkHttpClient();
+    private static final File cacheBase = new File(Jenkins.get().getRootDir(),
+        GitHubSCMProbe.class.getName() + ".cache");
 
 
     private Connector() {
@@ -426,8 +430,6 @@ public class Connector {
         Cache cache = null;
         int cacheSize = GitHubSCMSource.getCacheSize();
         if (cacheSize > 0) {
-            File cacheBase = new File(jenkins.getRootDir(),
-                    GitHubSCMProbe.class.getName() + ".cache");
             File cacheDir = null;
             try {
                 MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
@@ -578,6 +580,8 @@ public class Connector {
     @Extension
     public static class UnusedConnectionDestroyer extends PeriodicWork {
 
+        private static boolean hasRun = false;
+
         @Override
         public long getRecurrencePeriod() {
             return TimeUnit.MINUTES.toMillis(2);
@@ -587,9 +591,8 @@ public class Connector {
         protected void doRun() throws Exception {
             // free any connection unused for the last 5 minutes
             long threshold = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5);
-            synchronized (connections) {
-                GitHubConnection.removeAllUnused(threshold);
-            }
+            GitHubConnection.removeAllUnused(threshold, !hasRun);
+            hasRun = true;
         }
     }
 
@@ -648,23 +651,52 @@ public class Connector {
             }
         }
 
-        private static void removeAllUnused(long threshold) throws IOException {
-            for (Iterator<Map.Entry<ConnectionId, GitHubConnection>> iterator = connections.entrySet().iterator();
-                 iterator.hasNext(); ) {
-                Map.Entry<ConnectionId, GitHubConnection> entry = iterator.next();
-                try {
-                    GitHubConnection record = Objects.requireNonNull(entry.getValue());
-                    long lastUse = record.lastUsed;
-                    if (record.usageCount == 0 && lastUse < threshold) {
-                        iterator.remove();
-                        reverseLookup.remove(record.gitHub);
-                        if (record.cache != null && record.cleanupCacheFolder) {
-                            record.cache.delete();
-                            record.cache.close();
+        /**
+         * Remove all unused connections from the connection cache and delete their cache folders.
+         *
+         * @param threshold connections should be removed if their the last used time was before
+         *                  this system time in milliseconds.
+         * @param removeUntracked if true, also delete any cache folders that do not have
+         *                        corresponding connections. This operation can be expensive so it
+         *                        should be run as rarely as possible.
+         */
+        private static void removeAllUnused(long threshold, boolean removeUntracked) {
+            Map<String, File> validCaches = new HashMap<>();
+            synchronized (connections) {
+                for (Iterator<Map.Entry<ConnectionId, GitHubConnection>> iterator = connections.entrySet()
+                    .iterator();
+                     iterator.hasNext(); ) {
+                    Map.Entry<ConnectionId, GitHubConnection> entry = iterator.next();
+                    try {
+                        GitHubConnection record = Objects.requireNonNull(entry.getValue());
+                        if (record.cache != null) {
+                            long lastUse = record.lastUsed;
+                            if (record.usageCount == 0 && lastUse < threshold) {
+                                iterator.remove();
+                                reverseLookup.remove(record.gitHub);
+                                if (record.cleanupCacheFolder) {
+                                    record.cache.delete();
+                                    record.cache.close();
+                                }
+                            } else if (removeUntracked) {
+                                validCaches.put(record.cache.directory().getAbsolutePath(),
+                                    record.cache.directory());
+                            }
+                        }
+                    } catch (IOException | NullPointerException e) {
+                        LOGGER.log(WARNING, "Exception for cache directory: " + entry.getKey(), e);
+                    }
+                }
+            }
+
+            if (removeUntracked) {
+                File[] directories = cacheBase.listFiles(File::isDirectory);
+                if (directories != null) {
+                    for (File dir : directories) {
+                        if(!validCaches.containsKey(dir.getAbsolutePath())) {
+                            FileUtils.deleteQuietly(dir);
                         }
                     }
-                } catch (IOException | NullPointerException e) {
-                    LOGGER.log(WARNING, "Exception removing cache directory for unused connection: " + entry.getKey(), e);
                 }
             }
         }
