@@ -83,6 +83,7 @@ import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.okhttp3.OkHttpConnector;
 
 import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
@@ -650,15 +651,20 @@ public class Connector {
         private static void removeAllUnused(long threshold) throws IOException {
             for (Iterator<Map.Entry<ConnectionId, GitHubConnection>> iterator = connections.entrySet().iterator();
                  iterator.hasNext(); ) {
-                GitHubConnection record = Objects.requireNonNull(iterator.next().getValue());
-                long lastUse = record.lastUsed;
-                if (record.usageCount == 0 && lastUse < threshold) {
-                    iterator.remove();
-                    reverseLookup.remove(record.gitHub);
-                    if (record.cache != null && record.cleanupCacheFolder) {
-                        record.cache.delete();
-                        record.cache.close();
+                Map.Entry<ConnectionId, GitHubConnection> entry = iterator.next();
+                try {
+                    GitHubConnection record = Objects.requireNonNull(entry.getValue());
+                    long lastUse = record.lastUsed;
+                    if (record.usageCount == 0 && lastUse < threshold) {
+                        iterator.remove();
+                        reverseLookup.remove(record.gitHub);
+                        if (record.cache != null && record.cleanupCacheFolder) {
+                            record.cache.delete();
+                            record.cache.close();
+                        }
                     }
+                } catch (IOException | NullPointerException e) {
+                    LOGGER.log(WARNING, "Exception removing cache directory for unused connection: " + entry.getKey(), e);
                 }
             }
         }
