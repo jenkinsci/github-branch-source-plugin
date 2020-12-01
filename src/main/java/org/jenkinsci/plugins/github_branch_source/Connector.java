@@ -601,7 +601,7 @@ public class Connector {
 
         private final boolean cleanupCacheFolder;
         private int usageCount = 1;
-        private Long lastUsed = System.currentTimeMillis();
+        private long lastUsed = System.currentTimeMillis();
 
         private GitHubConnection(GitHub gitHub, Cache cache, boolean cleanupCacheFolder) {
             this.gitHub = gitHub;
@@ -651,7 +651,7 @@ public class Connector {
             for (Iterator<Map.Entry<ConnectionId, GitHubConnection>> iterator = connections.entrySet().iterator();
                  iterator.hasNext(); ) {
                 GitHubConnection record = Objects.requireNonNull(iterator.next().getValue());
-                Long lastUse = record.lastUsed;
+                long lastUse = record.lastUsed;
                 if (record.usageCount == 0 && lastUse < threshold) {
                     iterator.remove();
                     reverseLookup.remove(record.gitHub);
