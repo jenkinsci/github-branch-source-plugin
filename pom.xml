@@ -25,7 +25,7 @@
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
-        <jenkins.version>2.269</jenkins.version>
+        <jenkins.version>2.270</jenkins.version>
         <useBeta>true</useBeta>
         <jjwt.version>0.11.2</jjwt.version>
     </properties>
@@ -82,6 +82,12 @@
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-multibranch</artifactId>
             <scope>test</scope>
+        </dependency>
+        <!-- TODO remove once branch-api >= 2.6.3 in bom -->
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>branch-api</artifactId>
+            <version>2.6.3</version>
         </dependency>
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
