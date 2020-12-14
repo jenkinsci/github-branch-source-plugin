@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.7</version>
+        <version>4.13</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <revision>2.9.2</revision>
+        <revision>2.9.3</revision>
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
