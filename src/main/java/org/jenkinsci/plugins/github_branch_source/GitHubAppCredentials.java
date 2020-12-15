@@ -175,7 +175,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             }
 
             return token;
-        } catch (Exception e) {
+        } catch (IOException | InterruptedException e) {
             throw new IllegalArgumentException("Failed to generate GitHub App installation token for app ID " + appId , e);
         }
     }
@@ -483,10 +483,6 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 return token;
             }
         }
-    }
-
-    private static long getLong(String name, long defaultValue, long minimum, long maximum) {
-        return Math.min(maximum, Math.max(minimum, Long.getLong(name, defaultValue)));
     }
 
     /**
