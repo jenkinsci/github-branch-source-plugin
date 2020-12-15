@@ -50,6 +50,15 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     private static final String ERROR_NOT_INSTALLED = ERROR_AUTHENTICATING_GITHUB_APP + NOT_INSTALLED;
 
+    /**
+     * When a new {@link AppInstallationToken} is generated, wait this many seconds before continuing.
+     * Has no effect when a cached token is used, only when a new token is generated.
+     *
+     * Provided as one more possible avenue for debugging/stabilizing JENKINS-62249.
+     */
+    private static long AFTER_TOKEN_GENERATION_DELAY_SECONDS =
+        Long.getLong(GitHubAppCredentials.class.getName() + ".AFTER_TOKEN_GENERATION_DELAY_SECONDS", 0);
+
     @NonNull
     private final String appID;
 
@@ -156,6 +165,14 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             LOGGER.log(Level.FINER,
                 "Generated App Installation Token for app ID {0}",
                 appId);
+            LOGGER.log(Level.FINEST, () -> "Generated App Installation Token at " + Instant.now().toEpochMilli());
+
+            if (AFTER_TOKEN_GENERATION_DELAY_SECONDS > 0) {
+                // Delay can be up to 10 seconds.
+                long tokenDelay = Math.min(10, AFTER_TOKEN_GENERATION_DELAY_SECONDS);
+                LOGGER.log(Level.FINER, "Waiting {0} seconds after token generation", tokenDelay);
+                Thread.sleep(Duration.ofSeconds(tokenDelay).toMillis());
+            }
 
             return token;
         } catch (Exception e) {
@@ -243,8 +260,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          * The time-to-live for the token may be less than this if the initial expiration for the token when
          * it is returned from GitHub is less than this or if the token is kept and due to failures
          * while retrieving a new token.
+         * Non-final for testing/debugging purposes.
          */
-        static final long STALE_BEFORE_EXPIRATION_SECONDS = Duration.ofMinutes(45).getSeconds();
+        static long STALE_BEFORE_EXPIRATION_SECONDS =
+            Long.getLong(GitHubAppCredentials.class.getName() + ".STALE_BEFORE_EXPIRATION_SECONDS", Duration.ofMinutes(45).getSeconds());
 
         /**
          * Any token older than this is considered stale.
@@ -260,10 +279,11 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          * Prevents continuous refreshing of credentials.
          * Non-final for testing purposes.
          * This value takes precedence over {@link #STALE_BEFORE_EXPIRATION_SECONDS}.
-         * {@link #STALE_BEFORE_EXPIRATION_SECONDS} takes precedence over this value.
+         * If {@link #STALE_AFTER_SECONDS} is less than this value, {@link #STALE_AFTER_SECONDS} takes precedence over this value.
          * Minimum value of 1.
          */
-        static long NOT_STALE_MINIMUM_SECONDS = Duration.ofMinutes(1).getSeconds();
+        static long NOT_STALE_MINIMUM_SECONDS =
+            Long.getLong(GitHubAppCredentials.class.getName() + ".NOT_STALE_MINIMUM_SECONDS", Duration.ofMinutes(1).getSeconds());
 
         private final Secret token;
         private final long expirationEpochSeconds;
@@ -283,11 +303,13 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          */
         public AppInstallationToken(Secret token, long expirationEpochSeconds) {
             long now = Instant.now().getEpochSecond();
+            long secondsUntilExpiration = expirationEpochSeconds - now;
+
             long minimumAllowedAge = Math.max(1, NOT_STALE_MINIMUM_SECONDS);
             long maximumAllowedAge = Math.max(1, 1 + STALE_AFTER_SECONDS);
 
             // Tokens go stale a while before they will expire
-            long secondsUntilStale = (expirationEpochSeconds - now) - STALE_BEFORE_EXPIRATION_SECONDS;
+            long secondsUntilStale = secondsUntilExpiration - STALE_BEFORE_EXPIRATION_SECONDS;
 
             // Tokens are never stale as soon as they are made
             if (secondsUntilStale < minimumAllowedAge) {
@@ -411,6 +433,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                             LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0} on agent", appID);
                             cachedToken = ch.call(new GetToken(tokenRefreshData));
                             LOGGER.log(Level.FINER, "Retrieved GitHub App Installation Token for app ID {0} on agent", appID);
+                            LOGGER.log(Level.FINEST, () -> "Generated App Installation Token at " + Instant.now().toEpochMilli() + " on agent");
                         }
                     } catch (Exception e) {
                         if (cachedToken != null && !cachedToken.isExpired()) {
@@ -460,6 +483,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 return token;
             }
         }
+    }
+
+    private static long getLong(String name, long defaultValue, long minimum, long maximum) {
+        return Math.min(maximum, Math.max(minimum, Long.getLong(name, defaultValue)));
     }
 
     /**
