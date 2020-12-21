@@ -260,8 +260,8 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             WorkflowRun run = job.scheduleBuild2(0).waitForStart();
             r.waitUntilNoActivity();
 
-            assertThat(run.getResult(), equalTo(Result.SUCCESS));
             System.out.println(JenkinsRule.getLog(run));
+            assertThat(run.getResult(), equalTo(Result.SUCCESS));
 
             List<String> credentialsLog = getOutputLines();
 
