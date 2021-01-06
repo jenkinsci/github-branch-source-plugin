@@ -53,7 +53,7 @@
         <dependency>
             <groupId>io.jenkins.plugins</groupId>
             <artifactId>jjwt-api</artifactId>
-            <version>0.11.2-999999-SNAPSHOT</version>
+            <version>0.11.2-999999-20210106.041900-1</version> <!-- TODO HOSTING-1060 -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
