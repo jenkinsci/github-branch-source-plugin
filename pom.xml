@@ -25,7 +25,7 @@
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
-        <jenkins.version>2.270</jenkins.version>
+        <jenkins.version>2.274</jenkins.version>
         <useBeta>true</useBeta>
         <jjwt.version>0.11.2</jjwt.version>
     </properties>
