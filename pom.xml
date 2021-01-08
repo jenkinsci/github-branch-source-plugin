@@ -27,7 +27,6 @@
         <java.level>8</java.level>
         <jenkins.version>2.271</jenkins.version>
         <useBeta>true</useBeta>
-        <jjwt.version>0.11.2</jjwt.version>
     </properties>
 
     <scm>
@@ -37,10 +36,6 @@
         <tag>${scmTag}</tag>
     </scm>
     <dependencies>
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>jackson2-api</artifactId>
-        </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
@@ -56,21 +51,9 @@
             <artifactId>workflow-support</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.jsonwebtoken</groupId>
+            <groupId>io.jenkins.plugins</groupId>
             <artifactId>jjwt-api</artifactId>
-            <version>${jjwt.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>${jjwt.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-            <version>${jjwt.version}</version>
-            <scope>runtime</scope>
+            <version>0.11.2-3.3ae26ccdac4e</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -141,7 +124,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.263.x</artifactId>
-                <version>18</version>
+                <version>20</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
