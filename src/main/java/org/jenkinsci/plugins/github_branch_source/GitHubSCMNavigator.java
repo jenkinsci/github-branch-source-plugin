@@ -99,6 +99,7 @@ import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
+import static org.apache.commons.lang3.StringUtils.isBlank;
 import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
 
 public class GitHubSCMNavigator extends SCMNavigator {
@@ -261,8 +262,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @DataBoundSetter
     public void setApiUri(String apiUri) {
-        apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmptyAndTrim(apiUri));
-        this.apiUri = GitHubServerConfig.GITHUB_URL.equals(apiUri) ? null : apiUri;
+        if(isBlank(apiUri)){
+            this.apiUri = GitHubServerConfig.GITHUB_URL;
+        }else {
+            this.apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmptyAndTrim(apiUri));
+        }
     }
 
     /**
@@ -961,6 +965,17 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                         .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                                 "Skipping repository %s because it is archived", repo.getName())));
 
+                            } else if (!gitHubSCMNavigatorContext.getTopics().isEmpty() && !repo.listTopics().containsAll(gitHubSCMNavigatorContext.getTopics())) {
+                                // exclude repositories which are missing one or more of the specified topics
+                                witness.record(repo.getName(), false);
+                                listener.getLogger()
+                                        .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                                "Skipping repository %s because it is missing one or more of the following topics: '%s'", repo.getName(), gitHubSCMNavigatorContext.getTopics())));
+                            } else if (!repo.isPrivate() && gitHubSCMNavigatorContext.isExcludePublicRepositories()) {
+                                witness.record(repo.getName(), false);
+                                listener.getLogger()
+                                        .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                                "Skipping repository %s because it is public", repo.getName())));
                             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                                 listener.getLogger()
                                         .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -981,6 +996,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             "Looking up repositories of organization %s", repoOwner)));
                     final Iterable<GHRepository> repositories;
                     if (StringUtils.isNotBlank(gitHubSCMNavigatorContext.getTeamSlug())) {
+                        // get repositories for selected team
                         listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                 "Looking up repositories for team %s", gitHubSCMNavigatorContext.getTeamSlug())));
                         repositories = org.getTeamBySlug(gitHubSCMNavigatorContext.getTeamSlug()).listRepositories().withPageSize(100);
@@ -991,15 +1007,27 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         Connector.checkApiRateLimit(listener, github);
 
                         if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
+                            // exclude archived repositories
                             witness.record(repo.getName(), false);
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                             "Skipping repository %s because it is archived", repo.getName())));
+                        } else if (!gitHubSCMNavigatorContext.getTopics().isEmpty() && !repo.listTopics().containsAll(gitHubSCMNavigatorContext.getTopics())) {
+                                // exclude repositories which are missing one or more of the specified topics
+                                witness.record(repo.getName(), false);
+                                listener.getLogger()
+                                        .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                                "Skipping repository %s because it is missing one or more of the following topics: '%s'", repo.getName(), gitHubSCMNavigatorContext.getTopics())));
+
+                        } else if (!repo.isPrivate() && gitHubSCMNavigatorContext.isExcludePublicRepositories()) {
+                            witness.record(repo.getName(), false);
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                            "Skipping repository %s because it is public", repo.getName())));
 
                         } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                             listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                    "%d repositories were processed (query completed)", witness.getCount()
-                                                                                                                           )));
+                                    "%d repositories were processed (query completed)", witness.getCount())));
                         }
                     }
                     listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -1027,6 +1055,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                             "Skipping repository %s because it is archived", repo.getName())));
 
+                        } else if (!gitHubSCMNavigatorContext.getTopics().isEmpty() && !repo.listTopics().containsAll(gitHubSCMNavigatorContext.getTopics())) {
+                            // exclude repositories which are missing one or more of the specified topics
+                            witness.record(repo.getName(), false);
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                            "Skipping repository %s because it is missing one or more of the following topics: '%s'", repo.getName(), gitHubSCMNavigatorContext.getTopics())));
                         } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -1126,6 +1160,18 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                         .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                                 "Skipping repository %s because it is archived", repo.getName())));
 
+                            } else if (!gitHubSCMNavigatorContext.getTopics().isEmpty() && !repo.listTopics().containsAll(gitHubSCMNavigatorContext.getTopics())) {
+                                // exclude repositories which are missing one or more of the specified topics
+                                witness.record(repo.getName(), false);
+                                listener.getLogger()
+                                        .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                                "Skipping repository %s because it is missing one or more of the following topics: '%s'", repo.getName(), gitHubSCMNavigatorContext.getTopics())));
+                            } else if (!repo.isPrivate() && gitHubSCMNavigatorContext.isExcludePublicRepositories()) {
+                                witness.record(repo.getName(), false);
+                                listener.getLogger()
+                                        .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                                "Skipping repository %s because it is public", repo.getName())));
+
                             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                                 listener.getLogger()
                                         .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -1152,6 +1198,25 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                             "Skipping repository %s because it is archived", repo.getName())));
+
+                        } else if (!gitHubSCMNavigatorContext.getTopics().isEmpty() && !repo.listTopics().containsAll(gitHubSCMNavigatorContext.getTopics())) {
+                            // exclude repositories which are missing one or more of the specified topics
+                            witness.record(repo.getName(), false);
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                            "Skipping repository %s because it is missing one or more of the following topics: '%s'", repo.getName(), gitHubSCMNavigatorContext.getTopics())));
+                        } else if (StringUtils.isNotBlank(gitHubSCMNavigatorContext.getTeamSlug())  && !isRepositoryVisibleToTeam(org, repo, gitHubSCMNavigatorContext.getTeamSlug()) ) {
+                            listener.getLogger()
+                                .println(GitHubConsoleNote.create(System.currentTimeMillis(),
+                                    String.format(
+                                        "Skipping repository %s because it is not in team %s",
+                                        repo.getName(),
+                                        gitHubSCMNavigatorContext.getTeamSlug())));
+                        } else if (!repo.isPrivate() && gitHubSCMNavigatorContext.isExcludePublicRepositories()) {
+                            witness.record(repo.getName(), false);
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                            "Skipping repository %s because it is public", repo.getName())));
 
                         } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                             listener.getLogger()
@@ -1185,6 +1250,18 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
                                             "Skipping repository %s because it is archived", repo.getName())));
 
+                        } else if (!gitHubSCMNavigatorContext.getTopics().isEmpty() && !repo.listTopics().containsAll(gitHubSCMNavigatorContext.getTopics())) {
+                            // exclude repositories which are missing one or more of the specified topics
+                            witness.record(repo.getName(), false);
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                            "Skipping repository %s because it is missing one or more of the following topics: '%s'", repo.getName(), gitHubSCMNavigatorContext.getTopics())));
+                        } else if (!repo.isPrivate() && gitHubSCMNavigatorContext.isExcludePublicRepositories()) {
+                            witness.record(repo.getName(), false);
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
+                                            "Skipping repository %s because it is public", repo.getName())));
+
                         } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
@@ -1204,6 +1281,17 @@ public class GitHubSCMNavigator extends SCMNavigator {
         } finally {
             Connector.release(github);
         }
+    }
+
+    private boolean isRepositoryVisibleToTeam(GHOrganization org, GHRepository repo, String teamSlug) throws IOException {
+        final Iterable<GHRepository> repositories = org.getTeamBySlug(teamSlug).listRepositories()
+            .withPageSize(100);
+        for (GHRepository item : repositories) {
+            if (repo.getFullName().equals(item.getFullName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -1352,6 +1440,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         public SCMNavigator newInstance(String name) {
             GitHubSCMNavigator navigator = new GitHubSCMNavigator(name);
             navigator.setTraits(getTraitsDefaults());
+            navigator.setApiUri(GitHubServerConfig.GITHUB_URL);
             return navigator;
         }
 

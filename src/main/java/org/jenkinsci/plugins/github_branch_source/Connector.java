@@ -83,6 +83,8 @@ import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.extras.okhttp3.OkHttpConnector;
 
 import static java.util.logging.Level.FINE;
+import static java.util.logging.Level.WARNING;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * Utilities that could perhaps be moved into {@code github-api}.
@@ -90,9 +92,9 @@ import static java.util.logging.Level.FINE;
 public class Connector {
     private static final Logger LOGGER = Logger.getLogger(Connector.class.getName());
 
-    private static final Map<GitHub,Long> lastUsed = new HashMap<>();
-    private static final Map<Details, GitHub> githubs = new HashMap<>();
-    private static final Map<GitHub, Integer> usage = new HashMap<>();
+    private static final Map<ConnectionId, GitHubConnection> connections = new HashMap<>();
+    private static final Map<GitHub, GitHubConnection> reverseLookup = new HashMap<>();
+
     private static final Map<TaskListener, Map<GitHub,Void>> checked = new WeakHashMap<>();
     private static final long API_URL_REVALIDATE_MILLIS = TimeUnit.MINUTES.toMillis(5);
     private static final Map<String,Long> apiUrlValid = new LinkedHashMap<String,Long>(){
@@ -190,7 +192,7 @@ public class Connector {
             if (context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.ok("Credentials found");
             }
-            StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, scanCredentialsId);
+            StandardCredentials credentials = Connector.lookupScanCredentials(context, StringUtils.defaultIfEmpty(apiUri, GitHubServerConfig.GITHUB_URL), scanCredentialsId);
             if (credentials == null) {
                 return FormValidation.error("Credentials not found");
             } else {
@@ -357,28 +359,24 @@ public class Connector {
             // TODO OAuth support
             throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
         }
-        synchronized (githubs) {
-            Details details = new Details(apiUrl, hash);
-            GitHub hub = githubs.get(details);
-            if (hub != null) {
-                Integer count = usage.get(hub);
-                usage.put(hub, count == null ? 1 : Math.max(count + 1, 1));
-                return hub;
+
+        ConnectionId connectionId = new ConnectionId(apiUrl, hash);
+
+        synchronized (connections) {
+            GitHubConnection record = GitHubConnection.lookup(connectionId);
+            if (record == null) {
+                Cache cache = getCache(jenkins, apiUrl, authHash, username);
+
+                GitHubBuilder gb = createGitHubBuilder(apiUrl, cache);
+
+                if (username != null) {
+                    gb.withPassword(username, password);
+                }
+
+                record = GitHubConnection.connect(connectionId, gb.build(), cache, credentials instanceof GitHubAppCredentials);
             }
 
-            Cache cache = getCache(jenkins, apiUrl, authHash, username);
-
-            GitHubBuilder gb = createGitHubBuilder(apiUrl, cache);
-
-            if (username != null) {
-                gb.withPassword(username, password);
-            }
-
-            hub = gb.build();
-            githubs.put(details, hub);
-            usage.put(hub, 1);
-            lastUsed.remove(hub);
-            return hub;
+            return record.getGitHub();
         }
     }
 
@@ -455,44 +453,11 @@ public class Connector {
         if (hub == null) {
             return;
         }
-        synchronized (githubs) {
-            Integer count = usage.get(hub);
-            if (count == null) {
-                // it was untracked, forget about it
-                return;
-            }
-            if (count <= 1) {
-                // exclusive
-                usage.put(hub, 0);
-                lastUsed.put(hub, System.currentTimeMillis());
-            } else {
-                // shared
-                usage.put(hub, count - 1);
-            }
-        }
-    }
 
-    private static void unused(@Nonnull GitHub hub) {
-        synchronized (githubs) {
-            Integer count = usage.get(hub);
-            if (count == null) {
-                // it was untracked, forget about it
-                return;
-            }
-            if (count <= 1) {
-                // only remove if it is actually unused now
-                // exclusive
-                usage.remove(hub);
-                // we could use multiple maps, but we expect only a handful of entries and mostly the shared path
-                // so we can just walk the forward map
-                for (Iterator<Map.Entry<Details, GitHub>> iterator = githubs.entrySet().iterator();
-                     iterator.hasNext(); ) {
-                    Map.Entry<Details, GitHub> entry = iterator.next();
-                    if (hub == entry.getValue()) {
-                        iterator.remove();
-                        break;
-                    }
-                }
+        synchronized (connections) {
+            GitHubConnection record = reverseLookup.get(hub);
+            if (record != null) {
+                record.release();
             }
         }
     }
@@ -503,7 +468,7 @@ public class Connector {
     }
 
     static List<DomainRequirement> githubDomainRequirements(String apiUri) {
-        return URIRequirementBuilder.fromUri(StringUtils.defaultIfEmpty(apiUri, "https://github.com")).build();
+        return URIRequirementBuilder.fromUri(StringUtils.defaultIfEmpty(apiUri, GitHubServerConfig.GITHUB_URL)).build();
     }
 
     /**
@@ -571,7 +536,7 @@ public class Connector {
                                                     StandardCredentials credentials,
                                                     GitHub github)
             throws IOException {
-        synchronized (githubs) {
+        synchronized (checked) {
             Map<GitHub,Void> hubs = checked.get(listener);
             if (hubs != null && hubs.containsKey(github)) {
                 // only check if not already in use
@@ -615,32 +580,101 @@ public class Connector {
 
         @Override
         public long getRecurrencePeriod() {
-            return TimeUnit.SECONDS.toMillis(15);
+            return TimeUnit.MINUTES.toMillis(2);
         }
 
         @Override
         protected void doRun() throws Exception {
             // free any connection unused for the last 5 minutes
             long threshold = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5);
-            synchronized (githubs) {
-                for (Iterator<Map.Entry<GitHub, Long>> iterator = lastUsed.entrySet().iterator();
-                     iterator.hasNext(); ) {
-                    Map.Entry<GitHub, Long> entry = iterator.next();
-                    Long lastUse = entry.getValue();
-                    if (lastUse == null || lastUse < threshold) {
+            synchronized (connections) {
+                GitHubConnection.removeAllUnused(threshold);
+            }
+        }
+    }
+
+    private static class GitHubConnection {
+        @NonNull
+        private final GitHub gitHub;
+
+        @CheckForNull
+        private final Cache cache;
+
+        private final boolean cleanupCacheFolder;
+        private int usageCount = 1;
+        private long lastUsed = System.currentTimeMillis();
+
+        private GitHubConnection(GitHub gitHub, Cache cache, boolean cleanupCacheFolder) {
+            this.gitHub = gitHub;
+            this.cache = cache;
+            this.cleanupCacheFolder = cleanupCacheFolder;
+        }
+
+        /**
+         * Gets the {@link GitHub} instance for this connection
+         *
+         * @return the {@link GitHub} instance
+         */
+        public GitHub getGitHub() {
+            return gitHub;
+        }
+
+        @CheckForNull
+        private static GitHubConnection lookup(@NonNull ConnectionId connectionId) {
+            GitHubConnection record;
+            record = connections.get(connectionId);
+            if (record != null) {
+                record.usageCount += 1;
+                record.lastUsed = System.currentTimeMillis();
+            }
+            return record;
+        }
+
+        @NonNull
+        private static GitHubConnection connect(@NonNull ConnectionId connectionId, @NonNull GitHub gitHub, @CheckForNull Cache cache, boolean cleanupCacheFolder) {
+            GitHubConnection record = new GitHubConnection(gitHub, cache, cleanupCacheFolder);
+            connections.put(connectionId, record);
+            reverseLookup.put(record.gitHub, record);
+            return record;
+        }
+
+
+        private void release() {
+            if (this.usageCount <= 1) {
+                this.usageCount = 0;
+                this.lastUsed = System.currentTimeMillis();
+            } else {
+                this.usageCount -= 1;
+            }
+        }
+
+        private static void removeAllUnused(long threshold) throws IOException {
+            for (Iterator<Map.Entry<ConnectionId, GitHubConnection>> iterator = connections.entrySet().iterator();
+                 iterator.hasNext(); ) {
+                Map.Entry<ConnectionId, GitHubConnection> entry = iterator.next();
+                try {
+                    GitHubConnection record = Objects.requireNonNull(entry.getValue());
+                    long lastUse = record.lastUsed;
+                    if (record.usageCount == 0 && lastUse < threshold) {
                         iterator.remove();
-                        unused(entry.getKey());
+                        reverseLookup.remove(record.gitHub);
+                        if (record.cache != null && record.cleanupCacheFolder) {
+                            record.cache.delete();
+                            record.cache.close();
+                        }
                     }
+                } catch (IOException | NullPointerException e) {
+                    LOGGER.log(WARNING, "Exception removing cache directory for unused connection: " + entry.getKey(), e);
                 }
             }
         }
     }
 
-    private static class Details {
+    private static class ConnectionId {
         private final String apiUrl;
         private final String credentialsHash;
 
-        private Details(String apiUrl, String credentialsHash) {
+        private ConnectionId(String apiUrl, String credentialsHash) {
             this.apiUrl = apiUrl;
             this.credentialsHash = credentialsHash;
         }
@@ -654,12 +688,12 @@ public class Connector {
                 return false;
             }
 
-            Details details = (Details) o;
+            ConnectionId that = (ConnectionId) o;
 
-            if (!Objects.equals(apiUrl, details.apiUrl)) {
+            if (!Objects.equals(apiUrl, that.apiUrl)) {
                 return false;
             }
-            return StringUtils.equals(credentialsHash, details.credentialsHash);
+            return StringUtils.equals(credentialsHash, that.credentialsHash);
         }
 
         @Override
@@ -669,7 +703,7 @@ public class Connector {
 
         @Override
         public String toString() {
-            return "Details{" +
+            return "ConnectionId{" +
                     "apiUrl='" + apiUrl + '\'' +
                     ", credentialsHash=" + credentialsHash +
                     '}';
