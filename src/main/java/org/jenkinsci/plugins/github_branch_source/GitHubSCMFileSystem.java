@@ -279,33 +279,23 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                         PullRequestSCMRevision prRev = (PullRequestSCMRevision) rev;
                         if (((PullRequestSCMHead)head).isMerge()) {
                             if (prRev.getMergeHash() == null) {
-                                // we need to release here as we are not throwing an exception or transferring responsibility to FS
-                                Connector.release(github);
                                 return null;
                             }
                             prRev.validateMergeHash();
                         }
                     } else {
-                        // we need to release here as we are not throwing an exception or transferring responsibility to FS
-                        Connector.release(github);
                         return null;
                     }
                 } else {
-                    // we need to release here as we are not throwing an exception or transferring responsibility to FS
-                    Connector.release(github);
                     return null;
                 }
 
                 GHUser user = github.getUser(src.getRepoOwner());
                 if (user == null) {
-                    // we need to release here as we are not throwing an exception or transferring responsibility to FS
-                    Connector.release(github);
                     return null;
                 }
                 GHRepository repo = user.getRepository(src.getRepository());
                 if (repo == null) {
-                    // we need to release here as we are not throwing an exception or transferring responsibility to FS
-                    Connector.release(github);
                     return null;
                 }
 
@@ -328,10 +318,17 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
                         rev = new AbstractGitSCMSource.SCMRevisionImpl(head, ref.getObject().getSha());
                     }
                 }
-                return new GitHubSCMFileSystem(github, repo, refName, rev);
+
+                // Instead of calling release in many case and skipping this one case
+                // Make another call to connect() for this case
+                // and always release the existing instance as part of finally block.
+                // The result is the same but with far fewer code paths calling release().
+                GitHub fileSystemGitHub = Connector.connect(apiUri, credentials);
+                return new GitHubSCMFileSystem(fileSystemGitHub, repo, refName, rev);
             } catch (IOException | RuntimeException e) {
-                Connector.release(github);
                 throw e;
+            } finally {
+                Connector.release(github);
             }
         }
     }
