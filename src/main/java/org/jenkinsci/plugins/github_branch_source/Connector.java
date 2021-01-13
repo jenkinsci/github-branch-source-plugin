@@ -457,7 +457,11 @@ public class Connector {
         synchronized (connections) {
             GitHubConnection record = reverseLookup.get(hub);
             if (record != null) {
-                record.release();
+                try {
+                    record.release();
+                } catch (IOException e) {
+                    LOGGER.log(WARNING, "There is a mismatch in connect and release calls.", e);
+                }
             }
         }
     }
@@ -580,15 +584,17 @@ public class Connector {
 
         @Override
         public long getRecurrencePeriod() {
-            return TimeUnit.MINUTES.toMillis(2);
+            return TimeUnit.MINUTES.toMillis(5);
         }
 
         @Override
         protected void doRun() throws Exception {
-            // free any connection unused for the last 5 minutes
-            long threshold = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(5);
+            // Free any connection that is unused (zero refs)
+            // and has not been looked up or released for the last 30 minutes
+            long unusedThreshold = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(30);
+
             synchronized (connections) {
-                GitHubConnection.removeAllUnused(threshold);
+                GitHubConnection.removeAllUnused(unusedThreshold);
             }
         }
     }
@@ -639,13 +645,13 @@ public class Connector {
         }
 
 
-        private void release() {
-            if (this.usageCount <= 1) {
-                this.usageCount = 0;
-                this.lastUsed = System.currentTimeMillis();
-            } else {
-                this.usageCount -= 1;
+        private void release() throws IOException {
+            if (this.usageCount <= 0) {
+                throw new IOException("Tried to release a GitHubConnection that should have no references.");
             }
+
+            this.usageCount -= 1;
+            this.lastUsed = System.currentTimeMillis();
         }
 
         private static void removeAllUnused(long threshold) throws IOException {

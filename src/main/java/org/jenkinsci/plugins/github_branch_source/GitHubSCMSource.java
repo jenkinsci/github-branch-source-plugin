@@ -1005,7 +1005,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                         public SCMSourceCriteria.Probe create(@NonNull BranchSCMHead head,
                                                                               @Nullable SCMRevisionImpl revisionInfo)
                                                 throws IOException, InterruptedException {
-                                            return new GitHubSCMProbe(github, ghRepository, head, revisionInfo);
+                                            return new GitHubSCMProbe(
+                                                apiUri,
+                                                credentials,
+                                                ghRepository,
+                                                head,
+                                                revisionInfo);
                                         }
                                     }, new CriteriaWitness(listener))) {
                                 listener.getLogger().format("%n  %d branches were processed (query completed)%n", count);
@@ -1035,7 +1040,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         for (final GHPullRequest pr : request.getPullRequests()) {
                             int number = pr.getNumber();
                             try {
-                                retrievePullRequest(github, ghRepository, pr, strategies, request, listener);
+                                retrievePullRequest(apiUri, credentials, ghRepository, pr, strategies, request, listener);
                             } catch (FileNotFoundException e) {
                                 listener.getLogger().format("%n  Error while processing pull request %d%n", number);
                                 Functions.printStackTrace(e, listener.getLogger());
@@ -1091,7 +1096,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                         public SCMSourceCriteria.Probe create(@NonNull GitHubTagSCMHead head,
                                                                               @Nullable GitTagSCMRevision revisionInfo)
                                                 throws IOException, InterruptedException {
-                                            return new GitHubSCMProbe(github, ghRepository, head, revisionInfo);
+                                            return new GitHubSCMProbe(
+                                                apiUri,
+                                                credentials,
+                                                ghRepository,
+                                                head,
+                                                revisionInfo);
                                         }
                                     }, new CriteriaWitness(listener))) {
                                 listener.getLogger()
@@ -1143,7 +1153,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     private static void retrievePullRequest(
-        @NonNull final GitHub github,
+        final String apiUri,
+        final StandardCredentials credentials,
         @NonNull final GHRepository ghRepository,
         @NonNull final GHPullRequest pr,
         @NonNull final Map<Boolean, Set<ChangeRequestCheckoutStrategy>> strategies,
@@ -1173,7 +1184,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
             // PR details only needed for merge PRs
             if (strategy == ChangeRequestCheckoutStrategy.MERGE) {
-                ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
+                // The probe github will be closed along with the probe.
+                final GitHub gitHub = Connector.connect(apiUri, credentials);
+                try {
+                    ensureDetailedGHPullRequest(pr, listener, gitHub, ghRepository);
+                }
+                finally {
+                    Connector.release(gitHub);
+                }
             }
 
             if (request.process(new PullRequestSCMHead(
@@ -1190,8 +1208,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             if (!trusted) {
                                 listener.getLogger().format("    (not from a trusted source)%n");
                             }
-                            return new GitHubSCMProbe(github, ghRepository,
-                                    trusted ? head : head.getTarget(), null);
+                            return new GitHubSCMProbe(
+                                apiUri, credentials,
+                                ghRepository, trusted ? head : head.getTarget(), null);
                         }
                     },
                     new SCMSourceRequest.LazyRevisionLambda<PullRequestSCMHead, SCMRevision, Void>() {
@@ -1201,7 +1220,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                                 @Nullable Void ignored)
                                 throws IOException, InterruptedException {
 
-                            return createPullRequestSCMRevision(pr, head, listener, github, ghRepository);
+                            return createPullRequestSCMRevision(pr, head, listener, ghRepository);
                         }
                     },
                     new MergabilityWitness(pr, strategy, listener),
@@ -1395,7 +1414,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         if (head.isMerge()) {
                             ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
                         }
-                        PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, head, listener, github, ghRepository);
+                        PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, head, listener, ghRepository);
 
                         switch (strategy) {
                             case MERGE:
@@ -1564,11 +1583,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         try {
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
-            return new GitHubSCMProbe(github, repo, head, revision);
+            return new GitHubSCMProbe(apiUri, credentials, repo, head, revision);
         } catch (IOException | RuntimeException | Error e) {
-            Connector.release(github);
             throw e;
+        } finally {
+            Connector.release(github);
         }
+
     }
 
     @Override
@@ -1595,7 +1616,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     if (prhead.isMerge()) {
                         ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
                     }
-                    PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, prhead, listener, github, ghRepository);
+                    PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, prhead, listener, ghRepository);
                     prRev.validateMergeHash();
                     return prRev;
                 } else if (head instanceof GitHubTagSCMHead) {
@@ -1620,7 +1641,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    private static PullRequestSCMRevision createPullRequestSCMRevision(GHPullRequest pr, PullRequestSCMHead prhead, TaskListener listener, GitHub github, GHRepository ghRepository) throws IOException, InterruptedException {
+    private static PullRequestSCMRevision createPullRequestSCMRevision(GHPullRequest pr, PullRequestSCMHead prhead, TaskListener listener, GHRepository ghRepository) throws IOException, InterruptedException {
         String baseHash = pr.getBase().getSha();
         String prHeadHash = pr.getHead().getSha();
         String mergeHash = null;
