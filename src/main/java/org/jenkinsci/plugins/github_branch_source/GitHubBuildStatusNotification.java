@@ -252,8 +252,7 @@ public class GitHubBuildStatusNotification {
                                     }
                                 }
                             }
-                        }
-                        finally {
+                        } finally {
                             Connector.release(gitHub);
                         }
                     } catch (FileNotFoundException e) {
