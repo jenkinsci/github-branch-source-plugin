@@ -15,6 +15,7 @@ import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import java.io.IOException;
 import java.io.Serializable;
+import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -32,6 +33,9 @@ import org.kohsuke.github.GHApp;
 import org.kohsuke.github.GHAppInstallation;
 import org.kohsuke.github.GHAppInstallationToken;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.authorization.AuthorizationProvider;
+import org.kohsuke.github.authorization.OrgAppInstallationAuthorizationProvider;
+import org.kohsuke.github.extras.authorization.JWTTokenProvider;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -122,11 +126,25 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         this.owner = Util.fixEmpty(owner);
     }
 
+    @SuppressWarnings("deprecation")
+    public AuthorizationProvider getAuthorizationProvider() {
+        // TODO create sub class
+        AuthorizationProvider authorizationProvider;
+        try {
+            authorizationProvider = new JWTTokenProvider(appID, privateKey.getPlainText());
+        } catch (GeneralSecurityException e) {
+            throw new IllegalArgumentException("Couldn't parse private key for GitHub app, make sure it's PKCS#8 format", e);
+        }
+
+        return new OrgAppInstallationAuthorizationProvider(owner, authorizationProvider);
+    }
+
+
     @SuppressWarnings("deprecation") // preview features are required for GitHub app integration, GitHub api adds deprecated to all preview methods
     static AppInstallationToken generateAppInstallationToken(String appId, String appPrivateKey, String apiUrl, String owner) {
         JenkinsJVM.checkJenkinsJVM();
         // We expect this to be fast but if anything hangs in here we do not want to block indefinitely
-        try (Timeout timeout = Timeout.limit(30, TimeUnit.SECONDS)) {
+        try (Timeout ignored = Timeout.limit(30, TimeUnit.SECONDS)) {
             String jwtToken = createJWT(appId, appPrivateKey);
             GitHub gitHubApp = Connector
                 .createGitHubBuilder(apiUrl)

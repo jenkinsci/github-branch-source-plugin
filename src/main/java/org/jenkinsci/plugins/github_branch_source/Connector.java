@@ -80,11 +80,11 @@ import org.kohsuke.github.GHAppInstallationToken;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
+import org.kohsuke.github.authorization.ImmutableAuthorizationProvider;
 import org.kohsuke.github.extras.okhttp3.OkHttpConnector;
 
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
-import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * Utilities that could perhaps be moved into {@code github-api}.
@@ -340,15 +340,21 @@ public class Connector {
         String apiUrl = Util.fixEmptyAndTrim(apiUri);
         apiUrl = apiUrl != null ? apiUrl : GitHubServerConfig.GITHUB_URL;
         String username;
-        String password;
+        String password = null;
         String hash;
         String authHash;
+        GitHubAppCredentials gitHubAppCredentials = null;
         Jenkins jenkins = Jenkins.get();
         if (credentials == null) {
             username = null;
             password = null;
             hash = "anonymous";
             authHash = "anonymous";
+        } else if (credentials instanceof GitHubAppCredentials) {
+            gitHubAppCredentials = (GitHubAppCredentials) credentials;
+            hash = Util.getDigestOf(gitHubAppCredentials.getAppID() + SALT); // want to ensure pooling by credential
+            authHash = Util.getDigestOf(gitHubAppCredentials.getAppID() + "::" + jenkins.getLegacyInstanceId());
+            username = gitHubAppCredentials.getUsername();
         } else if (credentials instanceof StandardUsernamePasswordCredentials) {
             StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
             username = c.getUsername();
@@ -369,8 +375,12 @@ public class Connector {
 
                 GitHubBuilder gb = createGitHubBuilder(apiUrl, cache);
 
-                if (username != null) {
-                    gb.withPassword(username, password);
+                if (username != null && password != null) {
+                    gb.withAuthorizationProvider(ImmutableAuthorizationProvider.fromOauthToken(password, username));
+                }
+
+                if (gitHubAppCredentials != null) {
+                    gb.withAuthorizationProvider(gitHubAppCredentials.getAuthorizationProvider());
                 }
 
                 record = GitHubConnection.connect(connectionId, gb.build(), cache, credentials instanceof GitHubAppCredentials);
