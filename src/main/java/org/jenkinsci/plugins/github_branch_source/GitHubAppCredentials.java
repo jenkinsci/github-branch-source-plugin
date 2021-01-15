@@ -26,6 +26,7 @@ import java.util.logging.Logger;
 import jenkins.security.SlaveToMasterCallable;
 import jenkins.util.JenkinsJVM;
 import net.sf.json.JSONObject;
+import org.jenkinsci.plugins.github_branch_source.authorization.GitHubBranchSourceAuthorizationProvider;
 import org.jenkinsci.plugins.workflow.support.concurrent.Timeout;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -34,7 +35,6 @@ import org.kohsuke.github.GHAppInstallation;
 import org.kohsuke.github.GHAppInstallationToken;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.authorization.AuthorizationProvider;
-import org.kohsuke.github.authorization.OrgAppInstallationAuthorizationProvider;
 import org.kohsuke.github.extras.authorization.JWTTokenProvider;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -52,7 +52,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     private static final String ERROR_AUTHENTICATING_GITHUB_APP = "Couldn't authenticate with GitHub app ID %s";
     private static final String NOT_INSTALLED = ", has it been installed to your GitHub organisation / user?";
 
-    private static final String ERROR_NOT_INSTALLED = ERROR_AUTHENTICATING_GITHUB_APP + NOT_INSTALLED;
+    public static final String ERROR_NOT_INSTALLED = ERROR_AUTHENTICATING_GITHUB_APP + NOT_INSTALLED;
 
     /**
      * When a new {@link AppInstallationToken} is generated, wait this many seconds before continuing.
@@ -126,9 +126,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         this.owner = Util.fixEmpty(owner);
     }
 
-    @SuppressWarnings("deprecation")
     public AuthorizationProvider getAuthorizationProvider() {
-        // TODO create sub class
         AuthorizationProvider authorizationProvider;
         try {
             authorizationProvider = new JWTTokenProvider(appID, privateKey.getPlainText());
@@ -136,7 +134,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             throw new IllegalArgumentException("Couldn't parse private key for GitHub app, make sure it's PKCS#8 format", e);
         }
 
-        return new OrgAppInstallationAuthorizationProvider(owner, authorizationProvider);
+        return new GitHubBranchSourceAuthorizationProvider(owner, appID, authorizationProvider);
     }
 
 
