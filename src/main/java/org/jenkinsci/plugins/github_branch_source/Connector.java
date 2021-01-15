@@ -352,8 +352,8 @@ public class Connector {
             authHash = "anonymous";
         } else if (credentials instanceof GitHubAppCredentials) {
             gitHubAppCredentials = (GitHubAppCredentials) credentials;
-            hash = Util.getDigestOf(gitHubAppCredentials.getAppID() + SALT); // want to ensure pooling by credential
-            authHash = Util.getDigestOf(gitHubAppCredentials.getAppID() + "::" + jenkins.getLegacyInstanceId());
+            hash = Util.getDigestOf(gitHubAppCredentials.getAppID() + gitHubAppCredentials.getOwner() + gitHubAppCredentials.getPrivateKey().getPlainText() + SALT); // want to ensure pooling by credential
+            authHash = Util.getDigestOf(gitHubAppCredentials.getAppID() + "::" + gitHubAppCredentials.getOwner() + "::" + gitHubAppCredentials.getPrivateKey().getPlainText() + "::" + jenkins.getLegacyInstanceId());
             username = gitHubAppCredentials.getUsername();
         } else if (credentials instanceof StandardUsernamePasswordCredentials) {
             StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
