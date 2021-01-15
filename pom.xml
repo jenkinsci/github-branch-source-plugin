@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.118-rc322.f48fa323870c</version> <!-- really 1.222 but incremental isn't in sync with github-api version -->
+            <version>1.118-rc326.11733e33a6ca</version> <!-- really 1.222 but incremental isn't in sync with github-api version -->
         </dependency>
         <dependency>
             <groupId>com.coravy.hudson.plugins.github</groupId>
