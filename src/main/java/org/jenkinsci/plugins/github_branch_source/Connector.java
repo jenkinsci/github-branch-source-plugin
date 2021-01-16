@@ -375,8 +375,8 @@ public class Connector {
 
                 GitHubBuilder gb = createGitHubBuilder(apiUrl, cache);
 
-                if (username != null && password != null) {
-                    gb.withAuthorizationProvider(ImmutableAuthorizationProvider.fromOauthToken(password, username));
+                if (username != null) {
+                    gb.withAuthorizationProvider(ImmutableAuthorizationProvider.fromLoginAndPassword(username, password));
                 }
 
                 if (gitHubAppCredentials != null) {

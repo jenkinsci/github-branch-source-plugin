@@ -26,7 +26,6 @@ import java.util.logging.Logger;
 import jenkins.security.SlaveToMasterCallable;
 import jenkins.util.JenkinsJVM;
 import net.sf.json.JSONObject;
-import org.jenkinsci.plugins.github_branch_source.authorization.GitHubBranchSourceAuthorizationProvider;
 import org.jenkinsci.plugins.workflow.support.concurrent.Timeout;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
@@ -42,7 +41,6 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 
 import static org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator.DescriptorImpl.getPossibleApiUriItems;
-import static org.jenkinsci.plugins.github_branch_source.JwtHelper.createJWT;
 
 @SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "XStream")
 public class GitHubAppCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
@@ -126,28 +124,45 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         this.owner = Util.fixEmpty(owner);
     }
 
-    public AuthorizationProvider getAuthorizationProvider() {
-        AuthorizationProvider authorizationProvider;
+    @SuppressWarnings("deprecation")
+    AuthorizationProvider getAuthorizationProvider() {
+        return new TokenProvider(this);
+    }
+
+    private static AuthorizationProvider createJwtProvider(String appId, String appPrivateKey) {
         try {
-            authorizationProvider = new JWTTokenProvider(appID, privateKey.getPlainText());
+            return new JWTTokenProvider(appId, appPrivateKey);
         } catch (GeneralSecurityException e) {
             throw new IllegalArgumentException("Couldn't parse private key for GitHub app, make sure it's PKCS#8 format", e);
         }
-
-        return new GitHubBranchSourceAuthorizationProvider(owner, appID, authorizationProvider);
     }
 
+    private static class TokenProvider extends GitHub.DependentAuthorizationProvider {
+        private final GitHubAppCredentials credentials;
+
+        TokenProvider(GitHubAppCredentials credentials) {
+            super(createJwtProvider(credentials.appID, credentials.privateKey.getPlainText()));
+            this.credentials = credentials;
+        }
+
+        public String getEncodedAuthorization() throws IOException {
+            Secret token = credentials.getPassword(gitHub());
+            return String.format("token %s", token.getPlainText());
+        }
+    }
 
     @SuppressWarnings("deprecation") // preview features are required for GitHub app integration, GitHub api adds deprecated to all preview methods
-    static AppInstallationToken generateAppInstallationToken(String appId, String appPrivateKey, String apiUrl, String owner) {
+    static AppInstallationToken generateAppInstallationToken(GitHub gitHubApp, String appId, String appPrivateKey, String apiUrl, String owner) {
         JenkinsJVM.checkJenkinsJVM();
         // We expect this to be fast but if anything hangs in here we do not want to block indefinitely
+
         try (Timeout ignored = Timeout.limit(30, TimeUnit.SECONDS)) {
-            String jwtToken = createJWT(appId, appPrivateKey);
-            GitHub gitHubApp = Connector
-                .createGitHubBuilder(apiUrl)
-                .withJwtToken(jwtToken)
-                .build();
+            if (gitHubApp == null) {
+                gitHubApp = Connector
+                    .createGitHubBuilder(apiUrl)
+                    .withAuthorizationProvider(createJwtProvider(appId, appPrivateKey))
+                    .build();
+            }
 
             GHApp app;
             try {
@@ -167,7 +182,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 appInstallation = appInstallations.stream()
                     .filter(installation -> installation.getAccount().getLogin().equals(owner))
                     .findAny()
-                    .orElseThrow(() -> new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId)));
+                    .orElseThrow(() -> new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED,
+                        appId)));
             }
 
             GHAppInstallationToken appInstallationToken = appInstallation
@@ -214,17 +230,14 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         return Util.fixEmpty(apiUri) == null ? "https://api.github.com" : apiUri;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @NonNull
-    @Override
-    public Secret getPassword() {
+    private Secret getPassword(GitHub gitHub) {
         synchronized (this) {
             try {
                 if (cachedToken == null || cachedToken.isStale()) {
                     LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0}", appID);
-                    cachedToken = generateAppInstallationToken(appID,
+                    cachedToken = generateAppInstallationToken(
+                        gitHub,
+                        appID,
                         privateKey.getPlainText(),
                         actualApiUri(),
                         owner);
@@ -246,7 +259,15 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
             return cachedToken.getToken();
         }
+    }
 
+    /**
+     * {@inheritDoc}
+     */
+    @NonNull
+    @Override
+    public Secret getPassword() {
+        return this.getPassword(null);
     }
 
     /**
@@ -458,7 +479,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                             // while only slightly increasing the chance that tokens will expire while in use.
                             LOGGER.log(Level.WARNING,
                                 "Failed to generate new GitHub App Installation Token for app ID " + appID + " on agent: cached token is stale but has not expired");
-                            // Logging the exception here caused a security exeception when trying to read the agent logs during testing
+                            // Logging the exception here caused a security exception when trying to read the agent logs during testing
                             // Added the exception to a secondary log message that can be viewed if it is needed
                             LOGGER.log(Level.FINER, () -> Functions.printThrowable(e));
                         } else {
@@ -489,6 +510,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 JSONObject fields = JSONObject.fromObject(Secret.fromString(data).getPlainText());
                 LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0} for agent", fields.get("appID"));
                 AppInstallationToken token = generateAppInstallationToken(
+                    null,
                     (String)fields.get("appID"),
                     (String)fields.get("privateKey"),
                     (String)fields.get("apiUri"),
