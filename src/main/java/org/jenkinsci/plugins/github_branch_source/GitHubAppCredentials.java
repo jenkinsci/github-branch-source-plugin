@@ -50,7 +50,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     private static final String ERROR_AUTHENTICATING_GITHUB_APP = "Couldn't authenticate with GitHub app ID %s";
     private static final String NOT_INSTALLED = ", has it been installed to your GitHub organisation / user?";
 
-    public static final String ERROR_NOT_INSTALLED = ERROR_AUTHENTICATING_GITHUB_APP + NOT_INSTALLED;
+    private static final String ERROR_NOT_INSTALLED = ERROR_AUTHENTICATING_GITHUB_APP + NOT_INSTALLED;
 
     /**
      * When a new {@link AppInstallationToken} is generated, wait this many seconds before continuing.
