@@ -375,13 +375,14 @@ public class Connector {
 
                 GitHubBuilder gb = createGitHubBuilder(apiUrl, cache);
 
-                if (username != null) {
+                if (gitHubAppCredentials != null) {
+                    gb.withAuthorizationProvider(gitHubAppCredentials.getAuthorizationProvider());
+                } else if (username != null && password != null) {
+                    // At the time of this change this works for OAuth tokens as well.
+                    // This may not continue to work in the future, as GitHub has deprecated Login/Password credentials. 
                     gb.withAuthorizationProvider(ImmutableAuthorizationProvider.fromLoginAndPassword(username, password));
                 }
 
-                if (gitHubAppCredentials != null) {
-                    gb.withAuthorizationProvider(gitHubAppCredentials.getAuthorizationProvider());
-                }
 
                 record = GitHubConnection.connect(connectionId, gb.build(), cache, credentials instanceof GitHubAppCredentials);
             }
