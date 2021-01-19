@@ -20,6 +20,8 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.kohsuke.github.GitHub;
+import org.kohsuke.github.authorization.AuthorizationProvider;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.hamcrest.Matchers.*;
+import static org.jenkinsci.plugins.github_branch_source.Connector.createGitHubBuilder;
 
 public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
@@ -239,6 +242,63 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                             "  \"token\": \"super-secret-token\",\n" +
                             "  \"expires_at\": \"" + printDate(new Date()) + "\"" + // 2019-08-10T05:54:58Z
                             "}")));
+    }
+
+    @Test
+    public void testProviderRefresh() throws Exception {
+        long notStaleSeconds = GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
+        try {
+            appCredentials.setApiUri(githubApi.baseUrl());
+
+            // We want to demonstrate successful caching without waiting for a the default 1 minute
+            // Must set this to a large enough number to avoid flaky test
+            GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = 5;
+
+            AuthorizationProvider provider = appCredentials.getAuthorizationProvider();
+            GitHub githubInstance = createGitHubBuilder(githubApi.baseUrl())
+                .withAuthorizationProvider(provider).build();
+
+            // First Checkout on controller should use cached
+            provider.getEncodedAuthorization();
+            // Multiple checkouts in quick succession should use cached token
+            provider.getEncodedAuthorization();
+            Thread.sleep(Duration.ofSeconds(GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS + 2).toMillis());
+            // Checkout after token is stale refreshes - fallback due to unexpired token
+            provider.getEncodedAuthorization();
+            // Checkout after error will refresh again on controller - new token expired but not stale
+            provider.getEncodedAuthorization();
+            Thread.sleep(Duration.ofSeconds(GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS + 2).toMillis());
+            // Checkout after token is stale refreshes - error on controller is not catastrophic
+            provider.getEncodedAuthorization();
+            // Checkout after error will refresh again on controller - new token expired but not stale
+            provider.getEncodedAuthorization();
+            // Multiple checkouts in quick succession should use cached token
+            provider.getEncodedAuthorization();
+
+            List<String> credentialsLog = getOutputLines();
+
+            //Verify correct messages from GitHubAppCredential logger indicating token was retrieved on agent
+            assertThat("Creds should cache on master",
+                credentialsLog, contains(
+                    // refresh on controller
+                    "Generating App Installation Token for app ID 54321",
+                    // next call uses cached token
+                    // sleep and then refresh stale token
+                    "Generating App Installation Token for app ID 54321",
+                    // next call (error forced by wiremock)
+                    "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired",
+                    // next call refreshes the still stale token
+                    "Generating App Installation Token for app ID 54321",
+                    // sleep and then refresh stale token hits another error forced by wiremock
+                    "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired",
+                    // next call refreshes the still stale token
+                    "Generating App Installation Token for app ID 54321"
+                    // next call uses cached token
+                ));
+        } finally {
+            GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
+            logRecorder.doClear();
+        }
     }
 
     @Test
