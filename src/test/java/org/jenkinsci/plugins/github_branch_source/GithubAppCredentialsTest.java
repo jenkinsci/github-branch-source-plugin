@@ -254,6 +254,9 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             // Must set this to a large enough number to avoid flaky test
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = 5;
 
+            // Ensure we are working from sufficiently clean cache state
+            Thread.sleep(Duration.ofSeconds(GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS + 2).toMillis());
+
             AuthorizationProvider provider = appCredentials.getAuthorizationProvider();
             GitHub githubInstance = createGitHubBuilder(githubApi.baseUrl())
                 .withAuthorizationProvider(provider).build();
@@ -311,6 +314,9 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             // Must set this to a large enough number to avoid flaky test
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = 5;
 
+            // Ensure we are working from sufficiently clean cache state
+            Thread.sleep(Duration.ofSeconds(GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS + 2).toMillis());
+
             final String gitCheckoutStep = String.format(
                 "    git url: REPO, credentialsId: '%s'",
                 myAppCredentialsId);
@@ -353,7 +359,6 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             r.waitUntilNoActivity();
 
             System.out.println(JenkinsRule.getLog(run));
-            assertThat(run.getResult(), equalTo(Result.SUCCESS));
 
             List<String> credentialsLog = getOutputLines();
 
@@ -392,6 +397,10 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                     // checkout scm
                     // (No token generation)
                     ));
+
+            // Check success after output.  Output will be more informative if something goes wrong.
+            assertThat(run.getResult(), equalTo(Result.SUCCESS));
+
         } finally {
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
             logRecorder.doClear();
