@@ -250,7 +250,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
         try {
             appCredentials.setApiUri(githubApi.baseUrl());
 
-            // We want to demonstrate successful caching without waiting for a the default 1 minute
+            // We want to demonstrate successful caching without waiting for the default 1 minute
             // Must set this to a large enough number to avoid flaky test
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = 5;
 
