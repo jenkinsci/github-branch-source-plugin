@@ -18,7 +18,9 @@ import java.io.Serializable;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -47,7 +49,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     private static final Logger LOGGER = Logger.getLogger(GitHubAppCredentials.class.getName());
 
-    private static final String ERROR_AUTHENTICATING_GITHUB_APP = "Couldn't authenticate with GitHub app ID %s";
+    private static final String ERROR_AUTHENTICATING_GITHUB_APP = "Couldn't authenticate with GitHub app ID: %s for owner: %s";
     private static final String NOT_INSTALLED = ", has it been installed to your GitHub organisation / user?";
 
     private static final String ERROR_NOT_INSTALLED = ERROR_AUTHENTICATING_GITHUB_APP + NOT_INSTALLED;
@@ -71,7 +73,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     private String owner;
 
-    private transient AppInstallationToken cachedToken;
+    private transient List<AppInstallationToken> cachedTokens;
 
     @DataBoundConstructor
     @SuppressWarnings("unused") // by stapler
@@ -168,22 +170,21 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             try {
                 app = gitHubApp.getApp();
             } catch (IOException e) {
-                throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId), e);
+                throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId, owner), e);
             }
 
             List<GHAppInstallation> appInstallations = app.listInstallations().asList();
             if (appInstallations.isEmpty()) {
-                throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId));
+                throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId, owner));
             }
             GHAppInstallation appInstallation;
             if (appInstallations.size() == 1) {
                 appInstallation = appInstallations.get(0);
             } else {
                 appInstallation = appInstallations.stream()
-                    .filter(installation -> installation.getAccount().getLogin().equals(owner))
+                    .filter(installation -> installation.getAccount().getLogin().equalsIgnoreCase(owner))
                     .findAny()
-                    .orElseThrow(() -> new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED,
-                        appId)));
+                    .orElseThrow(() -> new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId, owner)));
             }
 
             GHAppInstallationToken appInstallationToken = appInstallation
@@ -191,7 +192,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 .create();
 
             long expiration = getExpirationSeconds(appInstallationToken);
-            AppInstallationToken token = new AppInstallationToken(
+            AppInstallationToken token = new AppInstallationToken(owner,
                 Secret.fromString(appInstallationToken.getToken()),
                 expiration);
             LOGGER.log(Level.FINER,
@@ -230,9 +231,22 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         return Util.fixEmpty(apiUri) == null ? "https://api.github.com" : apiUri;
     }
 
-    private Secret getPassword(GitHub gitHub) {
+    private Secret getPassword(final GitHub gitHub) {
+        return getPassword(gitHub, owner);
+    }
+
+    private Secret getPassword(final GitHub gitHub, final String owner) {
+        AppInstallationToken cachedToken = null;
         synchronized (this) {
             try {
+                if(cachedTokens == null) {
+                    cachedTokens = new ArrayList<>();
+                } else {
+                    Optional<AppInstallationToken> tempToken = cachedTokens.stream().filter(token -> token.getOwner().equalsIgnoreCase(owner)).findAny();
+                    if(tempToken.isPresent()) {
+                        cachedToken = tempToken.get();
+                    }
+                }
                 if (cachedToken == null || cachedToken.isStale()) {
                     LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0}", appID);
                     cachedToken = generateAppInstallationToken(
@@ -241,6 +255,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                         privateKey.getPlainText(),
                         actualApiUri(),
                         owner);
+                    cachedTokens.removeIf(token -> token.getOwner().equalsIgnoreCase(owner));
+                    cachedTokens.add(cachedToken);
                     LOGGER.log(Level.FINER, "Retrieved GitHub App Installation Token for app ID {0}", appID);
                 }
             } catch (Exception e) {
@@ -267,7 +283,16 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     @NonNull
     @Override
     public Secret getPassword() {
-        return this.getPassword(null);
+        return this.getPassword(owner);
+    }
+
+    /**
+     * Returns the Password.
+     * @param owner, owner of the repo.
+     * @return the password
+     */
+    public Secret getPassword(final String owner) {
+        return getPassword(null, owner);
     }
 
     /**
@@ -279,9 +304,9 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         return appID;
     }
 
-    private AppInstallationToken getCachedToken() {
+    private List<AppInstallationToken> getCachedTokens() {
         synchronized (this) {
-            return cachedToken;
+            return cachedTokens;
         }
     }
 
@@ -322,6 +347,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         static long NOT_STALE_MINIMUM_SECONDS =
             Long.getLong(GitHubAppCredentials.class.getName() + ".NOT_STALE_MINIMUM_SECONDS", Duration.ofMinutes(1).getSeconds());
 
+        private final String owner;
         private final Secret token;
         private final long expirationEpochSeconds;
         private final long staleEpochSeconds;
@@ -338,7 +364,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          * @param token the token string
          * @param expirationEpochSeconds the time in epoch seconds that this token will expire
          */
-        public AppInstallationToken(Secret token, long expirationEpochSeconds) {
+        public AppInstallationToken(String owner, Secret token, long expirationEpochSeconds) {
             long now = Instant.now().getEpochSecond();
             long secondsUntilExpiration = expirationEpochSeconds - now;
 
@@ -360,6 +386,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
             LOGGER.log(Level.FINER, "Token will become stale after " + secondsUntilStale + " seconds");
 
+            this.owner = owner;
             this.token = token;
             this.expirationEpochSeconds = expirationEpochSeconds;
             this.staleEpochSeconds = now + secondsUntilStale;
@@ -367,6 +394,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
         public Secret getToken() {
             return token;
+        }
+
+        public String getOwner() {
+            return owner;
         }
 
         /**
@@ -411,12 +442,13 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     private static final class DelegatingGitHubAppCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
 
         private final String appID;
+        private final String owner;
         /** 
          * An encrypted form of all data needed to refresh the token.
          * Used to prevent {@link GetToken} from being abused by compromised build agents.
          */
         private final String tokenRefreshData;
-        private AppInstallationToken cachedToken;
+        private List<AppInstallationToken> cachedTokens;
 
         private transient Channel ch;
 
@@ -424,11 +456,11 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             super(onMaster.getScope(), onMaster.getId(), onMaster.getDescription());
             JenkinsJVM.checkJenkinsJVM();
             appID = onMaster.appID;
+            owner = onMaster.owner;
             JSONObject j = new JSONObject();
             j.put("appID", appID);
             j.put("privateKey", onMaster.privateKey.getPlainText());
             j.put("apiUri", onMaster.actualApiUri());
-            j.put("owner", onMaster.owner);
             tokenRefreshData = Secret.fromString(j.toString()).getEncryptedValue();
 
             // Check token is valid before sending it to the agent.
@@ -443,7 +475,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 LOGGER.log(Level.WARNING, "Failed to update stale GitHub App installation token for app ID " + onMaster.getAppID() + " before sending to agent", e);
             }
 
-            cachedToken = onMaster.getCachedToken();
+            cachedTokens = onMaster.getCachedTokens();
         }
 
         private Object readResolve() {
@@ -462,13 +494,28 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
         @Override
         public Secret getPassword() {
+            return getPassword(owner);
+        }
+
+        public Secret getPassword(final String owner) {
             JenkinsJVM.checkNotJenkinsJVM();
             try {
                 synchronized (this) {
+                    AppInstallationToken cachedToken = null;
                     try {
+                        if(cachedTokens == null) {
+                            cachedTokens = new ArrayList<>();
+                        } else {
+                            Optional<AppInstallationToken> tempToken = cachedTokens.stream().filter(token -> token.getOwner().equalsIgnoreCase(owner)).findAny();
+                            if(tempToken.isPresent()) {
+                                cachedToken = tempToken.get();
+                            }
+                        }
                         if (cachedToken == null || cachedToken.isStale()) {
                             LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0} on agent", appID);
-                            cachedToken = ch.call(new GetToken(tokenRefreshData));
+                            cachedToken = ch.call(new GetToken(owner, tokenRefreshData));
+                            cachedTokens.removeIf(token -> token.getOwner().equalsIgnoreCase(owner));
+                            cachedTokens.add(cachedToken);
                             LOGGER.log(Level.FINER, "Retrieved GitHub App Installation Token for app ID {0} on agent", appID);
                             LOGGER.log(Level.FINEST, () -> "Generated App Installation Token at " + Instant.now().toEpochMilli() + " on agent");
                         }
@@ -498,9 +545,12 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
         private static final class GetToken extends SlaveToMasterCallable<AppInstallationToken, RuntimeException> {
 
+            private final String owner;
             private final String data;
 
-            GetToken(String data) {
+
+            GetToken(String owner, String data) {
+                this.owner = owner;
                 this.data = data;
             }
 
@@ -514,7 +564,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                     (String)fields.get("appID"),
                     (String)fields.get("privateKey"),
                     (String)fields.get("apiUri"),
-                    (String)fields.get("owner"));
+                    owner);
                 LOGGER.log(Level.FINER,
                     "Retrieved GitHub App Installation Token for app ID {0} for agent",
                     fields.get("appID"));
@@ -597,7 +647,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                     Connector.release(connect);
                 }
             } catch (Exception e) {
-                return FormValidation.error(e, String.format(ERROR_AUTHENTICATING_GITHUB_APP, appID));
+                return FormValidation.error(e, String.format(ERROR_AUTHENTICATING_GITHUB_APP, appID, owner));
             }
         }
     }
