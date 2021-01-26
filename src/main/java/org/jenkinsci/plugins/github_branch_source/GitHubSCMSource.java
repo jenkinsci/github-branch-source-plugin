@@ -2148,7 +2148,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
 
             StandardCredentials credentials = Connector.lookupScanCredentials(context, info.getApiUri(), credentialsId);
             StringBuilder sb = new StringBuilder();
-            GitHub github;
+            GitHub github = null;
             try {
                 try {    
                     github = Connector.connect(info.getApiUri(), credentials);
