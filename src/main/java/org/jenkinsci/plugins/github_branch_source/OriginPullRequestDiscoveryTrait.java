@@ -55,6 +55,23 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
     /**
+     * None strategy.
+    */
+    public static final int NONE = 0;
+    /**
+     * Merging the pull request with the current target branch revision.
+    */
+    public static final int MERGE = 1;
+    /**
+     * The current pull request revision.
+    */
+    public static final int HEAD = 2;
+    /**
+     * Both the current pull request revision and the pull request merged with the current target branch revision.
+    */
+    public static final int HEAD_AND_MERGE = 3;
+    
+    /**
      * The strategy encoded as a bit-field.
      */
     private final int strategyId;
@@ -75,8 +92,8 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
      * @param strategies the {@link ChangeRequestCheckoutStrategy} instances.
      */
     public OriginPullRequestDiscoveryTrait(Set<ChangeRequestCheckoutStrategy> strategies) {
-        this((strategies.contains(ChangeRequestCheckoutStrategy.MERGE) ? 1 : 0)
-                + (strategies.contains(ChangeRequestCheckoutStrategy.HEAD) ? 2 : 0));
+        this((strategies.contains(ChangeRequestCheckoutStrategy.MERGE) ? MERGE : NONE)
+                + (strategies.contains(ChangeRequestCheckoutStrategy.HEAD) ? HEAD : NONE));
     }
 
     /**
@@ -96,11 +113,11 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
     @NonNull
     public Set<ChangeRequestCheckoutStrategy> getStrategies() {
         switch (strategyId) {
-            case 1:
+            case OriginPullRequestDiscoveryTrait.MERGE:
                 return EnumSet.of(ChangeRequestCheckoutStrategy.MERGE);
-            case 2:
+            case OriginPullRequestDiscoveryTrait.HEAD:
                 return EnumSet.of(ChangeRequestCheckoutStrategy.HEAD);
-            case 3:
+            case OriginPullRequestDiscoveryTrait.HEAD_AND_MERGE:
                 return EnumSet.of(ChangeRequestCheckoutStrategy.HEAD, ChangeRequestCheckoutStrategy.MERGE);
             default:
                 return EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
@@ -168,9 +185,9 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
         @SuppressWarnings("unused") // stapler
         public ListBoxModel doFillStrategyIdItems() {
             ListBoxModel result = new ListBoxModel();
-            result.add(Messages.ForkPullRequestDiscoveryTrait_mergeOnly(), "1");
-            result.add(Messages.ForkPullRequestDiscoveryTrait_headOnly(), "2");
-            result.add(Messages.ForkPullRequestDiscoveryTrait_headAndMerge(), "3");
+            result.add(Messages.ForkPullRequestDiscoveryTrait_mergeOnly(), String.valueOf(MERGE));
+            result.add(Messages.ForkPullRequestDiscoveryTrait_headOnly(), String.valueOf(HEAD));
+            result.add(Messages.ForkPullRequestDiscoveryTrait_headAndMerge(), String.valueOf(HEAD_AND_MERGE));
             return result;
         }
     }
