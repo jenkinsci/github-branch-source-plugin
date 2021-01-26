@@ -321,7 +321,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
      * Constructor, defaults to {@link #GITHUB_URL} as the end-point, and anonymous access, does not default any
      * {@link SCMSourceTrait} behaviours.
      *
-     * This was choosen as the constructor to allow users to set only the values they need and
+     * This was chosen as the constructor to allow users to set only the values they need and
      * not have to pass extra null or empty values. However, this source cannot be used until
      * either "repositoryUrl" or "repoOwner"/"repository" are set.
      * If both combinations are set, repositoryUrl will be used.
