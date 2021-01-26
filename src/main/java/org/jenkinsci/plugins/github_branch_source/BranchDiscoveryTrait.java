@@ -63,7 +63,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
     /**
      * Only branches that are also filed as PRs.
     */
-    public static final int ONLYP_RS = 2;
+    public static final int ONLY_PRS = 2;
     /**
      * All branches.
     */
@@ -91,7 +91,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
      * @param buildBranchWithPr build branches that are also PRs.
      */
     public BranchDiscoveryTrait(boolean buildBranch, boolean buildBranchWithPr) {
-        this.strategyId = (buildBranch ? EXCLUDE_PRS : NONE) + (buildBranchWithPr ? ONLYP_RS : NONE);
+        this.strategyId = (buildBranch ? EXCLUDE_PRS : NONE) + (buildBranchWithPr ? ONLY_PRS : NONE);
     }
 
     /**
@@ -120,7 +120,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
      */
     @Restricted(NoExternalUse.class)
     public boolean isBuildBranchesWithPR() {
-        return (strategyId & ONLYP_RS) != NONE;
+        return (strategyId & ONLY_PRS) != NONE;
     }
 
     /**
@@ -136,7 +136,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
                 ctx.wantOriginPRs(true);
                 ctx.withFilter(new ExcludeOriginPRBranchesSCMHeadFilter());
                 break;
-            case BranchDiscoveryTrait.ONLYP_RS:
+            case BranchDiscoveryTrait.ONLY_PRS:
                 ctx.wantOriginPRs(true);
                 ctx.withFilter(new OnlyOriginPRBranchesSCMHeadFilter());
                 break;
@@ -199,7 +199,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
         public ListBoxModel doFillStrategyIdItems() {
             ListBoxModel result = new ListBoxModel();
             result.add(Messages.BranchDiscoveryTrait_excludePRs(), String.valueOf(EXCLUDE_PRS));
-            result.add(Messages.BranchDiscoveryTrait_onlyPRs(), String.valueOf(ONLYP_RS));
+            result.add(Messages.BranchDiscoveryTrait_onlyPRs(), String.valueOf(ONLY_PRS));
             result.add(Messages.BranchDiscoveryTrait_allBranches(), String.valueOf(ALL_BRANCHES));
             return result;
         }
