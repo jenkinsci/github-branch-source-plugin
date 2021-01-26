@@ -17,15 +17,12 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitSCMSourceDefaults;
 import jenkins.plugins.git.MergeWithGitSCMExtension;
-import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadOrigin;
-import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.jenkinsci.plugins.gitclient.GitClient;
@@ -90,13 +87,12 @@ public class GitHubSCMBuilderTest {
         Credentials sshPrivateKeyCredential = new BasicSSHUserPrivateKey(CredentialsScope.GLOBAL, "user-key", "git",
                 new BasicSSHUserPrivateKey.UsersPrivateKeySource(), null, null);
         SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.singletonMap(Domain.global(),
-                Arrays.<Credentials>asList(userPasswordCredential, sshPrivateKeyCredential)));
+                Arrays.asList(userPasswordCredential, sshPrivateKeyCredential)));
     }
 
     @After
     public void tearDown() throws IOException, InterruptedException {
-        SystemCredentialsProvider.getInstance()
-                .setDomainCredentialsMap(Collections.<Domain, List<Credentials>>emptyMap());
+        SystemCredentialsProvider.getInstance().setDomainCredentialsMap(Collections.emptyMap());
         owner.delete();
     }
 
@@ -109,8 +105,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -163,8 +159,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -217,8 +213,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -271,8 +267,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -332,8 +328,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -392,8 +388,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -452,8 +448,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -512,8 +508,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -572,8 +568,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -630,7 +626,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -670,7 +666,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -710,7 +706,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -752,8 +748,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.test/tester/test-repo.git"));
@@ -807,8 +803,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.test/tester/test-repo.git"));
@@ -861,8 +857,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.test/tester/test-repo.git"));
@@ -913,7 +909,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -953,7 +949,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -993,7 +989,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/heads/test-branch:refs/remotes/@{remote}/test-branch"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -1040,8 +1036,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -1099,8 +1095,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -1158,8 +1154,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -1212,7 +1208,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -1254,7 +1250,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -1296,7 +1292,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -1343,8 +1339,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.test/tester/test-repo.git"));
@@ -1403,8 +1399,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.test/tester/test-repo.git"));
@@ -1462,8 +1458,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.test/tester/test-repo.git"));
@@ -1516,7 +1512,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -1558,7 +1554,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -1600,7 +1596,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -1647,8 +1643,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -1717,8 +1713,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -1787,8 +1783,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.com/tester/test-repo.git"));
@@ -1852,7 +1848,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -1905,7 +1901,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -1958,7 +1954,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -2016,8 +2012,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.test/tester/test-repo.git"));
@@ -2087,8 +2083,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.test/tester/test-repo.git"));
@@ -2157,8 +2153,8 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
-        assertThat(instance.revision(), is((SCMRevision) revision));
+        assertThat(instance.head(), is(head));
+        assertThat(instance.revision(), is(revision));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
                 instance.remote(), is("https://github.test/tester/test-repo.git"));
@@ -2222,7 +2218,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId(null);
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is(nullValue()));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -2276,7 +2272,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-pass");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is("user-pass"));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",
@@ -2330,7 +2326,7 @@ public class GitHubSCMBuilderTest {
         source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
         assertThat(instance.credentialsId(), is("user-key"));
-        assertThat(instance.head(), is((SCMHead) head));
+        assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
         assertThat(instance.refSpecs(), contains("+refs/pull/1/head:refs/remotes/@{remote}/PR-1"));
         assertThat("expecting guess value until withGitHubRemote called",

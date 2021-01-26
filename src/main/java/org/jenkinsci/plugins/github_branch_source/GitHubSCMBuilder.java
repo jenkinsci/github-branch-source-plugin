@@ -34,7 +34,6 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Item;
 import hudson.model.Queue;
-import hudson.model.queue.Tasks;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.browser.GithubWeb;
 import hudson.security.ACL;

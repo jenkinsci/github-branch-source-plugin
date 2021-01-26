@@ -1,9 +1,7 @@
 = Implementation Guide
 
-== Extension Points
-
-=== AbstractGitHubNotificationStrategy
-This extension points allows traits to modify the contents of a Github status notification for a build.
+== AbstractGitHubNotificationStrategy
+This API allows traits to modify the contents of a GitHub status notification for a build.
 There are currently 3 points in a build lifecycle where notifications are sent:
 
 * On entering the queue
@@ -44,7 +42,6 @@ explicitly apply a `DefaultGitHubNotificationStrategy` to the source context in 
 
 Duplicate (by equality) strategies are ignored when applied to the source context.
 
-==== Implementations:
-https://github.com/steven-foster/github-scm-trait-notification-context[github-scm-trait-notification-context]
+=== Implementations:
 
-
+https://github.com/jenkinsci/github-scm-trait-notification-context-plugin[github-scm-trait-notification-context]

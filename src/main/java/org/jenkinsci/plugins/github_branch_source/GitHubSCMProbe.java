@@ -25,6 +25,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jenkins.plugins.git.AbstractGitSCMSource;
@@ -57,8 +58,12 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
     private final String name;
     private transient boolean open = true;
 
-    public GitHubSCMProbe(GitHub github, GHRepository repo, SCMHead head, SCMRevision revision) {
-        this.gitHub = github;
+    public GitHubSCMProbe(String apiUri,
+                          StandardCredentials credentials,
+                          GHRepository repo,
+                          SCMHead head,
+                          SCMRevision revision) throws IOException {
+        this.gitHub = Connector.connect(apiUri, credentials);
         this.revision = revision;
         this.repo = repo;
         this.name = head.getName();

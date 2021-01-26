@@ -149,7 +149,7 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void testExistingMultipleTagsGHFileNotFoundExceptionIteratable() throws IOException {
+    public void testExistingMultipleTagsGHFileNotFoundExceptionIterable() throws IOException {
         // Scenario: Requesting multiple tags but a FileNotFound is thrown
         // on the first returning the iterator and then an IO error is thrown on the iterator creation
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
@@ -170,7 +170,7 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
         //Expected: When initially getting multiple tags, there will then be a thrown filenotfound which returns an empty list
         //Then for the second tag iterator created it returns an IO error
         Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
-        assertEquals(Collections.<GHRef>emptyList().iterator(), tags);
+        assertEquals(Collections.emptyIterator(), tags);
         try{
             Iterator<GHRef> tags2 = new GitHubSCMSource.LazyTags(request, repoSpy).iterator();
             fail("This should throw an exception");
@@ -264,7 +264,7 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
         GitHubSCMSourceRequest request = context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
         GHRepository repoSpy = Mockito.spy(repo);
         PagedIterable<GHRef> iterableSpy = (PagedIterable<GHRef>)Mockito.mock(PagedIterable.class);
-        Mockito.when(repoSpy.listRefs("tags")).thenReturn(iterableSpy);
+        Mockito.when(repoSpy.listRefs("tags")).thenReturn(iterableSpy).thenCallRealMethod();
 
         PagedIterator<GHRef> iteratorSpy = (PagedIterator<GHRef>)Mockito.mock(PagedIterator.class);
         Mockito.when(iterableSpy.iterator()).thenReturn(iteratorSpy);

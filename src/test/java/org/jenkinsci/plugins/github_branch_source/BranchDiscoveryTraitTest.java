@@ -5,7 +5,6 @@ import java.util.Collections;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.trait.SCMHeadFilter;
 import jenkins.scm.api.trait.SCMHeadPrefilter;
-import org.hamcrest.Matcher;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
@@ -23,13 +22,13 @@ public class BranchDiscoveryTraitTest {
     public static JenkinsRule j = new JenkinsRule();
 
     @Test
-    public void given__disoverAll__when__appliedToContext__then__noFilter() throws Exception {
+    public void given__discoverAll__when__appliedToContext__then__noFilter() throws Exception {
         GitHubSCMSourceContext ctx = new GitHubSCMSourceContext(null, SCMHeadObserver.none());
         assumeThat(ctx.wantBranches(), is(false));
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not((Matcher) hasItem(
+        assumeThat(ctx.authorities(), not(hasItem(
                 instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
         )));
         BranchDiscoveryTrait instance = new BranchDiscoveryTrait(true, true);
@@ -38,7 +37,7 @@ public class BranchDiscoveryTraitTest {
         assertThat(ctx.wantPRs(), is(false));
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assertThat(ctx.authorities(), (Matcher) hasItem(
+        assertThat(ctx.authorities(), hasItem(
                 instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
         ));
     }
@@ -50,7 +49,7 @@ public class BranchDiscoveryTraitTest {
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not((Matcher) hasItem(
+        assumeThat(ctx.authorities(), not(hasItem(
                 instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
         )));
         BranchDiscoveryTrait instance = new BranchDiscoveryTrait(true, false);
@@ -60,7 +59,7 @@ public class BranchDiscoveryTraitTest {
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(),
                 contains(instanceOf(BranchDiscoveryTrait.ExcludeOriginPRBranchesSCMHeadFilter.class)));
-        assertThat(ctx.authorities(), (Matcher) hasItem(
+        assertThat(ctx.authorities(), hasItem(
                 instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
         ));
     }
@@ -72,7 +71,7 @@ public class BranchDiscoveryTraitTest {
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not((Matcher) hasItem(
+        assumeThat(ctx.authorities(), not(hasItem(
                 instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
         )));
         BranchDiscoveryTrait instance = new BranchDiscoveryTrait(false, true);
@@ -81,7 +80,7 @@ public class BranchDiscoveryTraitTest {
         assertThat(ctx.wantPRs(), is(true));
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(), contains(instanceOf(BranchDiscoveryTrait.OnlyOriginPRBranchesSCMHeadFilter.class)));
-        assertThat(ctx.authorities(), (Matcher) hasItem(
+        assertThat(ctx.authorities(), hasItem(
                 instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
         ));
     }
@@ -95,5 +94,4 @@ public class BranchDiscoveryTraitTest {
         assertThat(options.get(1).value, is("2"));
         assertThat(options.get(2).value, is("3"));
     }
-
 }

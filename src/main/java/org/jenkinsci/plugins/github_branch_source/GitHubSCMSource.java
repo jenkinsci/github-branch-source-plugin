@@ -35,6 +35,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
+import hudson.Functions;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
@@ -448,6 +449,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
         }
         apiUri = GitHubConfiguration.normalizeApiUri(Util.fixEmptyAndTrim(apiUri));
         this.apiUri = StringUtils.defaultIfBlank(apiUri, GITHUB_URL);
+    }
+
+    /**
+     * Forces the apiUri to a specific value.
+     * FOR TESTING ONLY.
+     *
+     * @param apiUri the api uri
+     */
+    void forceApiUri(@Nonnull String apiUri) {
+        this.apiUri = apiUri;
     }
 
     /**
@@ -1091,7 +1102,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
                                         public SCMSourceCriteria.Probe create(@NonNull BranchSCMHead head,
                                                                               @Nullable SCMRevisionImpl revisionInfo)
                                                 throws IOException, InterruptedException {
-                                            return new GitHubSCMProbe(github, ghRepository, head, revisionInfo);
+                                            return new GitHubSCMProbe(
+                                                apiUri,
+                                                credentials,
+                                                ghRepository,
+                                                head,
+                                                revisionInfo);
                                         }
                                     }, new CriteriaWitness(listener))) {
                                 listener.getLogger().format("%n  %d branches were processed (query completed)%n", count);
@@ -1113,7 +1129,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
                         // Branches and tags are contained only the current repo, PRs go across forks
                         // FileNotFoundException can occur in a number of situations
                         // When this happens, it is not ideal behavior but it is better to let the PR be orphaned
-                        // and the the orphan stratgy control the result than for this error to stop scanning
+                        // and the orphan strategy control the result than for this error to stop scanning
                         // (For Org scanning this is particularly important.)
                         // If some more general IO exception is thrown, we will still fail.
 
@@ -1121,10 +1137,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
                         for (final GHPullRequest pr : request.getPullRequests()) {
                             int number = pr.getNumber();
                             try {
-                                retrievePullRequest(github, ghRepository, pr, strategies, request, listener);
+                                retrievePullRequest(apiUri, credentials, ghRepository, pr, strategies, request, listener);
                             } catch (FileNotFoundException e) {
                                 listener.getLogger().format("%n  Error while processing pull request %d%n", number);
-                                listener.getLogger().format("%n  Reason: %s%n", e);
+                                Functions.printStackTrace(e, listener.getLogger());
                                 errorCount++;
                             }
                             count++;
@@ -1177,7 +1193,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
                                         public SCMSourceCriteria.Probe create(@NonNull GitHubTagSCMHead head,
                                                                               @Nullable GitTagSCMRevision revisionInfo)
                                                 throws IOException, InterruptedException {
-                                            return new GitHubSCMProbe(github, ghRepository, head, revisionInfo);
+                                            return new GitHubSCMProbe(
+                                                apiUri,
+                                                credentials,
+                                                ghRepository,
+                                                head,
+                                                revisionInfo);
                                         }
                                     }, new CriteriaWitness(listener))) {
                                 listener.getLogger()
@@ -1229,7 +1250,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
     }
 
     private static void retrievePullRequest(
-        @NonNull final GitHub github,
+        final String apiUri,
+        final StandardCredentials credentials,
         @NonNull final GHRepository ghRepository,
         @NonNull final GHPullRequest pr,
         @NonNull final Map<Boolean, Set<ChangeRequestCheckoutStrategy>> strategies,
@@ -1259,7 +1281,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
 
             // PR details only needed for merge PRs
             if (strategy == ChangeRequestCheckoutStrategy.MERGE) {
-                ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
+                // The probe github will be closed along with the probe.
+                final GitHub gitHub = Connector.connect(apiUri, credentials);
+                try {
+                    ensureDetailedGHPullRequest(pr, listener, gitHub, ghRepository);
+                }
+                finally {
+                    Connector.release(gitHub);
+                }
             }
 
             if (request.process(new PullRequestSCMHead(
@@ -1276,8 +1305,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
                             if (!trusted) {
                                 listener.getLogger().format("    (not from a trusted source)%n");
                             }
-                            return new GitHubSCMProbe(github, ghRepository,
-                                    trusted ? head : head.getTarget(), null);
+                            return new GitHubSCMProbe(
+                                apiUri, credentials,
+                                ghRepository, trusted ? head : head.getTarget(), null);
                         }
                     },
                     new SCMSourceRequest.LazyRevisionLambda<PullRequestSCMHead, SCMRevision, Void>() {
@@ -1287,7 +1317,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
                                                 @Nullable Void ignored)
                                 throws IOException, InterruptedException {
 
-                            return createPullRequestSCMRevision(pr, head, listener, github, ghRepository);
+                            return createPullRequestSCMRevision(pr, head, listener, ghRepository);
                         }
                     },
                     new MergabilityWitness(pr, strategy, listener),
@@ -1481,7 +1511,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
                         if (head.isMerge()) {
                             ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
                         }
-                        PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, head, listener, github, ghRepository);
+                        PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, head, listener, ghRepository);
 
                         switch (strategy) {
                             case MERGE:
@@ -1650,11 +1680,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
         try {
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
-            return new GitHubSCMProbe(github, repo, head, revision);
+            return new GitHubSCMProbe(apiUri, credentials, repo, head, revision);
         } catch (IOException | RuntimeException | Error e) {
-            Connector.release(github);
             throw e;
+        } finally {
+            Connector.release(github);
         }
+
     }
 
     @Override
@@ -1681,7 +1713,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
                     if (prhead.isMerge()) {
                         ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
                     }
-                    PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, prhead, listener, github, ghRepository);
+                    PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, prhead, listener, ghRepository);
                     prRev.validateMergeHash();
                     return prRev;
                 } else if (head instanceof GitHubTagSCMHead) {
@@ -1706,7 +1738,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
         }
     }
 
-    private static PullRequestSCMRevision createPullRequestSCMRevision(GHPullRequest pr, PullRequestSCMHead prhead, TaskListener listener, GitHub github, GHRepository ghRepository) throws IOException, InterruptedException {
+    private static PullRequestSCMRevision createPullRequestSCMRevision(GHPullRequest pr, PullRequestSCMHead prhead, TaskListener listener, GHRepository ghRepository) throws IOException, InterruptedException {
         String baseHash = pr.getBase().getSha();
         String prHeadHash = pr.getHead().getSha();
         String mergeHash = null;
@@ -1921,7 +1953,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
             GitHubLink repoLink = ((Actionable) owner).getAction(GitHubLink.class);
             if (repoLink != null) {
                 String url;
-                ObjectMetadataAction metadataAction = null;
+                ObjectMetadataAction metadataAction;
                 if (head instanceof PullRequestSCMHead) {
                     // pull request to this repository
                     int number = ((PullRequestSCMHead) head).getNumber();
@@ -2118,15 +2150,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
             StringBuilder sb = new StringBuilder();
             GitHub github;
             try {
-                github = Connector.connect(info.getApiUri(), credentials);
-                if (github.isCredentialValid()){
-                    sb.append("Credentials ok.");
+                try {    
+                    github = Connector.connect(info.getApiUri(), credentials);
+                    if (github.isCredentialValid()) {
+                        sb.append("Credentials ok.");
+                    }
+                } catch (IOException e) {
+                    return FormValidation.error(e, "Error connecting to API endpoint: " + info.getApiUri());
                 }
-            } catch (IOException e) {
-                return FormValidation.error(e, "Error connecting to API endpoint: " + info.getApiUri());
-            }
 
-            try {
                 GHRepository repo = github.getRepository(info.getRepoOwner() + "/" + info.getRepository());
                 if (repo != null) {
                     sb.append(" Connected to ");
@@ -2135,7 +2167,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
                 }
             } catch (IOException e) {
                 return FormValidation.error(e, sb.toString() + " Error connecting to repository: " + e.getMessage());
+            } finally {
+                Connector.release(github);
             }
+              
             return FormValidation.ok(sb.toString());
         }
 
@@ -2231,12 +2266,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
             try {
                 StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, credentialsId);
                 GitHub github = Connector.connect(apiUri, credentials);
-                if (!github.isAnonymous()) {
-                    ListBoxModel model = new ListBoxModel();
-                    for (Map.Entry<String,GHOrganization> entry : github.getMyOrganizations().entrySet()) {
-                        model.add(entry.getKey(), entry.getValue().getAvatarUrl());
+                try {
+                    if (!github.isAnonymous()) {
+                        ListBoxModel model = new ListBoxModel();
+                        for (Map.Entry<String,GHOrganization> entry : github.getMyOrganizations().entrySet()) {
+                            model.add(entry.getKey(), entry.getValue().getAvatarUrl());
+                        }
+                        return model;
                     }
-                    return model;
+                } finally {
+                    Connector.release(github);
                 }
             }
              catch (FillErrorResponse e) {
@@ -2451,7 +2490,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
                     if (pullRequest.getState() != GHIssueState.OPEN) {
                         return Collections.emptyList();
                     }
-                    return new CacheUdatingIterable(Collections.singletonList(pullRequest));
+                    return new CacheUpdatingIterable(Collections.singletonList(pullRequest));
                 }
                 Set<String> branchNames = request.getRequestedOriginBranchNames();
                 if (branchNames != null && branchNames.size() == 1) { // TODO flag to check PRs are all origin PRs
@@ -2462,14 +2501,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
                     request.listener().getLogger().format(
                             "%n  Getting remote pull requests from branch %s...%n", branchName
                     );
-                    return new CacheUdatingIterable(repo.queryPullRequests()
+                    return new CacheUpdatingIterable(repo.queryPullRequests()
                             .state(GHIssueState.OPEN)
                             .head(repo.getOwnerName() + ":" + branchName)
                             .list());
                 }
                 request.listener().getLogger().format("%n  Getting remote pull requests...%n");
                 fullScanRequested = true;
-                return new CacheUdatingIterable(LazyPullRequests.this.repo.queryPullRequests()
+                return new CacheUpdatingIterable(LazyPullRequests.this.repo.queryPullRequests()
                         .state(GHIssueState.OPEN)
                         .list());
             } catch (IOException | InterruptedException e) {
@@ -2493,12 +2532,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
             }
         }
 
-        private class CacheUdatingIterable extends SinglePassIterable<GHPullRequest> {
+        private class CacheUpdatingIterable extends SinglePassIterable<GHPullRequest> {
             /**
              * A map of all fully populated {@link GHUser} entries we have fetched, keyed by {@link GHUser#getLogin()}.
              */
             private Map<String, GHUser> users = new HashMap<>();
-            CacheUdatingIterable(Iterable<GHPullRequest> delegate) {
+            CacheUpdatingIterable(Iterable<GHPullRequest> delegate) {
                 super(delegate);
             }
 
@@ -2647,7 +2686,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
                             iterator = iterable.iterator();
                         } catch (Error e) {
                             if (e.getCause() instanceof GHFileNotFoundException) {
-                                return Collections.<GHRef>emptyList().iterator();
+                                return Collections.emptyIterator();
                             }
                             throw e;
                         }

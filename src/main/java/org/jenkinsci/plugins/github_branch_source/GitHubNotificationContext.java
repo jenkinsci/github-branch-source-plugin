@@ -29,6 +29,7 @@ import hudson.model.Job;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
+import java.util.Objects;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
@@ -120,10 +121,10 @@ public final class GitHubNotificationContext {
 
         GitHubNotificationContext that = (GitHubNotificationContext) o;
 
-        if (job != null ? !job.equals(that.job) : that.job != null) return false;
-        if (build != null ? !build.equals(that.build) : that.build != null) return false;
-        if (source != null ? !source.equals(that.source) : that.source != null) return false;
-        return head != null ? head.equals(that.head) : that.head == null;
+        if (!Objects.equals(job, that.job)) return false;
+        if (!Objects.equals(build, that.build)) return false;
+        if (!Objects.equals(source, that.source)) return false;
+        return Objects.equals(head, that.head);
     }
 
     /**

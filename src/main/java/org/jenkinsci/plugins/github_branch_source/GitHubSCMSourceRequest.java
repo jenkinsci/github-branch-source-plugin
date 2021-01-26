@@ -39,7 +39,6 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
-import jenkins.scm.api.mixin.TagSCMHead;
 import jenkins.scm.api.trait.SCMSourceRequest;
 import net.jcip.annotations.GuardedBy;
 import org.kohsuke.github.GHBranch;
@@ -153,10 +152,10 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
         fetchForkPRs = context.wantForkPRs();
         originPRStrategies = fetchOriginPRs && !context.originPRStrategies().isEmpty()
                 ? Collections.unmodifiableSet(EnumSet.copyOf(context.originPRStrategies()))
-                : Collections.<ChangeRequestCheckoutStrategy>emptySet();
+                : Collections.emptySet();
         forkPRStrategies = fetchForkPRs && !context.forkPRStrategies().isEmpty()
                 ? Collections.unmodifiableSet(EnumSet.copyOf(context.forkPRStrategies()))
-                : Collections.<ChangeRequestCheckoutStrategy>emptySet();
+                : Collections.emptySet();
         Set<SCMHead> includes = context.observer().getIncludes();
         if (includes != null) {
             Set<Integer> pullRequestNumbers = new HashSet<>(includes.size());
@@ -258,9 +257,9 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     @NonNull
     public final Set<ChangeRequestCheckoutStrategy> getPRStrategies(boolean fork) {
         if (fork) {
-            return fetchForkPRs ? getForkPRStrategies() : Collections.<ChangeRequestCheckoutStrategy>emptySet();
+            return fetchForkPRs ? getForkPRStrategies() : Collections.emptySet();
         }
-        return fetchOriginPRs ? getOriginPRStrategies() : Collections.<ChangeRequestCheckoutStrategy>emptySet();
+        return fetchOriginPRs ? getOriginPRStrategies() : Collections.emptySet();
     }
 
     /**

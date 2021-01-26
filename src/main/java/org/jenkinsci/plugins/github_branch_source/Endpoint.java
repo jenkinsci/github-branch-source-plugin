@@ -38,6 +38,7 @@ import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Objects;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
@@ -116,7 +117,7 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
 
         Endpoint endpoint = (Endpoint) o;
 
-        if (apiUri != null ? !apiUri.equals(endpoint.apiUri) : endpoint.apiUri != null) {
+        if (!Objects.equals(apiUri, endpoint.apiUri)) {
             return false;
         }
 
@@ -129,9 +130,9 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
     }
 
     @Extension
-    public static class DesciptorImpl extends Descriptor<Endpoint> {
+    public static class DescriptorImpl extends Descriptor<Endpoint> {
 
-        private static final Logger LOGGER = Logger.getLogger(DesciptorImpl.class.getName());
+        private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
 
         @Override
         public String getDisplayName() {
