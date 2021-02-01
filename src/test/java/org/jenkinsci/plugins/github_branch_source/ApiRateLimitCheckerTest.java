@@ -70,7 +70,6 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
 
     @Before
     public void setUp() throws Exception {
-        ApiRateLimitChecker.setExpiration(Long.MIN_VALUE);
         github = Connector.connect("http://localhost:" + githubApi.port(), null);
 
         resetAllScenarios();

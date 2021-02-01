@@ -24,11 +24,8 @@ public enum ApiRateLimitChecker {
             return new RateLimitCheckerBase() {
                 @Override
                 boolean checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count) throws InterruptedException {
-                    long expiration = getExpiration();
+                    long expiration;
                     long start = System.currentTimeMillis();
-                    if (waitUntilRateLimit(start, expiration, count)) {
-                        return true;
-                    }
 
                     // the buffer is how much we want to avoid using to cover unplanned over-use
                     int buffer = calculateBuffer(rateLimit.getLimit());
@@ -84,11 +81,7 @@ public enum ApiRateLimitChecker {
             return new RateLimitCheckerBase() {
                 @Override
                 boolean checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count) throws InterruptedException {
-                    long expiration = getExpiration();
                     long start = System.currentTimeMillis();
-                    if (waitUntilRateLimit(start, expiration, count)) {
-                        return true;
-                    }
 
                     // the buffer is how much we want to avoid using to cover unplanned over-use
                     int buffer = calculateBuffer(rateLimit.getLimit());
@@ -97,7 +90,7 @@ public enum ApiRateLimitChecker {
                         return false;
                     }
                     long rateLimitResetMillis = rateLimit.getResetDate().getTime() - start;
-                    expiration = calculateExpirationForMinimum(rateLimit, start, rateLimitResetMillis, buffer);
+                    long expiration = calculateExpirationForMinimum(rateLimit, start, rateLimitResetMillis, buffer);
 
                     writeLog("Jenkins is restricting GitHub API requests only when near or above the rate limit. To configure a different rate limiting strategy, such as having Jenkins attempt to evenly distribute GitHub API requests, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
                     waitUntilRateLimit(start, expiration, 0);
@@ -185,7 +178,6 @@ public enum ApiRateLimitChecker {
     }
 
     public void checkApiRateLimit(TaskListener listener, GitHub gitHub) throws IOException, InterruptedException {
-        setExpiration(Long.MIN_VALUE);
         setListener(listener);
         RateLimitChecker currentChecker = getChecker(gitHub.getApiUrl());
 
@@ -210,6 +202,14 @@ public enum ApiRateLimitChecker {
         @Override
         protected boolean checkRateLimit(GHRateLimit.Record rateLimitRecord,
                                          long count) throws InterruptedException {
+            if (count == 0) {
+                setExpiration(Long.MIN_VALUE);
+            }
+            long expiration = getExpiration();
+            long start = System.currentTimeMillis();
+            if (waitUntilRateLimit(start, expiration, count)) {
+                return true;
+            }
             return this.checkRateLimitImpl(rateLimitRecord, count);
         }
 
