@@ -392,12 +392,9 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
 
 
         // Expect a triggered throttle for normalize
-        assertEquals(1, countOfOutputLinesContaining(
-            "Current quota for Github API usage has 0 remaining (250 over budget). Next quota of 5000 due now. Sleeping for 7 ms."));
-        assertEquals(1, countOfOutputLinesContaining(
-            "Current quota for Github API usage has 0 remaining (250 over budget). Next quota of 5000 due now. Sleeping for 15 ms."));
-        assertEquals(1, countOfOutputLinesContaining(
-            "Current quota for Github API usage has 0 remaining (250 over budget). Next quota of 5000 due now. Sleeping for 16 ms."));
+        // GitHubRateLimitChecker add 1 second to notification loop, this hides the entropy value
+        assertEquals(3, countOfOutputLinesContaining(
+            "Current quota for Github API usage has 0 remaining (250 over budget). Next quota of 5000 due now. Sleeping for 1 sec."));
         assertEquals(4, countOfOutputLinesContaining(
             "Jenkins is attempting to evenly distribute GitHub API requests. To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings."));
         assertEquals(4, countOfOutputLinesContaining("Sleeping"));
@@ -645,7 +642,8 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
     public void ExpectedResetTimingNormalize() throws Exception {
 
         // Use a longer notification interval to make the test produce stable output
-        ApiRateLimitChecker.setNotificationWaitMillis(2000);
+        // The GitHubRateLimitChecker adds a one second sleep to each notification loop
+        ApiRateLimitChecker.setNotificationWaitMillis(1000);
 
         // Set up scenarios
         List<RateLimit> scenarios = new ArrayList<>();
@@ -687,7 +685,8 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
     public void ExpectedResetTimingOnOver() throws Exception {
 
         // Use a longer notification interval to make the test produce stable output
-        ApiRateLimitChecker.setNotificationWaitMillis(2000);
+        // The GitHubRateLimitChecker adds a one second sleep to each notification loop
+        ApiRateLimitChecker.setNotificationWaitMillis(1000);
 
         // Set up scenarios
         List<RateLimit> scenarios = new ArrayList<>();

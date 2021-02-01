@@ -60,7 +60,8 @@ public enum ApiRateLimitChecker {
                                         ideal - rateLimit.getRemaining(),
                                         rateLimit.getLimit(),
                                         Util.getTimeSpanString(rateLimitResetMillis),
-                                        Util.getTimeSpanString(expiration - start)));
+                                        // The GitHubRateLimitChecker adds a one second sleep to each notification loop
+                                        Util.getTimeSpanString(1000 + expiration - start)));
                         }
                         writeLog("Jenkins is attempting to evenly distribute GitHub API requests. To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
                         waitUntilRateLimit(start, expiration, 0);
@@ -182,7 +183,7 @@ public enum ApiRateLimitChecker {
 
         long count = 0;
         while (checkApiRateLimitOnce(currentChecker, gitHub, count++)) {
-            // continue
+            Thread.sleep(1000);
         }
     }
 
@@ -228,7 +229,8 @@ public enum ApiRateLimitChecker {
                     rateLimit.getRemaining(),
                     buffer - rateLimit.getRemaining(),
                     rateLimit.getLimit(),
-                    Util.getTimeSpanString(expiration - now)));
+                    // The GitHubRateLimitChecker adds a one second sleep to each notification loop
+                    Util.getTimeSpanString(1000 + expiration - now)));
             } else {
                 expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(
                     EXPIRATION_WAIT_MILLIS);
