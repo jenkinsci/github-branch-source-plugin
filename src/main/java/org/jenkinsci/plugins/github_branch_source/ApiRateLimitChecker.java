@@ -177,7 +177,6 @@ public enum ApiRateLimitChecker {
      * This method is the old code path for rate limit checks
      *
      * It has been slowly refactored until it almost matches the behavior of the GitHubRateLimitChecker.
-     * The only difference is that the GitHubRateLimitChecker will call rateLimit() for it's first loop.
      */
     public void checkApiRateLimit(TaskListener listener, GitHub gitHub) throws IOException, InterruptedException {
         setListener(listener);
@@ -185,7 +184,10 @@ public enum ApiRateLimitChecker {
 
         if (currentChecker instanceof RateLimitCheckerBase) {
             long count = 0;
-            while (((RateLimitCheckerBase)currentChecker).checkRateLimit(gitHub.getRateLimit().getCore(), count++)) {
+            while (((RateLimitCheckerBase)currentChecker)
+                .checkRateLimit(
+                    count == 0 ? gitHub.rateLimit().getCore() : gitHub.getRateLimit().getCore(),
+                    count++)) {
                 Thread.sleep(1000);
             }
         }
