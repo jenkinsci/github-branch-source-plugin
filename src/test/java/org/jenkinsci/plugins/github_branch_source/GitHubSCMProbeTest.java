@@ -56,9 +56,9 @@ public class GitHubSCMProbeTest {
 
         final GHRepository repo = github.getRepository("cloudbeers/yolo");
         final PullRequestSCMHead head = new PullRequestSCMHead("PR-" + number, "cloudbeers", "yolo", "b", number, new BranchSCMHead("master"), new SCMHeadOrigin.Fork("rsandell"), ChangeRequestCheckoutStrategy.MERGE);
-        probe = new GitHubSCMProbe(github, repo,
-            head,
-            new PullRequestSCMRevision(head, "a", "b"));
+        probe = new GitHubSCMProbe("http://localhost:" + githubApi.port(), null,
+            repo,
+            head, new PullRequestSCMRevision(head, "a", "b"));
     }
 
     @Issue("JENKINS-54126")

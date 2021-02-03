@@ -2,7 +2,6 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
-import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import hudson.util.LogTaskListener;
@@ -11,7 +10,7 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.junit.Test;
 import org.junit.Before;
 import org.kohsuke.github.GitHub;
-import org.mockito.Mock;
+import org.kohsuke.github.RateLimitChecker;
 import org.mockito.Mockito;
 
 import java.time.LocalDateTime;
@@ -28,7 +27,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.resetAllScenarios;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
 public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
 
@@ -88,7 +86,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         ApiRateLimitChecker.setExpirationWaitMillis(20);
 
         // Default the notification interval to a small but measurable time for testing
-        ApiRateLimitChecker. setNotificationWaitMillis(60);
+        ApiRateLimitChecker.setNotificationWaitMillis(60);
     }
 
     private void setupStubs(List<RateLimit> scenarios) {
@@ -203,19 +201,21 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
     @Test
     public void NoThrottleTestShouldFallbackToThrottleOnOverForGitHubDotCom() throws Exception {
         GitHub spy = Mockito.spy(github);
-        Mockito.when(spy.getApiUrl()).thenReturn(GitHubServerConfig.GITHUB_URL).thenReturn(github.getApiUrl());
+        Mockito.when(spy.getApiUrl()).thenReturn(GitHubServerConfig.GITHUB_URL);
         // set up scenarios
         List<RateLimit> scenarios = new ArrayList<>();
         int limit = 5000;
         int buffer = ApiRateLimitChecker.calculateBuffer(limit);
-        scenarios.add(new RateLimit(limit, buffer -1, soon));
-        scenarios.add(new RateLimit(limit, limit, new Date(soon.getTime() + 2000)));
+        long now = System.currentTimeMillis();
+        scenarios.add(new RateLimit(limit, buffer -1, new Date(now)));
+        scenarios.add(new RateLimit(limit, limit, soon));
         setupStubs(scenarios);
         ApiRateLimitChecker.NoThrottle.checkApiRateLimit(listener, spy);
 
+        assertEquals(1, countOfOutputLinesContaining("ThrottleOnOver will be used instead"));
         assertEquals(1, countOfOutputLines(m -> m.matches(".*[sS]leeping.*")));
         // github rate_limit endpoint should be contacted by ThrottleOnOver
-        assertEquals(3, getRequestCount(githubApi));
+        assertEquals(2, getRequestCount(githubApi));
     }
 
     /**
@@ -241,10 +241,13 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         scenarios.add(new RateLimit(limit, limit, new Date(soon.getTime() + 2000)));
         setupStubs(scenarios);
 
+        ApiRateLimitChecker.setListener(listener);
+        RateLimitChecker currentChecker = ApiRateLimitChecker.ThrottleOnOver.getChecker(github.getApiUrl());
+
         // check rate limit to hit the first 11 scenarios because the throttle (add more here)
         // does not happen until under buffer
         for (int i = 0; i < 11; i++) {
-            ApiRateLimitChecker.ThrottleOnOver.checkApiRateLimit(listener, github);
+            assertFalse(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 0));
         }
 
         //should be no output
@@ -252,21 +255,29 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
 
         assertEquals(11, getRequestCount(githubApi));
 
-        // check rate limit to hit the next 10 scenarios
-        ApiRateLimitChecker.ThrottleOnOver.checkApiRateLimit(listener, github);
+        // check rate limit to hit the next 9 scenarios
+        for (int i = 0; i < 10; i++) {
+            assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, i));
+        }
+        // This simulates the waiting until refreshed
+        ApiRateLimitChecker.setExpiration(Long.MIN_VALUE);
+        assertFalse(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 9));
+
 
         //output for all the throttled scenarios. Sleeps normally on the first and then the `notify` hits the next 9
-        assertEquals(1, countOfOutputLinesContaining("Sleeping for"));
+        assertEquals(1, countOfOutputLinesContaining("Sleeping until reset."));
         assertEquals(expectedNumThrottles-1, countOfOutputLinesContaining("Still sleeping"));
-        assertEquals(1, countOfOutputLinesContaining("refreshed"));
-        assertEquals(23, getRequestCount(githubApi));
+        // Refresh functionality was removed
+        assertEquals(0, countOfOutputLinesContaining("refreshed"));
+        assertEquals(22, getRequestCount(githubApi));
 
         //Make sure no new output
         ApiRateLimitChecker.ThrottleOnOver.checkApiRateLimit(listener, github);
-        assertEquals(1, countOfOutputLinesContaining("Sleeping for"));
+        assertEquals(1, countOfOutputLinesContaining("Sleeping until reset"));
         assertEquals(expectedNumThrottles-1, countOfOutputLinesContaining("Still sleeping"));
-        assertEquals(1, countOfOutputLinesContaining("refreshed"));
-        assertEquals(24, getRequestCount(githubApi));
+        // Refresh functionality was removed
+        assertEquals(0, countOfOutputLinesContaining("refreshed"));
+        assertEquals(23, getRequestCount(githubApi));
     }
 
     /**
@@ -282,6 +293,11 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
 
         // Approximate the ideal here
         int approximateIdeal = 4000;
+
+        // NOTE: The behavior below is no longer interesting.
+        // All of the value adjustments do not matter.
+        // The checker no longer rechecks values  until after the expiration time, no matter what.
+        // Changes before then will be ignored.
 
         // Check that if we're above within our ideal, then we don't throttle
         scenarios.add(new RateLimit(limit, approximateIdeal + buffer - 100, soon));
@@ -316,18 +332,27 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         assertEquals(1, countOfOutputLinesContaining("under budget"));
         assertFalse(handler.getView().stream().anyMatch(m -> m.getMessage().contains("Sleeping")));
 
-        // Second check will go over budget
-        ApiRateLimitChecker.ThrottleForNormalize.checkApiRateLimit(listener, github);
+        ApiRateLimitChecker.setListener(listener);
+        RateLimitChecker currentChecker = ApiRateLimitChecker.ThrottleForNormalize.getChecker(github.getApiUrl());
 
-        assertEquals(9, getRequestCount(githubApi));
-        assertEquals(2, countOfOutputLinesContaining("rechecking"));
-        assertEquals(3, countOfOutputLinesContaining("Still sleeping"));
-        assertEquals(2, countOfOutputLinesContaining("Sleeping for"));
+        // check rate limit to hit the next 6 scenarios
+        for (int i = 0; i < 6; i++) {
+            assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, i));
+        }
+        // This simulates the waiting until refreshed
+        ApiRateLimitChecker.setExpiration(Long.MIN_VALUE);
+        assertFalse(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 9));
+
+        assertEquals(8, getRequestCount(githubApi));
+        // Functionality removed
+        assertEquals(0, countOfOutputLinesContaining("rechecking"));
+        assertEquals(5, countOfOutputLinesContaining("Still sleeping"));
+        assertEquals(1, countOfOutputLinesContaining("Sleeping for"));
         assertEquals(1, countOfOutputLinesContaining("under budget"));
-        assertEquals(2, countOfOutputLinesContaining("Jenkins is attempting to evenly distribute GitHub API requests"));
+        assertEquals(1, countOfOutputLinesContaining("Jenkins is attempting to evenly distribute GitHub API requests"));
 
         // The last scenario will trigger back to under budget with a full limit but no new messages
-        assertEquals(10, handler.getView().size());
+        assertEquals(8, handler.getView().size());
     }
 
     /**
@@ -355,7 +380,16 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         setupStubs(scenarios);
 
         // Run check against API limit
-        ApiRateLimitChecker.ThrottleForNormalize.checkApiRateLimit(listener, github);
+        ApiRateLimitChecker.setListener(listener);
+        RateLimitChecker currentChecker = ApiRateLimitChecker.ThrottleForNormalize.getChecker(github.getApiUrl());
+
+        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 0));
+        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 1));
+        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 2));
+        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 3));
+        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 4));
+        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 5));
+
 
         // Expect a triggered throttle for normalize
         assertEquals(1, countOfOutputLinesContaining(
@@ -367,8 +401,9 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         assertEquals(4, countOfOutputLinesContaining(
             "Jenkins is attempting to evenly distribute GitHub API requests. To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings."));
         assertEquals(4, countOfOutputLinesContaining("Sleeping"));
-        // Expect that we stopped waiting on a refresh
-        assertEquals(1, countOfOutputLinesContaining("refreshed"));
+        assertEquals(2, countOfOutputLinesContaining("now only 59 min remaining"));
+        // Refresh functionality was removed
+        assertEquals(0, countOfOutputLinesContaining("refreshed"));
         assertEquals(6, getRequestCount(githubApi));
     }
 
@@ -411,10 +446,18 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         //should be no output
         assertEquals(0, countOfOutputLinesContaining("Sleeping"));
 
-        // check rate limit to hit the next 5 scenarios
-        ApiRateLimitChecker.ThrottleOnOver.checkApiRateLimit(listener, github);
+        ApiRateLimitChecker.setListener(listener);
+        RateLimitChecker currentChecker = ApiRateLimitChecker.ThrottleOnOver.getChecker(github.getApiUrl());
 
-        assertEquals(13, getRequestCount(githubApi));
+        // check rate limit to hit the next 5 scenarios
+        for (int i = 0; i < 5; i++) {
+            assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, i));
+        }
+        // This simulates the waiting until refreshed
+        ApiRateLimitChecker.setExpiration(Long.MIN_VALUE);
+        assertFalse(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 5));
+
+        assertEquals(12, getRequestCount(githubApi));
 
         //want to make sure that the 5 API checks (the last one is resetting) are taking at least 1000 MS
         assertTrue((System.currentTimeMillis() - start) > 1000);
@@ -425,7 +468,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
 
         //no new output
         ApiRateLimitChecker.ThrottleOnOver.checkApiRateLimit(listener, github);
-        assertEquals(14, getRequestCount(githubApi));
+        assertEquals(13, getRequestCount(githubApi));
         assertEquals(1, countOfOutputLinesContaining("Sleeping"));
         assertEquals(expectedNumThrottles - 1, countOfOutputLinesContaining("Still sleeping"));
     }
@@ -465,9 +508,17 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         long start = System.currentTimeMillis();
 
         // Run check
-        ApiRateLimitChecker.ThrottleForNormalize.checkApiRateLimit(listener, github);
+        ApiRateLimitChecker.setListener(listener);
+        RateLimitChecker currentChecker = ApiRateLimitChecker.ThrottleForNormalize.getChecker(github.getApiUrl());
 
-        assertEquals(6, getRequestCount(githubApi));
+        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 0));
+        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 1));
+        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 2));
+        // This simulates the waiting until refreshed
+        ApiRateLimitChecker.setExpiration(Long.MIN_VALUE);
+        assertFalse(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 3));
+
+        assertEquals(5, getRequestCount(githubApi));
 
         // Want to make sure that the 3 API checks are taking at least 600 MS
         assertTrue((System.currentTimeMillis() - start) > 600);
@@ -475,8 +526,8 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         assertEquals(1, countOfOutputLinesContaining("Sleeping"));
         // Expect a wait until rate limit
         assertEquals(2, countOfOutputLinesContaining("Still sleeping"));
-        // Expect that we stopped waiting on a refresh
-        assertEquals(1, countOfOutputLinesContaining("refreshed"));
+        // Refresh functionality was removed
+        assertEquals(0, countOfOutputLinesContaining("refreshed"));
     }
 
 
@@ -581,7 +632,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         // Expect this to only get throttled  when we are over the buffer limit
         assertEquals(1, countOfOutputLinesContaining("Current quota"));
         //Making sure the budget messages are correct
-        assertEquals(1, countOfOutputLinesContaining("1 over buffer"));
+        assertEquals(1, countOfOutputLinesContaining("1 over budget"));
         assertEquals(1, countOfOutputLinesContaining("Jenkins is restricting GitHub API requests only when near or above the rate limit. To configure a different rate limiting strategy, such as having Jenkins attempt to evenly distribute GitHub API requests, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings."));
     }
 
@@ -613,7 +664,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         // First server warm up
         ApiRateLimitChecker.ThrottleForNormalize.checkApiRateLimit(listener, github);
 
-        while(System.currentTimeMillis() + 5500 < start)
+        while(System.currentTimeMillis() + 6000 < start)
         {
             Thread.sleep(25);
         }
@@ -643,7 +694,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         int limit = 1000;
         int buffer = 50;
         //Giving a bit of time to make sure the setup happens on time
-        long start = System.currentTimeMillis() + 7000;
+        long start = System.currentTimeMillis() + 8000;
         scenarios.add(new RateLimit(limit, limit, new Date(start)));
 
         for (int i = 0; i <= 3; i++) {
@@ -655,14 +706,16 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         // First server warm up
         ApiRateLimitChecker.ThrottleOnOver.checkApiRateLimit(listener, github);
 
-        while(System.currentTimeMillis() + 5500 < start)
+        while(System.currentTimeMillis() + 6000 < start)
         {
             Thread.sleep(25);
         }
 
         ApiRateLimitChecker.ThrottleOnOver.checkApiRateLimit(listener, github);
 
-        // We have 7 "notify" type messages and 2 "expired" type messages
+        // This test exercises the case where an expired rate limit is returned after the
+        // time where it should have expired. The checker should continue to wait and notify
+        // at the same rate not faster
         assertEquals(2, countOfOutputLinesContaining("Current quota"));
         assertEquals(2, countOfOutputLinesContaining("Still sleeping"));
         assertEquals(6, getRequestCount(githubApi));

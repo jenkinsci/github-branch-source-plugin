@@ -208,9 +208,8 @@ public class GitHubBuildStatusNotification {
             Computer.threadPoolForRemoting.submit(new Runnable() {
                 @Override
                 public void run() {
-                    GitHub gitHub = null;
                     try {
-                        gitHub = lookUpGitHub(job);
+                        GitHub gitHub = lookUpGitHub(job);
                         try {
                             if (gitHub == null || gitHub.rateLimit().remaining < 8) {
                                 // we are an optimization to signal commit status early, no point waiting for
@@ -269,8 +268,6 @@ public class GitHubBuildStatusNotification {
                                 "Could not update commit status to PENDING. Rate limit exhausted",
                                 LOGGER.isLoggable(Level.FINE) ? e : null);
                         LOGGER.log(Level.FINE, null, e);
-                    } finally {
-                        Connector.release(gitHub);
                     }
                 }
             });

@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <revision>2.9.4</revision>
+        <revision>2.10.1</revision>
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.116</version>
+            <version>1.122</version>
         </dependency>
         <dependency>
             <groupId>com.coravy.hudson.plugins.github</groupId>
@@ -53,7 +53,7 @@
         <dependency>
             <groupId>io.jenkins.plugins</groupId>
             <artifactId>jjwt-api</artifactId>
-            <version>0.11.2-3.3ae26ccdac4e</version>
+            <version>0.11.2-5.143e44951c52</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -124,7 +124,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.263.x</artifactId>
-                <version>20</version>
+                <version>21</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>

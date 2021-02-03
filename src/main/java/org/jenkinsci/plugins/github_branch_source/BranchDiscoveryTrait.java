@@ -53,6 +53,23 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class BranchDiscoveryTrait extends SCMSourceTrait {
     /**
+     * None strategy.
+    */
+    public static final int NONE = 0;
+    /**
+     * Exclude branches that are also filed as PRs.
+    */
+    public static final int EXCLUDE_PRS = 1;
+    /**
+     * Only branches that are also filed as PRs.
+    */
+    public static final int ONLY_PRS = 2;
+    /**
+     * All branches.
+    */
+    public static final int ALL_BRANCHES = 3;
+    
+    /**
      * The strategy encoded as a bit-field.
      * <dl>
      *     <dt>Bit 0</dt>
@@ -80,7 +97,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
      * @param buildBranchWithPr build branches that are also PRs.
      */
     public BranchDiscoveryTrait(boolean buildBranch, boolean buildBranchWithPr) {
-        this.strategyId = (buildBranch ? 1 : 0) + (buildBranchWithPr ? 2 : 0);
+        this.strategyId = (buildBranch ? EXCLUDE_PRS : NONE) + (buildBranchWithPr ? ONLY_PRS : NONE);
     }
 
     /**
@@ -99,7 +116,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
      */
     @Restricted(NoExternalUse.class)
     public boolean isBuildBranch() {
-        return (strategyId & 1) != 0;
+        return (strategyId & EXCLUDE_PRS) != NONE;
     }
 
     /**
@@ -109,7 +126,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
      */
     @Restricted(NoExternalUse.class)
     public boolean isBuildBranchesWithPR() {
-        return (strategyId & 2) != 0;
+        return (strategyId & ONLY_PRS) != NONE;
     }
 
     /**
@@ -121,15 +138,15 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
         ctx.wantBranches(true);
         ctx.withAuthority(new BranchSCMHeadAuthority());
         switch (strategyId) {
-            case 1:
+            case BranchDiscoveryTrait.EXCLUDE_PRS:
                 ctx.wantOriginPRs(true);
                 ctx.withFilter(new ExcludeOriginPRBranchesSCMHeadFilter());
                 break;
-            case 2:
+            case BranchDiscoveryTrait.ONLY_PRS:
                 ctx.wantOriginPRs(true);
                 ctx.withFilter(new OnlyOriginPRBranchesSCMHeadFilter());
                 break;
-            case 3:
+            case BranchDiscoveryTrait.ALL_BRANCHES:
             default:
                 // we don't care if it is a PR or not, we're taking them all, no need to ask for PRs and no need
                 // to filter
@@ -187,9 +204,9 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
         @SuppressWarnings("unused") // stapler
         public ListBoxModel doFillStrategyIdItems() {
             ListBoxModel result = new ListBoxModel();
-            result.add(Messages.BranchDiscoveryTrait_excludePRs(), "1");
-            result.add(Messages.BranchDiscoveryTrait_onlyPRs(), "2");
-            result.add(Messages.BranchDiscoveryTrait_allBranches(), "3");
+            result.add(Messages.BranchDiscoveryTrait_excludePRs(), String.valueOf(EXCLUDE_PRS));
+            result.add(Messages.BranchDiscoveryTrait_onlyPRs(), String.valueOf(ONLY_PRS));
+            result.add(Messages.BranchDiscoveryTrait_allBranches(), String.valueOf(ALL_BRANCHES));
             return result;
         }
     }
