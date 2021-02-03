@@ -23,16 +23,14 @@ public enum ApiRateLimitChecker {
         public RateLimitChecker getChecker(String apiUrl) {
             return new RateLimitCheckerBase() {
                 @Override
-                boolean checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count) throws InterruptedException {
+                boolean checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now) throws InterruptedException {
                     long expiration;
-                    long start = System.currentTimeMillis();
-
                     // the buffer is how much we want to avoid using to cover unplanned over-use
                     int buffer = calculateBuffer(rateLimit.getLimit());
                     // the burst is how much we want to allow for speedier response outside of the throttle
                     int burst = calculateNormalizedBurst(rateLimit.getLimit());
                     // the ideal is how much remaining we should have (after a burst)
-                    long rateLimitResetMillis = rateLimit.getResetDate().getTime() - start;
+                    long rateLimitResetMillis = rateLimit.getResetDate().getTime() - now;
                     double resetProgress = Math.max(0, rateLimitResetMillis / MILLIS_PER_HOUR);
                     int ideal = (int) ((rateLimit.getLimit() - buffer - burst) * resetProgress) + buffer;
                     if (rateLimit.getRemaining() >= ideal && rateLimit.getRemaining() < ideal + buffer) {
@@ -46,7 +44,7 @@ public enum ApiRateLimitChecker {
                     } else if (rateLimit.getRemaining() < ideal) {
                         if (rateLimit.getRemaining() < buffer) {
                             // nothing we can do, we have burned into our minimum buffer, wait for reset
-                            expiration = calculateExpirationWhenBufferExceeded(rateLimit, start, buffer);
+                            expiration = calculateExpirationWhenBufferExceeded(rateLimit, now, buffer);
                         } else {
                             // work out how long until remaining == ideal + 0.1 * buffer (to give some spend)
                             double targetFraction = (rateLimit.getRemaining() - buffer * 1.1) / (rateLimit
@@ -61,10 +59,10 @@ public enum ApiRateLimitChecker {
                                         rateLimit.getLimit(),
                                         Util.getTimeSpanString(rateLimitResetMillis),
                                         // The GitHubRateLimitChecker adds a one second sleep to each notification loop
-                                        Util.getTimeSpanString(1000 + expiration - start)));
+                                        Util.getTimeSpanString(1000 + expiration - now)));
                         }
                         writeLog("Jenkins is attempting to evenly distribute GitHub API requests. To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
-                        waitUntilRateLimit(start, expiration, 0);
+                        waitUntilRateLimit(now, expiration, 0);
                         return true;
                     }
                     return false;
@@ -81,19 +79,17 @@ public enum ApiRateLimitChecker {
         public RateLimitChecker getChecker(String apiUrl) {
             return new RateLimitCheckerBase() {
                 @Override
-                boolean checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count) throws InterruptedException {
-                    long start = System.currentTimeMillis();
-
+                boolean checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now) throws InterruptedException {
                     // the buffer is how much we want to avoid using to cover unplanned over-use
                     int buffer = calculateBuffer(rateLimit.getLimit());
                     // check that we have at least our minimum buffer of remaining calls
                     if (rateLimit.getRemaining() >= buffer) {
                         return false;
                     }
-                    long expiration = calculateExpirationWhenBufferExceeded(rateLimit, start, buffer);
+                    long expiration = calculateExpirationWhenBufferExceeded(rateLimit, now, buffer);
 
                     writeLog("Jenkins is restricting GitHub API requests only when near or above the rate limit. To configure a different rate limiting strategy, such as having Jenkins attempt to evenly distribute GitHub API requests, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
-                    waitUntilRateLimit(start, expiration, 0);
+                    waitUntilRateLimit(now, expiration, 0);
                     return true;
                 }
             };
@@ -206,15 +202,15 @@ public enum ApiRateLimitChecker {
                 setExpiration(Long.MIN_VALUE);
             }
             long expiration = getExpiration();
-            long start = System.currentTimeMillis();
-            if (waitUntilRateLimit(start, expiration, count)) {
+            long now = System.currentTimeMillis();
+            if (waitUntilRateLimit(now, expiration, count)) {
                 return true;
             }
-            return this.checkRateLimitImpl(rateLimitRecord, count);
+            return this.checkRateLimitImpl(rateLimitRecord, count, now);
         }
 
         // internal for testing
-        abstract boolean checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count) throws InterruptedException;
+        abstract boolean checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now) throws InterruptedException;
 
         static long calculateExpirationWhenBufferExceeded(GHRateLimit.Record rateLimit, long now, int buffer) {
             long expiration;
