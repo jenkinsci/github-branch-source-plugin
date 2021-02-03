@@ -10,7 +10,6 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.junit.Test;
 import org.junit.Before;
 import org.kohsuke.github.GitHub;
-import org.kohsuke.github.RateLimitChecker;
 import org.mockito.Mockito;
 
 import java.time.LocalDateTime;
@@ -242,12 +241,13 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         setupStubs(scenarios);
 
         ApiRateLimitChecker.setListener(listener);
-        RateLimitChecker currentChecker = ApiRateLimitChecker.ThrottleOnOver.getChecker(github.getApiUrl());
+        ApiRateLimitChecker.RateLimitCheckerBase currentChecker =
+            (ApiRateLimitChecker.RateLimitCheckerBase)ApiRateLimitChecker.ThrottleOnOver.getChecker(github.getApiUrl());
 
         // check rate limit to hit the first 11 scenarios because the throttle (add more here)
         // does not happen until under buffer
         for (int i = 0; i < 11; i++) {
-            assertFalse(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 0));
+            assertFalse(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 0));
         }
 
         //should be no output
@@ -257,11 +257,11 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
 
         // check rate limit to hit the next 9 scenarios
         for (int i = 0; i < 10; i++) {
-            assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, i));
+            assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), i));
         }
         // This simulates the waiting until refreshed
         ApiRateLimitChecker.setExpiration(Long.MIN_VALUE);
-        assertFalse(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 9));
+        assertFalse(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 9));
 
 
         //output for all the throttled scenarios. Sleeps normally on the first and then the `notify` hits the next 9
@@ -333,15 +333,16 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         assertFalse(handler.getView().stream().anyMatch(m -> m.getMessage().contains("Sleeping")));
 
         ApiRateLimitChecker.setListener(listener);
-        RateLimitChecker currentChecker = ApiRateLimitChecker.ThrottleForNormalize.getChecker(github.getApiUrl());
+        ApiRateLimitChecker.RateLimitCheckerBase currentChecker =
+            (ApiRateLimitChecker.RateLimitCheckerBase)ApiRateLimitChecker.ThrottleForNormalize.getChecker(github.getApiUrl());
 
         // check rate limit to hit the next 6 scenarios
         for (int i = 0; i < 6; i++) {
-            assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, i));
+            assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), i));
         }
         // This simulates the waiting until refreshed
         ApiRateLimitChecker.setExpiration(Long.MIN_VALUE);
-        assertFalse(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 9));
+        assertFalse(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 9));
 
         assertEquals(8, getRequestCount(githubApi));
         // Functionality removed
@@ -381,14 +382,15 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
 
         // Run check against API limit
         ApiRateLimitChecker.setListener(listener);
-        RateLimitChecker currentChecker = ApiRateLimitChecker.ThrottleForNormalize.getChecker(github.getApiUrl());
+        ApiRateLimitChecker.RateLimitCheckerBase currentChecker =
+            (ApiRateLimitChecker.RateLimitCheckerBase)ApiRateLimitChecker.ThrottleForNormalize.getChecker(github.getApiUrl());
 
-        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 0));
-        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 1));
-        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 2));
-        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 3));
-        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 4));
-        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 5));
+        assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 0));
+        assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 1));
+        assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 2));
+        assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 3));
+        assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 4));
+        assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 5));
 
 
         // Expect a triggered throttle for normalize
@@ -444,15 +446,16 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         assertEquals(0, countOfOutputLinesContaining("Sleeping"));
 
         ApiRateLimitChecker.setListener(listener);
-        RateLimitChecker currentChecker = ApiRateLimitChecker.ThrottleOnOver.getChecker(github.getApiUrl());
+        ApiRateLimitChecker.RateLimitCheckerBase currentChecker =
+            (ApiRateLimitChecker.RateLimitCheckerBase)ApiRateLimitChecker.ThrottleOnOver.getChecker(github.getApiUrl());
 
         // check rate limit to hit the next 5 scenarios
         for (int i = 0; i < 5; i++) {
-            assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, i));
+            assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), i));
         }
         // This simulates the waiting until refreshed
         ApiRateLimitChecker.setExpiration(Long.MIN_VALUE);
-        assertFalse(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 5));
+        assertFalse(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 5));
 
         assertEquals(12, getRequestCount(githubApi));
 
@@ -506,14 +509,15 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
 
         // Run check
         ApiRateLimitChecker.setListener(listener);
-        RateLimitChecker currentChecker = ApiRateLimitChecker.ThrottleForNormalize.getChecker(github.getApiUrl());
+        ApiRateLimitChecker.RateLimitCheckerBase currentChecker =
+            (ApiRateLimitChecker.RateLimitCheckerBase)ApiRateLimitChecker.ThrottleForNormalize.getChecker(github.getApiUrl());
 
-        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 0));
-        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 1));
-        assertTrue(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 2));
+        assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 0));
+        assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 1));
+        assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 2));
         // This simulates the waiting until refreshed
         ApiRateLimitChecker.setExpiration(Long.MIN_VALUE);
-        assertFalse(ApiRateLimitChecker.checkApiRateLimitOnce(currentChecker, github, 3));
+        assertFalse(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 3));
 
         assertEquals(5, getRequestCount(githubApi));
 
