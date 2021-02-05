@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.github_branch_source;
 
-import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
 import hudson.model.TaskListener;
@@ -10,6 +9,7 @@ import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.RateLimitChecker;
 
+import java.io.IOException;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -153,11 +153,11 @@ public enum ApiRateLimitChecker {
         return displayName;
     }
 
-    public static void configureChecker(@NonNull TaskListener listener, @NonNull GitHub gitHub) {
-        configureChecker(listener, gitHub.getApiUrl());
+    public static void configureThreadLocalChecker(@NonNull TaskListener listener, @NonNull GitHub gitHub) {
+        configureThreadLocalChecker(listener, gitHub.getApiUrl());
     }
 
-    private static void configureChecker(TaskListener listener, String apiUrl) {
+    private static void configureThreadLocalChecker(TaskListener listener, String apiUrl) {
         LocalChecker checker = GitHubConfiguration.get().getApiRateLimitChecker().getChecker(listener, apiUrl);
         localRateLimitChecker.set(checker);
     }
@@ -176,6 +176,17 @@ public enum ApiRateLimitChecker {
         localRateLimitChecker.set(null);
     }
 
+    /**
+     * This method is the old code path for rate limit checks
+     *
+     * It has been slowly refactored until it almost matches the behavior of the GitHubRateLimitChecker.
+     * @deprecated rate limit checking is done automatically. Use {@link #configureThreadLocalChecker(TaskListener, GitHub)} instead.
+     */
+    @Deprecated
+    public void checkApiRateLimit(TaskListener listener, GitHub gitHub) throws IOException, InterruptedException {
+        configureThreadLocalChecker(listener, gitHub);
+    }
+
     static final class RateLimitCheckerAdapter extends RateLimitChecker {
         @Override
         protected boolean checkRateLimit(GHRateLimit.Record rateLimitRecord,
@@ -183,7 +194,7 @@ public enum ApiRateLimitChecker {
             LocalChecker checker = getLocalChecker();
             if (checker == null) {
                 // If a checker was not configured for this thread, try our best and continue.
-                configureChecker(new LogTaskListener(LOGGER, Level.INFO), GitHubServerConfig.GITHUB_URL);
+                configureThreadLocalChecker(new LogTaskListener(LOGGER, Level.INFO), GitHubServerConfig.GITHUB_URL);
                 checker = getLocalChecker();
                 checker.writeLog("LocalChecker for rate limit was not set for this thread. Configured using system settings.");
             }

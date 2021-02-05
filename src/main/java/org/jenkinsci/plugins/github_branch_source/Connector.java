@@ -588,7 +588,7 @@ public class Connector {
     /*package*/
     static void configureLocalRateLimitChecker(@NonNull TaskListener listener, GitHub github)
             throws IOException, InterruptedException {
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
     }
 
     @Extension

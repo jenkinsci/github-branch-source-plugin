@@ -191,7 +191,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         scenarios.add(new RateLimit(limit, limit, soon));
         setupStubs(scenarios);
 
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
 
         // Given a full rate limit quota, then we expect no throttling
         // Also only 1 call to get rate limit, since rate limit record is valid for a while
@@ -222,7 +222,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         scenarios.add(new RateLimit(limit, limit, soon));
         setupStubs(scenarios);
 
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
 
         // Given a full rate limit quota, then we expect no throttling
         for (int i = 0; i < 100; i++) {
@@ -250,7 +250,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         scenarios.add(new RateLimit(limit, 10, soon));
         setupStubs(scenarios);
 
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
 
         for (int i = 0; i < 100; i++) {
             github.getMeta();
@@ -283,7 +283,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
                 .withStatus(404)
             ));
 
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
 
         github.getMeta();
 
@@ -318,7 +318,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         scenarios.add(new RateLimit(limit, limit, soon));
         setupStubs(scenarios);
 
-        ApiRateLimitChecker.configureChecker(listener, spy);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, spy);
 
         spy.getMeta();
 
@@ -352,7 +352,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         // finally, stop throttling by restoring quota
         scenarios.add(new RateLimit(limit, limit, new Date(soon.getTime() + 2000)));
         setupStubs(scenarios);
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
 
         ApiRateLimitChecker.LocalChecker currentChecker = ApiRateLimitChecker.getLocalChecker();
 
@@ -440,7 +440,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         scenarios.add(new RateLimit(limit, limit, new Date(soon.getTime() + 3000)));
         setupStubs(scenarios);
 
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
 
         // First check will not say under budget (add counts)
         github.getMeta();
@@ -500,7 +500,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         scenarios.add(new RateLimit(limit, limit, new Date(soon.getTime() + 2000)));
         setupStubs(scenarios);
 
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
 
         // Run check against API limit
         ApiRateLimitChecker.LocalChecker currentChecker = ApiRateLimitChecker.getLocalChecker();
@@ -555,7 +555,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         scenarios.add(new RateLimit(limit, limit, new Date(soon.getTime() + 2000)));
         setupStubs(scenarios);
 
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
 
         long start = System.currentTimeMillis();
 
@@ -630,7 +630,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         // Rate limit only goes up when the the reset date is later than previous records.
         scenarios.add(new RateLimit(limit, limit, new Date(soon.getTime() + 2000)));
         setupStubs(scenarios);
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
 
         github.getMeta();
 
@@ -711,7 +711,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         }
 
         setupStubs(scenarios);
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
 
         for (int i = 0; i < 12; i++) {
             if (i > 1) {
@@ -761,7 +761,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         scenarios.add(new RateLimit(limit, limit, soon));
         setupStubs(scenarios);
 
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
 
         // Run check a few times to ensure we don't get stuck
         for (int i = 0; i < 5; i++) {
@@ -809,7 +809,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         scenarios.add(new RateLimit(limit, limit, soon));
         setupStubs(scenarios);
 
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
 
         // First server warm up
         github.getRateLimit();
@@ -859,7 +859,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         github.getRateLimit();
         github.getRateLimit();
 
-        ApiRateLimitChecker.configureChecker(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
 
         while(System.currentTimeMillis() + 6000 < start)
         {

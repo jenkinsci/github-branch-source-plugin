@@ -41,6 +41,12 @@ public class GitHubOrgWebHookTest {
     @Issue("JENKINS-58942")
     @Test public void registerCustom() throws Exception {
         System.setProperty("jenkins.hook.url", "https://mycorp/hook-proxy/");
+        //Return 404 for /rate_limit
+        wireMockRule.stubFor(get(urlEqualTo("/api/rate_limit"))
+            .willReturn(aResponse()
+                .withStatus(404)
+            ));
+
         wireMockRule.stubFor(get(urlEqualTo("/api/users/myorg")).willReturn(aResponse().withBody("{\"login\":\"myorg\"}")));
         wireMockRule.stubFor(get(urlEqualTo("/api/orgs/myorg")).willReturn(aResponse().withBody("{\"login\":\"myorg\",\"html_url\":\"https://github.com/myorg\"}")));
         wireMockRule.stubFor(get(urlEqualTo("/api/orgs/myorg/hooks")).willReturn(aResponse().withBody("[]")));

@@ -18,6 +18,7 @@ import org.kohsuke.github.GitHub;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 
 import static org.junit.Assert.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
@@ -49,6 +50,12 @@ public class GitHubSCMProbeTest {
                     .withHeader("Content-Type", "application/json")
                     .withBodyFile("body-cloudbeers-yolo-PucD6.json"))
         );
+
+        //Return 404 for /rate_limit
+        githubApi.stubFor(get(urlEqualTo("/rate_limit"))
+            .willReturn(aResponse()
+                .withStatus(404)
+            ));
     }
 
     void createProbeForPR(int number) throws IOException {
