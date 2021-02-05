@@ -920,7 +920,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         GitHub github = Connector.connect(apiUri, credentials);
         try {
             Connector.checkConnectionValidity(apiUri, listener, credentials, github);
-            Connector.checkApiRateLimit(listener, github);
+            Connector.configureLocalRateLimitChecker(listener, github);
 
             // Input data validation
             if (credentials != null && !isCredentialValid(github)) {
@@ -954,7 +954,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                             "Looking up repositories of myself %s", repoOwner
                                     )));
                         for (GHRepository repo : myself.listRepositories(100)) {
-                            Connector.checkApiRateLimit(listener, github);
                             if (!repo.getOwnerName().equals(repoOwner)) {
                                 continue; // ignore repos in other orgs when using GHMyself
                             }
@@ -1004,8 +1003,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         repositories = org.listRepositories(100);
                     }
                     for (GHRepository repo : repositories) {
-                        Connector.checkApiRateLimit(listener, github);
-
                         if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                             // exclude archived repositories
                             witness.record(repo.getName(), false);
@@ -1045,10 +1042,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 }
                 if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
                     listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
-                    Connector.checkApiRateLimit(listener, github);
                     for (GHRepository repo : user.listRepositories(100)) {
-                        Connector.checkApiRateLimit(listener, github);
-
                         if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                             witness.record(repo.getName(), false);
                             listener.getLogger()
@@ -1308,7 +1302,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         StandardCredentials credentials = Connector.lookupScanCredentials((Item)owner, getApiUri(), credentialsId);
         GitHub hub = Connector.connect(getApiUri(), credentials);
         try {
-            Connector.checkApiRateLimit(listener, hub);
+            Connector.configureLocalRateLimitChecker(listener, hub);
             GHUser u = hub.getUser(getRepoOwner());
             String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
             result.add(new ObjectMetadataAction(
