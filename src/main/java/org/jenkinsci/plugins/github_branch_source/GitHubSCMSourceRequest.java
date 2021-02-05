@@ -393,10 +393,12 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
      *
      * @throws IOException          if the rate limit could not be obtained.
      * @throws InterruptedException if interrupted while waiting.
+     * @deprecated rate limit checking is done automatically
      */
+    @Deprecated
     public final void checkApiRateLimit() throws IOException, InterruptedException {
         if (gitHub != null) {
-            Connector.checkApiRateLimit(listener(), gitHub);
+            Connector.configureLocalRateLimitChecker(listener(), gitHub);
         }
     }
 
