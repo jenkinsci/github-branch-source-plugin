@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <revision>2.9.4</revision>
+        <revision>2.10.2</revision>
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
@@ -128,7 +128,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.263.x</artifactId>
-                <version>20</version>
+                <version>23</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>

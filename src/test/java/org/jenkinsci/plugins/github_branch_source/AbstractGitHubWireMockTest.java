@@ -15,6 +15,7 @@ import org.junit.Rule;
 import org.jvnet.hudson.test.JenkinsRule;
 
 import java.io.File;
+import java.time.Duration;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -74,6 +75,7 @@ public abstract class AbstractGitHubWireMockTest extends Assert {
     @Before
     public void prepareMockGitHub() {
         prepareMockGitHubFileMappings();
+        
         if (useProxy) {
             githubApi.stubFor(
                 get(urlMatching(".*")).atPriority(10)

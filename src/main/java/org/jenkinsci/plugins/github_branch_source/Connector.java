@@ -419,6 +419,7 @@ public class Connector {
 
         GitHubBuilder gb = new GitHubBuilder();
         gb.withEndpoint(apiUrl);
+        gb.withRateLimitChecker(new ApiRateLimitChecker.RateLimitCheckerAdapter());
         gb.withRateLimitHandler(CUSTOMIZED);
 
         OkHttpClient.Builder clientBuilder = baseClient.newBuilder();
@@ -585,9 +586,9 @@ public class Connector {
     }
 
     /*package*/
-    static void checkApiRateLimit(@NonNull TaskListener listener, GitHub github)
+    static void configureLocalRateLimitChecker(@NonNull TaskListener listener, GitHub github)
             throws IOException, InterruptedException {
-        GitHubConfiguration.get().getApiRateLimitChecker().checkApiRateLimit(listener, github);
+        ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
     }
 
     @Extension
