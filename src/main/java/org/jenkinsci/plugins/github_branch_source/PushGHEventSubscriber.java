@@ -27,8 +27,10 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.model.Cause;
 import hudson.model.Item;
 import hudson.scm.SCM;
+import java.io.IOException;
 import java.io.StringReader;
 import java.util.Collections;
 import java.util.Map;
@@ -51,6 +53,7 @@ import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.trait.SCMHeadPrefilter;
+import org.apache.commons.lang3.ArrayUtils;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
 import org.kohsuke.github.GHEvent;
@@ -181,16 +184,39 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
         private final String repoOwner;
         private final String repository;
 
-        public SCMHeadEventImpl(Type type, long timestamp, GHEventPayload.Push pullRequest, GitHubRepositoryName repo,
+        public SCMHeadEventImpl(Type type, long timestamp, GHEventPayload.Push push, GitHubRepositoryName repo,
                                 String origin) {
-            super(type, timestamp, pullRequest, origin);
+            super(type, timestamp, push, origin);
             this.repoHost = repo.getHost();
-            this.repoOwner = pullRequest.getRepository().getOwnerName();
-            this.repository = pullRequest.getRepository().getName();
+            this.repoOwner = push.getRepository().getOwnerName();
+            this.repository = push.getRepository().getName();
         }
 
         private boolean isApiMatch(String apiUri) {
             return repoHost.equalsIgnoreCase(RepositoryUriResolver.hostnameFromApiUri(apiUri));
+        }
+
+        @Override
+        public Cause[] asCauses() {
+            Cause[] causes = super.asCauses();
+            long senderId = getPayload().getSender().getId();
+            String senderLogin = getPayload().getSender().getLogin();
+            String senderName = null;
+            try {
+                senderName = getPayload().getSender().getName();
+            } catch (IOException e) {
+                LOGGER.warning("couldn't determine sender name");
+            }
+            GitHubSenderCause.Kind kind;
+            if (getPayload().isCreated()) {
+                kind = GitHubSenderCause.Kind.BRANCH_CREATED;
+            } else if (getPayload().isDeleted()) {
+                kind = GitHubSenderCause.Kind.BRANCH_DELETED;
+            } else {
+                kind = GitHubSenderCause.Kind.BRANCH_UPDATED;
+            }
+            causes = ArrayUtils.addAll(causes, new Cause[] {new GitHubSenderCause(senderId, senderLogin, senderName, kind)});
+            return causes;
         }
 
         /**
