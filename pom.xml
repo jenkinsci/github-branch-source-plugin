@@ -66,12 +66,6 @@
             <artifactId>workflow-multibranch</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- TODO remove once branch-api >= 2.6.3 in bom -->
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>branch-api</artifactId>
-            <version>2.6.3</version>
-        </dependency>
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-jre8-standalone</artifactId>
@@ -132,6 +126,12 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>3.11</version>
+            </dependency>
+            <!-- TODO remove once branch-api >= 2.6.3 in bom -->
+            <dependency>
+                <groupId>org.jenkins-ci.plugins</groupId>
+                <artifactId>branch-api</artifactId>
+                <version>2.6.3</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
