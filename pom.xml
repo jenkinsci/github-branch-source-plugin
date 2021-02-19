@@ -27,6 +27,7 @@
         <java.level>8</java.level>
         <jenkins.version>2.271</jenkins.version>
         <useBeta>true</useBeta>
+        <spotless-maven-plugin.goal>apply</spotless-maven-plugin.goal>
     </properties>
 
     <scm>
@@ -135,6 +136,56 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>2.7.0</version>
+                <executions>
+                    <execution>
+                        <id>spotless-check</id>
+                        <phase>process-sources</phase>
+                        <goals>
+                            <goal>${spotless-maven-plugin.goal}</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <java>
+                        <eclipse>
+                            <file>${basedir}/src/build/eclipse/formatter.xml</file>
+                        </eclipse>
+
+                        <importOrder>
+                            <file>${basedir}/src/build/eclipse/eclipse.importorder</file>
+                        </importOrder>
+                        <removeUnusedImports />
+
+                        <trimTrailingWhitespace />
+                        <endWithNewline />
+
+                    </java>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <profiles>
+        <profile>
+            <id>ci-non-windows</id>
+            <activation>
+                <property>
+                    <name>set.changelist</name>
+                </property>
+                <os>
+                    <family>!windows</family>
+                </os>
+            </activation>
+            <properties>
+                <spotless-maven-plugin.goal>check</spotless-maven-plugin.goal>
+            </properties>
+        </profile>
+    </profiles>
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
