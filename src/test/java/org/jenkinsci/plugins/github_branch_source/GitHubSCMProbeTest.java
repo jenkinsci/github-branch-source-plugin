@@ -5,6 +5,8 @@ import com.github.tomakehurst.wiremock.extension.responsetemplating.ResponseTemp
 import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
+import java.io.File;
+import java.io.IOException;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import org.apache.commons.io.FileUtils;
@@ -16,12 +18,8 @@ import org.jvnet.hudson.test.JenkinsRule;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
-import java.io.File;
-import java.io.IOException;
-import java.time.Duration;
-
-import static org.junit.Assert.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.junit.Assert.*;
 
 public class GitHubSCMProbeTest {
 
@@ -30,48 +28,54 @@ public class GitHubSCMProbeTest {
     public static WireMockRuleFactory factory = new WireMockRuleFactory();
     @Rule
     public WireMockRule githubApi = factory.getRule(WireMockConfiguration.options()
-        .dynamicPort().usingFilesUnderClasspath("cache_failure")
-        .extensions(ResponseTemplateTransformer.builder().global(true).maxCacheEntries(0L).build()));
+            .dynamicPort()
+            .usingFilesUnderClasspath("cache_failure")
+            .extensions(ResponseTemplateTransformer.builder().global(true).maxCacheEntries(0L).build()));
     private GitHubSCMProbe probe;
 
     @Before
     public void setUp() throws Exception {
         // Clear all caches before each test
-        File cacheBaseDir = new File(j.jenkins.getRootDir(),
-            GitHubSCMProbe.class.getName() + ".cache");
+        File cacheBaseDir = new File(j.jenkins.getRootDir(), GitHubSCMProbe.class.getName() + ".cache");
         if (cacheBaseDir.exists()) {
             FileUtils.cleanDirectory(cacheBaseDir);
         }
 
-        githubApi.stubFor(
-            get(urlEqualTo("/repos/cloudbeers/yolo"))
-                .willReturn(aResponse()
-                    .withStatus(200)
-                    .withHeader("Content-Type", "application/json")
-                    .withBodyFile("body-cloudbeers-yolo-PucD6.json"))
-        );
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo")).willReturn(aResponse().withStatus(200)
+                .withHeader("Content-Type", "application/json")
+                .withBodyFile("body-cloudbeers-yolo-PucD6.json")));
 
-        //Return 404 for /rate_limit
-        githubApi.stubFor(get(urlEqualTo("/rate_limit"))
-            .willReturn(aResponse()
-                .withStatus(404)
-            ));
+        // Return 404 for /rate_limit
+        githubApi.stubFor(get(urlEqualTo("/rate_limit")).willReturn(aResponse().withStatus(404)));
     }
 
     void createProbeForPR(int number) throws IOException {
         final GitHub github = Connector.connect("http://localhost:" + githubApi.port(), null);
 
         final GHRepository repo = github.getRepository("cloudbeers/yolo");
-        final PullRequestSCMHead head = new PullRequestSCMHead("PR-" + number, "cloudbeers", "yolo", "b", number, new BranchSCMHead("master"), new SCMHeadOrigin.Fork("rsandell"), ChangeRequestCheckoutStrategy.MERGE);
-        probe = new GitHubSCMProbe("http://localhost:" + githubApi.port(), null,
-            repo,
-            head, new PullRequestSCMRevision(head, "a", "b"));
+        final PullRequestSCMHead head = new PullRequestSCMHead(
+                "PR-" + number,
+                "cloudbeers",
+                "yolo",
+                "b",
+                number,
+                new BranchSCMHead("master"),
+                new SCMHeadOrigin.Fork("rsandell"),
+                ChangeRequestCheckoutStrategy.MERGE);
+        probe = new GitHubSCMProbe(
+                "http://localhost:" + githubApi.port(),
+                null,
+                repo,
+                head,
+                new PullRequestSCMRevision(head, "a", "b"));
     }
 
     @Issue("JENKINS-54126")
     @Test
     public void statWhenRootIs404() throws Exception {
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge")).willReturn(aResponse().withStatus(404)).atPriority(0));
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge"))
+                .willReturn(aResponse().withStatus(404))
+                .atPriority(0));
 
         createProbeForPR(1);
 
@@ -81,7 +85,9 @@ public class GitHubSCMProbeTest {
     @Issue("JENKINS-54126")
     @Test
     public void statWhenDirIs404() throws Exception {
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/subdir?ref=refs%2Fpull%2F1%2Fmerge")).willReturn(aResponse().withStatus(404)).atPriority(0));
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/subdir?ref=refs%2Fpull%2F1%2Fmerge"))
+                .willReturn(aResponse().withStatus(404))
+                .atPriority(0));
 
         createProbeForPR(1);
 
@@ -107,9 +113,11 @@ public class GitHubSCMProbeTest {
         // ---> Resource has changed (it was created).
         //
         // ---> EXPECTED: GitHub should respond with 200 and data.
-        // ---> ACTUAL: GitHub server lies, responds with incorrect 304 response, telling client that the cached data is still valid.
+        // ---> ACTUAL: GitHub server lies, responds with incorrect 304 response, telling client that the cached data is
+        // still valid.
         // ---> THE BAD: Client cache believes GitHub - uses the previously cached 404 (and even adds the ETag).
-        // ---> THE UGLY: Client is now stuck with a bad cached 404, and can't get rid of it until the resource is _updated_ again or the cache is cleared manually.
+        // ---> THE UGLY: Client is now stuck with a bad cached 404, and can't get rid of it until the resource is
+        // _updated_ again or the cache is cleared manually.
         //
         // This is the cause of JENKINS-54126. This is a pervasive GitHub server problem.
         // We see it mostly in this one scenario, but it will happen anywhere the server returns a 404.
@@ -117,7 +125,8 @@ public class GitHubSCMProbeTest {
         //
         // WORKAROUND (implemented in the github-api library):
         // 4. the github-api library recognizes any 404 with ETag as invalid. Does not return it to the client.
-        // ---> The github-api library automatically retries the request with "no-cache" to force refresh with valid data.
+        // ---> The github-api library automatically retries the request with "no-cache" to force refresh with valid
+        // data.
 
         // 1.
         assertFalse(probe.stat("README.md").exists());
@@ -130,40 +139,41 @@ public class GitHubSCMProbeTest {
         assertTrue(probe.stat("README.md").exists());
 
         // Verify the expected requests were made
-        if(hudson.Functions.isWindows()) {
+        if (hudson.Functions.isWindows()) {
             // On windows caching is disabled by default, so the work around doesn't happen
-            githubApi.verify(3, RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
-                .withHeader("Cache-Control", equalTo("max-age=0"))
-                .withHeader("If-Modified-Since", absent())
-                .withHeader("If-None-Match", absent())
-            );
+            githubApi.verify(3,
+                    RequestPatternBuilder
+                            .newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                            .withHeader("Cache-Control", equalTo("max-age=0"))
+                            .withHeader("If-Modified-Since", absent())
+                            .withHeader("If-None-Match", absent()));
         } else {
             // 1.
-            githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
-                .withHeader("Cache-Control", equalTo("max-age=0"))
-                .withHeader("If-None-Match", absent())
-                .withHeader("If-Modified-Since", absent())
-            );
+            githubApi.verify(RequestPatternBuilder
+                    .newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                    .withHeader("Cache-Control", equalTo("max-age=0"))
+                    .withHeader("If-None-Match", absent())
+                    .withHeader("If-Modified-Since", absent()));
 
             // 3.
-            githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
-                .withHeader("Cache-Control", containing("max-age"))
-                .withHeader("If-None-Match", absent())
-                .withHeader("If-Modified-Since", containing("GMT"))
-            );
+            githubApi.verify(RequestPatternBuilder
+                    .newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                    .withHeader("Cache-Control", containing("max-age"))
+                    .withHeader("If-None-Match", absent())
+                    .withHeader("If-Modified-Since", containing("GMT")));
 
             // 4.
-            githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
-                .withHeader("Cache-Control", equalTo("no-cache"))
-                .withHeader("If-Modified-Since", absent())
-                .withHeader("If-None-Match", absent())
-            );
+            githubApi.verify(RequestPatternBuilder
+                    .newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                    .withHeader("Cache-Control", equalTo("no-cache"))
+                    .withHeader("If-Modified-Since", absent())
+                    .withHeader("If-None-Match", absent()));
 
             // 5.
-            githubApi.verify(RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
-                .withHeader("Cache-Control", equalTo("max-age=0"))
-                .withHeader("If-None-Match", equalTo("\"d3be5b35b8d84ef7ac03c0cc9c94ed81\""))
-            );
+            githubApi.verify(RequestPatternBuilder
+                    .newRequestPattern(RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                    .withHeader("Cache-Control", equalTo("max-age=0"))
+                    .withHeader("If-None-Match", equalTo("\"d3be5b35b8d84ef7ac03c0cc9c94ed81\"")));
         }
     }
 

@@ -1,14 +1,11 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.GlobalCredentialsConfiguration;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.casc.CredentialsRootConfigurator;
 import com.cloudbees.plugins.credentials.domains.DomainCredentials;
-import hudson.ExtensionList;
 import io.jenkins.plugins.casc.ConfigurationContext;
 import io.jenkins.plugins.casc.ConfiguratorRegistry;
-import io.jenkins.plugins.casc.impl.configurators.GlobalConfigurationCategoryConfigurator;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
 import io.jenkins.plugins.casc.misc.EnvVarsRule;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
@@ -37,14 +34,12 @@ public class GitHubAppCredentialsJCasCCompatibilityTest {
     private static final String GITHUB_APP_KEY = "SomeString";
 
     @ClassRule
-    public static RuleChain chain = RuleChain
-            .outerRule(new EnvVarsRule().set("GITHUB_APP_KEY", GITHUB_APP_KEY))
+    public static RuleChain chain = RuleChain.outerRule(new EnvVarsRule().set("GITHUB_APP_KEY", GITHUB_APP_KEY))
             .around(j);
 
     @Test
     public void should_support_configuration_as_code() {
-        List<DomainCredentials> domainCredentials = SystemCredentialsProvider.getInstance()
-                .getDomainCredentials();
+        List<DomainCredentials> domainCredentials = SystemCredentialsProvider.getInstance().getDomainCredentials();
 
         assertThat(domainCredentials.size(), is(1));
         List<Credentials> credentials = domainCredentials.get(0).getCredentials();
@@ -75,17 +70,18 @@ public class GitHubAppCredentialsJCasCCompatibilityTest {
     }
 
     private Sequence getCredentials() throws Exception {
-        CredentialsRootConfigurator root = Jenkins.get()
-                .getExtensionList(CredentialsRootConfigurator.class).get(0);
+        CredentialsRootConfigurator root = Jenkins.get().getExtensionList(CredentialsRootConfigurator.class).get(0);
 
         ConfiguratorRegistry registry = ConfiguratorRegistry.get();
         ConfigurationContext context = new ConfigurationContext(registry);
-        Mapping configNode = Objects
-                .requireNonNull(root.describe(root.getTargetComponent(context), context)).asMapping();
-        Mapping domainCredentials = configNode
-                .get("system").asMapping().get("domainCredentials")
+        Mapping configNode = Objects.requireNonNull(root.describe(root.getTargetComponent(context), context))
+                .asMapping();
+        Mapping domainCredentials = configNode.get("system")
+                .asMapping()
+                .get("domainCredentials")
                 .asSequence()
-                .get(0).asMapping();
+                .get(0)
+                .asMapping();
         return domainCredentials.get("credentials").asSequence();
     }
 }

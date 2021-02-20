@@ -2,6 +2,7 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import javax.annotation.Nonnull;
 import jenkins.scm.api.trait.SCMNavigatorContext;
 import jenkins.scm.api.trait.SCMNavigatorTrait;
 import jenkins.scm.api.trait.SCMNavigatorTraitDescriptor;
@@ -9,11 +10,9 @@ import jenkins.scm.impl.trait.Selection;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import javax.annotation.Nonnull;
-
 /**
- * Decorates a {@link SCMNavigatorContext} with a GitHub team slug which will allow restricting the discovery of repositories
- * by specific teams
+ * Decorates a {@link SCMNavigatorContext} with a GitHub team slug which will allow restricting the discovery of
+ * repositories by specific teams
  *
  */
 public class TeamSlugTrait extends SCMNavigatorTrait {
@@ -27,7 +26,8 @@ public class TeamSlugTrait extends SCMNavigatorTrait {
     /**
      * Stapler constructor.
      *
-     * @param teamSlug the team slug to use when searching for github repos restricted to a specific team only.
+     * @param teamSlug
+     *            the team slug to use when searching for github repos restricted to a specific team only.
      */
     @DataBoundConstructor
     public TeamSlugTrait(@NonNull String teamSlug) {

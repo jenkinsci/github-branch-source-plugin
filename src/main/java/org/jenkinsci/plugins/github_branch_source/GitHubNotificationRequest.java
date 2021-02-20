@@ -28,12 +28,12 @@ import java.util.Objects;
 import org.kohsuke.github.GHCommitState;
 
 /**
- * Details of a GitHub status notification to be sent.
- * One GitHubNotificationRequest represents one notification. A strategy supplies a list of these to request one or more
- * notifications.
- * Notifications are differentiated by their Context label. If two notification requests with the same Context label are
- * provided, one will override the other.
- * @see <a href="https://developer.github.com/v3/repos/statuses/">Github API</a> for details of the purpose of each notification field.
+ * Details of a GitHub status notification to be sent. One GitHubNotificationRequest represents one notification. A
+ * strategy supplies a list of these to request one or more notifications. Notifications are differentiated by their
+ * Context label. If two notification requests with the same Context label are provided, one will override the other.
+ *
+ * @see <a href="https://developer.github.com/v3/repos/statuses/">Github API</a> for details of the purpose of each
+ *      notification field.
  * @since 2.3.2
  */
 public class GitHubNotificationRequest {
@@ -47,7 +47,12 @@ public class GitHubNotificationRequest {
     /**
      * @since 2.3.2
      */
-    private GitHubNotificationRequest(String context, String url, String message, GHCommitState state, boolean ignoreError) {
+    private GitHubNotificationRequest(
+            String context,
+            String url,
+            String message,
+            GHCommitState state,
+            boolean ignoreError) {
         this.context = context;
         this.url = url;
         this.message = message;
@@ -55,12 +60,18 @@ public class GitHubNotificationRequest {
         this.ignoreError = ignoreError;
     }
 
-    public static GitHubNotificationRequest build(String context, String url, String message, GHCommitState state, boolean ignoreError) {
+    public static GitHubNotificationRequest build(
+            String context,
+            String url,
+            String message,
+            GHCommitState state,
+            boolean ignoreError) {
         return new GitHubNotificationRequest(context, url, message, state, ignoreError);
     }
 
     /**
      * Returns the context label to be used for a notification
+     *
      * @return context
      * @since 2.3.2
      */
@@ -70,6 +81,7 @@ public class GitHubNotificationRequest {
 
     /**
      * Returns the URL to be supplied with a notification
+     *
      * @return url
      * @since 2.3.2
      */
@@ -79,6 +91,7 @@ public class GitHubNotificationRequest {
 
     /**
      * Returns the message for a notification
+     *
      * @return message
      * @since 2.3.2
      */
@@ -88,6 +101,7 @@ public class GitHubNotificationRequest {
 
     /**
      * Returns the commit state of a notification
+     *
      * @return state
      * @since 2.3.2
      */
@@ -97,6 +111,7 @@ public class GitHubNotificationRequest {
 
     /**
      * Returns whether the notification processor should ignore errors when interacting with GitHub
+     *
      * @return ignoreError
      * @since 2.3.2
      */
@@ -109,13 +124,8 @@ public class GitHubNotificationRequest {
      */
     @Override
     public String toString() {
-        return "GitHubNotificationRequest{" +
-                "context='" + context + '\'' +
-                ", url='" + url + '\'' +
-                ", message='" + message + '\'' +
-                ", state=" + state +
-                ", ignoreError=" + ignoreError +
-                '}';
+        return "GitHubNotificationRequest{" + "context='" + context + '\'' + ", url='" + url + '\'' + ", message='"
+                + message + '\'' + ", state=" + state + ", ignoreError=" + ignoreError + '}';
     }
 
     /**
@@ -123,15 +133,21 @@ public class GitHubNotificationRequest {
      */
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
 
         GitHubNotificationRequest that = (GitHubNotificationRequest) o;
 
-        if (ignoreError != that.ignoreError) return false;
-        if (!Objects.equals(context, that.context)) return false;
-        if (!Objects.equals(url, that.url)) return false;
-        if (!Objects.equals(message, that.message)) return false;
+        if (ignoreError != that.ignoreError)
+            return false;
+        if (!Objects.equals(context, that.context))
+            return false;
+        if (!Objects.equals(url, that.url))
+            return false;
+        if (!Objects.equals(message, that.message))
+            return false;
         return state == that.state;
     }
 

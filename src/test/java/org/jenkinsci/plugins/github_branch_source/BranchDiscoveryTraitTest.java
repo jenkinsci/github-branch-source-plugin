@@ -28,18 +28,14 @@ public class BranchDiscoveryTraitTest {
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not(hasItem(
-                instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
-        )));
+        assumeThat(ctx.authorities(), not(hasItem(instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class))));
         BranchDiscoveryTrait instance = new BranchDiscoveryTrait(true, true);
         instance.decorateContext(ctx);
         assertThat(ctx.wantBranches(), is(true));
         assertThat(ctx.wantPRs(), is(false));
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assertThat(ctx.authorities(), hasItem(
-                instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
-        ));
+        assertThat(ctx.authorities(), hasItem(instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)));
     }
 
     @Test
@@ -49,9 +45,7 @@ public class BranchDiscoveryTraitTest {
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not(hasItem(
-                instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
-        )));
+        assumeThat(ctx.authorities(), not(hasItem(instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class))));
         BranchDiscoveryTrait instance = new BranchDiscoveryTrait(true, false);
         instance.decorateContext(ctx);
         assertThat(ctx.wantBranches(), is(true));
@@ -59,9 +53,7 @@ public class BranchDiscoveryTraitTest {
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(),
                 contains(instanceOf(BranchDiscoveryTrait.ExcludeOriginPRBranchesSCMHeadFilter.class)));
-        assertThat(ctx.authorities(), hasItem(
-                instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
-        ));
+        assertThat(ctx.authorities(), hasItem(instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)));
     }
 
     @Test
@@ -71,24 +63,20 @@ public class BranchDiscoveryTraitTest {
         assumeThat(ctx.wantPRs(), is(false));
         assumeThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assumeThat(ctx.filters(), is(Collections.<SCMHeadFilter>emptyList()));
-        assumeThat(ctx.authorities(), not(hasItem(
-                instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
-        )));
+        assumeThat(ctx.authorities(), not(hasItem(instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class))));
         BranchDiscoveryTrait instance = new BranchDiscoveryTrait(false, true);
         instance.decorateContext(ctx);
         assertThat(ctx.wantBranches(), is(true));
         assertThat(ctx.wantPRs(), is(true));
         assertThat(ctx.prefilters(), is(Collections.<SCMHeadPrefilter>emptyList()));
         assertThat(ctx.filters(), contains(instanceOf(BranchDiscoveryTrait.OnlyOriginPRBranchesSCMHeadFilter.class)));
-        assertThat(ctx.authorities(), hasItem(
-                instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)
-        ));
+        assertThat(ctx.authorities(), hasItem(instanceOf(BranchDiscoveryTrait.BranchSCMHeadAuthority.class)));
     }
 
     @Test
     public void given__descriptor__when__displayingOptions__then__allThreePresent() {
-        ListBoxModel options =
-                j.jenkins.getDescriptorByType(BranchDiscoveryTrait.DescriptorImpl.class).doFillStrategyIdItems();
+        ListBoxModel options = j.jenkins.getDescriptorByType(BranchDiscoveryTrait.DescriptorImpl.class)
+                .doFillStrategyIdItems();
         assertThat(options.size(), is(3));
         assertThat(options.get(0).value, is("1"));
         assertThat(options.get(1).value, is("2"));

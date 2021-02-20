@@ -10,8 +10,8 @@ import java.util.NoSuchElementException;
 import net.jcip.annotations.GuardedBy;
 
 /**
- * Takes either an {@link Iterable} or an {@link Iterator} and converts it into a {@link Iterable} that will walk
- * the backing {@link Iterator} once only but can be walked repeatedly itself.
+ * Takes either an {@link Iterable} or an {@link Iterator} and converts it into a {@link Iterable} that will walk the
+ * backing {@link Iterator} once only but can be walked repeatedly itself.
  *
  * @param <V>
  */
@@ -30,7 +30,8 @@ class SinglePassIterable<V> implements Iterable<V> {
     /**
      * Constructor.
      *
-     * @param delegate the {@link Iterable}.
+     * @param delegate
+     *            the {@link Iterable}.
      */
     public SinglePassIterable(@NonNull Iterable<V> delegate) {
         this(delegate.iterator());
@@ -39,7 +40,8 @@ class SinglePassIterable<V> implements Iterable<V> {
     /**
      * Constructor.
      *
-     * @param delegate the {@link Iterator}.
+     * @param delegate
+     *            the {@link Iterator}.
      */
     public SinglePassIterable(@NonNull Iterator<V> delegate) {
         this.delegate = delegate;
@@ -102,7 +104,7 @@ class SinglePassIterable<V> implements Iterable<V> {
                             V element = delegate.next();
                             observe(element);
                             items.add(element);
-                            //Index needs to be incremented
+                            // Index needs to be incremented
                             index++;
                             return element;
                         } else {
@@ -123,7 +125,8 @@ class SinglePassIterable<V> implements Iterable<V> {
     /**
      * Callback for each element observed from the delegate.
      *
-     * @param v the element.
+     * @param v
+     *            the element.
      */
     protected void observe(V v) {
     }

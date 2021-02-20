@@ -34,8 +34,6 @@ import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
-import okhttp3.Cache;
-import okhttp3.OkHttpClient;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.Extension;
@@ -72,6 +70,8 @@ import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.util.JenkinsJVM;
+import okhttp3.Cache;
+import okhttp3.OkHttpClient;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
@@ -95,11 +95,11 @@ public class Connector {
     private static final Map<ConnectionId, GitHubConnection> connections = new HashMap<>();
     private static final Map<GitHub, GitHubConnection> reverseLookup = new HashMap<>();
 
-    private static final Map<TaskListener, Map<GitHub,Void>> checked = new WeakHashMap<>();
+    private static final Map<TaskListener, Map<GitHub, Void>> checked = new WeakHashMap<>();
     private static final long API_URL_REVALIDATE_MILLIS = TimeUnit.MINUTES.toMillis(5);
-    private static final Map<String,Long> apiUrlValid = new LinkedHashMap<String,Long>(){
+    private static final Map<String, Long> apiUrlValid = new LinkedHashMap<String, Long>() {
         @Override
-        protected boolean removeEldestEntry(Map.Entry<String,Long> eldest) {
+        protected boolean removeEldestEntry(Map.Entry<String, Long> eldest) {
             Long t = eldest.getValue();
             return t == null || t < System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS;
         }
@@ -108,7 +108,6 @@ public class Connector {
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
     private static final OkHttpClient baseClient = new OkHttpClient();
 
-
     private Connector() {
         throw new IllegalAccessError("Utility class");
     }
@@ -116,8 +115,10 @@ public class Connector {
     /**
      * Retained for binary compatibility only.
      *
-     * @param context the context.
-     * @param apiUri  the api endpoint.
+     * @param context
+     *            the context.
+     * @param apiUri
+     *            the api endpoint.
      * @return a {@link ListBoxModel}.
      * @deprecated use {@link #listCheckoutCredentials(Item, String)}.
      */
@@ -131,56 +132,66 @@ public class Connector {
      * Populates a {@link ListBoxModel} with the scan credentials appropriate for the supplied context against the
      * supplied API endpoint.
      *
-     * @param context the context.
-     * @param apiUri  the api endpoint.
+     * @param context
+     *            the context.
+     * @param apiUri
+     *            the api endpoint.
      * @return a {@link ListBoxModel}.
      */
     @NonNull
     public static ListBoxModel listScanCredentials(@CheckForNull Item context, String apiUri) {
-        return new StandardListBoxModel()
-                .includeEmptyValue()
+        return new StandardListBoxModel().includeEmptyValue()
                 .includeMatchingAs(
-                        context instanceof Queue.Task
-                                ? ((Queue.Task) context).getDefaultAuthentication()
-                                : ACL.SYSTEM,
+                        context instanceof Queue.Task ? ((Queue.Task) context).getDefaultAuthentication() : ACL.SYSTEM,
                         context,
                         StandardUsernameCredentials.class,
                         githubDomainRequirements(apiUri),
-                        githubScanCredentialsMatcher()
-                );
+                        githubScanCredentialsMatcher());
     }
 
     /**
      * Retained for binary compatibility only.
      *
-     * @param context           the context.
-     * @param apiUri            the api endpoint.
-     * @param scanCredentialsId the credentials ID.
+     * @param context
+     *            the context.
+     * @param apiUri
+     *            the api endpoint.
+     * @param scanCredentialsId
+     *            the credentials ID.
      * @return the {@link FormValidation} results.
      * @deprecated use {@link #checkScanCredentials(Item, String, String)}
      */
     @Deprecated
-    public static FormValidation checkScanCredentials(@CheckForNull SCMSourceOwner context, String apiUri, String scanCredentialsId) {
+    public static FormValidation checkScanCredentials(
+            @CheckForNull SCMSourceOwner context,
+            String apiUri,
+            String scanCredentialsId) {
         return checkScanCredentials((Item) context, apiUri, scanCredentialsId);
     }
 
     /**
      * Checks the credential ID for use as scan credentials in the supplied context against the supplied API endpoint.
      *
-     * @param context           the context.
-     * @param apiUri            the api endpoint.
-     * @param scanCredentialsId the credentials ID.
+     * @param context
+     *            the context.
+     * @param apiUri
+     *            the api endpoint.
+     * @param scanCredentialsId
+     *            the credentials ID.
      * @return the {@link FormValidation} results.
      */
-    public static FormValidation checkScanCredentials(@CheckForNull Item context, String apiUri, String scanCredentialsId) {
-        if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER) ||
-                context != null && !context.hasPermission(Item.EXTENDED_READ)) {
+    public static FormValidation checkScanCredentials(
+            @CheckForNull Item context,
+            String apiUri,
+            String scanCredentialsId) {
+        if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+                || context != null && !context.hasPermission(Item.EXTENDED_READ)) {
             return FormValidation.ok();
         }
         if (!scanCredentialsId.isEmpty()) {
             ListBoxModel options = listScanCredentials(context, apiUri);
             boolean found = false;
-            for (ListBoxModel.Option b: options) {
+            for (ListBoxModel.Option b : options) {
                 if (scanCredentialsId.equals(b.value)) {
                     found = true;
                     break;
@@ -192,7 +203,9 @@ public class Connector {
             if (context != null && !context.hasPermission(CredentialsProvider.USE_ITEM)) {
                 return FormValidation.ok("Credentials found");
             }
-            StandardCredentials credentials = Connector.lookupScanCredentials(context, StringUtils.defaultIfEmpty(apiUri, GitHubServerConfig.GITHUB_URL), scanCredentialsId);
+            StandardCredentials credentials = Connector.lookupScanCredentials(context,
+                    StringUtils.defaultIfEmpty(apiUri, GitHubServerConfig.GITHUB_URL),
+                    scanCredentialsId);
             if (credentials == null) {
                 return FormValidation.error("Credentials not found");
             } else {
@@ -219,9 +232,9 @@ public class Connector {
                     return FormValidation.error(e, msg);
                 } catch (IOException e) {
                     // ignore, never thrown
-                    LOGGER.log(Level.WARNING, "Exception validating credentials {0} on {1}", new Object[]{
-                            CredentialsNameProvider.name(credentials), apiUri
-                    });
+                    LOGGER.log(Level.WARNING,
+                            "Exception validating credentials {0} on {1}",
+                            new Object[]{ CredentialsNameProvider.name(credentials), apiUri });
                     return FormValidation.error("Exception validating credentials");
                 }
             }
@@ -233,54 +246,62 @@ public class Connector {
     /**
      * Retained for binary compatibility only.
      *
-     * @param context           the context.
-     * @param apiUri            the API endpoint.
-     * @param scanCredentialsId the credentials to resolve.
+     * @param context
+     *            the context.
+     * @param apiUri
+     *            the API endpoint.
+     * @param scanCredentialsId
+     *            the credentials to resolve.
      * @return the {@link StandardCredentials} or {@code null}
      * @deprecated use {@link #lookupScanCredentials(Item, String, String)}
      */
     @Deprecated
     @CheckForNull
-    public static StandardCredentials lookupScanCredentials(@CheckForNull SCMSourceOwner context,
-                                                            @CheckForNull String apiUri,
-                                                            @CheckForNull String scanCredentialsId) {
+    public static StandardCredentials lookupScanCredentials(
+            @CheckForNull SCMSourceOwner context,
+            @CheckForNull String apiUri,
+            @CheckForNull String scanCredentialsId) {
         return lookupScanCredentials((Item) context, apiUri, scanCredentialsId);
     }
 
     /**
      * Resolves the specified scan credentials in the specified context for use against the specified API endpoint.
      *
-     * @param context           the context.
-     * @param apiUri            the API endpoint.
-     * @param scanCredentialsId the credentials to resolve.
+     * @param context
+     *            the context.
+     * @param apiUri
+     *            the API endpoint.
+     * @param scanCredentialsId
+     *            the credentials to resolve.
      * @return the {@link StandardCredentials} or {@code null}
      */
     @CheckForNull
-    public static StandardCredentials lookupScanCredentials(@CheckForNull Item context,
-                                                            @CheckForNull String apiUri,
-                                                            @CheckForNull String scanCredentialsId) {
+    public static StandardCredentials lookupScanCredentials(
+            @CheckForNull Item context,
+            @CheckForNull String apiUri,
+            @CheckForNull String scanCredentialsId) {
         if (Util.fixEmpty(scanCredentialsId) == null) {
             return null;
         } else {
             return CredentialsMatchers.firstOrNull(
-                CredentialsProvider.lookupCredentials(
-                    StandardUsernameCredentials.class,
-                    context,
-                    context instanceof Queue.Task
-                            ? ((Queue.Task) context).getDefaultAuthentication()
-                            : ACL.SYSTEM,
-                    githubDomainRequirements(apiUri)
-                ),
-                CredentialsMatchers.allOf(CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher())
-            );
+                    CredentialsProvider.lookupCredentials(StandardUsernameCredentials.class,
+                            context,
+                            context instanceof Queue.Task
+                                    ? ((Queue.Task) context).getDefaultAuthentication()
+                                    : ACL.SYSTEM,
+                            githubDomainRequirements(apiUri)),
+                    CredentialsMatchers.allOf(CredentialsMatchers.withId(scanCredentialsId),
+                            githubScanCredentialsMatcher()));
         }
     }
 
     /**
      * Retained for binary compatibility only.
      *
-     * @param context           the context.
-     * @param apiUri            the API endpoint.
+     * @param context
+     *            the context.
+     * @param apiUri
+     *            the API endpoint.
      * @return the {@link StandardCredentials} or {@code null}
      * @deprecated use {@link #listCheckoutCredentials(Item, String)}
      */
@@ -293,8 +314,10 @@ public class Connector {
      * Populates a {@link ListBoxModel} with the checkout credentials appropriate for the supplied context against the
      * supplied API endpoint.
      *
-     * @param context the context.
-     * @param apiUri  the api endpoint.
+     * @param context
+     *            the context.
+     * @param apiUri
+     *            the api endpoint.
      * @return a {@link ListBoxModel}.
      */
     @NonNull
@@ -304,17 +327,15 @@ public class Connector {
         result.add("- same as scan credentials -", GitHubSCMSource.DescriptorImpl.SAME);
         result.add("- anonymous -", GitHubSCMSource.DescriptorImpl.ANONYMOUS);
         return result.includeMatchingAs(
-                context instanceof Queue.Task
-                        ? ((Queue.Task) context).getDefaultAuthentication()
-                        : ACL.SYSTEM,
+                context instanceof Queue.Task ? ((Queue.Task) context).getDefaultAuthentication() : ACL.SYSTEM,
                 context,
                 StandardUsernameCredentials.class,
                 githubDomainRequirements(apiUri),
-                GitClient.CREDENTIALS_MATCHER
-        );
+                GitClient.CREDENTIALS_MATCHER);
     }
 
-    public static void checkApiUrlValidity(@Nonnull GitHub gitHub, @CheckForNull StandardCredentials credentials) throws IOException {
+    public static void checkApiUrlValidity(@Nonnull GitHub gitHub, @CheckForNull StandardCredentials credentials)
+            throws IOException {
         String hash;
         if (credentials == null) {
             hash = "anonymous";
@@ -336,7 +357,8 @@ public class Connector {
         }
     }
 
-    public static @Nonnull GitHub connect(@CheckForNull String apiUri, @CheckForNull StandardCredentials credentials) throws IOException {
+    public static @Nonnull GitHub connect(@CheckForNull String apiUri, @CheckForNull StandardCredentials credentials)
+            throws IOException {
         String apiUrl = Util.fixEmptyAndTrim(apiUri);
         apiUrl = apiUrl != null ? apiUrl : GitHubServerConfig.GITHUB_URL;
         String username;
@@ -352,8 +374,11 @@ public class Connector {
             authHash = "anonymous";
         } else if (credentials instanceof GitHubAppCredentials) {
             gitHubAppCredentials = (GitHubAppCredentials) credentials;
-            hash = Util.getDigestOf(gitHubAppCredentials.getAppID() + gitHubAppCredentials.getOwner() + gitHubAppCredentials.getPrivateKey().getPlainText() + SALT); // want to ensure pooling by credential
-            authHash = Util.getDigestOf(gitHubAppCredentials.getAppID() + "::" + gitHubAppCredentials.getOwner() + "::" + gitHubAppCredentials.getPrivateKey().getPlainText() + "::" + jenkins.getLegacyInstanceId());
+            hash = Util.getDigestOf(gitHubAppCredentials.getAppID() + gitHubAppCredentials.getOwner()
+                    + gitHubAppCredentials.getPrivateKey().getPlainText() + SALT); // want to ensure pooling by
+                                                                                   // credential
+            authHash = Util.getDigestOf(gitHubAppCredentials.getAppID() + "::" + gitHubAppCredentials.getOwner() + "::"
+                    + gitHubAppCredentials.getPrivateKey().getPlainText() + "::" + jenkins.getLegacyInstanceId());
             username = gitHubAppCredentials.getUsername();
         } else if (credentials instanceof StandardUsernamePasswordCredentials) {
             StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
@@ -380,11 +405,12 @@ public class Connector {
                 } else if (username != null && password != null) {
                     // At the time of this change this works for OAuth tokens as well.
                     // This may not continue to work in the future, as GitHub has deprecated Login/Password credentials.
-                    gb.withAuthorizationProvider(ImmutableAuthorizationProvider.fromLoginAndPassword(username, password));
+                    gb.withAuthorizationProvider(
+                            ImmutableAuthorizationProvider.fromLoginAndPassword(username, password));
                 }
 
-
-                record = GitHubConnection.connect(connectionId, gb.build(), cache, credentials instanceof GitHubAppCredentials);
+                record = GitHubConnection
+                        .connect(connectionId, gb.build(), cache, credentials instanceof GitHubAppCredentials);
             }
 
             return record.getGitHub();
@@ -394,22 +420,25 @@ public class Connector {
     /**
      * Creates a {@link GitHubBuilder} that can be used to build a {@link GitHub} instance.
      *
-     * This method creates and configures a new {@link GitHubBuilder}.
-     * This should be used only when {@link #connect(String, StandardCredentials)} cannot be used,
-     * such as when using {@link GitHubBuilder#withJwtToken(String)} to getting the {@link GHAppInstallationToken}.
+     * This method creates and configures a new {@link GitHubBuilder}. This should be used only when
+     * {@link #connect(String, StandardCredentials)} cannot be used, such as when using
+     * {@link GitHubBuilder#withJwtToken(String)} to getting the {@link GHAppInstallationToken}.
      *
      * This method intentionally does not support caching requests or {@link GitHub} instances.
      *
-     * @param apiUrl the GitHub API URL to be used for the connection
+     * @param apiUrl
+     *            the GitHub API URL to be used for the connection
      * @return a configured GitHubBuilder instance
-     * @throws IOException if I/O error occurs
+     * @throws IOException
+     *             if I/O error occurs
      */
     static GitHubBuilder createGitHubBuilder(@Nonnull String apiUrl) throws IOException {
         return createGitHubBuilder(apiUrl, null);
     }
 
     @Nonnull
-    private static GitHubBuilder createGitHubBuilder(@Nonnull String apiUrl, @CheckForNull Cache cache) throws IOException {
+    private static GitHubBuilder createGitHubBuilder(@Nonnull String apiUrl, @CheckForNull Cache cache)
+            throws IOException {
         String host;
         try {
             host = new URL(apiUrl).getHost();
@@ -434,12 +463,15 @@ public class Connector {
     }
 
     @CheckForNull
-    private static Cache getCache(@Nonnull Jenkins jenkins, @Nonnull String apiUrl, @Nonnull String authHash, @CheckForNull String username) {
+    private static Cache getCache(
+            @Nonnull Jenkins jenkins,
+            @Nonnull String apiUrl,
+            @Nonnull String authHash,
+            @CheckForNull String username) {
         Cache cache = null;
         int cacheSize = GitHubSCMSource.getCacheSize();
         if (cacheSize > 0) {
-            File cacheBase = new File(jenkins.getRootDir(),
-                    GitHubSCMProbe.class.getName() + ".cache");
+            File cacheBase = new File(jenkins.getRootDir(), GitHubSCMProbe.class.getName() + ".cache");
             File cacheDir = null;
             try {
                 MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
@@ -490,7 +522,8 @@ public class Connector {
     /**
      * Uses proxy if configured on pluginManager/advanced page
      *
-     * @param host GitHub's hostname to build proxy to
+     * @param host
+     *            GitHub's hostname to build proxy to
      *
      * @return proxy to use it in connector. Should not be null as it can lead to unexpected behaviour
      */
@@ -529,7 +562,8 @@ public class Connector {
      * Alternative to {@link GitHub#isCredentialValid()} that relies on the cached user object in the {@link GitHub}
      * instance and hence reduced rate limit consumption.
      *
-     * @param gitHub the instance to check.
+     * @param gitHub
+     *            the instance to check.
      * @return {@code true} if the credentials are valid.
      */
     static boolean isCredentialValid(GitHub gitHub) {
@@ -548,12 +582,13 @@ public class Connector {
         }
     }
 
-    /*package*/ static void checkConnectionValidity(String apiUri, @NonNull TaskListener listener,
-                                                    StandardCredentials credentials,
-                                                    GitHub github)
-            throws IOException {
+    /* package */ static void checkConnectionValidity(
+            String apiUri,
+            @NonNull TaskListener listener,
+            StandardCredentials credentials,
+            GitHub github) throws IOException {
         synchronized (checked) {
-            Map<GitHub,Void> hubs = checked.get(listener);
+            Map<GitHub, Void> hubs = checked.get(listener);
             if (hubs != null && hubs.containsKey(github)) {
                 // only check if not already in use
                 return;
@@ -566,26 +601,26 @@ public class Connector {
         }
         if (credentials != null && !isCredentialValid(github)) {
             String message = String.format("Invalid scan credentials %s to connect to %s, skipping",
-                    CredentialsNameProvider.name(credentials), apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
+                    CredentialsNameProvider.name(credentials),
+                    apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
             throw new AbortException(message);
         }
         if (!github.isAnonymous()) {
             assert credentials != null;
-            listener.getLogger().println(GitHubConsoleNote.create(
-                    System.currentTimeMillis(),
-                    String.format("Connecting to %s using %s",
-                    apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri,
-                    CredentialsNameProvider.name(credentials))
-            ));
+            listener.getLogger()
+                    .println(GitHubConsoleNote.create(System.currentTimeMillis(),
+                            String.format("Connecting to %s using %s",
+                                    apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri,
+                                    CredentialsNameProvider.name(credentials))));
         } else {
-            listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                    "Connecting to %s with no credentials, anonymous access",
-                    apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri
-            )));
+            listener.getLogger()
+                    .println(GitHubConsoleNote.create(System.currentTimeMillis(),
+                            String.format("Connecting to %s with no credentials, anonymous access",
+                                    apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri)));
         }
     }
 
-    /*package*/
+    /* package */
     static void configureLocalRateLimitChecker(@NonNull TaskListener listener, GitHub github)
             throws IOException, InterruptedException {
         ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
@@ -649,13 +684,16 @@ public class Connector {
         }
 
         @NonNull
-        private static GitHubConnection connect(@NonNull ConnectionId connectionId, @NonNull GitHub gitHub, @CheckForNull Cache cache, boolean cleanupCacheFolder) {
+        private static GitHubConnection connect(
+                @NonNull ConnectionId connectionId,
+                @NonNull GitHub gitHub,
+                @CheckForNull Cache cache,
+                boolean cleanupCacheFolder) {
             GitHubConnection record = new GitHubConnection(gitHub, cache, cleanupCacheFolder);
             connections.put(connectionId, record);
             reverseLookup.put(record.gitHub, record);
             return record;
         }
-
 
         private void release() throws IOException {
             if (this.usageCount <= 0) {
@@ -667,8 +705,8 @@ public class Connector {
         }
 
         private static void removeAllUnused(long threshold) throws IOException {
-            for (Iterator<Map.Entry<ConnectionId, GitHubConnection>> iterator = connections.entrySet().iterator();
-                 iterator.hasNext(); ) {
+            for (Iterator<Map.Entry<ConnectionId, GitHubConnection>> iterator = connections.entrySet()
+                    .iterator(); iterator.hasNext();) {
                 Map.Entry<ConnectionId, GitHubConnection> entry = iterator.next();
                 try {
                     GitHubConnection record = Objects.requireNonNull(entry.getValue());
@@ -682,7 +720,9 @@ public class Connector {
                         }
                     }
                 } catch (IOException | NullPointerException e) {
-                    LOGGER.log(WARNING, "Exception removing cache directory for unused connection: " + entry.getKey(), e);
+                    LOGGER.log(WARNING,
+                            "Exception removing cache directory for unused connection: " + entry.getKey(),
+                            e);
                 }
             }
         }
@@ -721,10 +761,7 @@ public class Connector {
 
         @Override
         public String toString() {
-            return "ConnectionId{" +
-                    "apiUrl='" + apiUrl + '\'' +
-                    ", credentialsHash=" + credentialsHash +
-                    '}';
+            return "ConnectionId{" + "apiUrl='" + apiUrl + '\'' + ", credentialsHash=" + credentialsHash + '}';
         }
 
     }

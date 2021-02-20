@@ -30,8 +30,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
-import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
+import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.export.Exported;
 
@@ -47,18 +47,25 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
     private final @NonNull String pullHash;
     private final String mergeHash;
 
-    public PullRequestSCMRevision(@NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash) {
+    public PullRequestSCMRevision(
+            @NonNull PullRequestSCMHead head,
+            @NonNull String baseHash,
+            @NonNull String pullHash) {
         this(head, baseHash, pullHash, null);
     }
 
-    PullRequestSCMRevision(@NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash, String mergeHash) {
+    PullRequestSCMRevision(
+            @NonNull PullRequestSCMHead head,
+            @NonNull String baseHash,
+            @NonNull String pullHash,
+            String mergeHash) {
         super(head, new AbstractGitSCMSource.SCMRevisionImpl(head.getTarget(), baseHash));
         this.baseHash = baseHash;
         this.pullHash = pullHash;
         this.mergeHash = mergeHash;
     }
 
-    @SuppressFBWarnings({"SE_PRIVATE_READ_RESOLVE_NOT_INHERITED", "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"})
+    @SuppressFBWarnings({ "SE_PRIVATE_READ_RESOLVE_NOT_INHERITED", "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE" })
     private Object readResolve() {
         if (getTarget() == null) {
             // fix an instance prior to the type migration, thankfully we have all the required info
@@ -68,10 +75,9 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
     }
 
     /**
-     * The commit hash of the base branch we are tracking.
-     * If {@link ChangeRequestSCMHead2#getCheckoutStrategy()} {@link ChangeRequestCheckoutStrategy#MERGE}, this
-     * would be the current head of the base branch.
-     * Otherwise it would be the PR’s {@code .base.sha}, the common ancestor of the PR branch and the base branch.
+     * The commit hash of the base branch we are tracking. If {@link ChangeRequestSCMHead2#getCheckoutStrategy()}
+     * {@link ChangeRequestCheckoutStrategy#MERGE}, this would be the current head of the base branch. Otherwise it
+     * would be the PR’s {@code .base.sha}, the common ancestor of the PR branch and the base branch.
      *
      * @return the commit hash of the base branch we are tracking.
      */
@@ -103,7 +109,9 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
 
     void validateMergeHash() throws AbortException {
         if (this.mergeHash == NOT_MERGEABLE_HASH) {
-            throw new AbortException("Pull request " + ((PullRequestSCMHead)this.getHead()).getNumber() + " : Not mergeable at " + this.toString());
+            throw new AbortException(
+                    "Pull request " + ((PullRequestSCMHead) this.getHead()).getNumber() + " : Not mergeable at "
+                            + this.toString());
         }
     }
 
@@ -129,8 +137,7 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
     public String toString() {
         String result = pullHash;
         if (getHead() instanceof PullRequestSCMHead && ((PullRequestSCMHead) getHead()).isMerge()) {
-            result += "+" + baseHash +
-                " (" + StringUtils.defaultIfBlank(mergeHash, "UNKNOWN_MERGE_STATE") + ")";
+            result += "+" + baseHash + " (" + StringUtils.defaultIfBlank(mergeHash, "UNKNOWN_MERGE_STATE") + ")";
         }
         return result;
     }

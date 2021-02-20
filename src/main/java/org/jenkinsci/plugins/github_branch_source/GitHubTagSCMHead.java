@@ -9,8 +9,10 @@ public class GitHubTagSCMHead extends GitTagSCMHead implements TagSCMHead {
     /**
      * Constructor.
      *
-     * @param name      the name.
-     * @param timestamp the tag timestamp;
+     * @param name
+     *            the name.
+     * @param timestamp
+     *            the tag timestamp;
      */
     public GitHubTagSCMHead(@NonNull String name, long timestamp) {
         super(name, timestamp);

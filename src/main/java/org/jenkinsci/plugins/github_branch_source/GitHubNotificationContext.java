@@ -36,10 +36,11 @@ import org.jenkinsci.plugins.displayurlapi.DisplayURLProvider;
 import org.kohsuke.github.GHCommitState;
 
 /**
- * Parameter object used in notification strategies {@link AbstractGitHubNotificationStrategy}.
- * When creating a new point of notification (e.g. on build completion), populate this object with
- * the relevant details accessible at that point.
- * When implementing a notification strategy, be aware that some details may be absent depending on the point of notification.
+ * Parameter object used in notification strategies {@link AbstractGitHubNotificationStrategy}. When creating a new
+ * point of notification (e.g. on build completion), populate this object with the relevant details accessible at that
+ * point. When implementing a notification strategy, be aware that some details may be absent depending on the point of
+ * notification.
+ *
  * @since 2.3.2
  */
 public final class GitHubNotificationContext {
@@ -58,12 +59,17 @@ public final class GitHubNotificationContext {
         this.head = head;
     }
 
-    public static GitHubNotificationContext build(@Nullable Job<?, ?> job, @Nullable Run<?, ?> build, SCMSource source, SCMHead head) {
+    public static GitHubNotificationContext build(
+            @Nullable Job<?, ?> job,
+            @Nullable Run<?, ?> build,
+            SCMSource source,
+            SCMHead head) {
         return new GitHubNotificationContext(job, build, source, head);
     }
 
     /**
      * Returns the job, if any, associated with the planned notification event
+     *
      * @return Job
      * @since 2.3.2
      */
@@ -73,6 +79,7 @@ public final class GitHubNotificationContext {
 
     /**
      * Returns the run, if any, associated with the planned notification event
+     *
      * @return Run
      * @since 2.3.2
      */
@@ -82,6 +89,7 @@ public final class GitHubNotificationContext {
 
     /**
      * Returns the SCMSource associated with the planned notification event
+     *
      * @return SCMSource
      * @since 2.3.2
      */
@@ -91,6 +99,7 @@ public final class GitHubNotificationContext {
 
     /**
      * Returns the SCMHead associated with the planned notification event
+     *
      * @return SCMHead
      * @since 2.3.2
      */
@@ -103,12 +112,8 @@ public final class GitHubNotificationContext {
      */
     @Override
     public String toString() {
-        return "GitHubNotificationContext{" +
-                "job=" + job +
-                ", build=" + build +
-                ", source=" + source +
-                ", head=" + head +
-                '}';
+        return "GitHubNotificationContext{" + "job=" + job + ", build=" + build + ", source=" + source + ", head="
+                + head + '}';
     }
 
     /**
@@ -116,14 +121,19 @@ public final class GitHubNotificationContext {
      */
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
 
         GitHubNotificationContext that = (GitHubNotificationContext) o;
 
-        if (!Objects.equals(job, that.job)) return false;
-        if (!Objects.equals(build, that.build)) return false;
-        if (!Objects.equals(source, that.source)) return false;
+        if (!Objects.equals(job, that.job))
+            return false;
+        if (!Objects.equals(build, that.build))
+            return false;
+        if (!Objects.equals(source, that.source))
+            return false;
         return Objects.equals(head, that.head);
     }
 
@@ -141,7 +151,9 @@ public final class GitHubNotificationContext {
 
     /**
      * Retrieves default context
-     * @param listener Listener for the build, if any
+     *
+     * @param listener
+     *            Listener for the build, if any
      * @return Default notification context
      * @since 2.3.2
      */
@@ -159,7 +171,9 @@ public final class GitHubNotificationContext {
 
     /**
      * Retrieves default URL
-     * @param listener Listener for the build, if any
+     *
+     * @param listener
+     *            Listener for the build, if any
      * @return Default notification URL backref
      * @since 2.3.2
      */
@@ -168,22 +182,22 @@ public final class GitHubNotificationContext {
         try {
             if (null != build) {
                 url = DisplayURLProvider.get().getRunURL(build);
-            }
-            else if (null != job) {
+            } else if (null != job) {
                 url = DisplayURLProvider.get().getJobURL(job);
             }
         } catch (IllegalStateException e) {
-            listener.getLogger().println(
-                    "Can not determine Jenkins root URL. Commit status notifications are sent without URL "
-                            + "until a root URL is"
-                            + " configured in Jenkins global configuration.");
+            listener.getLogger()
+                    .println("Can not determine Jenkins root URL. Commit status notifications are sent without URL "
+                            + "until a root URL is" + " configured in Jenkins global configuration.");
         }
         return url;
     }
 
     /**
      * Retrieves default notification message
-     * @param listener Listener for the build, if any
+     *
+     * @param listener
+     *            Listener for the build, if any
      * @return Default notification message
      * @since 2.3.2
      */
@@ -209,7 +223,9 @@ public final class GitHubNotificationContext {
 
     /**
      * Retrieves default notification state
-     * @param listener Listener for the build, if any
+     *
+     * @param listener
+     *            Listener for the build, if any
      * @return Default notification state
      * @since 2.3.2
      */
@@ -233,7 +249,9 @@ public final class GitHubNotificationContext {
 
     /**
      * Retrieves whether plugin should ignore errors when updating the GitHub status
-     * @param listener Listener for the build, if any
+     *
+     * @param listener
+     *            Listener for the build, if any
      * @return Default ignore errors policy
      * @since 2.3.2
      */

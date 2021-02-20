@@ -25,19 +25,18 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import org.apache.commons.lang.StringUtils;
-
 import java.net.MalformedURLException;
 import java.net.URL;
+import org.apache.commons.lang.StringUtils;
 
 import static org.apache.commons.lang.StringUtils.removeEnd;
 import static org.jenkinsci.plugins.github_branch_source.GitHubSCMSource.GITHUB_COM;
 
 /**
  * Used to compute values for GitHubSCMSource from a user-specified repository URL.
- * 
- * TODO: Is it possible to compute the API URI from just a repository URL, or not because of the possibility of proxies, etc.?
- * Is it worth making a guess based on the specified host?
+ *
+ * TODO: Is it possible to compute the API URI from just a repository URL, or not because of the possibility of proxies,
+ * etc.? Is it worth making a guess based on the specified host?
  */
 class GitHubRepositoryInfo {
     private static final String GITHUB_API_URL = "api.github.com";
@@ -89,7 +88,8 @@ class GitHubRepositoryInfo {
             throw new IllegalArgumentException(e);
         }
         if (!url.getProtocol().equals("http") && !url.getProtocol().equals("https")) {
-            throw new IllegalArgumentException("Invalid repository URL scheme (must be HTTPS or HTTP): " + url.getProtocol());
+            throw new IllegalArgumentException(
+                    "Invalid repository URL scheme (must be HTTPS or HTTP): " + url.getProtocol());
         }
         String apiUri = guessApiUri(url);
         String[] pathParts = StringUtils.removeStart(url.getPath(), "/").split("/");
@@ -107,16 +107,16 @@ class GitHubRepositoryInfo {
         sb.append(repositoryUrl.getProtocol());
         sb.append("://");
         boolean isGitHub = GITHUB_COM.equals(repositoryUrl.getHost());
-        if(isGitHub){
+        if (isGitHub) {
             sb.append(GITHUB_API_URL);
-        }else {
+        } else {
             sb.append(repositoryUrl.getHost());
         }
         if (repositoryUrl.getPort() != -1) {
             sb.append(':');
             sb.append(repositoryUrl.getPort());
         }
-        if(!isGitHub) {
+        if (!isGitHub) {
             sb.append('/').append(GitHubSCMBuilder.API_V3);
         }
         return GitHubConfiguration.normalizeApiUri(sb.toString());

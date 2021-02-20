@@ -23,10 +23,9 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.NonNull;
 import java.util.ArrayList;
 import java.util.List;
-
-import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMSourceObserver;
 import jenkins.scm.api.trait.SCMNavigatorContext;
@@ -36,7 +35,9 @@ import jenkins.scm.api.trait.SCMNavigatorContext;
  *
  * @since 2.2.0
  */
-public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavigatorContext, GitHubSCMNavigatorRequest> {
+public class GitHubSCMNavigatorContext
+        extends
+            SCMNavigatorContext<GitHubSCMNavigatorContext, GitHubSCMNavigatorRequest> {
 
     /**
      * The team name of the repositories to navigate.
@@ -76,6 +77,7 @@ public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavi
 
     /**
      * Gets the name of the team who's repositories will be navigated.
+     *
      * @return teamSlug
      */
     public String getTeamSlug() {
@@ -91,6 +93,7 @@ public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavi
 
     /**
      * Gets the topics which the repositories must have.
+     *
      * @return topics
      */
     public List<String> getTopics() {
@@ -112,14 +115,16 @@ public class GitHubSCMNavigatorContext extends SCMNavigatorContext<GitHubSCMNavi
     }
 
     /**
-     * @param excludeArchivedRepositories Set true to exclude archived repositories
+     * @param excludeArchivedRepositories
+     *            Set true to exclude archived repositories
      */
     public void setExcludeArchivedRepositories(boolean excludeArchivedRepositories) {
         this.excludeArchivedRepositories = excludeArchivedRepositories;
     }
 
     /**
-     * @param excludePublicRepositories Set true to exclude public repositories
+     * @param excludePublicRepositories
+     *            Set true to exclude public repositories
      */
     public void setExcludePublicRepositories(boolean excludePublicRepositories) {
         this.excludePublicRepositories = excludePublicRepositories;

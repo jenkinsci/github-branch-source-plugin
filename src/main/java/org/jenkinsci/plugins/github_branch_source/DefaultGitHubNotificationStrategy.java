@@ -25,12 +25,12 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import hudson.model.TaskListener;
-
 import java.util.Collections;
 import java.util.List;
 
 /**
  * Default implementation of {@link AbstractGitHubNotificationStrategy}
+ *
  * @since 2.3.2
  */
 public final class DefaultGitHubNotificationStrategy extends AbstractGitHubNotificationStrategy {
@@ -38,12 +38,15 @@ public final class DefaultGitHubNotificationStrategy extends AbstractGitHubNotif
     /**
      * {@inheritDoc}
      */
-    public List<GitHubNotificationRequest> notifications(GitHubNotificationContext notificationContext, TaskListener listener) {
-        return Collections.singletonList(GitHubNotificationRequest.build(notificationContext.getDefaultContext(listener),
-                notificationContext.getDefaultUrl(listener),
-                notificationContext.getDefaultMessage(listener),
-                notificationContext.getDefaultState(listener),
-                notificationContext.getDefaultIgnoreError(listener)));
+    public List<GitHubNotificationRequest> notifications(
+            GitHubNotificationContext notificationContext,
+            TaskListener listener) {
+        return Collections
+                .singletonList(GitHubNotificationRequest.build(notificationContext.getDefaultContext(listener),
+                        notificationContext.getDefaultUrl(listener),
+                        notificationContext.getDefaultMessage(listener),
+                        notificationContext.getDefaultState(listener),
+                        notificationContext.getDefaultIgnoreError(listener)));
     }
 
     /**

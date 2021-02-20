@@ -1,16 +1,15 @@
 package org.jenkinsci.plugins.github_branch_source;
 
-import java.util.ArrayList;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import java.util.ArrayList;
+import javax.annotation.Nonnull;
 import jenkins.scm.api.trait.SCMNavigatorContext;
 import jenkins.scm.api.trait.SCMNavigatorTrait;
 import jenkins.scm.api.trait.SCMNavigatorTraitDescriptor;
 import jenkins.scm.impl.trait.Selection;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import javax.annotation.Nonnull;
 
 /**
  * Decorates a {@link SCMNavigatorContext} with GitHub topics
@@ -28,7 +27,8 @@ public class TopicsTrait extends SCMNavigatorTrait {
     /**
      * Stapler constructor.
      *
-     * @param topicList a comma-separated list of topics
+     * @param topicList
+     *            a comma-separated list of topics
      */
     @DataBoundConstructor
     public TopicsTrait(@NonNull String topicList) {

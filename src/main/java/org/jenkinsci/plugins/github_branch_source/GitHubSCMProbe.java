@@ -28,6 +28,10 @@ package org.jenkinsci.plugins.github_branch_source;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.List;
+import java.util.logging.Logger;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMHead;
@@ -41,12 +45,6 @@ import org.kohsuke.github.GHRef;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.List;
-import java.util.logging.Logger;
-
-
 @SuppressFBWarnings("SE_TRANSIENT_FIELD_NOT_RESTORED")
 class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
     private static final long serialVersionUID = 1L;
@@ -58,11 +56,12 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
     private final String name;
     private transient boolean open = true;
 
-    public GitHubSCMProbe(String apiUri,
-                          StandardCredentials credentials,
-                          GHRepository repo,
-                          SCMHead head,
-                          SCMRevision revision) throws IOException {
+    public GitHubSCMProbe(
+            String apiUri,
+            StandardCredentials credentials,
+            GHRepository repo,
+            SCMHead head,
+            SCMRevision revision) throws IOException {
         this.gitHub = Connector.connect(apiUri, credentials);
         this.revision = revision;
         this.repo = repo;
@@ -70,7 +69,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
         if (head instanceof PullRequestSCMHead) {
             PullRequestSCMHead pr = (PullRequestSCMHead) head;
             this.ref = "pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
-        } else if (head instanceof GitHubTagSCMHead){
+        } else if (head instanceof GitHubTagSCMHead) {
             this.ref = "tags/" + head.getName();
         } else {
             this.ref = "heads/" + head.getName();
@@ -140,7 +139,8 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
         checkOpen();
         try {
             int index = path.lastIndexOf('/') + 1;
-            List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index), Constants.R_REFS + ref);
+            List<GHContent> directoryContent = repo.getDirectoryContent(path.substring(0, index),
+                    Constants.R_REFS + ref);
             for (GHContent content : directoryContent) {
                 if (content.getPath().equals(path)) {
                     if (content.isFile()) {
@@ -179,7 +179,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
         if (revision != null) {
             if (revision.getHead() instanceof PullRequestSCMHead) {
                 ref = this.ref;
-            } else if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl){
+            } else if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl) {
                 ref = ((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash();
             } else {
                 ref = this.ref;

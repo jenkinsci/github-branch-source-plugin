@@ -29,9 +29,9 @@ import jenkins.scm.api.SCMHead;
 
 @Deprecated
 class UntrustedPullRequestSCMRevision extends AbstractGitSCMSource.SCMRevisionImpl {
-    
+
     private static final long serialVersionUID = -6961458604178249880L;
-    
+
     final String baseHash;
 
     private UntrustedPullRequestSCMRevision(SCMHead head, String hash, String baseHash) {

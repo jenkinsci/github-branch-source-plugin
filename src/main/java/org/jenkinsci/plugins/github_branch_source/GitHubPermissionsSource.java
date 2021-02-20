@@ -36,10 +36,13 @@ public abstract class GitHubPermissionsSource {
     /**
      * Fetches the permissions of the supplied username.
      *
-     * @param username the username.
+     * @param username
+     *            the username.
      * @return the permissions.
-     * @throws IOException          if there was an IO error.
-     * @throws InterruptedException if interrupted.
+     * @throws IOException
+     *             if there was an IO error.
+     * @throws InterruptedException
+     *             if interrupted.
      */
     public abstract GHPermissionType fetch(String username) throws IOException, InterruptedException;
 }

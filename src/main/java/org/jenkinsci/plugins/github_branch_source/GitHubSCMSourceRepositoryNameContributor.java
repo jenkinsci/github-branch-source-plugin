@@ -28,9 +28,8 @@ import com.cloudbees.jenkins.GitHubRepositoryName;
 import com.cloudbees.jenkins.GitHubRepositoryNameContributor;
 import hudson.Extension;
 import hudson.model.Item;
-import jenkins.scm.api.SCMSourceOwner;
-
 import java.util.Collection;
+import jenkins.scm.api.SCMSourceOwner;
 
 /**
  * Finds the repository name(s) associated with a {@link SCMSourceOwner}'s {@link GitHubSCMSource}s.

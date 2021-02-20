@@ -25,11 +25,11 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import hudson.model.TaskListener;
+import java.util.Collections;
+import java.util.List;
 import jenkins.scm.api.SCMHeadObserver;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-import java.util.Collections;
-import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -96,7 +96,9 @@ public class GitHubNotificationTest {
     private final class TestNotificationStrategy extends AbstractGitHubNotificationStrategy {
 
         @Override
-        public List<GitHubNotificationRequest> notifications(GitHubNotificationContext notificationContext, TaskListener listener) {
+        public List<GitHubNotificationRequest> notifications(
+                GitHubNotificationContext notificationContext,
+                TaskListener listener) {
             return null;
         }
 

@@ -42,7 +42,8 @@ import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.StaplerRequest;
 
-@Extension public class GitHubConfiguration extends GlobalConfiguration {
+@Extension
+public class GitHubConfiguration extends GlobalConfiguration {
 
     public static GitHubConfiguration get() {
         return GlobalConfiguration.all().get(GitHubConfiguration.class);
@@ -56,7 +57,8 @@ import org.kohsuke.stapler.StaplerRequest;
         load();
     }
 
-    @Override public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+    @Override
+    public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
         req.bindJSON(this, json);
         return true;
     }
@@ -82,13 +84,14 @@ import org.kohsuke.stapler.StaplerRequest;
     /**
      * Fix an apiUri.
      *
-     * @param apiUri the api URI.
+     * @param apiUri
+     *            the api URI.
      * @return the normalized api URI.
      */
     @CheckForNull
     public static String normalizeApiUri(@CheckForNull String apiUri) {
         if (apiUri == null) {
-            return  null;
+            return null;
         }
         try {
             URI uri = new URI(apiUri).normalize();
@@ -112,8 +115,7 @@ import org.kohsuke.stapler.StaplerRequest;
                         port,
                         uri.getPath(),
                         uri.getQuery(),
-                        uri.getFragment()
-                ).toASCIIString();
+                        uri.getFragment()).toASCIIString();
             }
         } catch (URISyntaxException e) {
             // ignore, this was a best effort tidy-up
@@ -125,7 +127,7 @@ import org.kohsuke.stapler.StaplerRequest;
         endpoints = new ArrayList<>(endpoints == null ? Collections.emptyList() : endpoints);
         // remove duplicates and empty urls
         Set<String> apiUris = new HashSet<>();
-        for (Iterator<Endpoint> iterator = endpoints.iterator(); iterator.hasNext(); ) {
+        for (Iterator<Endpoint> iterator = endpoints.iterator(); iterator.hasNext();) {
             Endpoint endpoint = iterator.next();
             if (StringUtils.isBlank(endpoint.getApiUri()) || apiUris.contains(endpoint.getApiUri())) {
                 iterator.remove();
@@ -139,7 +141,8 @@ import org.kohsuke.stapler.StaplerRequest;
     /**
      * Adds an endpoint.
      *
-     * @param endpoint the endpoint to add.
+     * @param endpoint
+     *            the endpoint to add.
      * @return {@code true} if the list of endpoints was modified
      */
     public synchronized boolean addEndpoint(@NonNull Endpoint endpoint) {
@@ -160,7 +163,8 @@ import org.kohsuke.stapler.StaplerRequest;
     /**
      * Updates an existing endpoint (or adds if missing).
      *
-     * @param endpoint the endpoint to update.
+     * @param endpoint
+     *            the endpoint to update.
      */
     public synchronized void updateEndpoint(@NonNull Endpoint endpoint) {
         if (StringUtils.isBlank(endpoint.getApiUri())) {
@@ -185,7 +189,8 @@ import org.kohsuke.stapler.StaplerRequest;
     /**
      * Removes an endpoint.
      *
-     * @param endpoint the endpoint to remove.
+     * @param endpoint
+     *            the endpoint to remove.
      * @return {@code true} if the list of endpoints was modified
      */
     public boolean removeEndpoint(@NonNull Endpoint endpoint) {
@@ -195,14 +200,15 @@ import org.kohsuke.stapler.StaplerRequest;
     /**
      * Removes an endpoint.
      *
-     * @param apiUri the API URI to remove.
+     * @param apiUri
+     *            the API URI to remove.
      * @return {@code true} if the list of endpoints was modified
      */
     public synchronized boolean removeEndpoint(@CheckForNull String apiUri) {
         apiUri = normalizeApiUri(apiUri);
         boolean modified = false;
         List<Endpoint> endpoints = new ArrayList<>(getEndpoints());
-        for (Iterator<Endpoint> iterator = endpoints.iterator(); iterator.hasNext(); ) {
+        for (Iterator<Endpoint> iterator = endpoints.iterator(); iterator.hasNext();) {
             if (StringUtils.equals(apiUri, iterator.next().getApiUri())) {
                 iterator.remove();
                 modified = true;
@@ -215,7 +221,8 @@ import org.kohsuke.stapler.StaplerRequest;
     /**
      * Checks to see if the supplied server URL is defined in the global configuration.
      *
-     * @param apiUri the server url to check.
+     * @param apiUri
+     *            the server url to check.
      * @return the global configuration for the specified server url or {@code null} if not defined.
      */
     @CheckForNull

@@ -32,11 +32,12 @@ import jenkins.scm.api.trait.SCMHeadAuthority;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.Ignore;
-import org.junit.Test;
-import static org.junit.Assert.*;
 import org.junit.Rule;
+import org.junit.Test;
 import org.jvnet.hudson.test.For;
 import org.jvnet.hudson.test.JenkinsRule;
+
+import static org.junit.Assert.*;
 
 @For(ForkPullRequestDiscoveryTrait.class)
 public class ForkPullRequestDiscoveryTrait2Test {
@@ -65,7 +66,10 @@ public class ForkPullRequestDiscoveryTrait2Test {
         assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustPermission(), true);
     }
 
-    private void assertRoundTrip(WorkflowMultiBranchProject p, SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision> trust, boolean configuredByUrl) throws Exception {
+    private void assertRoundTrip(
+            WorkflowMultiBranchProject p,
+            SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision> trust,
+            boolean configuredByUrl) throws Exception {
 
         GitHubSCMSource s;
         if (configuredByUrl)

@@ -8,14 +8,12 @@ import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import java.io.File;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.jvnet.hudson.test.JenkinsRule;
-
-import java.io.File;
-import java.time.Duration;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -36,30 +34,24 @@ public abstract class AbstractGitHubWireMockTest extends Assert {
     public static WireMockRuleFactory factory = new WireMockRuleFactory();
 
     @Rule
-    public WireMockRule githubRaw = factory.getRule(WireMockConfiguration.options()
-        .dynamicPort()
-        .usingFilesUnderClasspath("raw")
-    );
+    public WireMockRule githubRaw = factory
+            .getRule(WireMockConfiguration.options().dynamicPort().usingFilesUnderClasspath("raw"));
     @Rule
     public WireMockRule githubApi = factory.getRule(WireMockConfiguration.options()
-        .dynamicPort()
-        .usingFilesUnderClasspath("api")
-        .extensions(
-            new ResponseTransformer() {
+            .dynamicPort()
+            .usingFilesUnderClasspath("api")
+            .extensions(new ResponseTransformer() {
                 @Override
-                public Response transform(Request request, Response response, FileSource files,
-                                          Parameters parameters) {
-                    if ("application/json"
-                        .equals(response.getHeaders().getContentTypeHeader().mimeTypePart())) {
+                public Response transform(Request request, Response response, FileSource files, Parameters parameters) {
+                    if ("application/json".equals(response.getHeaders().getContentTypeHeader().mimeTypePart())) {
                         return Response.Builder.like(response)
-                            .but()
-                            .body(response.getBodyAsString()
-                                .replace("https://api.github.com/",
-                                    "http://localhost:" + githubApi.port() + "/")
-                                .replace("https://raw.githubusercontent.com/",
-                                    "http://localhost:" + githubRaw.port() + "/")
-                            )
-                            .build();
+                                .but()
+                                .body(response.getBodyAsString()
+                                        .replace("https://api.github.com/",
+                                                "http://localhost:" + githubApi.port() + "/")
+                                        .replace("https://raw.githubusercontent.com/",
+                                                "http://localhost:" + githubRaw.port() + "/"))
+                                .build();
                     }
                     return response;
                 }
@@ -69,19 +61,17 @@ public abstract class AbstractGitHubWireMockTest extends Assert {
                     return "url-rewrite";
                 }
 
-            })
-    );
+            }));
 
     @Before
     public void prepareMockGitHub() {
         prepareMockGitHubFileMappings();
-        
+
         if (useProxy) {
-            githubApi.stubFor(
-                get(urlMatching(".*")).atPriority(10)
+            githubApi.stubFor(get(urlMatching(".*")).atPriority(10)
                     .willReturn(aResponse().proxiedFrom("https://api.github.com/")));
             githubRaw.stubFor(get(urlMatching(".*")).atPriority(10)
-                .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
+                    .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
         }
     }
 
@@ -91,10 +81,9 @@ public abstract class AbstractGitHubWireMockTest extends Assert {
         new File("src/test/resources/raw/mappings").mkdirs();
         new File("src/test/resources/raw/__files").mkdirs();
         githubApi.enableRecordMappings(new SingleRootFileSource("src/test/resources/api/mappings"),
-            new SingleRootFileSource("src/test/resources/api/__files"));
+                new SingleRootFileSource("src/test/resources/api/__files"));
         githubRaw.enableRecordMappings(new SingleRootFileSource("src/test/resources/raw/mappings"),
-            new SingleRootFileSource("src/test/resources/raw/__files"));
+                new SingleRootFileSource("src/test/resources/raw/__files"));
     }
-
 
 }

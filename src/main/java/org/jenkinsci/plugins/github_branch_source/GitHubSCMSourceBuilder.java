@@ -57,15 +57,23 @@ public class GitHubSCMSourceBuilder extends SCMSourceBuilder<GitHubSCMSourceBuil
     /**
      * Constructor.
      *
-     * @param id            the {@link GitHubSCMSource#getId()}
-     * @param apiUri        the {@link GitHubSCMSource#getApiUri()}
-     * @param credentialsId the credentials id.
-     * @param repoOwner     the repository owner.
-     * @param repoName      the project name.
+     * @param id
+     *            the {@link GitHubSCMSource#getId()}
+     * @param apiUri
+     *            the {@link GitHubSCMSource#getApiUri()}
+     * @param credentialsId
+     *            the credentials id.
+     * @param repoOwner
+     *            the repository owner.
+     * @param repoName
+     *            the project name.
      */
-    public GitHubSCMSourceBuilder(@CheckForNull String id, @CheckForNull String apiUri,
-                                  @CheckForNull String credentialsId, @NonNull String repoOwner,
-                                  @NonNull String repoName) {
+    public GitHubSCMSourceBuilder(
+            @CheckForNull String id,
+            @CheckForNull String apiUri,
+            @CheckForNull String credentialsId,
+            @NonNull String repoOwner,
+            @NonNull String repoName) {
         super(GitHubSCMSource.class, repoName);
         this.id = id;
         this.apiUri = apiUri;

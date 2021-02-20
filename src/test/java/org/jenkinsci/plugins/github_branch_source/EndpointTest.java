@@ -10,6 +10,13 @@ import hudson.Functions;
 import hudson.Util;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.csrf.CrumbExclusion;
+import java.io.IOException;
+import java.net.URL;
+import java.util.Arrays;
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import org.junit.Before;
 import org.junit.Rule;
@@ -21,14 +28,6 @@ import org.jvnet.hudson.test.TestExtension;
 import org.kohsuke.stapler.StaplerRequest;
 import org.kohsuke.stapler.StaplerResponse;
 import org.xml.sax.SAXException;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.net.URL;
-import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -51,10 +50,14 @@ public class EndpointTest {
         testUrl = Util.rawEncode(j.getURL().toString() + "testroot/");
     }
 
-    @Test @Issue("SECURITY-806")
+    @Test
+    @Issue("SECURITY-806")
     public void cantGet_doCheckApiUri() throws IOException, SAXException {
         try {
-            j.createWebClient().goTo(appendCrumb("descriptorByName/org.jenkinsci.plugins.github_branch_source.Endpoint/checkApiUri?apiUri=" + testUrl));
+            j.createWebClient()
+                    .goTo(appendCrumb(
+                            "descriptorByName/org.jenkinsci.plugins.github_branch_source.Endpoint/checkApiUri?apiUri="
+                                    + testUrl));
             fail("Should not be able to do that");
         } catch (FailingHttpStatusCodeException e) {
             assertEquals(405, e.getStatusCode());
@@ -62,10 +65,12 @@ public class EndpointTest {
         assertFalse(TestRoot.get().visited);
     }
 
-    @Test @Issue("SECURITY-806")
+    @Test
+    @Issue("SECURITY-806")
     public void cantPostAsAnonymous_doCheckApiUri() throws Exception {
         try {
-            post("descriptorByName/org.jenkinsci.plugins.github_branch_source.Endpoint/checkApiUri?apiUri=" + testUrl, null);
+            post("descriptorByName/org.jenkinsci.plugins.github_branch_source.Endpoint/checkApiUri?apiUri=" + testUrl,
+                    null);
             fail("Should not be able to do that");
         } catch (FailingHttpStatusCodeException e) {
             assertEquals(403, e.getStatusCode());
@@ -73,9 +78,11 @@ public class EndpointTest {
         assertFalse(TestRoot.get().visited);
     }
 
-    @Test @Issue("SECURITY-806")
+    @Test
+    @Issue("SECURITY-806")
     public void canPostAsAdmin_doCheckApiUri() throws Exception {
-        post("descriptorByName/org.jenkinsci.plugins.github_branch_source.Endpoint/checkApiUri?apiUri=" + testUrl, "alice");
+        post("descriptorByName/org.jenkinsci.plugins.github_branch_source.Endpoint/checkApiUri?apiUri=" + testUrl,
+                "alice");
         assertTrue(TestRoot.get().visited);
     }
 
@@ -97,7 +104,8 @@ public class EndpointTest {
 
         final WebRequest request = new WebRequest(new URL(client.getContextPath() + relative), HttpMethod.POST);
         request.setAdditionalHeader("Accept", client.getBrowserVersion().getHtmlAcceptHeader());
-        request.setRequestParameters(Arrays.asList(new NameValuePair(Functions.getCrumbRequestField(), Functions.getCrumb(null))));
+        request.setRequestParameters(
+                Arrays.asList(new NameValuePair(Functions.getCrumbRequestField(), Functions.getCrumb(null))));
         return client.getPage(request);
     }
 
@@ -134,7 +142,8 @@ public class EndpointTest {
     @TestExtension
     public static class CrumbExcluder extends CrumbExclusion {
         @Override
-        public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws IOException, ServletException {
+        public boolean process(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+                throws IOException, ServletException {
             final String pathInfo = request.getPathInfo();
             if (pathInfo == null || !pathInfo.contains("testroot")) {
                 return false;

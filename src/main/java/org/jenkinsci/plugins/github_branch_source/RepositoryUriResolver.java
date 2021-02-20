@@ -37,9 +37,12 @@ public abstract class RepositoryUriResolver {
     /**
      * Resolves the URI of a repository.
      *
-     * @param apiUri     the API URL of the GitHub server.
-     * @param owner      the owner of the repository.
-     * @param repository the name of the repository.
+     * @param apiUri
+     *            the API URL of the GitHub server.
+     * @param owner
+     *            the owner of the repository.
+     * @param repository
+     *            the name of the repository.
      * @return the GIT URL of the repository.
      */
     @NonNull
@@ -48,7 +51,8 @@ public abstract class RepositoryUriResolver {
     /**
      * Helper method that returns the hostname of a GitHub server from its API URL.
      *
-     * @param apiUri the API URL.
+     * @param apiUri
+     *            the API URL.
      * @return the hostname of a GitHub server
      */
     @NonNull

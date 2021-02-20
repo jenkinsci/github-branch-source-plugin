@@ -32,16 +32,14 @@ import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import hudson.util.FormValidation;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Objects;
-import java.util.logging.Logger;
 import java.util.logging.Level;
-
+import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMName;
 import org.apache.commons.lang.StringUtils;
@@ -59,13 +57,7 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
     /**
      * Common prefixes that we should remove when inferring a display name.
      */
-    private static final String[] COMMON_PREFIX_HOSTNAMES = {
-            "git.",
-            "github.",
-            "vcs.",
-            "scm.",
-            "source."
-    };
+    private static final String[] COMMON_PREFIX_HOSTNAMES = { "git.", "github.", "vcs.", "scm.", "source." };
 
     private final String name;
     private final String apiUri;
@@ -151,7 +143,8 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
                 GitHub github = GitHub.connectToEnterpriseAnonymously(api.toString());
                 github.checkApiUrlValidity();
                 LOGGER.log(Level.FINE, "Trying to configure a GitHub Enterprise server");
-                // For example: https://api.github.com/ or https://github.mycompany.com/api/v3/ (with private mode disabled).
+                // For example: https://api.github.com/ or https://github.mycompany.com/api/v3/ (with private mode
+                // disabled).
                 return FormValidation.ok("GitHub Enterprise server verified");
             } catch (MalformedURLException mue) {
                 // For example: https:/api.github.com
@@ -159,7 +152,8 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
                 return FormValidation.error("The endpoint does not look like a GitHub Enterprise (malformed URL)");
             } catch (JsonParseException jpe) {
                 LOGGER.log(Level.WARNING, "Trying to configure a GitHub Enterprise server: " + apiUri, jpe.getCause());
-                return FormValidation.error("The endpoint does not look like a GitHub Enterprise (invalid JSON response)");
+                return FormValidation
+                        .error("The endpoint does not look like a GitHub Enterprise (invalid JSON response)");
             } catch (FileNotFoundException fnt) {
                 // For example: https://github.mycompany.com/server/api/v3/ gets a FileNotFoundException
                 LOGGER.log(Level.WARNING, "Getting HTTP Error 404 for " + apiUri);
@@ -171,7 +165,8 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
                     return FormValidation.warning("Private mode enabled, validation disabled");
                 }
                 LOGGER.log(Level.WARNING, e.getMessage());
-                return FormValidation.error("The endpoint does not look like a GitHub Enterprise (verify network and/or try again later)");
+                return FormValidation.error(
+                        "The endpoint does not look like a GitHub Enterprise (verify network and/or try again later)");
             }
         }
 

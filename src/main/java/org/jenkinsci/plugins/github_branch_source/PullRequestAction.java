@@ -35,6 +35,7 @@ import org.kohsuke.github.GHPullRequest;
 
 /**
  * Retained for binary compatibility only
+ *
  * @deprecated Retained for binary compatibility only
  */
 @Deprecated

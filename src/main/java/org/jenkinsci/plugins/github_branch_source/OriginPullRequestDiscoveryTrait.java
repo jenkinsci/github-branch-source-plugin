@@ -56,21 +56,21 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
     /**
      * None strategy.
-    */
+     */
     public static final int NONE = 0;
     /**
      * Merging the pull request with the current target branch revision.
-    */
+     */
     public static final int MERGE = 1;
     /**
      * The current pull request revision.
-    */
+     */
     public static final int HEAD = 2;
     /**
      * Both the current pull request revision and the pull request merged with the current target branch revision.
-    */
+     */
     public static final int HEAD_AND_MERGE = 3;
-    
+
     /**
      * The strategy encoded as a bit-field.
      */
@@ -79,7 +79,8 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
     /**
      * Constructor for stapler.
      *
-     * @param strategyId the strategy id.
+     * @param strategyId
+     *            the strategy id.
      */
     @DataBoundConstructor
     public OriginPullRequestDiscoveryTrait(int strategyId) {
@@ -89,11 +90,13 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
     /**
      * Constructor for programmatic instantiation.
      *
-     * @param strategies the {@link ChangeRequestCheckoutStrategy} instances.
+     * @param strategies
+     *            the {@link ChangeRequestCheckoutStrategy} instances.
      */
     public OriginPullRequestDiscoveryTrait(Set<ChangeRequestCheckoutStrategy> strategies) {
-        this((strategies.contains(ChangeRequestCheckoutStrategy.MERGE) ? MERGE : NONE)
-                + (strategies.contains(ChangeRequestCheckoutStrategy.HEAD) ? HEAD : NONE));
+        this(
+                (strategies.contains(ChangeRequestCheckoutStrategy.MERGE) ? MERGE : NONE)
+                        + (strategies.contains(ChangeRequestCheckoutStrategy.HEAD) ? HEAD : NONE));
     }
 
     /**
@@ -196,7 +199,8 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
      * A {@link SCMHeadAuthority} that trusts origin pull requests
      */
     public static class OriginChangeRequestSCMHeadAuthority
-            extends SCMHeadAuthority<SCMSourceRequest, ChangeRequestSCMHead2, SCMRevision> {
+            extends
+                SCMHeadAuthority<SCMSourceRequest, ChangeRequestSCMHead2, SCMRevision> {
         /**
          * {@inheritDoc}
          */

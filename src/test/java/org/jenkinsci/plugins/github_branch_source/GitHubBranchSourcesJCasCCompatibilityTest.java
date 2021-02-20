@@ -1,6 +1,5 @@
 package org.jenkinsci.plugins.github_branch_source;
 
-
 import io.jenkins.plugins.casc.misc.RoundTripAbstractTest;
 import org.jenkinsci.plugins.workflow.libs.GlobalLibraries;
 import org.jenkinsci.plugins.workflow.libs.LibraryConfiguration;

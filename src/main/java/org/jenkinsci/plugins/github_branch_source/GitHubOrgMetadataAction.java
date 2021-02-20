@@ -82,9 +82,12 @@ public class GitHubOrgMetadataAction extends AvatarMetadataAction {
                             + "/plugin/github-branch-source/images/" + size + "/github-logo.png");
         } else {
             String[] xy = size.split("x");
-            if (xy.length == 0) return avatar;
-            if (avatar.contains("?")) return avatar + "&s=" + xy[0];
-            else return avatar + "?s=" + xy[0];
+            if (xy.length == 0)
+                return avatar;
+            if (avatar.contains("?"))
+                return avatar + "&s=" + xy[0];
+            else
+                return avatar + "?s=" + xy[0];
         }
     }
 
@@ -134,9 +137,7 @@ public class GitHubOrgMetadataAction extends AvatarMetadataAction {
      */
     @Override
     public String toString() {
-        return "GitHubOrgMetadataAction{" +
-                ", avatar='" + avatar + '\'' +
-                "}";
+        return "GitHubOrgMetadataAction{" + ", avatar='" + avatar + '\'' + "}";
     }
 
 }

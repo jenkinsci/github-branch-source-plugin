@@ -54,21 +54,21 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public class BranchDiscoveryTrait extends SCMSourceTrait {
     /**
      * None strategy.
-    */
+     */
     public static final int NONE = 0;
     /**
      * Exclude branches that are also filed as PRs.
-    */
+     */
     public static final int EXCLUDE_PRS = 1;
     /**
      * Only branches that are also filed as PRs.
-    */
+     */
     public static final int ONLY_PRS = 2;
     /**
      * All branches.
-    */
+     */
     public static final int ALL_BRANCHES = 3;
-    
+
     /**
      * The strategy encoded as a bit-field.
      */
@@ -77,7 +77,8 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
     /**
      * Constructor for stapler.
      *
-     * @param strategyId the strategy id.
+     * @param strategyId
+     *            the strategy id.
      */
     @DataBoundConstructor
     public BranchDiscoveryTrait(int strategyId) {
@@ -87,8 +88,10 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
     /**
      * Constructor for legacy code.
      *
-     * @param buildBranch       build branches that are not filed as a PR.
-     * @param buildBranchWithPr build branches that are also PRs.
+     * @param buildBranch
+     *            build branches that are not filed as a PR.
+     * @param buildBranchWithPr
+     *            build branches that are also PRs.
      */
     public BranchDiscoveryTrait(boolean buildBranch, boolean buildBranchWithPr) {
         this.strategyId = (buildBranch ? EXCLUDE_PRS : NONE) + (buildBranchWithPr ? ONLY_PRS : NONE);

@@ -89,29 +89,33 @@ class GitHubSCMFile extends SCMFile {
             try {
                 switch (info) {
                     case DIRECTORY_ASSUMED:
-                        metadata = repo.getDirectoryContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
+                        metadata = repo.getDirectoryContent(getPath(),
+                                ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                         info = TypeInfo.DIRECTORY_CONFIRMED;
                         resolved = true;
                         break;
                     case DIRECTORY_CONFIRMED:
-                        metadata = repo.getDirectoryContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
+                        metadata = repo.getDirectoryContent(getPath(),
+                                ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                         resolved = true;
                         break;
                     case NON_DIRECTORY_CONFIRMED:
-                        metadata = repo.getFileContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
+                        metadata = repo.getFileContent(getPath(),
+                                ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                         resolved = true;
                         break;
                     case UNRESOLVED:
                         checkOpen();
                         try {
-                            metadata = repo.getFileContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
+                            metadata = repo.getFileContent(getPath(),
+                                    ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                             info = TypeInfo.NON_DIRECTORY_CONFIRMED;
                             resolved = true;
                         } catch (IOException e) {
                             // Upcoming version of github-api hoists JsonMappingException up one level
                             // Support both the old and the new structure
-                            if (e.getCause() instanceof JsonMappingException
-                                || e.getCause() != null && e.getCause().getCause() instanceof JsonMappingException ) {
+                            if (e.getCause() instanceof JsonMappingException || e.getCause() != null
+                                    && e.getCause().getCause() instanceof JsonMappingException) {
                                 metadata = repo.getDirectoryContent(getPath(),
                                         ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                                 info = TypeInfo.DIRECTORY_CONFIRMED;
@@ -133,14 +137,15 @@ class GitHubSCMFile extends SCMFile {
     @NonNull
     @Override
     protected SCMFile newChild(String name, boolean assumeIsDirectory) {
-        return new GitHubSCMFile(this, name, assumeIsDirectory ? TypeInfo.DIRECTORY_ASSUMED: TypeInfo.UNRESOLVED);
+        return new GitHubSCMFile(this, name, assumeIsDirectory ? TypeInfo.DIRECTORY_ASSUMED : TypeInfo.UNRESOLVED);
     }
 
     @NonNull
     @Override
     public Iterable<SCMFile> children() throws IOException {
         checkOpen();
-        List<GHContent> content = repo.getDirectoryContent(getPath(), ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
+        List<GHContent> content = repo.getDirectoryContent(getPath(),
+                ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
         List<SCMFile> result = new ArrayList<>(content.size());
         for (GHContent c : content) {
             result.add(new GitHubSCMFile(this, c.getName(), c));
@@ -182,16 +187,13 @@ class GitHubSCMFile extends SCMFile {
             throw new IOException("Directory");
         }
         if (metadata instanceof GHContent) {
-            return ((GHContent)metadata).read();
+            return ((GHContent) metadata).read();
         }
         throw new FileNotFoundException(getPath());
     }
 
     private enum TypeInfo {
-        UNRESOLVED,
-        DIRECTORY_ASSUMED,
-        DIRECTORY_CONFIRMED,
-        NON_DIRECTORY_CONFIRMED;
+        UNRESOLVED, DIRECTORY_ASSUMED, DIRECTORY_CONFIRMED, NON_DIRECTORY_CONFIRMED;
     }
 
 }

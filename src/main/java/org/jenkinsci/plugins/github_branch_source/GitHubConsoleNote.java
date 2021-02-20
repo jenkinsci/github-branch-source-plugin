@@ -42,7 +42,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 public class GitHubConsoleNote extends ConsoleNote {
 
     private static final Logger LOGGER = Logger.getLogger(GitHubConsoleNote.class.getName());
-    
+
     private static final long serialVersionUID = 1L;
 
     private final long timestamp;
@@ -53,7 +53,10 @@ public class GitHubConsoleNote extends ConsoleNote {
 
     @Override
     public ConsoleAnnotator annotate(Object context, MarkupText text, int charPos) {
-        text.addMarkup(0, text.length(), String.format("<span class='greyed'><small>%tT</small> ", timestamp), "</span>");
+        text.addMarkup(0,
+                text.length(),
+                String.format("<span class='greyed'><small>%tT</small> ", timestamp),
+                "</span>");
         return null;
     }
 

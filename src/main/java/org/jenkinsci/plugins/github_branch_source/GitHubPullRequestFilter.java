@@ -51,7 +51,7 @@ public class GitHubPullRequestFilter extends ViewJobFilter {
      */
     @Override
     public List<TopLevelItem> filter(List<TopLevelItem> added, List<TopLevelItem> all, View filteringView) {
-        for (TopLevelItem item:all) {
+        for (TopLevelItem item : all) {
             if (added.contains(item)) {
                 continue;
             }

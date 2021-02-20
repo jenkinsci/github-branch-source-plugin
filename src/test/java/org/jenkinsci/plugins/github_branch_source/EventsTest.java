@@ -25,6 +25,8 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import jenkins.scm.api.SCMEvent;
 import jenkins.scm.api.SCMEvents;
 import jenkins.scm.api.SCMHeadEvent;
@@ -38,9 +40,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
-
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
 
@@ -162,19 +161,22 @@ public class EventsTest {
         waitAndAssertReceived(false);
     }
 
-    private GHSubscriberEvent callOnEvent(PushGHEventSubscriber subscriber, String eventPayloadFile) throws IOException {
+    private GHSubscriberEvent callOnEvent(PushGHEventSubscriber subscriber, String eventPayloadFile)
+            throws IOException {
         GHSubscriberEvent event = createEvent(eventPayloadFile);
         subscriber.onEvent(event);
         return event;
     }
 
-    private GHSubscriberEvent callOnEvent(PullRequestGHEventSubscriber subscriber, String eventPayloadFile) throws IOException {
+    private GHSubscriberEvent callOnEvent(PullRequestGHEventSubscriber subscriber, String eventPayloadFile)
+            throws IOException {
         GHSubscriberEvent event = createEvent(eventPayloadFile);
         subscriber.onEvent(event);
         return event;
     }
 
-    private GHSubscriberEvent callOnEvent(GitHubRepositoryEventSubscriber subscriber, String eventPayloadFile) throws IOException {
+    private GHSubscriberEvent callOnEvent(GitHubRepositoryEventSubscriber subscriber, String eventPayloadFile)
+            throws IOException {
         GHSubscriberEvent event = createEvent(eventPayloadFile);
         subscriber.onEvent(event);
         return event;
@@ -190,7 +192,9 @@ public class EventsTest {
         // event will be fired by subscriber at some point
         SCMEvents.awaitOne(watermark, 1200, TimeUnit.MILLISECONDS);
 
-        assertEquals("Event should have " + ((!received) ? "not " : "") + "been received", received, TestSCMEventListener.didReceive());
+        assertEquals("Event should have " + ((!received) ? "not " : "") + "been received",
+                received,
+                TestSCMEventListener.didReceive());
     }
 
     @TestExtension
