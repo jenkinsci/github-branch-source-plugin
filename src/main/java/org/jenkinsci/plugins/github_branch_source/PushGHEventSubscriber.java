@@ -133,22 +133,19 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                 }
 
                 if (p.isCreated()) {
-                    fireAfterDelay(new SCMHeadEventImpl(
-                            SCMEvent.Type.CREATED,
+                    fireAfterDelay(new SCMHeadEventImpl(SCMEvent.Type.CREATED,
                             event.getTimestamp(),
                             p,
                             changedRepository,
                             event.getOrigin()));
                 } else if (p.isDeleted()) {
-                    fireAfterDelay(new SCMHeadEventImpl(
-                            SCMEvent.Type.REMOVED,
+                    fireAfterDelay(new SCMHeadEventImpl(SCMEvent.Type.REMOVED,
                             event.getTimestamp(),
                             p,
                             changedRepository,
                             event.getOrigin()));
                 } else {
-                    fireAfterDelay(new SCMHeadEventImpl(
-                            SCMEvent.Type.UPDATED,
+                    fireAfterDelay(new SCMHeadEventImpl(SCMEvent.Type.UPDATED,
                             event.getTimestamp(),
                             p,
                             changedRepository,

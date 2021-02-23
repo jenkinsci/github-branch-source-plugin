@@ -357,8 +357,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__legacyCode__when__constructor_cloud__then__discoveryTraitDefaults() throws Exception {
-        GitHubSCMSource instance = new GitHubSCMSource(
-                "preserve-id",
+        GitHubSCMSource instance = new GitHubSCMSource("preserve-id",
                 null,
                 "SAME",
                 "e4d8c11a-0d24-472f-b86b-4b017c160e9a",
@@ -392,8 +391,7 @@ public class GitHubSCMSourceTraitsTest {
 
     @Test
     public void given__legacyCode__when__constructor_server__then__discoveryTraitDefaults() throws Exception {
-        GitHubSCMSource instance = new GitHubSCMSource(
-                null,
+        GitHubSCMSource instance = new GitHubSCMSource(null,
                 "https://github.test/api/v3",
                 "8b2e4f77-39c5-41a9-b63b-8d367350bfdf",
                 "e4d8c11a-0d24-472f-b86b-4b017c160e9a",

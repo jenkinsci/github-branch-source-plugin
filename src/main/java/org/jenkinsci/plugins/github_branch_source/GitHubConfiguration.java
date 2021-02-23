@@ -107,8 +107,7 @@ public class GitHubConfiguration extends GlobalConfiguration {
                 } else if ("https".equals(scheme) && port == 443) {
                     port = -1;
                 }
-                apiUri = new URI(
-                        scheme,
+                apiUri = new URI(scheme,
                         uri.getUserInfo(),
                         host,
                         port,

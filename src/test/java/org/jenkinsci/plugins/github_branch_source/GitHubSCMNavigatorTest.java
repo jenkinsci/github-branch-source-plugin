@@ -72,8 +72,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     @Mock
     private SCMSourceOwner scmSourceOwner;
 
-    private BaseStandardCredentials credentials = new UsernamePasswordCredentialsImpl(
-            CredentialsScope.GLOBAL,
+    private BaseStandardCredentials credentials = new UsernamePasswordCredentialsImpl(CredentialsScope.GLOBAL,
             "authenticated-user",
             null,
             "git-user",

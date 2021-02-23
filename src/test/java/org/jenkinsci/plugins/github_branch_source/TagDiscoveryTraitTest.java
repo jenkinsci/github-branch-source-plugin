@@ -50,8 +50,7 @@ public class TagDiscoveryTraitTest {
             TagDiscoveryTrait.TagSCMHeadAuthority instance = new TagDiscoveryTrait.TagSCMHeadAuthority();
             assertThat(instance.isTrusted(probe, new SCMHead("v1.0.0")), is(false));
             assertThat(instance.isTrusted(probe,
-                    new PullRequestSCMHead(
-                            "PR-1",
+                    new PullRequestSCMHead("PR-1",
                             "does-not-exists",
                             "http://does-not-exist.test",
                             "feature/1",
@@ -71,8 +70,7 @@ public class TagDiscoveryTraitTest {
             TagDiscoveryTrait.TagSCMHeadAuthority instance = new TagDiscoveryTrait.TagSCMHeadAuthority();
             assertThat(instance.isTrusted(probe, new SCMHead("v1.0.0")), is(false));
             assertThat(instance.isTrusted(probe,
-                    new PullRequestSCMHead(
-                            "PR-1",
+                    new PullRequestSCMHead("PR-1",
                             "does-not-exists",
                             "http://does-not-exist.test",
                             "feature/1",

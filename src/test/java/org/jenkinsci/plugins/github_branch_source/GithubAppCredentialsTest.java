@@ -86,8 +86,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
     public static void setUpJenkins() throws Exception {
         // Add credential (Must have valid private key for Jwt to work, but App doesn't have to actually exist)
         store = CredentialsProvider.lookupStores(r.jenkins).iterator().next();
-        appCredentials = new GitHubAppCredentials(
-                CredentialsScope.GLOBAL,
+        appCredentials = new GitHubAppCredentials(CredentialsScope.GLOBAL,
                 myAppCredentialsId,
                 "sample",
                 "54321",
@@ -130,7 +129,8 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                         false))
                 .willReturn(aResponse().withHeader("Content-Type", "application/json; charset=utf-8")
                         .withBody("{\n" + "  \"token\": \"super-secret-token\",\n" +
-                        // This token will go stale at the soonest allowed time but will not expire for the duration of
+                        // This token will go stale at the soonest allowed time but will
+                        // not expire for the duration of
                         // the test
                                 "  \"expires_at\": \""
                                 + printDate(new Date(System.currentTimeMillis() + Duration.ofMinutes(10).toMillis()))
@@ -173,8 +173,10 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                         false))
                 .willReturn(aResponse().withHeader("Content-Type", "application/json; charset=utf-8")
                         .withBody("{\n" + "  \"token\": \"super-secret-token\",\n" +
-                        // token is already expired, but will not go stale for at least the minimum time
-                        // This is a valid scenario - clocks are not always properly synchronized.
+                        // token is already expired, but will not go stale for at least the
+                        // minimum time
+                        // This is a valid scenario - clocks are not always properly
+                        // synchronized.
                                 "  \"expires_at\": \"" + printDate(new Date()) + "\"" + // 2019-08-10T05:54:58Z
                                 "}")));
 
@@ -207,7 +209,8 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
         // Valid token retirieved on controller
         githubApi.stubFor(post(urlEqualTo("/app/installations/654321/access_tokens")).inScenario(scenarioName)
                 .whenScenarioStateIs("6")
-                .willSetStateTo("7") // setting this to non-existant state means any extra requests will fail
+                .willSetStateTo("7") // setting this to non-existant state means any extra requests
+                                     // will fail
                 .withRequestBody(equalToJson(
                         "{\"permissions\":{\"pull_requests\":\"write\",\"metadata\":\"read\",\"checks\":\"write\",\"contents\":\"read\"}}",
                         true,
@@ -268,11 +271,14 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                             "Generating App Installation Token for app ID 54321",
                             // next call (error forced by wiremock)
                             "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired",
-                            // next call refreshes the still stale token
+                            // next call refreshes the still stale
+                            // token
                             "Generating App Installation Token for app ID 54321",
-                            // sleep and then refresh stale token hits another error forced by wiremock
+                            // sleep and then refresh stale token
+                            // hits another error forced by wiremock
                             "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired",
-                            // next call refreshes the still stale token
+                            // next call refreshes the still stale
+                            // token
                             "Generating App Installation Token for app ID 54321"
                     // next call uses cached token
                     ));
@@ -358,7 +364,9 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                             // (error forced by wiremock - failed refresh on the agent)
                             // "Generating App Installation Token for app ID 54321 on agent", // 1
                             "Generating App Installation Token for app ID 54321 for agent",
-                            // (agent log added out of order) "Keeping cached GitHub App Installation Token for app ID
+                            // (agent log added out of order) "Keeping cached GitHub App
+                            // Installation Token for app
+                            // ID
                             // 54321 on agent: token is stale but has not expired", // 2
                             // checkout scm - refresh on controller
                             "Generating App Installation Token for app ID 54321",

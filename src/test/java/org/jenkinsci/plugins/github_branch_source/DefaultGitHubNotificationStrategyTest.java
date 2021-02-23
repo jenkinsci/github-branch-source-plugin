@@ -76,8 +76,7 @@ public class DefaultGitHubNotificationStrategyTest {
                     GitHubNotificationContext.build(job,
                             run,
                             src,
-                            new PullRequestSCMHead(
-                                    "test-pr",
+                            new PullRequestSCMHead("test-pr",
                                     "owner",
                                     "repo",
                                     "branch",
@@ -90,8 +89,7 @@ public class DefaultGitHubNotificationStrategyTest {
                     GitHubNotificationContext.build(job,
                             run,
                             src,
-                            new PullRequestSCMHead(
-                                    "test-pr",
+                            new PullRequestSCMHead("test-pr",
                                     "owner",
                                     "repo",
                                     "branch",

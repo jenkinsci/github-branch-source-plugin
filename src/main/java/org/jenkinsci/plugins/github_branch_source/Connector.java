@@ -354,7 +354,9 @@ public class Connector {
         } else if (credentials instanceof GitHubAppCredentials) {
             gitHubAppCredentials = (GitHubAppCredentials) credentials;
             hash = Util.getDigestOf(gitHubAppCredentials.getAppID() + gitHubAppCredentials.getOwner()
-                    + gitHubAppCredentials.getPrivateKey().getPlainText() + SALT); // want to ensure pooling by
+                    + gitHubAppCredentials.getPrivateKey().getPlainText() + SALT); // want to
+                                                                                   // ensure
+                                                                                   // pooling by
                                                                                    // credential
             authHash = Util.getDigestOf(gitHubAppCredentials.getAppID() + "::" + gitHubAppCredentials.getOwner() + "::"
                     + gitHubAppCredentials.getPrivateKey().getPlainText() + "::" + jenkins.getLegacyInstanceId());

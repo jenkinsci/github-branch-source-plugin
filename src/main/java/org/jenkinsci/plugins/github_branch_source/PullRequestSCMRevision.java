@@ -109,9 +109,8 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
 
     void validateMergeHash() throws AbortException {
         if (this.mergeHash == NOT_MERGEABLE_HASH) {
-            throw new AbortException(
-                    "Pull request " + ((PullRequestSCMHead) this.getHead()).getNumber() + " : Not mergeable at "
-                            + this.toString());
+            throw new AbortException("Pull request " + ((PullRequestSCMHead) this.getHead()).getNumber()
+                    + " : Not mergeable at " + this.toString());
         }
     }
 

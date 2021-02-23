@@ -187,8 +187,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
         assertThat(((PullRequestSCMHead) byName.get("PR-2")).isMerge(), is(true));
         assertThat(revByName.get("PR-2"),
-                is(new PullRequestSCMRevision(
-                        (PullRequestSCMHead) (byName.get("PR-2")),
+                is(new PullRequestSCMRevision((PullRequestSCMHead) (byName.get("PR-2")),
                         "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                         "c0e024f89969b976da165eecaa71e09dc60c3da1",
                         "38814ca33833ff5583624c29f305be9133f27a40")));
@@ -198,8 +197,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertThat(((SCMHeadOrigin.Fork) byName.get("PR-3").getOrigin()).getName(), is("stephenc"));
         assertThat(((PullRequestSCMHead) byName.get("PR-3")).isMerge(), is(true));
         assertThat(revByName.get("PR-3"),
-                is(new PullRequestSCMRevision(
-                        (PullRequestSCMHead) (byName.get("PR-3")),
+                is(new PullRequestSCMRevision((PullRequestSCMHead) (byName.get("PR-3")),
                         "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                         "c0e024f89969b976da165eecaa71e09dc60c3da1",
                         PullRequestSCMRevision.NOT_MERGEABLE_HASH)));
@@ -256,8 +254,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
         assertThat(((PullRequestSCMHead) byName.get("PR-2")).isMerge(), is(true));
         assertThat(revByName.get("PR-2"),
-                is(new PullRequestSCMRevision(
-                        (PullRequestSCMHead) (byName.get("PR-2")),
+                is(new PullRequestSCMRevision((PullRequestSCMHead) (byName.get("PR-2")),
                         "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                         "c0e024f89969b976da165eecaa71e09dc60c3da1",
                         null)));
@@ -267,8 +264,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertThat(((PullRequestSCMHead) byName.get("PR-3")).isMerge(), is(true));
         assertThat(((SCMHeadOrigin.Fork) byName.get("PR-3").getOrigin()).getName(), is("stephenc"));
         assertThat(revByName.get("PR-3"),
-                is(new PullRequestSCMRevision(
-                        (PullRequestSCMHead) (byName.get("PR-3")),
+                is(new PullRequestSCMRevision((PullRequestSCMHead) (byName.get("PR-3")),
                         "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                         "c0e024f89969b976da165eecaa71e09dc60c3da1",
                         PullRequestSCMRevision.NOT_MERGEABLE_HASH)));
@@ -329,8 +325,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertThat(((SCMHeadOrigin.Fork) byName.get("PR-3").getOrigin()).getName(), is("stephenc"));
         assertThat(((PullRequestSCMHead) byName.get("PR-3")).isMerge(), is(true));
         assertThat(revByName.get("PR-3"),
-                is(new PullRequestSCMRevision(
-                        (PullRequestSCMHead) (byName.get("PR-3")),
+                is(new PullRequestSCMRevision((PullRequestSCMHead) (byName.get("PR-3")),
                         "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                         "c0e024f89969b976da165eecaa71e09dc60c3da1",
                         PullRequestSCMRevision.NOT_MERGEABLE_HASH)));
@@ -408,8 +403,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertThat(((SCMHeadOrigin.Fork) byName.get("PR-3").getOrigin()).getName(), is("stephenc"));
         assertThat(((PullRequestSCMHead) byName.get("PR-3")).isMerge(), is(true));
         assertThat(revByName.get("PR-3"),
-                is(new PullRequestSCMRevision(
-                        (PullRequestSCMHead) (byName.get("PR-3")),
+                is(new PullRequestSCMRevision((PullRequestSCMHead) (byName.get("PR-3")),
                         "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                         "c0e024f89969b976da165eecaa71e09dc60c3da1",
                         PullRequestSCMRevision.NOT_MERGEABLE_HASH)));
@@ -461,8 +455,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
         assertThat(((PullRequestSCMHead) byName.get("PR-2")).isMerge(), is(true));
         assertThat(revByName.get("PR-2"),
-                is(new PullRequestSCMRevision(
-                        (PullRequestSCMHead) (byName.get("PR-2")),
+                is(new PullRequestSCMRevision((PullRequestSCMHead) (byName.get("PR-2")),
                         "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                         "c0e024f89969b976da165eecaa71e09dc60c3da1",
                         null)));
@@ -472,8 +465,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertThat(((SCMHeadOrigin.Fork) byName.get("PR-3").getOrigin()).getName(), is("stephenc"));
         assertThat(((PullRequestSCMHead) byName.get("PR-3")).isMerge(), is(true));
         assertThat(revByName.get("PR-3"),
-                is(new PullRequestSCMRevision(
-                        (PullRequestSCMHead) (byName.get("PR-3")),
+                is(new PullRequestSCMRevision((PullRequestSCMHead) (byName.get("PR-3")),
                         "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                         "c0e024f89969b976da165eecaa71e09dc60c3da1",
                         PullRequestSCMRevision.NOT_MERGEABLE_HASH)));
@@ -555,8 +547,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertThat(byName.get("PR-2"), instanceOf(PullRequestSCMHead.class));
         assertThat(((PullRequestSCMHead) byName.get("PR-2")).isMerge(), is(false));
         assertThat(revByName.get("PR-2"),
-                is(new PullRequestSCMRevision(
-                        (PullRequestSCMHead) (byName.get("PR-2")),
+                is(new PullRequestSCMRevision((PullRequestSCMHead) (byName.get("PR-2")),
                         "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                         "c0e024f89969b976da165eecaa71e09dc60c3da1")));
         ((PullRequestSCMRevision) revByName.get("PR-2")).validateMergeHash();
@@ -565,8 +556,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertThat(((SCMHeadOrigin.Fork) byName.get("PR-3").getOrigin()).getName(), is("stephenc"));
         assertThat(((PullRequestSCMHead) byName.get("PR-3")).isMerge(), is(false));
         assertThat(revByName.get("PR-3"),
-                is(new PullRequestSCMRevision(
-                        (PullRequestSCMHead) (byName.get("PR-3")),
+                is(new PullRequestSCMRevision((PullRequestSCMHead) (byName.get("PR-3")),
                         "8f1314fc3c8284d8c6d5886d473db98f2126071c",
                         "c0e024f89969b976da165eecaa71e09dc60c3da1")));
 
@@ -600,8 +590,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     }
 
     private PullRequestSCMRevision createRevision(String sourceOwner) {
-        PullRequestSCMHead head = new PullRequestSCMHead(
-                "",
+        PullRequestSCMHead head = new PullRequestSCMHead("",
                 sourceOwner,
                 "yolo",
                 "",

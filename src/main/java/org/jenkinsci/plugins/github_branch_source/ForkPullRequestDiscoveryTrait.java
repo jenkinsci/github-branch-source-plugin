@@ -105,10 +105,8 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     public ForkPullRequestDiscoveryTrait(
             @NonNull Set<ChangeRequestCheckoutStrategy> strategies,
             @NonNull SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision> trust) {
-        this(
-                (strategies.contains(ChangeRequestCheckoutStrategy.MERGE) ? MERGE : NONE)
-                        + (strategies.contains(ChangeRequestCheckoutStrategy.HEAD) ? HEAD : NONE),
-                trust);
+        this((strategies.contains(ChangeRequestCheckoutStrategy.MERGE) ? MERGE : NONE)
+                + (strategies.contains(ChangeRequestCheckoutStrategy.HEAD) ? HEAD : NONE), trust);
     }
 
     /**

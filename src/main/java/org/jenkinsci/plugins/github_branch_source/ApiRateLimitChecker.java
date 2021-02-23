@@ -52,7 +52,9 @@ public enum ApiRateLimitChecker {
                                     ideal - rateLimit.getRemaining(),
                                     rateLimit.getLimit(),
                                     Util.getTimeSpanString(rateLimitResetMillis),
-                                    // The GitHubRateLimitChecker adds a one second sleep to each notification loop
+                                    // The GitHubRateLimitChecker adds a one second sleep to each
+                                    // notification
+                                    // loop
                                     Util.getTimeSpanString(1000 + expiration - now)));
                         }
                     }

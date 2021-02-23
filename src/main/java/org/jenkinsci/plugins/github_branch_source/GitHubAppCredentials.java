@@ -194,8 +194,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                     .create();
 
             long expiration = getExpirationSeconds(appInstallationToken);
-            AppInstallationToken token = new AppInstallationToken(
-                    Secret.fromString(appInstallationToken.getToken()),
+            AppInstallationToken token = new AppInstallationToken(Secret.fromString(appInstallationToken.getToken()),
                     expiration);
             LOGGER.log(Level.FINER, "Generated App Installation Token for app ID {0}", appId);
             LOGGER.log(Level.FINEST, () -> "Generated App Installation Token at " + Instant.now().toEpochMilli());
@@ -209,8 +208,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
             return token;
         } catch (IOException | InterruptedException e) {
-            throw new IllegalArgumentException(
-                    "Failed to generate GitHub App installation token for app ID " + appId,
+            throw new IllegalArgumentException("Failed to generate GitHub App installation token for app ID " + appId,
                     e);
         }
     }
@@ -593,8 +591,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 @QueryParameter("owner") final String owner
 
         ) {
-            GitHubAppCredentials gitHubAppCredential = new GitHubAppCredentials(
-                    CredentialsScope.GLOBAL,
+            GitHubAppCredentials gitHubAppCredential = new GitHubAppCredentials(CredentialsScope.GLOBAL,
                     "test-id-not-being-saved",
                     null,
                     appID,

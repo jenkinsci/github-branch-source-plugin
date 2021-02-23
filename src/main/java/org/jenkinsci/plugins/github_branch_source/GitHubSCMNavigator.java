@@ -237,8 +237,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         // legacy constructor means legacy defaults
         this.traits = new ArrayList<>();
         this.traits.add(new BranchDiscoveryTrait(true, true));
-        this.traits.add(new ForkPullRequestDiscoveryTrait(
-                EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
+        this.traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
                 new ForkPullRequestDiscoveryTrait.TrustPermission()));
         if (!GitHubSCMSource.DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
             traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
@@ -353,8 +352,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      * Use defaults for old settings.
      */
     @SuppressWarnings("ConstantConditions")
-    @SuppressFBWarnings(
-            value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE",
+    @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE",
             justification = "Only non-null after we set them here!")
     private Object readResolve() {
         if (scanCredentialsId != null) {
@@ -396,8 +394,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
             }
             if ((includes != null && !"*".equals(includes)) || (excludes != null && !"".equals(excludes))) {
-                traits.add(new WildcardSCMHeadFilterTrait(
-                        StringUtils.defaultIfBlank(includes, "*"),
+                traits.add(new WildcardSCMHeadFilterTrait(StringUtils.defaultIfBlank(includes, "*"),
                         StringUtils.defaultIfBlank(excludes, "")));
             }
             if (pattern != null && !".*".equals(pattern)) {
@@ -768,8 +765,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
         }
         if (buildForkPRMerge) {
-            traits.add(new ForkPullRequestDiscoveryTrait(
-                    EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
+            traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
                     new ForkPullRequestDiscoveryTrait.TrustPermission()));
         }
     }
@@ -820,8 +816,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
         }
         if (buildForkPRHead) {
-            traits.add(new ForkPullRequestDiscoveryTrait(
-                    EnumSet.of(ChangeRequestCheckoutStrategy.HEAD),
+            traits.add(new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.HEAD),
                     new ForkPullRequestDiscoveryTrait.TrustPermission()));
         }
     }
@@ -1617,71 +1612,55 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         static {
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-scm-navigator icon-sm",
+            IconSet.icons.addIcon(new Icon("icon-github-scm-navigator icon-sm",
                     "plugin/github-branch-source/images/16x16/github-scmnavigator.png",
                     Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-scm-navigator icon-md",
+            IconSet.icons.addIcon(new Icon("icon-github-scm-navigator icon-md",
                     "plugin/github-branch-source/images/24x24/github-scmnavigator.png",
                     Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-scm-navigator icon-lg",
+            IconSet.icons.addIcon(new Icon("icon-github-scm-navigator icon-lg",
                     "plugin/github-branch-source/images/32x32/github-scmnavigator.png",
                     Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-scm-navigator icon-xlg",
+            IconSet.icons.addIcon(new Icon("icon-github-scm-navigator icon-xlg",
                     "plugin/github-branch-source/images/48x48/github-scmnavigator.png",
                     Icon.ICON_XLARGE_STYLE));
 
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-logo icon-sm",
+            IconSet.icons.addIcon(new Icon("icon-github-logo icon-sm",
                     "plugin/github-branch-source/images/16x16/github-logo.png",
                     Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-logo icon-md",
+            IconSet.icons.addIcon(new Icon("icon-github-logo icon-md",
                     "plugin/github-branch-source/images/24x24/github-logo.png",
                     Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-logo icon-lg",
+            IconSet.icons.addIcon(new Icon("icon-github-logo icon-lg",
                     "plugin/github-branch-source/images/32x32/github-logo.png",
                     Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-logo icon-xlg",
+            IconSet.icons.addIcon(new Icon("icon-github-logo icon-xlg",
                     "plugin/github-branch-source/images/48x48/github-logo.png",
                     Icon.ICON_XLARGE_STYLE));
 
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-repo icon-sm",
+            IconSet.icons.addIcon(new Icon("icon-github-repo icon-sm",
                     "plugin/github-branch-source/images/16x16/github-repo.png",
                     Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-repo icon-md",
+            IconSet.icons.addIcon(new Icon("icon-github-repo icon-md",
                     "plugin/github-branch-source/images/24x24/github-repo.png",
                     Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-repo icon-lg",
+            IconSet.icons.addIcon(new Icon("icon-github-repo icon-lg",
                     "plugin/github-branch-source/images/32x32/github-repo.png",
                     Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-repo icon-xlg",
+            IconSet.icons.addIcon(new Icon("icon-github-repo icon-xlg",
                     "plugin/github-branch-source/images/48x48/github-repo.png",
                     Icon.ICON_XLARGE_STYLE));
 
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-branch icon-sm",
+            IconSet.icons.addIcon(new Icon("icon-github-branch icon-sm",
                     "plugin/github-branch-source/images/16x16/github-branch.png",
                     Icon.ICON_SMALL_STYLE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-branch icon-md",
+            IconSet.icons.addIcon(new Icon("icon-github-branch icon-md",
                     "plugin/github-branch-source/images/24x24/github-branch.png",
                     Icon.ICON_MEDIUM_STYLE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-branch icon-lg",
+            IconSet.icons.addIcon(new Icon("icon-github-branch icon-lg",
                     "plugin/github-branch-source/images/32x32/github-branch.png",
                     Icon.ICON_LARGE_STYLE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-branch icon-xlg",
+            IconSet.icons.addIcon(new Icon("icon-github-branch icon-xlg",
                     "plugin/github-branch-source/images/48x48/github-branch.png",
                     Icon.ICON_XLARGE_STYLE));
         }

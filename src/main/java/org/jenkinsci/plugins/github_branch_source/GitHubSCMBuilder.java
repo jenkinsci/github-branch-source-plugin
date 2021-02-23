@@ -330,8 +330,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
                         }
                         withRefSpec("+refs/heads/" + name + ":refs/" + localName);
                     }
-                    withExtension(new MergeWithGitSCMExtension(
-                            localName,
+                    withExtension(new MergeWithGitSCMExtension(localName,
                             r instanceof PullRequestSCMRevision ? ((PullRequestSCMRevision) r).getBaseHash() : null));
                 }
                 if (r instanceof PullRequestSCMRevision) {

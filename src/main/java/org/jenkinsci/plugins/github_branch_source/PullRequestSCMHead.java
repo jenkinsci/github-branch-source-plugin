@@ -285,8 +285,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
 
         @Override
         public PullRequestSCMHead migrate(@NonNull GitHubSCMSource source, @NonNull FixOrigin head) {
-            return new PullRequestSCMHead(
-                    head.getName(),
+            return new PullRequestSCMHead(head.getName(),
                     head.getSourceOwner(),
                     head.getSourceRepo(),
                     head.getSourceBranch(),
@@ -315,8 +314,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
     @Restricted(NoExternalUse.class)
     public static class FixMetadata extends PullRequestSCMHead {
         FixMetadata(String name, Boolean merge, int number, BranchSCMHead branchSCMHead) {
-            super(
-                    name,
+            super(name,
                     null,
                     null,
                     null,
@@ -345,8 +343,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         @Override
         public PullRequestSCMHead migrate(@NonNull GitHubSCMSource source, @NonNull FixMetadata head) {
             PullRequestSource src = source.retrievePullRequestSource(head.getNumber());
-            return new PullRequestSCMHead(
-                    head.getName(),
+            return new PullRequestSCMHead(head.getName(),
                     src == null ? null : src.getSourceOwner(),
                     src == null ? null : src.getSourceRepo(),
                     src == null ? null : src.getSourceBranch(),

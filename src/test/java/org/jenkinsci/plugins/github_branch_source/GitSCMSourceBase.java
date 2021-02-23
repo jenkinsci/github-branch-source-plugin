@@ -19,8 +19,7 @@ public class GitSCMSourceBase extends AbstractGitHubWireMockTest {
         // force apiUri to point to test server
         source.forceApiUri("http://localhost:" + githubApi.port());
         source.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, true),
-                new ForkPullRequestDiscoveryTrait(
-                        EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
+                new ForkPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
                         new ForkPullRequestDiscoveryTrait.TrustContributors())));
         github = Connector.connect("http://localhost:" + githubApi.port(), null);
         repo = github.getRepository("cloudbeers/yolo");
