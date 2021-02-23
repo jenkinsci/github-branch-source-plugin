@@ -143,8 +143,8 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
                 GitHub github = GitHub.connectToEnterpriseAnonymously(api.toString());
                 github.checkApiUrlValidity();
                 LOGGER.log(Level.FINE, "Trying to configure a GitHub Enterprise server");
-                // For example: https://api.github.com/ or https://github.mycompany.com/api/v3/ (with private mode
-                // disabled).
+                // For example:
+                // https://api.github.com/ or https://github.mycompany.com/api/v3/ (with private mode disabled).
                 return FormValidation.ok("GitHub Enterprise server verified");
             } catch (MalformedURLException mue) {
                 // For example: https:/api.github.com
