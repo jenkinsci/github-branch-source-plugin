@@ -34,8 +34,9 @@ import org.kohsuke.github.GHCommitState;
  * notifications. Notifications are differentiated by their Context label. If two notification requests with the same
  * Context label are provided, one will override the other.
  *
- * @see <a href="https://developer.github.com/v3/repos/statuses/">Github API</a> for details of the purpose of each
- *      notification field.
+ * @see <a href="https://developer.github.com/v3/repos/statuses/">Github API for details of the purpose of each
+ *      notification field.</a>
+ *
  * @since 2.3.2
  */
 public class GitHubNotificationRequest {
