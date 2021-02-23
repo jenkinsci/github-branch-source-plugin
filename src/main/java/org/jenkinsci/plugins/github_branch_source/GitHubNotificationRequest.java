@@ -28,9 +28,11 @@ import java.util.Objects;
 import org.kohsuke.github.GHCommitState;
 
 /**
- * Details of a GitHub status notification to be sent. One GitHubNotificationRequest represents one notification. A
- * strategy supplies a list of these to request one or more notifications. Notifications are differentiated by their
- * Context label. If two notification requests with the same Context label are provided, one will override the other.
+ * Details of a GitHub status notification to be sent.
+ *
+ * One GitHubNotificationRequest represents one notification. A strategy supplies a list of these to request one or more
+ * notifications. Notifications are differentiated by their Context label. If two notification requests with the same
+ * Context label are provided, one will override the other.
  *
  * @see <a href="https://developer.github.com/v3/repos/statuses/">Github API</a> for details of the purpose of each
  *      notification field.
