@@ -58,7 +58,11 @@ import org.kohsuke.github.GitHub;
 /**
  * Manages GitHub Statuses.
  *
- * Job (associated to a PR) scheduled: PENDING Build doing a checkout: PENDING Build done: SUCCESS, FAILURE or ERROR
+ * <ul>
+ * <li>Job (associated to a PR) scheduled: PENDING</li>
+ * <li>Build doing a checkout: PENDING</li>
+ * <li>Build done: SUCCESS, FAILURE or ERROR</li>
+ * </ul>
  *
  */
 public class GitHubBuildStatusNotification {
@@ -179,7 +183,9 @@ public class GitHubBuildStatusNotification {
     }
 
     /**
-     * With this listener one notifies to GitHub when a Job has been scheduled. Sends: GHCommitState.PENDING
+     * With this listener one notifies to GitHub when a Job has been scheduled.
+     *
+     * Sends: GHCommitState.PENDING
      */
     @Extension
     public static class JobScheduledListener extends QueueListener {
@@ -285,8 +291,9 @@ public class GitHubBuildStatusNotification {
     }
 
     /**
-     * With this listener one notifies to GitHub when the SCM checkout process has started. Possible option:
-     * GHCommitState.PENDING
+     * With this listener one notifies to GitHub when the SCM checkout process has started.
+     *
+     * Possible option: GHCommitState.PENDING
      */
     @Extension
     public static class JobCheckOutListener extends SCMListener {
@@ -305,8 +312,9 @@ public class GitHubBuildStatusNotification {
     }
 
     /**
-     * With this listener one notifies to GitHub the build result. Possible options: GHCommitState.SUCCESS,
-     * GHCommitState.ERROR or GHCommitState.FAILURE
+     * With this listener one notifies to GitHub the build result.
+     *
+     * Possible options: GHCommitState.SUCCESS, GHCommitState.ERROR or GHCommitState.FAILURE
      */
     @Extension
     public static class JobCompletedListener extends RunListener<Run<?, ?>> {
