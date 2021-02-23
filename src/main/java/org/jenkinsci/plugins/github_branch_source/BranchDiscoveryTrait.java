@@ -77,8 +77,7 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
     /**
      * Constructor for stapler.
      *
-     * @param strategyId
-     *            the strategy id.
+     * @param strategyId the strategy id.
      */
     @DataBoundConstructor
     public BranchDiscoveryTrait(int strategyId) {
@@ -88,10 +87,8 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
     /**
      * Constructor for legacy code.
      *
-     * @param buildBranch
-     *            build branches that are not filed as a PR.
-     * @param buildBranchWithPr
-     *            build branches that are also PRs.
+     * @param buildBranch       build branches that are not filed as a PR.
+     * @param buildBranchWithPr build branches that are also PRs.
      */
     public BranchDiscoveryTrait(boolean buildBranch, boolean buildBranchWithPr) {
         this.strategyId = (buildBranch ? EXCLUDE_PRS : NONE) + (buildBranchWithPr ? ONLY_PRS : NONE);

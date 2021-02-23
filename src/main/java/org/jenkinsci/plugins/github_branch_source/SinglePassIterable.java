@@ -30,8 +30,7 @@ class SinglePassIterable<V> implements Iterable<V> {
     /**
      * Constructor.
      *
-     * @param delegate
-     *            the {@link Iterable}.
+     * @param delegate the {@link Iterable}.
      */
     public SinglePassIterable(@NonNull Iterable<V> delegate) {
         this(delegate.iterator());
@@ -40,8 +39,7 @@ class SinglePassIterable<V> implements Iterable<V> {
     /**
      * Constructor.
      *
-     * @param delegate
-     *            the {@link Iterator}.
+     * @param delegate the {@link Iterator}.
      */
     public SinglePassIterable(@NonNull Iterator<V> delegate) {
         this.delegate = delegate;
@@ -125,8 +123,7 @@ class SinglePassIterable<V> implements Iterable<V> {
     /**
      * Callback for each element observed from the delegate.
      *
-     * @param v
-     *            the element.
+     * @param v the element.
      */
     protected void observe(V v) {
     }

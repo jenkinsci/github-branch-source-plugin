@@ -84,8 +84,7 @@ public class GitHubConfiguration extends GlobalConfiguration {
     /**
      * Fix an apiUri.
      *
-     * @param apiUri
-     *            the api URI.
+     * @param apiUri the api URI.
      * @return the normalized api URI.
      */
     @CheckForNull
@@ -141,8 +140,7 @@ public class GitHubConfiguration extends GlobalConfiguration {
     /**
      * Adds an endpoint.
      *
-     * @param endpoint
-     *            the endpoint to add.
+     * @param endpoint the endpoint to add.
      * @return {@code true} if the list of endpoints was modified
      */
     public synchronized boolean addEndpoint(@NonNull Endpoint endpoint) {
@@ -163,8 +161,7 @@ public class GitHubConfiguration extends GlobalConfiguration {
     /**
      * Updates an existing endpoint (or adds if missing).
      *
-     * @param endpoint
-     *            the endpoint to update.
+     * @param endpoint the endpoint to update.
      */
     public synchronized void updateEndpoint(@NonNull Endpoint endpoint) {
         if (StringUtils.isBlank(endpoint.getApiUri())) {
@@ -189,8 +186,7 @@ public class GitHubConfiguration extends GlobalConfiguration {
     /**
      * Removes an endpoint.
      *
-     * @param endpoint
-     *            the endpoint to remove.
+     * @param endpoint the endpoint to remove.
      * @return {@code true} if the list of endpoints was modified
      */
     public boolean removeEndpoint(@NonNull Endpoint endpoint) {
@@ -200,8 +196,7 @@ public class GitHubConfiguration extends GlobalConfiguration {
     /**
      * Removes an endpoint.
      *
-     * @param apiUri
-     *            the API URI to remove.
+     * @param apiUri the API URI to remove.
      * @return {@code true} if the list of endpoints was modified
      */
     public synchronized boolean removeEndpoint(@CheckForNull String apiUri) {
@@ -221,8 +216,7 @@ public class GitHubConfiguration extends GlobalConfiguration {
     /**
      * Checks to see if the supplied server URL is defined in the global configuration.
      *
-     * @param apiUri
-     *            the server url to check.
+     * @param apiUri the server url to check.
      * @return the global configuration for the specified server url or {@code null} if not defined.
      */
     @CheckForNull

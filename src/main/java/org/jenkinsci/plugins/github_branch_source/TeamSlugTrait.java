@@ -26,8 +26,7 @@ public class TeamSlugTrait extends SCMNavigatorTrait {
     /**
      * Stapler constructor.
      *
-     * @param teamSlug
-     *            the team slug to use when searching for github repos restricted to a specific team only.
+     * @param teamSlug the team slug to use when searching for github repos restricted to a specific team only.
      */
     @DataBoundConstructor
     public TeamSlugTrait(@NonNull String teamSlug) {

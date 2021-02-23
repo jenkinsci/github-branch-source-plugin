@@ -152,8 +152,7 @@ public final class GitHubNotificationContext {
     /**
      * Retrieves default context
      *
-     * @param listener
-     *            Listener for the build, if any
+     * @param listener Listener for the build, if any
      * @return Default notification context
      * @since 2.3.2
      */
@@ -172,8 +171,7 @@ public final class GitHubNotificationContext {
     /**
      * Retrieves default URL
      *
-     * @param listener
-     *            Listener for the build, if any
+     * @param listener Listener for the build, if any
      * @return Default notification URL backref
      * @since 2.3.2
      */
@@ -196,8 +194,7 @@ public final class GitHubNotificationContext {
     /**
      * Retrieves default notification message
      *
-     * @param listener
-     *            Listener for the build, if any
+     * @param listener Listener for the build, if any
      * @return Default notification message
      * @since 2.3.2
      */
@@ -224,8 +221,7 @@ public final class GitHubNotificationContext {
     /**
      * Retrieves default notification state
      *
-     * @param listener
-     *            Listener for the build, if any
+     * @param listener Listener for the build, if any
      * @return Default notification state
      * @since 2.3.2
      */
@@ -250,8 +246,7 @@ public final class GitHubNotificationContext {
     /**
      * Retrieves whether plugin should ignore errors when updating the GitHub status
      *
-     * @param listener
-     *            Listener for the build, if any
+     * @param listener Listener for the build, if any
      * @return Default ignore errors policy
      * @since 2.3.2
      */

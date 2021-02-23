@@ -57,8 +57,7 @@ public class BranchSCMHead extends SCMHead {
     @Restricted(NoExternalUse.class)
     @Extension
     public static class MigrationImpl
-            extends
-                SCMHeadMigration<GitHubSCMSource, SCMHead, AbstractGitSCMSource.SCMRevisionImpl> {
+            extends SCMHeadMigration<GitHubSCMSource, SCMHead, AbstractGitSCMSource.SCMRevisionImpl> {
         public MigrationImpl() {
             super(GitHubSCMSource.class, SCMHead.class, AbstractGitSCMSource.SCMRevisionImpl.class);
         }

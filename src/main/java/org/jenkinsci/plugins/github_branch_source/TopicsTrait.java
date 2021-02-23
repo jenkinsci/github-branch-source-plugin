@@ -27,8 +27,7 @@ public class TopicsTrait extends SCMNavigatorTrait {
     /**
      * Stapler constructor.
      *
-     * @param topicList
-     *            a comma-separated list of topics
+     * @param topicList a comma-separated list of topics
      */
     @DataBoundConstructor
     public TopicsTrait(@NonNull String topicList) {

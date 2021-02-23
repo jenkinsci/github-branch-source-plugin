@@ -134,8 +134,7 @@ public class GitHubBuildStatusNotification {
     /**
      * Returns the GitHub Repository associated to a Job.
      *
-     * @param job
-     *            A {@link Job}
+     * @param job A {@link Job}
      * @return A {@link GHRepository} or null, either if a scan credentials was not provided, or a GitHubSCMSource was
      *         not defined.
      * @throws IOException
@@ -158,8 +157,7 @@ public class GitHubBuildStatusNotification {
     /**
      * Returns the GitHub Repository associated to a Job.
      *
-     * @param job
-     *            A {@link Job}
+     * @param job A {@link Job}
      * @return A {@link GHRepository} or {@code null}, if any of: a credentials was not provided; notifications were
      *         disabled, or the job is not from a {@link GitHubSCMSource}.
      * @throws IOException

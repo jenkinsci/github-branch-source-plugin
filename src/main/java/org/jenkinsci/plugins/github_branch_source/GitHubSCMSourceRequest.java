@@ -141,12 +141,9 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     /**
      * Constructor.
      *
-     * @param source
-     *            the source.
-     * @param context
-     *            the context.
-     * @param listener
-     *            the listener.
+     * @param source   the source.
+     * @param context  the context.
+     * @param listener the listener.
      */
     GitHubSCMSourceRequest(SCMSource source, GitHubSCMSourceContext context, TaskListener listener) {
         super(source, context, listener);
@@ -255,8 +252,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     /**
      * Returns the {@link ChangeRequestCheckoutStrategy} to create for pull requests of the specified type.
      *
-     * @param fork
-     *            {@code true} to return strategies for the fork pull requests, {@code false} for origin pull requests.
+     * @param fork {@code true} to return strategies for the fork pull requests, {@code false} for origin pull requests.
      * @return the {@link ChangeRequestCheckoutStrategy} to create for each pull request.
      */
     @NonNull
@@ -315,8 +311,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     /**
      * Provides the requests with the pull request details.
      *
-     * @param pullRequests
-     *            the pull request details.
+     * @param pullRequests the pull request details.
      */
     public void setPullRequests(@CheckForNull Iterable<GHPullRequest> pullRequests) {
         this.pullRequests = pullRequests;
@@ -337,8 +332,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     /**
      * Provides the requests with the branch details.
      *
-     * @param branches
-     *            the branch details.
+     * @param branches the branch details.
      */
     public final void setBranches(@CheckForNull Iterable<GHBranch> branches) {
         this.branches = branches;
@@ -358,8 +352,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     /**
      * Provides the requests with the tag details.
      *
-     * @param tags
-     *            the tag details.
+     * @param tags the tag details.
      */
     public final void setTags(@CheckForNull Iterable<GHRef> tags) {
         this.tags = tags;
@@ -381,8 +374,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     /**
      * Provides the request with the names of the repository collaborators.
      *
-     * @param collaboratorNames
-     *            the names of the repository collaborators.
+     * @param collaboratorNames the names of the repository collaborators.
      */
     public final void setCollaboratorNames(@CheckForNull Set<String> collaboratorNames) {
         this.collaboratorNames = collaboratorNames;
@@ -400,10 +392,8 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     /**
      * Checks the API rate limit and sleeps if over-used until the remaining limit is on-target for expected usage.
      *
-     * @throws IOException
-     *             if the rate limit could not be obtained.
-     * @throws InterruptedException
-     *             if interrupted while waiting.
+     * @throws IOException          if the rate limit could not be obtained.
+     * @throws InterruptedException if interrupted while waiting.
      * @deprecated rate limit checking is done automatically
      */
     @Deprecated
@@ -427,8 +417,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     /**
      * Provides the {@link GitHub} API connector to use for the request.
      *
-     * @param gitHub
-     *            {@link GitHub} API connector to use for the request.
+     * @param gitHub {@link GitHub} API connector to use for the request.
      */
     public void setGitHub(@CheckForNull GitHub gitHub) {
         this.gitHub = gitHub;
@@ -446,8 +435,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     /**
      * Sets the {@link GHRepository}.
      *
-     * @param repository
-     *            the {@link GHRepository}.
+     * @param repository the {@link GHRepository}.
      */
     public void setRepository(GHRepository repository) {
         this.repository = repository;
@@ -473,13 +461,10 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     /**
      * Returns the permissions of the supplied user.
      *
-     * @param username
-     *            the user.
+     * @param username the user.
      * @return the permissions of the supplied user.
-     * @throws IOException
-     *             if the permissions could not be retrieved.
-     * @throws InterruptedException
-     *             if interrupted while retrieving the permissions.
+     * @throws IOException          if the permissions could not be retrieved.
+     * @throws InterruptedException if interrupted while retrieving the permissions.
      */
     public GHPermissionType getPermissions(String username) throws IOException, InterruptedException {
         synchronized (permissions) {
@@ -516,8 +501,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     /**
      * Sets the permission source.
      *
-     * @param permissionsSource
-     *            the permission source.
+     * @param permissionsSource the permission source.
      */
     public void setPermissionsSource(@CheckForNull GitHubPermissionsSource permissionsSource) {
         this.permissionsSource = permissionsSource;

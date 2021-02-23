@@ -36,8 +36,7 @@ import jenkins.scm.api.trait.SCMNavigatorContext;
  * @since 2.2.0
  */
 public class GitHubSCMNavigatorContext
-        extends
-            SCMNavigatorContext<GitHubSCMNavigatorContext, GitHubSCMNavigatorRequest> {
+        extends SCMNavigatorContext<GitHubSCMNavigatorContext, GitHubSCMNavigatorRequest> {
 
     /**
      * The team name of the repositories to navigate.
@@ -115,16 +114,14 @@ public class GitHubSCMNavigatorContext
     }
 
     /**
-     * @param excludeArchivedRepositories
-     *            Set true to exclude archived repositories
+     * @param excludeArchivedRepositories Set true to exclude archived repositories
      */
     public void setExcludeArchivedRepositories(boolean excludeArchivedRepositories) {
         this.excludeArchivedRepositories = excludeArchivedRepositories;
     }
 
     /**
-     * @param excludePublicRepositories
-     *            Set true to exclude public repositories
+     * @param excludePublicRepositories Set true to exclude public repositories
      */
     public void setExcludePublicRepositories(boolean excludePublicRepositories) {
         this.excludePublicRepositories = excludePublicRepositories;

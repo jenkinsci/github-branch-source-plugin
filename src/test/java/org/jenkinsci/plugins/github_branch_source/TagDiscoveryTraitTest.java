@@ -63,6 +63,7 @@ public class TagDiscoveryTraitTest {
             assertThat(instance.isTrusted(probe, new GitHubTagSCMHead("v1.0.0", 0L)), is(true));
         }
     }
+
     @Test
     public void authority_with_repositoryUrl() throws Exception {
         try (GitHubSCMSourceRequest probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect())

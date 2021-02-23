@@ -76,8 +76,7 @@ public class GitHubOrgMetadataAction extends AvatarMetadataAction {
         if (avatar == null) {
             // fall back to the generic github org icon
             String image = avatarIconClassNameImageOf(getAvatarIconClassName(), size);
-            return image != null
-                    ? image
+            return image != null ? image
                     : (Stapler.getCurrentRequest().getContextPath() + Hudson.RESOURCE_PATH
                             + "/plugin/github-branch-source/images/" + size + "/github-logo.png");
         } else {

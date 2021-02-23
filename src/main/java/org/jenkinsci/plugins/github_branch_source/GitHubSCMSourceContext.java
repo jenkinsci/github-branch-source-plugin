@@ -83,10 +83,8 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     /**
      * Constructor.
      *
-     * @param criteria
-     *            (optional) criteria.
-     * @param observer
-     *            the {@link SCMHeadObserver}.
+     * @param criteria (optional) criteria.
+     * @param observer the {@link SCMHeadObserver}.
      */
     public GitHubSCMSourceContext(@CheckForNull SCMSourceCriteria criteria, @NonNull SCMHeadObserver observer) {
         super(criteria, observer);
@@ -156,6 +154,7 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     public final Set<ChangeRequestCheckoutStrategy> forkPRStrategies() {
         return forkPRStrategies;
     }
+
     /**
      * Returns the strategies used to notify Github of build status.
      *
@@ -168,6 +167,7 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
         }
         return Collections.unmodifiableList(notificationStrategies);
     }
+
     /**
      * Returns {@code true} if notifications should be disabled.
      *
@@ -180,9 +180,8 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     /**
      * Adds a requirement for branch details to any {@link GitHubSCMSourceRequest} for this context.
      *
-     * @param include
-     *            {@code true} to add the requirement or {@code false} to leave the requirement as is (makes simpler
-     *            with method chaining)
+     * @param include {@code true} to add the requirement or {@code false} to leave the requirement as is (makes simpler
+     *                with method chaining)
      * @return {@code this} for method chaining.
      */
     @NonNull
@@ -194,9 +193,8 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     /**
      * Adds a requirement for tag details to any {@link GitHubSCMSourceRequest} for this context.
      *
-     * @param include
-     *            {@code true} to add the requirement or {@code false} to leave the requirement as is (makes simpler
-     *            with method chaining)
+     * @param include {@code true} to add the requirement or {@code false} to leave the requirement as is (makes simpler
+     *                with method chaining)
      * @return {@code this} for method chaining.
      */
     @NonNull
@@ -208,9 +206,8 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     /**
      * Adds a requirement for origin pull request details to any {@link GitHubSCMSourceRequest} for this context.
      *
-     * @param include
-     *            {@code true} to add the requirement or {@code false} to leave the requirement as is (makes simpler
-     *            with method chaining)
+     * @param include {@code true} to add the requirement or {@code false} to leave the requirement as is (makes simpler
+     *                with method chaining)
      * @return {@code this} for method chaining.
      */
     @NonNull
@@ -222,9 +219,8 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     /**
      * Adds a requirement for fork pull request details to any {@link GitHubSCMSourceRequest} for this context.
      *
-     * @param include
-     *            {@code true} to add the requirement or {@code false} to leave the requirement as is (makes simpler
-     *            with method chaining)
+     * @param include {@code true} to add the requirement or {@code false} to leave the requirement as is (makes simpler
+     *                with method chaining)
      * @return {@code this} for method chaining.
      */
     @NonNull
@@ -236,8 +232,7 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     /**
      * Defines the {@link ChangeRequestCheckoutStrategy} instances to create for each origin pull request.
      *
-     * @param strategies
-     *            the strategies.
+     * @param strategies the strategies.
      * @return {@code this} for method chaining.
      */
     @NonNull
@@ -249,8 +244,7 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     /**
      * Defines the {@link ChangeRequestCheckoutStrategy} instances to create for each fork pull request.
      *
-     * @param strategies
-     *            the strategies.
+     * @param strategies the strategies.
      * @return {@code this} for method chaining.
      */
     @NonNull
@@ -258,11 +252,11 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
         forkPRStrategies.addAll(strategies);
         return this;
     }
+
     /**
      * Replaces the list of strategies used to notify Github of build status.
      *
-     * @param strategies
-     *            the strategies used to notify Github of build status.
+     * @param strategies the strategies used to notify Github of build status.
      * @return {@code this} for method chaining.
      * @since 2.3.2
      */
@@ -281,8 +275,7 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     /**
      * Add a strategy used to notify Github of build status.
      *
-     * @param strategy
-     *            a strategy used to notify Github of build status.
+     * @param strategy a strategy used to notify Github of build status.
      * @return {@code this} for method chaining.
      * @since 2.3.2
      */
@@ -297,8 +290,7 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     /**
      * Defines the notification mode to use in this context.
      *
-     * @param disabled
-     *            {@code true} to disable automatic notifications.
+     * @param disabled {@code true} to disable automatic notifications.
      * @return {@code this} for method chaining.
      */
     @NonNull

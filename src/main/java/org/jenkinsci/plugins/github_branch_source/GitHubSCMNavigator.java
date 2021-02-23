@@ -207,8 +207,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /**
      * Constructor.
      *
-     * @param repoOwner
-     *            the owner of the repositories to navigate.
+     * @param repoOwner the owner of the repositories to navigate.
      * @since 2.2.0
      */
     @DataBoundConstructor
@@ -220,15 +219,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /**
      * Legacy constructor.
      *
-     * @param apiUri
-     *            the API endpoint for the GitHub server.
-     * @param repoOwner
-     *            the owner of the repositories to navigate.
-     * @param scanCredentialsId
-     *            the credentials to use when accessing {@link #apiUri} (and also the default credentials to use for
-     *            checking out).
-     * @param checkoutCredentialsId
-     *            the credentials to use when checking out.
+     * @param apiUri                the API endpoint for the GitHub server.
+     * @param repoOwner             the owner of the repositories to navigate.
+     * @param scanCredentialsId     the credentials to use when accessing {@link #apiUri} (and also the default
+     *                              credentials to use for checking out).
+     * @param checkoutCredentialsId the credentials to use when checking out.
      * @deprecated use {@link #GitHubSCMNavigator(String)}, {@link #setApiUri(String)},
      *             {@link #setCredentialsId(String)} and {@link SSHCheckoutTrait}
      */
@@ -263,8 +258,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /**
      * Sets the API endpoint for the GitHub server.
      *
-     * @param apiUri
-     *            the API endpoint for the GitHub server.
+     * @param apiUri the API endpoint for the GitHub server.
      * @since 2.2.0
      */
     @DataBoundSetter
@@ -293,9 +287,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
      * Sets the {@link StandardCredentials#getId()} of the credentials to use when accessing {@link #apiUri} (and also
      * the default credentials to use for checking out).
      *
-     * @param credentialsId
-     *            the {@link StandardCredentials#getId()} of the credentials to use when accessing {@link #apiUri} (and
-     *            also the default credentials to use for checking out).
+     * @param credentialsId the {@link StandardCredentials#getId()} of the credentials to use when accessing
+     *                      {@link #apiUri} (and also the default credentials to use for checking out).
      * @since 2.2.0
      */
     @DataBoundSetter
@@ -329,8 +322,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      * discovers. The new traits will take affect on the next navigation through any of the
      * {@link #visitSources(SCMSourceObserver)} overloads or {@link #visitSource(String, SCMSourceObserver)}.
      *
-     * @param traits
-     *            the new behavioural traits.
+     * @param traits the new behavioural traits.
      */
     @SuppressWarnings("unchecked")
     @DataBoundSetter
@@ -349,8 +341,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      * discovers. The new traits will take affect on the next navigation through any of the
      * {@link #visitSources(SCMSourceObserver)} overloads or {@link #visitSource(String, SCMSourceObserver)}.
      *
-     * @param traits
-     *            the new behavioural traits.
+     * @param traits the new behavioural traits.
      */
     @Override
     public void setTraits(@CheckForNull List<SCMTrait<? extends SCMTrait<?>>> traits) {
@@ -437,8 +428,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /**
      * Legacy setter.
      *
-     * @param scanCredentialsId
-     *            the credentials.
+     * @param scanCredentialsId the credentials.
      * @deprecated use {@link #setCredentialsId(String)}
      */
     @Deprecated
@@ -490,8 +480,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /**
      * Legacy setter.
      *
-     * @param includes
-     *            see {@link WildcardSCMHeadFilterTrait#WildcardSCMHeadFilterTrait(String, String)}
+     * @param includes see {@link WildcardSCMHeadFilterTrait#WildcardSCMHeadFilterTrait(String, String)}
      * @deprecated use {@link WildcardSCMHeadFilterTrait}.
      */
     @Deprecated
@@ -519,8 +508,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /**
      * Legacy setter.
      *
-     * @param excludes
-     *            see {@link WildcardSCMHeadFilterTrait#WildcardSCMHeadFilterTrait(String, String)}
+     * @param excludes see {@link WildcardSCMHeadFilterTrait#WildcardSCMHeadFilterTrait(String, String)}
      * @deprecated use {@link WildcardSCMHeadFilterTrait}.
      */
     @Deprecated
@@ -566,8 +554,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /**
      * Legacy setter.
      *
-     * @param buildOriginBranch
-     *            see {@link BranchDiscoveryTrait#BranchDiscoveryTrait(boolean, boolean)}.
+     * @param buildOriginBranch see {@link BranchDiscoveryTrait#BranchDiscoveryTrait(boolean, boolean)}.
      * @deprecated use {@link BranchDiscoveryTrait}
      */
     @Deprecated
@@ -613,8 +600,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /**
      * Legacy setter.
      *
-     * @param buildOriginBranchWithPR
-     *            see {@link BranchDiscoveryTrait#BranchDiscoveryTrait(boolean, boolean)}.
+     * @param buildOriginBranchWithPR see {@link BranchDiscoveryTrait#BranchDiscoveryTrait(boolean, boolean)}.
      * @deprecated use {@link BranchDiscoveryTrait}
      */
     @Deprecated
@@ -661,8 +647,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /**
      * Legacy setter.
      *
-     * @param buildOriginPRMerge
-     *            see {@link OriginPullRequestDiscoveryTrait#OriginPullRequestDiscoveryTrait(Set)}.
+     * @param buildOriginPRMerge see {@link OriginPullRequestDiscoveryTrait#OriginPullRequestDiscoveryTrait(Set)}.
      * @deprecated use {@link OriginPullRequestDiscoveryTrait}
      */
     @Deprecated
@@ -711,8 +696,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /**
      * Legacy setter.
      *
-     * @param buildOriginPRHead
-     *            see {@link OriginPullRequestDiscoveryTrait#OriginPullRequestDiscoveryTrait(Set)}.
+     * @param buildOriginPRHead see {@link OriginPullRequestDiscoveryTrait#OriginPullRequestDiscoveryTrait(Set)}.
      * @deprecated use {@link OriginPullRequestDiscoveryTrait}
      */
     @Deprecated
@@ -760,8 +744,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /**
      * Legacy setter.
      *
-     * @param buildForkPRMerge
-     *            see {@link ForkPullRequestDiscoveryTrait#ForkPullRequestDiscoveryTrait(Set, SCMHeadAuthority)}.
+     * @param buildForkPRMerge see
+     *                         {@link ForkPullRequestDiscoveryTrait#ForkPullRequestDiscoveryTrait(Set, SCMHeadAuthority)}.
      * @deprecated use {@link ForkPullRequestDiscoveryTrait}
      */
     @Deprecated
@@ -812,8 +796,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /**
      * Legacy setter.
      *
-     * @param buildForkPRHead
-     *            see {@link ForkPullRequestDiscoveryTrait#ForkPullRequestDiscoveryTrait(Set, SCMHeadAuthority)}.
+     * @param buildForkPRHead see
+     *                        {@link ForkPullRequestDiscoveryTrait#ForkPullRequestDiscoveryTrait(Set, SCMHeadAuthority)}.
      * @deprecated use {@link ForkPullRequestDiscoveryTrait}
      */
     @Deprecated
@@ -883,8 +867,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /**
      * Legacy setter.
      *
-     * @param pattern
-     *            see {@link RegexSCMSourceFilterTrait#RegexSCMSourceFilterTrait(String)}.
+     * @param pattern see {@link RegexSCMSourceFilterTrait#RegexSCMSourceFilterTrait(String)}.
      * @deprecated use {@link RegexSCMSourceFilterTrait}
      */
     @Deprecated
@@ -1518,12 +1501,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         /**
          * Validates the selected credentials.
          *
-         * @param context
-         *            the context.
-         * @param apiUri
-         *            the end-point.
-         * @param credentialsId
-         *            the credentials.
+         * @param context       the context.
+         * @param apiUri        the end-point.
+         * @param credentialsId the credentials.
          * @return validation results.
          * @since 2.2.0
          */
@@ -1539,12 +1519,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         /**
          * Populates the drop-down list of credentials.
          *
-         * @param context
-         *            the context.
-         * @param apiUri
-         *            the end-point.
-         * @param credentialsId
-         *            the existing selection;
+         * @param context       the context.
+         * @param apiUri        the end-point.
+         * @param credentialsId the existing selection;
          * @return the drop-down list.
          * @since 2.2.0
          */
@@ -1553,8 +1530,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 @CheckForNull @AncestorInPath Item context,
                 @QueryParameter String apiUri,
                 @QueryParameter String credentialsId) {
-            if (context == null
-                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+            if (context == null ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
                     : !context.hasPermission(Item.EXTENDED_READ)) {
                 return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
@@ -1729,8 +1705,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         /**
          * Constructor.
          *
-         * @param listener
-         *            the listener to log to.
+         * @param listener the listener to log to.
          */
         public WitnessImpl(@NonNull TaskListener listener) {
             this.listener = listener;
@@ -1773,8 +1748,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         /**
          * Constructor.
          *
-         * @param request
-         *            the request to decorate {@link SCMSource} instances with.
+         * @param request the request to decorate {@link SCMSource} instances with.
          */
         public SourceFactory(GitHubSCMNavigatorRequest request) {
             this.request = request;

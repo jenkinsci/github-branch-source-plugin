@@ -115,10 +115,8 @@ public class Connector {
     /**
      * Retained for binary compatibility only.
      *
-     * @param context
-     *            the context.
-     * @param apiUri
-     *            the api endpoint.
+     * @param context the context.
+     * @param apiUri  the api endpoint.
      * @return a {@link ListBoxModel}.
      * @deprecated use {@link #listCheckoutCredentials(Item, String)}.
      */
@@ -132,10 +130,8 @@ public class Connector {
      * Populates a {@link ListBoxModel} with the scan credentials appropriate for the supplied context against the
      * supplied API endpoint.
      *
-     * @param context
-     *            the context.
-     * @param apiUri
-     *            the api endpoint.
+     * @param context the context.
+     * @param apiUri  the api endpoint.
      * @return a {@link ListBoxModel}.
      */
     @NonNull
@@ -152,12 +148,9 @@ public class Connector {
     /**
      * Retained for binary compatibility only.
      *
-     * @param context
-     *            the context.
-     * @param apiUri
-     *            the api endpoint.
-     * @param scanCredentialsId
-     *            the credentials ID.
+     * @param context           the context.
+     * @param apiUri            the api endpoint.
+     * @param scanCredentialsId the credentials ID.
      * @return the {@link FormValidation} results.
      * @deprecated use {@link #checkScanCredentials(Item, String, String)}
      */
@@ -172,12 +165,9 @@ public class Connector {
     /**
      * Checks the credential ID for use as scan credentials in the supplied context against the supplied API endpoint.
      *
-     * @param context
-     *            the context.
-     * @param apiUri
-     *            the api endpoint.
-     * @param scanCredentialsId
-     *            the credentials ID.
+     * @param context           the context.
+     * @param apiUri            the api endpoint.
+     * @param scanCredentialsId the credentials ID.
      * @return the {@link FormValidation} results.
      */
     public static FormValidation checkScanCredentials(
@@ -246,12 +236,9 @@ public class Connector {
     /**
      * Retained for binary compatibility only.
      *
-     * @param context
-     *            the context.
-     * @param apiUri
-     *            the API endpoint.
-     * @param scanCredentialsId
-     *            the credentials to resolve.
+     * @param context           the context.
+     * @param apiUri            the API endpoint.
+     * @param scanCredentialsId the credentials to resolve.
      * @return the {@link StandardCredentials} or {@code null}
      * @deprecated use {@link #lookupScanCredentials(Item, String, String)}
      */
@@ -267,12 +254,9 @@ public class Connector {
     /**
      * Resolves the specified scan credentials in the specified context for use against the specified API endpoint.
      *
-     * @param context
-     *            the context.
-     * @param apiUri
-     *            the API endpoint.
-     * @param scanCredentialsId
-     *            the credentials to resolve.
+     * @param context           the context.
+     * @param apiUri            the API endpoint.
+     * @param scanCredentialsId the credentials to resolve.
      * @return the {@link StandardCredentials} or {@code null}
      */
     @CheckForNull
@@ -286,8 +270,7 @@ public class Connector {
             return CredentialsMatchers.firstOrNull(
                     CredentialsProvider.lookupCredentials(StandardUsernameCredentials.class,
                             context,
-                            context instanceof Queue.Task
-                                    ? ((Queue.Task) context).getDefaultAuthentication()
+                            context instanceof Queue.Task ? ((Queue.Task) context).getDefaultAuthentication()
                                     : ACL.SYSTEM,
                             githubDomainRequirements(apiUri)),
                     CredentialsMatchers.allOf(CredentialsMatchers.withId(scanCredentialsId),
@@ -298,10 +281,8 @@ public class Connector {
     /**
      * Retained for binary compatibility only.
      *
-     * @param context
-     *            the context.
-     * @param apiUri
-     *            the API endpoint.
+     * @param context the context.
+     * @param apiUri  the API endpoint.
      * @return the {@link StandardCredentials} or {@code null}
      * @deprecated use {@link #listCheckoutCredentials(Item, String)}
      */
@@ -314,10 +295,8 @@ public class Connector {
      * Populates a {@link ListBoxModel} with the checkout credentials appropriate for the supplied context against the
      * supplied API endpoint.
      *
-     * @param context
-     *            the context.
-     * @param apiUri
-     *            the api endpoint.
+     * @param context the context.
+     * @param apiUri  the api endpoint.
      * @return a {@link ListBoxModel}.
      */
     @NonNull
@@ -426,11 +405,9 @@ public class Connector {
      *
      * This method intentionally does not support caching requests or {@link GitHub} instances.
      *
-     * @param apiUrl
-     *            the GitHub API URL to be used for the connection
+     * @param apiUrl the GitHub API URL to be used for the connection
      * @return a configured GitHubBuilder instance
-     * @throws IOException
-     *             if I/O error occurs
+     * @throws IOException if I/O error occurs
      */
     static GitHubBuilder createGitHubBuilder(@Nonnull String apiUrl) throws IOException {
         return createGitHubBuilder(apiUrl, null);
@@ -522,8 +499,7 @@ public class Connector {
     /**
      * Uses proxy if configured on pluginManager/advanced page
      *
-     * @param host
-     *            GitHub's hostname to build proxy to
+     * @param host GitHub's hostname to build proxy to
      *
      * @return proxy to use it in connector. Should not be null as it can lead to unexpected behaviour
      */
@@ -562,8 +538,7 @@ public class Connector {
      * Alternative to {@link GitHub#isCredentialValid()} that relies on the cached user object in the {@link GitHub}
      * instance and hence reduced rate limit consumption.
      *
-     * @param gitHub
-     *            the instance to check.
+     * @param gitHub the instance to check.
      * @return {@code true} if the credentials are valid.
      */
     static boolean isCredentialValid(GitHub gitHub) {

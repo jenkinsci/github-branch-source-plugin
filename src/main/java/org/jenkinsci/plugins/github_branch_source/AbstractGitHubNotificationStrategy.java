@@ -37,10 +37,8 @@ public abstract class AbstractGitHubNotificationStrategy {
     /**
      * Creates the list of {@link GitHubNotificationRequest} for the given context.
      *
-     * @param notificationContext
-     *            {@link GitHubNotificationContext} the context details
-     * @param listener
-     *            the listener
+     * @param notificationContext {@link GitHubNotificationContext} the context details
+     * @param listener            the listener
      * @return a list of notification requests
      * @since 2.3.2
      */

@@ -67,16 +67,11 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
     /**
      * Constructor.
      *
-     * @param gitHub
-     *            the {@link GitHub}
-     * @param repo
-     *            the {@link GHRepository}
-     * @param refName
-     *            the ref name, e.g. {@code heads/branchName}, {@code tags/tagName}, {@code pull/N/head} or the SHA.
-     * @param rev
-     *            the optional revision.
-     * @throws IOException
-     *             if I/O errors occur.
+     * @param gitHub  the {@link GitHub}
+     * @param repo    the {@link GHRepository}
+     * @param refName the ref name, e.g. {@code heads/branchName}, {@code tags/tagName}, {@code pull/N/head} or the SHA.
+     * @param rev     the optional revision.
+     * @throws IOException if I/O errors occur.
      */
     protected GitHubSCMFileSystem(GitHub gitHub, GHRepository repo, String refName, @CheckForNull SCMRevision rev)
             throws IOException {

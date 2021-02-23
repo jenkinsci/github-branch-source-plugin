@@ -33,8 +33,7 @@ import java.util.Set;
 /**
  * A set that delegates to another set, but will only instantiate the delegate if necessary.
  *
- * @param <E>
- *            the type of elements in the set.
+ * @param <E> the type of elements in the set.
  */
 abstract class LazySet<E> extends AbstractSet<E> {
     /**

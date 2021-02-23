@@ -79,8 +79,7 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
     /**
      * Constructor for stapler.
      *
-     * @param strategyId
-     *            the strategy id.
+     * @param strategyId the strategy id.
      */
     @DataBoundConstructor
     public OriginPullRequestDiscoveryTrait(int strategyId) {
@@ -90,8 +89,7 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
     /**
      * Constructor for programmatic instantiation.
      *
-     * @param strategies
-     *            the {@link ChangeRequestCheckoutStrategy} instances.
+     * @param strategies the {@link ChangeRequestCheckoutStrategy} instances.
      */
     public OriginPullRequestDiscoveryTrait(Set<ChangeRequestCheckoutStrategy> strategies) {
         this(
@@ -199,8 +197,7 @@ public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
      * A {@link SCMHeadAuthority} that trusts origin pull requests
      */
     public static class OriginChangeRequestSCMHeadAuthority
-            extends
-                SCMHeadAuthority<SCMSourceRequest, ChangeRequestSCMHead2, SCMRevision> {
+            extends SCMHeadAuthority<SCMSourceRequest, ChangeRequestSCMHead2, SCMRevision> {
         /**
          * {@inheritDoc}
          */

@@ -40,6 +40,7 @@ public class SSHCheckoutTraitTest {
         instance.decorateBuilder(probe);
         assertThat(probe.credentialsId(), is("keyId"));
     }
+
     @Test
     public void given__sshCheckoutWithCredentials__when__decorating__then__credentialsApplied() throws Exception {
         SSHCheckoutTrait instance = new SSHCheckoutTrait("keyId");
@@ -63,6 +64,7 @@ public class SSHCheckoutTraitTest {
         instance.decorateBuilder(probe);
         assertThat(probe.credentialsId(), is(nullValue()));
     }
+
     @Test
     public void given__sshCheckoutWithAgentKey__when__decorating__then__useAgentKeyApplied() throws Exception {
         SSHCheckoutTrait instance = new SSHCheckoutTrait(null);

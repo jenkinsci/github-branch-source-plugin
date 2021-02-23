@@ -311,8 +311,7 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
             }
             if (context.wantPRs()) {
                 int number = pullRequest.getNumber();
-                Set<ChangeRequestCheckoutStrategy> strategies = fork
-                        ? context.forkPRStrategies()
+                Set<ChangeRequestCheckoutStrategy> strategies = fork ? context.forkPRStrategies()
                         : context.originPRStrategies();
                 for (ChangeRequestCheckoutStrategy strategy : strategies) {
                     final String branchName;

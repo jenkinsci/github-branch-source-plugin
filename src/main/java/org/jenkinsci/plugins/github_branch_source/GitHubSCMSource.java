@@ -319,16 +319,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * Constructor, defaults to {@link #GITHUB_URL} as the end-point, and anonymous access, does not default any
      * {@link SCMSourceTrait} behaviours.
      *
-     * @param repoOwner
-     *            the repository owner.
-     * @param repository
-     *            the repository name.
-     * @param repositoryUrl
-     *            HTML URL for the repository. If specified, takes precedence over repoOwner and repository.
-     * @param configuredByUrl
-     *            Whether to use repositoryUrl or repoOwner/repository for configuration.
-     * @throws IllegalArgumentException
-     *             if repositoryUrl is specified but invalid.
+     * @param repoOwner       the repository owner.
+     * @param repository      the repository name.
+     * @param repositoryUrl   HTML URL for the repository. If specified, takes precedence over repoOwner and repository.
+     * @param configuredByUrl Whether to use repositoryUrl or repoOwner/repository for configuration.
+     * @throws IllegalArgumentException if repositoryUrl is specified but invalid.
      * @since 2.2.0
      */
     // configuredByUrl is used to decide which radioBlock in the UI the user had selected when they submitted the form.
@@ -354,10 +349,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /**
      * Legacy constructor.
      *
-     * @param repoOwner
-     *            the repository owner.
-     * @param repository
-     *            the repository name.
+     * @param repoOwner  the repository owner.
+     * @param repository the repository name.
      * @since 2.2.0
      */
     @Deprecated
@@ -368,18 +361,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /**
      * Legacy constructor.
      *
-     * @param id
-     *            the source id.
-     * @param apiUri
-     *            the GitHub endpoint.
-     * @param checkoutCredentialsId
-     *            the checkout credentials id or {@link DescriptorImpl#SAME} or {@link DescriptorImpl#ANONYMOUS}.
-     * @param scanCredentialsId
-     *            the scan credentials id or {@code null}.
-     * @param repoOwner
-     *            the repository owner.
-     * @param repository
-     *            the repository name.
+     * @param id                    the source id.
+     * @param apiUri                the GitHub endpoint.
+     * @param checkoutCredentialsId the checkout credentials id or {@link DescriptorImpl#SAME} or
+     *                              {@link DescriptorImpl#ANONYMOUS}.
+     * @param scanCredentialsId     the scan credentials id or {@code null}.
+     * @param repoOwner             the repository owner.
+     * @param repository            the repository name.
      */
     @Deprecated
     public GitHubSCMSource(
@@ -422,8 +410,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /**
      * Sets the GitHub API end-point.
      *
-     * @param apiUri
-     *            the GitHub API end-point or {@code null} if {@link #GITHUB_URL}.
+     * @param apiUri the GitHub API end-point or {@code null} if {@link #GITHUB_URL}.
      * @since 2.2.0
      */
     @DataBoundSetter
@@ -443,8 +430,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /**
      * Forces the apiUri to a specific value. FOR TESTING ONLY.
      *
-     * @param apiUri
-     *            the api uri
+     * @param apiUri the api uri
      */
     void forceApiUri(@Nonnull String apiUri) {
         this.apiUri = apiUri;
@@ -466,8 +452,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * Sets the credentials used to access the GitHub REST API (also used as the default credentials for checking out
      * sources.
      *
-     * @param credentialsId
-     *            the credentials used to access the GitHub REST API or {@code null} to access anonymously
+     * @param credentialsId the credentials used to access the GitHub REST API or {@code null} to access anonymously
      * @since 2.2.0
      */
     @DataBoundSetter
@@ -528,8 +513,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /**
      * Sets the behaviours that are applied to this {@link GitHubSCMSource}.
      *
-     * @param traits
-     *            the behaviours that are to be applied.
+     * @param traits the behaviours that are to be applied.
      */
     @DataBoundSetter
     public void setTraits(@CheckForNull List<SCMSourceTrait> traits) {
@@ -613,8 +597,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /**
      * Sets how long to delay events received from GitHub in order to allow the API caches to sync.
      *
-     * @param eventDelaySeconds
-     *            number of seconds to delay, will be restricted into a value within the range {@code [0,300]} inclusive
+     * @param eventDelaySeconds number of seconds to delay, will be restricted into a value within the range
+     *                          {@code [0,300]} inclusive
      */
     @Restricted(NoExternalUse.class) // to allow configuration from system groovy console
     public static void setEventDelaySeconds(int eventDelaySeconds) {
@@ -633,9 +617,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /**
      * Sets how long to delay events received from GitHub in order to allow the API caches to sync.
      *
-     * @param cacheSize
-     *            how many megabytes of on-disk cache to maintain per GitHub API URL per credentials, will be restricted
-     *            into a value within the range {@code [0,1024]} inclusive.
+     * @param cacheSize how many megabytes of on-disk cache to maintain per GitHub API URL per credentials, will be
+     *                  restricted into a value within the range {@code [0,1024]} inclusive.
      */
     @Restricted(NoExternalUse.class) // to allow configuration from system groovy console
     public static void setCacheSize(int cacheSize) {
@@ -1836,6 +1819,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return new MergeWithGitSCMExtension("remotes/origin/" + baseName, baseHash);
         }
     }
+
     @Override
     public SCMRevision getTrustedRevision(SCMRevision revision, final TaskListener listener)
             throws IOException, InterruptedException {
@@ -2062,8 +2046,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 @CheckForNull @AncestorInPath Item context,
                 @QueryParameter String apiUri,
                 @QueryParameter String credentialsId) {
-            if (context == null
-                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+            if (context == null ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
                     : !context.hasPermission(Item.EXTENDED_READ)) {
                 return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
@@ -2250,6 +2233,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             throw new FillErrorResponse(Messages.GitHubSCMSource_CouldNotConnectionGithub(credentialsId), true);
         }
+
         @RequirePOST
         public ListBoxModel doFillRepositoryItems(
                 @CheckForNull @AncestorInPath Item context,
@@ -2288,9 +2272,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                     Level.WARNING,
                                     "Exception retrieving the repositories of the owner {0} on {1} with credentials {2}");
                             lr.setThrown(e);
-                            lr.setParameters(new Object[]{ repoOwner, apiUri,
-                                    credentials == null
-                                            ? "anonymous access"
+                            lr.setParameters(new Object[]{ repoOwner,
+                                    apiUri,
+                                    credentials == null ? "anonymous access"
                                             : CredentialsNameProvider.name(credentials) });
                             LOGGER.log(lr);
                             throw new FillErrorResponse(e.getMessage(), false);
@@ -2314,7 +2298,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                 Level.WARNING,
                                 "Exception retrieving the repositories of the organization {0} on {1} with credentials {2}");
                         lr.setThrown(e);
-                        lr.setParameters(new Object[]{ repoOwner, apiUri,
+                        lr.setParameters(new Object[]{ repoOwner,
+                                apiUri,
                                 credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials) });
                         LOGGER.log(lr);
                         throw new FillErrorResponse(e.getMessage(), false);
@@ -2346,7 +2331,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                 Level.WARNING,
                                 "Exception retrieving the repositories of the user {0} on {1} with credentials {2}");
                         lr.setThrown(e);
-                        lr.setParameters(new Object[]{ repoOwner, apiUri,
+                        lr.setParameters(new Object[]{ repoOwner,
+                                apiUri,
                                 credentials == null ? "anonymous access" : CredentialsNameProvider.name(credentials) });
                         LOGGER.log(lr);
                         throw new FillErrorResponse(e.getMessage(), false);
@@ -2369,6 +2355,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             throw new FillErrorResponse(Messages.GitHubSCMSource_NoMatchingOwner(repoOwner), true);
         }
+
         /**
          * Creates a list box model from a list of values. ({@link ListBoxModel#ListBoxModel(Collection)} takes
          * {@link hudson.util.ListBoxModel.Option}s, not {@link String}s, and those are not {@link Comparable}.)
@@ -2497,6 +2484,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
              * A map of all fully populated {@link GHUser} entries we have fetched, keyed by {@link GHUser#getLogin()}.
              */
             private Map<String, GHUser> users = new HashMap<>();
+
             CacheUpdatingIterable(Iterable<GHPullRequest> delegate) {
                 super(delegate);
             }
@@ -2723,8 +2711,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     private static class MergabilityWitness
-            implements
-                SCMSourceRequest.Witness<PullRequestSCMHead, PullRequestSCMRevision> {
+            implements SCMSourceRequest.Witness<PullRequestSCMHead, PullRequestSCMRevision> {
         private final GHPullRequest pr;
         private final ChangeRequestCheckoutStrategy strategy;
         private final TaskListener listener;
@@ -2826,8 +2813,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     // Input data validation
                     Connector.checkConnectionValidity(apiUri, listener, credentials, github);
                     // Input data validation
-                    String credentialsName = credentials == null
-                            ? "anonymous access"
+                    String credentialsName = credentials == null ? "anonymous access"
                             : CredentialsNameProvider.name(credentials);
                     if (credentials != null && !isCredentialValid(github)) {
                         listener.getLogger()

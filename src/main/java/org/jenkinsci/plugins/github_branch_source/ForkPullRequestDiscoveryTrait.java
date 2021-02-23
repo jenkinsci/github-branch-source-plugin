@@ -85,10 +85,8 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     /**
      * Constructor for stapler.
      *
-     * @param strategyId
-     *            the strategy id.
-     * @param trust
-     *            the authority to use.
+     * @param strategyId the strategy id.
+     * @param trust      the authority to use.
      */
     @DataBoundConstructor
     public ForkPullRequestDiscoveryTrait(
@@ -101,10 +99,8 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     /**
      * Constructor for programmatic instantiation.
      *
-     * @param strategies
-     *            the {@link ChangeRequestCheckoutStrategy} instances.
-     * @param trust
-     *            the authority.
+     * @param strategies the {@link ChangeRequestCheckoutStrategy} instances.
+     * @param trust      the authority.
      */
     public ForkPullRequestDiscoveryTrait(
             @NonNull Set<ChangeRequestCheckoutStrategy> strategies,
@@ -250,8 +246,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
      * An {@link SCMHeadAuthority} that trusts nothing.
      */
     public static class TrustNobody
-            extends
-                SCMHeadAuthority<SCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+            extends SCMHeadAuthority<SCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
 
         /**
          * Constructor.
@@ -297,8 +292,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
      * An {@link SCMHeadAuthority} that trusts contributors to the repository.
      */
     public static class TrustContributors
-            extends
-                SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+            extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
         /**
          * Constructor.
          */
@@ -345,8 +339,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
      * An {@link SCMHeadAuthority} that trusts those with write permission to the repository.
      */
     public static class TrustPermission
-            extends
-                SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+            extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
 
         /**
          * Constructor.
@@ -403,8 +396,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
      * An {@link SCMHeadAuthority} that trusts everyone.
      */
     public static class TrustEveryone
-            extends
-                SCMHeadAuthority<SCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+            extends SCMHeadAuthority<SCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
         /**
          * Constructor.
          */

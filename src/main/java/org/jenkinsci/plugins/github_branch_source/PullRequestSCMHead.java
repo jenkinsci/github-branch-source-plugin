@@ -278,8 +278,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
     @Restricted(NoExternalUse.class)
     @Extension
     public static class FixOriginMigration
-            extends
-                SCMHeadMigration<GitHubSCMSource, FixOrigin, PullRequestSCMRevision> {
+            extends SCMHeadMigration<GitHubSCMSource, FixOrigin, PullRequestSCMRevision> {
         public FixOriginMigration() {
             super(GitHubSCMSource.class, FixOrigin.class, PullRequestSCMRevision.class);
         }
@@ -293,8 +292,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
                     head.getSourceBranch(),
                     head.getNumber(),
                     head.getTarget(),
-                    source.getRepoOwner().equalsIgnoreCase(head.getSourceOwner())
-                            ? SCMHeadOrigin.DEFAULT
+                    source.getRepoOwner().equalsIgnoreCase(head.getSourceOwner()) ? SCMHeadOrigin.DEFAULT
                             : new SCMHeadOrigin.Fork(head.getSourceOwner()),
                     head.getCheckoutStrategy());
         }
@@ -302,8 +300,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         @Override
         public SCMRevision migrate(@NonNull GitHubSCMSource source, @NonNull PullRequestSCMRevision revision) {
             PullRequestSCMHead head = migrate(source, (FixOrigin) revision.getHead());
-            return head != null
-                    ? new PullRequestSCMRevision(head, revision.getBaseHash(), revision.getPullHash())
+            return head != null ? new PullRequestSCMRevision(head, revision.getBaseHash(), revision.getPullHash())
                     : null;
         }
     }
@@ -340,8 +337,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
     @Restricted(NoExternalUse.class)
     @Extension
     public static class FixMetadataMigration
-            extends
-                SCMHeadMigration<GitHubSCMSource, FixMetadata, PullRequestSCMRevision> {
+            extends SCMHeadMigration<GitHubSCMSource, FixMetadata, PullRequestSCMRevision> {
         public FixMetadataMigration() {
             super(GitHubSCMSource.class, FixMetadata.class, PullRequestSCMRevision.class);
         }
@@ -356,8 +352,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
                     src == null ? null : src.getSourceBranch(),
                     head.getNumber(),
                     head.getTarget(),
-                    src != null && source.getRepoOwner().equalsIgnoreCase(src.getSourceOwner())
-                            ? SCMHeadOrigin.DEFAULT
+                    src != null && source.getRepoOwner().equalsIgnoreCase(src.getSourceOwner()) ? SCMHeadOrigin.DEFAULT
                             : new SCMHeadOrigin.Fork(head.getSourceOwner()),
                     head.getCheckoutStrategy());
         }
@@ -365,8 +360,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
         @Override
         public SCMRevision migrate(@NonNull GitHubSCMSource source, @NonNull PullRequestSCMRevision revision) {
             PullRequestSCMHead head = migrate(source, (FixMetadata) revision.getHead());
-            return head != null
-                    ? new PullRequestSCMRevision(head, revision.getBaseHash(), revision.getPullHash())
+            return head != null ? new PullRequestSCMRevision(head, revision.getBaseHash(), revision.getPullHash())
                     : null;
         }
     }

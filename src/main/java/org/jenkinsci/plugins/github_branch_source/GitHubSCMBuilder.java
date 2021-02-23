@@ -106,12 +106,9 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
     /**
      * Constructor.
      *
-     * @param source
-     *            the {@link GitHubSCMSource}.
-     * @param head
-     *            the {@link SCMHead}
-     * @param revision
-     *            the (optional) {@link SCMRevision}
+     * @param source   the {@link GitHubSCMSource}.
+     * @param head     the {@link SCMHead}
+     * @param revision the (optional) {@link SCMRevision}
      */
     public GitHubSCMBuilder(
             @NonNull GitHubSCMSource source,
@@ -147,8 +144,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
     /**
      * Tries to guess the HTTPS URL of the Git repository.
      *
-     * @param source
-     *            the source.
+     * @param source the source.
      * @return the (possibly incorrect) best guess at the Git repository URL.
      */
     private static String guessRemote(GitHubSCMSource source) {
@@ -164,10 +160,8 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
     /**
      * Tries as best as possible to guess the repository HTML url to use with {@link GithubWeb}.
      *
-     * @param owner
-     *            the owner.
-     * @param repo
-     *            the repository.
+     * @param owner the owner.
+     * @param repo  the repository.
      * @return the HTML url of the repository or {@code null} if we could not determine the answer.
      */
     @CheckForNull
@@ -202,14 +196,12 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
      * Configures the {@link IdCredentials#getId()} of the {@link Credentials} to use when connecting to the
      * {@link #remote()}
      *
-     * @param credentialsId
-     *            the {@link IdCredentials#getId()} of the {@link Credentials} to use when connecting to the
-     *            {@link #remote()} or {@code null} to let the git client choose between providing its own credentials
-     *            or connecting anonymously.
-     * @param uriResolver
-     *            the {@link RepositoryUriResolver} of the {@link Credentials} to use or {@code null} to detect the the
-     *            protocol based on the credentialsId. Defaults to HTTP if credentials are {@code null}. Enables support
-     *            for blank SSH credentials.
+     * @param credentialsId the {@link IdCredentials#getId()} of the {@link Credentials} to use when connecting to the
+     *                      {@link #remote()} or {@code null} to let the git client choose between providing its own
+     *                      credentials or connecting anonymously.
+     * @param uriResolver   the {@link RepositoryUriResolver} of the {@link Credentials} to use or {@code null} to
+     *                      detect the the protocol based on the credentialsId. Defaults to HTTP if credentials are
+     *                      {@code null}. Enables support for blank SSH credentials.
      * @return {@code this} for method chaining.
      */
     @NonNull
@@ -225,12 +217,9 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
     /**
      * Returns a {@link RepositoryUriResolver} according to credentials configuration.
      *
-     * @param context
-     *            the context within which to resolve the credentials.
-     * @param apiUri
-     *            the API url
-     * @param credentialsId
-     *            the credentials.
+     * @param context       the context within which to resolve the credentials.
+     * @param apiUri        the API url
+     * @param credentialsId the credentials.
      * @return a {@link RepositoryUriResolver}
      */
     @NonNull
@@ -241,13 +230,14 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         if (credentialsId == null) {
             return HTTPS;
         } else {
-            StandardCredentials credentials = CredentialsMatchers.firstOrNull(CredentialsProvider.lookupCredentials(
-                    StandardCredentials.class,
-                    context,
-                    context instanceof Queue.Task ? ((Queue.Task) context).getDefaultAuthentication() : ACL.SYSTEM,
-                    URIRequirementBuilder.create()
-                            .withHostname(RepositoryUriResolver.hostnameFromApiUri(apiUri))
-                            .build()),
+            StandardCredentials credentials = CredentialsMatchers.firstOrNull(
+                    CredentialsProvider.lookupCredentials(StandardCredentials.class,
+                            context,
+                            context instanceof Queue.Task ? ((Queue.Task) context).getDefaultAuthentication()
+                                    : ACL.SYSTEM,
+                            URIRequirementBuilder.create()
+                                    .withHostname(RepositoryUriResolver.hostnameFromApiUri(apiUri))
+                                    .build()),
                     CredentialsMatchers.allOf(CredentialsMatchers.withId(credentialsId),
                             CredentialsMatchers.instanceOf(StandardCredentials.class)));
             if (credentials instanceof SSHUserPrivateKey) {

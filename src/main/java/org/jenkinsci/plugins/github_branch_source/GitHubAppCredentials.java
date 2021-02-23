@@ -333,10 +333,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          * Within the bounds of {@link #NOT_STALE_MINIMUM_SECONDS} and {@link #STALE_AFTER_SECONDS}, tokens will become
          * stale {@link #STALE_BEFORE_EXPIRATION_SECONDS} seconds before they expire.
          *
-         * @param token
-         *            the token string
-         * @param expirationEpochSeconds
-         *            the time in epoch seconds that this token will expire
+         * @param token                  the token string
+         * @param expirationEpochSeconds the time in epoch seconds that this token will expire
          */
         public AppInstallationToken(Secret token, long expirationEpochSeconds) {
             long now = Instant.now().getEpochSecond();
@@ -409,8 +407,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     }
 
     private static final class DelegatingGitHubAppCredentials extends BaseStandardCredentials
-            implements
-                StandardUsernamePasswordCredentials {
+            implements StandardUsernamePasswordCredentials {
 
         private final String appID;
         /**
