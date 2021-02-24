@@ -27,7 +27,6 @@
         <java.level>8</java.level>
         <jenkins.version>2.271</jenkins.version>
         <useBeta>true</useBeta>
-        <spotless-maven-plugin.goal>apply</spotless-maven-plugin.goal>
     </properties>
 
     <scm>
@@ -145,9 +144,10 @@
                 <executions>
                     <execution>
                         <id>spotless-check</id>
-                        <phase>process-sources</phase>
+                        <!-- runs in verify phase by default -->
                         <goals>
-                            <goal>${spotless-maven-plugin.goal}</goal>
+                            <!-- can be disabled using -Dspotless.check.skip=true -->
+                            <goal>check</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -181,9 +181,24 @@
                     <family>!windows</family>
                 </os>
             </activation>
-            <properties>
-                <spotless-maven-plugin.goal>check</spotless-maven-plugin.goal>
-            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.diffplug.spotless</groupId>
+                        <artifactId>spotless-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>spotless-check</id>
+                                <!-- In CI, run check early in the build -->
+                                <phase>process-sources</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
     </profiles>
     <repositories>
