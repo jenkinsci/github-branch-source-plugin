@@ -1,9 +1,6 @@
 #Organize Import Order
 # Import this file in Window -> Preferences -> Java -> Code Style -> Organize Imports -> Import...
+# This project groups imports followed by static imports and uses simple alphabetical order within the groups
 0=
-# This project uses simple alphabetical import order
-# 1=java
-# 2=javax
-#
 # static imports
-3=\#
+1=\#
