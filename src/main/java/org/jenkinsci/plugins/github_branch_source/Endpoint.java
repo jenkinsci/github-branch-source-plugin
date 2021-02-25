@@ -57,7 +57,13 @@ public class Endpoint extends AbstractDescribableImpl<Endpoint> {
     /**
      * Common prefixes that we should remove when inferring a display name.
      */
-    private static final String[] COMMON_PREFIX_HOSTNAMES = { "git.", "github.", "vcs.", "scm.", "source." };
+    private static final String[] COMMON_PREFIX_HOSTNAMES = {
+            // Keep these on their own lines
+            "git.",
+            "github.",
+            "vcs.",
+            "scm.",
+            "source." };
 
     private final String name;
     private final String apiUri;
