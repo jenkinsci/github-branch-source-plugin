@@ -66,7 +66,7 @@ public enum ApiRateLimitChecker {
         }
     },
 
-    /**å
+    /**
      * Restrict GitHub API requests only when near or above rate limit.
      */
     ThrottleOnOver(Messages.ApiRateLimitChecker_ThrottleOnOver()) {
