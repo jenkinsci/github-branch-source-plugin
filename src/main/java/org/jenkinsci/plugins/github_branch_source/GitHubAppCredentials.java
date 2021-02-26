@@ -124,7 +124,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     @SuppressWarnings("deprecation")
     AuthorizationProvider getAuthorizationProvider() {
-        return new TokenProvider(this);
+        return new CredentialsTokenProvider(this);
     }
 
     private static AuthorizationProvider createJwtProvider(String appId, String appPrivateKey) {
@@ -137,16 +137,42 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         }
     }
 
-    private static class TokenProvider extends GitHub.DependentAuthorizationProvider {
+    private static abstract class TokenProvider extends GitHub.DependentAuthorizationProvider {
+
+        protected TokenProvider(String appID, String privateKey) {
+            super(createJwtProvider(appID, privateKey));
+        }
+
+        /**
+         * Create and return the specialized GitHub instance to be used for refreshing AppInstallationToken
+         *
+         * The {@link GitHub.DependentAuthorizationProvider} provides a specialized GitHub instance that uses JWT for
+         * authorization and does not check rate limit since it doesn't apply for the App endpoints when using JWT.
+         */
+        static GitHub createTokenRefreshGitHub(String appId, String appPrivateKey, String apiUrl) throws IOException {
+            TokenProvider provider = new TokenProvider(appId, appPrivateKey) {
+                @Override
+                public String getEncodedAuthorization() throws IOException {
+                    // Will never be called
+                    return null;
+                }
+            };
+            Connector.createGitHubBuilder(apiUrl).withAuthorizationProvider(provider).build();
+
+            return provider.gitHub();
+        }
+    }
+
+    private static class CredentialsTokenProvider extends TokenProvider {
         private final GitHubAppCredentials credentials;
 
-        TokenProvider(GitHubAppCredentials credentials) {
-            super(createJwtProvider(credentials.appID, credentials.privateKey.getPlainText()));
+        CredentialsTokenProvider(GitHubAppCredentials credentials) {
+            super(credentials.appID, credentials.privateKey.getPlainText());
             this.credentials = credentials;
         }
 
         public String getEncodedAuthorization() throws IOException {
-            Secret token = credentials.getPassword(gitHub());
+            Secret token = credentials.getToken(gitHub()).getToken();
             return String.format("token %s", token.getPlainText());
         }
     }
@@ -164,9 +190,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
         try (Timeout ignored = Timeout.limit(30, TimeUnit.SECONDS)) {
             if (gitHubApp == null) {
-                gitHubApp = Connector.createGitHubBuilder(apiUrl)
-                        .withAuthorizationProvider(createJwtProvider(appId, appPrivateKey))
-                        .build();
+                gitHubApp = TokenProvider.createTokenRefreshGitHub(appId, appPrivateKey, apiUrl);
             }
 
             GHApp app;
@@ -228,7 +252,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         return Util.fixEmpty(apiUri) == null ? "https://api.github.com" : apiUri;
     }
 
-    private Secret getPassword(GitHub gitHub) {
+    private AppInstallationToken getToken(GitHub gitHub) {
         synchronized (this) {
             try {
                 if (cachedToken == null || cachedToken.isStale()) {
@@ -255,7 +279,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             }
             LOGGER.log(Level.FINEST, "Returned GitHub App Installation Token for app ID {0}", appID);
 
-            return cachedToken.getToken();
+            return cachedToken;
         }
     }
 
@@ -265,7 +289,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     @NonNull
     @Override
     public Secret getPassword() {
-        return this.getPassword(null);
+        return this.getToken(null).getToken();
     }
 
     /**

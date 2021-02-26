@@ -53,7 +53,6 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GHTagObject;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
-import org.kohsuke.github.HttpException;
 
 /**
  * Implements {@link SCMFileSystem} for GitHub.
@@ -259,12 +258,6 @@ public class GitHubSCMFileSystem extends SCMFileSystem implements GitHubClosable
             // Github client and validation
             GitHub github = Connector.connect(apiUri, credentials);
             try {
-                try {
-                    Connector.checkApiUrlValidity(github, credentials);
-                } catch (HttpException e) {
-                    String message = String.format("It seems %s is unreachable", apiUri);
-                    throw new IOException(message);
-                }
                 String refName;
 
                 if (head instanceof BranchSCMHead) {

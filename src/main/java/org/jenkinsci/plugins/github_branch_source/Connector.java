@@ -56,7 +56,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -79,6 +78,7 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHAppInstallationToken;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
+import org.kohsuke.github.HttpException;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.authorization.ImmutableAuthorizationProvider;
 import org.kohsuke.github.extras.okhttp3.OkHttpConnector;
@@ -97,13 +97,7 @@ public class Connector {
 
     private static final Map<TaskListener, Map<GitHub, Void>> checked = new WeakHashMap<>();
     private static final long API_URL_REVALIDATE_MILLIS = TimeUnit.MINUTES.toMillis(5);
-    private static final Map<String, Long> apiUrlValid = new LinkedHashMap<String, Long>() {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<String, Long> eldest) {
-            Long t = eldest.getValue();
-            return t == null || t < System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS;
-        }
-    };
+
     private static final Random ENTROPY = new Random();
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
     private static final OkHttpClient baseClient = new OkHttpClient();
@@ -313,29 +307,6 @@ public class Connector {
                 GitClient.CREDENTIALS_MATCHER);
     }
 
-    public static void checkApiUrlValidity(@Nonnull GitHub gitHub, @CheckForNull StandardCredentials credentials)
-            throws IOException {
-        String hash;
-        if (credentials == null) {
-            hash = "anonymous";
-        } else if (credentials instanceof StandardUsernamePasswordCredentials) {
-            StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
-            hash = Util.getDigestOf(c.getPassword().getPlainText() + SALT);
-        } else {
-            // TODO OAuth support
-            throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
-        }
-        String key = gitHub.getApiUrl() + "::" + hash;
-        synchronized (apiUrlValid) {
-            Long last = apiUrlValid.get(key);
-            if (last != null && last > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
-                return;
-            }
-            gitHub.checkApiUrlValidity();
-            apiUrlValid.put(key, System.currentTimeMillis());
-        }
-    }
-
     public static @Nonnull GitHub connect(@CheckForNull String apiUri, @CheckForNull StandardCredentials credentials)
             throws IOException {
         String apiUrl = Util.fixEmptyAndTrim(apiUri);
@@ -390,6 +361,7 @@ public class Connector {
 
                 record = GitHubConnection
                         .connect(connectionId, gb.build(), cache, credentials instanceof GitHubAppCredentials);
+
             }
 
             return record.getGitHub();
@@ -631,6 +603,7 @@ public class Connector {
         private final boolean cleanupCacheFolder;
         private int usageCount = 1;
         private long lastUsed = System.currentTimeMillis();
+        private long lastVerified = Long.MIN_VALUE;
 
         private GitHubConnection(GitHub gitHub, Cache cache, boolean cleanupCacheFolder) {
             this.gitHub = gitHub;
@@ -648,10 +621,11 @@ public class Connector {
         }
 
         @CheckForNull
-        private static GitHubConnection lookup(@NonNull ConnectionId connectionId) {
+        private static GitHubConnection lookup(@NonNull ConnectionId connectionId) throws IOException {
             GitHubConnection record;
             record = connections.get(connectionId);
             if (record != null) {
+                record.verifyConnection();
                 record.usageCount += 1;
                 record.lastUsed = System.currentTimeMillis();
             }
@@ -663,8 +637,9 @@ public class Connector {
                 @NonNull ConnectionId connectionId,
                 @NonNull GitHub gitHub,
                 @CheckForNull Cache cache,
-                boolean cleanupCacheFolder) {
+                boolean cleanupCacheFolder) throws IOException {
             GitHubConnection record = new GitHubConnection(gitHub, cache, cleanupCacheFolder);
+            record.verifyConnection();
             connections.put(connectionId, record);
             reverseLookup.put(record.gitHub, record);
             return record;
@@ -699,6 +674,21 @@ public class Connector {
                             "Exception removing cache directory for unused connection: " + entry.getKey(),
                             e);
                 }
+            }
+        }
+
+        public void verifyConnection() throws IOException {
+            synchronized (this) {
+                if (lastVerified > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
+                    return;
+                }
+                try {
+                    gitHub.checkApiUrlValidity();
+                } catch (HttpException e) {
+                    String message = String.format("It seems %s is unreachable", gitHub.getApiUrl());
+                    throw new IOException(message, e);
+                }
+                lastVerified = System.currentTimeMillis();
             }
         }
     }

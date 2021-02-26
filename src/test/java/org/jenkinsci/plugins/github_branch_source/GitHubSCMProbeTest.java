@@ -47,6 +47,10 @@ public class GitHubSCMProbeTest {
 
         // Return 404 for /rate_limit
         githubApi.stubFor(get(urlEqualTo("/rate_limit")).willReturn(aResponse().withStatus(404)));
+
+        // validate api url
+        githubApi.stubFor(get(urlEqualTo("/"))
+                .willReturn(aResponse().withBody("{\"rate_limit_url\": \"https://localhost/placeholder/\"}")));
     }
 
     void createProbeForPR(int number) throws IOException {

@@ -1128,16 +1128,14 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 .lookupScanCredentials((Item) observer.getContext(), apiUri, credentialsId);
 
         // Github client and validation
-        GitHub github = Connector.connect(apiUri, credentials);
+        GitHub github;
         try {
-            try {
-                Connector.checkApiUrlValidity(github, credentials);
-            } catch (HttpException e) {
-                String message = String.format("It seems %s is unreachable",
-                        apiUri == null ? GitHubSCMSource.GITHUB_URL : apiUri);
-                throw new AbortException(message);
-            }
+            github = Connector.connect(apiUri, credentials);
+        } catch (HttpException e) {
+            throw new AbortException(e.getMessage());
+        }
 
+        try {
             // Input data validation
             if (credentials != null && !isCredentialValid(github)) {
                 String message = String.format("Invalid scan credentials %s to connect to %s, skipping",

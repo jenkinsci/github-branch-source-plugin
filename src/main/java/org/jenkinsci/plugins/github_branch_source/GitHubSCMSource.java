@@ -954,7 +954,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
         try {
-            checkApiUrlValidity(github, credentials);
             Connector.configureLocalRateLimitChecker(listener, github);
 
             try {
@@ -1255,7 +1254,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
         try {
-            checkApiUrlValidity(github, credentials);
             Connector.configureLocalRateLimitChecker(listener, github);
             Set<String> result = new TreeSet<>();
 
@@ -1354,7 +1352,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
         try {
-            checkApiUrlValidity(github, credentials);
             Connector.configureLocalRateLimitChecker(listener, github);
             // Input data validation
             if (isBlank(repository)) {
@@ -1550,15 +1547,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    private void checkApiUrlValidity(GitHub github, StandardCredentials credentials) throws IOException {
-        try {
-            Connector.checkApiUrlValidity(github, credentials);
-        } catch (HttpException e) {
-            String message = String.format("It seems %s is unreachable", apiUri);
-            throw new IOException(message, e);
-        }
-    }
-
     private static class WrappedException extends RuntimeException {
 
         public WrappedException(Throwable cause) {
@@ -1607,8 +1595,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         try {
-            checkApiUrlValidity(github, credentials);
-
             try {
                 Connector.checkConnectionValidity(apiUri, listener, credentials, github);
                 Connector.configureLocalRateLimitChecker(listener, github);
@@ -1760,7 +1746,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     try {
                         GitHub github = Connector.connect(apiUri, credentials);
                         try {
-                            checkApiUrlValidity(github, credentials);
                             Connector.configureLocalRateLimitChecker(listener, github);
                             ghRepository = github.getRepository(fullName);
                             LOGGER.log(Level.INFO, "Got remote pull requests from {0}", fullName);
@@ -2790,7 +2775,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             try {
                 GitHub github = Connector.connect(apiUri, credentials);
                 try {
-                    checkApiUrlValidity(github, credentials);
                     Connector.configureLocalRateLimitChecker(listener, github);
 
                     // Input data validation

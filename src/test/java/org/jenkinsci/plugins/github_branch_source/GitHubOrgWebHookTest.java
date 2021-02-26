@@ -48,6 +48,10 @@ public class GitHubOrgWebHookTest {
         // Return 404 for /rate_limit
         wireMockRule.stubFor(get(urlEqualTo("/api/rate_limit")).willReturn(aResponse().withStatus(404)));
 
+        // validate api url
+        wireMockRule.stubFor(get(urlEqualTo("/api/"))
+                .willReturn(aResponse().withBody("{\"rate_limit_url\": \"https://localhost/placeholder/\"}")));
+
         wireMockRule
                 .stubFor(get(urlEqualTo("/api/users/myorg")).willReturn(aResponse().withBody("{\"login\":\"myorg\"}")));
         wireMockRule.stubFor(get(urlEqualTo("/api/orgs/myorg"))

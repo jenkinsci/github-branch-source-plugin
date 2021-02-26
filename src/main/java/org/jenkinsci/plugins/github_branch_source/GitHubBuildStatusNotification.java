@@ -63,7 +63,6 @@ import org.kohsuke.github.GitHub;
  * <li>Build doing a checkout: PENDING</li>
  * <li>Build done: SUCCESS, FAILURE or ERROR</li>
  * </ul>
- *
  */
 public class GitHubBuildStatusNotification {
 
