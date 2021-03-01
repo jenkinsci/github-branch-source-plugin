@@ -109,6 +109,13 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
     @Before
     public void setUpWireMock() throws Exception {
+        // At no point during credential refreshes should we ever check rate_limit
+        githubApi.stubFor(
+            get(urlEqualTo("/rate_limit"))
+                .willReturn(aResponse()
+                        .withStatus(500)
+                ));
+
         //Add wiremock responses for App, App Installation, and App Installation Token
         githubApi.stubFor(
             get(urlEqualTo("/app"))

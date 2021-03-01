@@ -255,6 +255,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
     /**
      * Updates the {@link GitSCMBuilder#withRemote(String)} based on the current {@link #head()} and
      * {@link #revision()}.
+     *
      * Will be called automatically by {@link #build()} but exposed in case the correct remote is required after
      * changing the {@link #withCredentials(String)}.
      *
