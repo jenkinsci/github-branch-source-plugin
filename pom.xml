@@ -125,7 +125,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.11</version>
+                <version>3.12.0</version>
             </dependency>
             <!-- TODO remove once branch-api >= 2.6.3 in bom -->
             <dependency>
