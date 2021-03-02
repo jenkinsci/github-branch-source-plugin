@@ -153,18 +153,9 @@
                 </executions>
                 <configuration>
                     <java>
-                        <eclipse>
-                            <file>${basedir}/src/build/eclipse/formatter.xml</file>
-                        </eclipse>
-
-                        <importOrder>
-                            <file>${basedir}/src/build/eclipse/eclipse.importorder</file>
-                        </importOrder>
-                        <removeUnusedImports />
-
-                        <trimTrailingWhitespace />
-                        <endWithNewline />
-
+                        <googleJavaFormat>
+                            <style>GOOGLE</style>
+                        </googleJavaFormat>
                     </java>
                 </configuration>
             </plugin>
