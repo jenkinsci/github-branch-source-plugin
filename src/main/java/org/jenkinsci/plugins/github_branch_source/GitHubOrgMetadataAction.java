@@ -30,6 +30,7 @@ import hudson.Util;
 import hudson.model.Hudson;
 import java.io.IOException;
 import java.io.ObjectStreamException;
+import java.util.Objects;
 import jenkins.scm.api.metadata.AvatarMetadataAction;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.github.GHUser;
@@ -117,8 +118,7 @@ public class GitHubOrgMetadataAction extends AvatarMetadataAction {
 
         GitHubOrgMetadataAction that = (GitHubOrgMetadataAction) o;
 
-        return avatar != null ? avatar.equals(that.avatar) : that.avatar == null;
-
+        return Objects.equals(avatar, that.avatar);
     }
 
     /**

@@ -1,0 +1,33 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler">
+  <st:include page="id-and-description" class="${descriptor.clazz}"/>
+  <f:entry title="${%App ID}" field="appID">
+    <f:textbox/>
+  </f:entry>
+  <j:choose>
+    <j:when test="${descriptor.apiUriSelectable}">
+      <f:entry title="${%API endpoint}" field="apiUri">
+        <f:select/>
+      </f:entry>
+    </j:when>
+    <j:otherwise>
+      <f:invisibleEntry>
+        <f:select field="apiUri"/>
+      </f:invisibleEntry>
+    </j:otherwise>
+  </j:choose>
+
+  <f:entry title="${%Key}" field="privateKey">
+    <f:secretTextarea />
+  </f:entry>
+
+  <f:advanced>
+    <f:entry title="${%Owner}" field="owner">
+      <f:textbox/>
+    </f:entry>
+  </f:advanced>
+
+  <f:validateButton
+      title="${%Test Connection}" progress="${%Testing...}"
+      method="testConnection" with="appID,apiUri,privateKey,owner" />
+</j:jelly>

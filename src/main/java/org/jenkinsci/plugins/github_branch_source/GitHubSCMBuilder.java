@@ -34,7 +34,6 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Item;
 import hudson.model.Queue;
-import hudson.model.queue.Tasks;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.browser.GithubWeb;
 import hudson.security.ACL;
@@ -256,6 +255,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
     /**
      * Updates the {@link GitSCMBuilder#withRemote(String)} based on the current {@link #head()} and
      * {@link #revision()}.
+     *
      * Will be called automatically by {@link #build()} but exposed in case the correct remote is required after
      * changing the {@link #withCredentials(String)}.
      *

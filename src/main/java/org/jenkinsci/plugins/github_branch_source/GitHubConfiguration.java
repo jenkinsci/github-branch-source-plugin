@@ -122,9 +122,9 @@ import org.kohsuke.stapler.StaplerRequest;
     }
 
     public synchronized void setEndpoints(@CheckForNull List<Endpoint> endpoints) {
-        endpoints = new ArrayList<Endpoint>(endpoints == null ? Collections.emptyList() : endpoints);
+        endpoints = new ArrayList<>(endpoints == null ? Collections.emptyList() : endpoints);
         // remove duplicates and empty urls
-        Set<String> apiUris = new HashSet<String>();
+        Set<String> apiUris = new HashSet<>();
         for (Iterator<Endpoint> iterator = endpoints.iterator(); iterator.hasNext(); ) {
             Endpoint endpoint = iterator.next();
             if (StringUtils.isBlank(endpoint.getApiUri()) || apiUris.contains(endpoint.getApiUri())) {

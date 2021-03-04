@@ -1,0 +1,141 @@
+= GitHub app authentication guide
+
+This guide is targeted to users who want to use a link:https://developer.github.com/v3/apps/[GitHub app]
+to authenticate to Jenkins.
+
+== Why?
+
+- the link:https://developer.github.com/apps/building-github-apps/understanding-rate-limits-for-github-apps/[rate limit]
+for a GitHub app scales with your organization size, whereas a user based token has a limit of 5000 regardless of
+how many repositories you have,
+- for organization's that have 2fa enforced - no need to manage 2fa tokens for a 'bot' user
+- to improve and tighten security: the Jenkins GitHub app requires a minimum, controlled set of privileges compared to a service user and its personal access token which has a much wider set of privileges
+
+== Getting started
+
+Before you get started make sure you have the required permissions:
+
+=== GitHub
+
+You'll need the permission to create a GitHub app, if you're creating it on a personal account then you can skip this section,
+otherwise:
+
+- organization owner
+
+or
+
+- permission to manage GitHub apps has been
+link:https://help.github.com/en/github/setting-up-and-managing-organizations-and-teams/adding-github-app-managers-in-your-organization[delegated to you].
+
+=== Jenkins
+
+You'll need the permission to create a new credential and update job configuration, the specific permissions are:
+
+- Credentials/Create
+- Job/Configure
+
+== Creating the GitHub app
+
+link:https://docs.github.com/en/developers/apps/creating-a-github-app[Follow the GitHub guide for creating an app]
+
+The only fields you need to fill out (currently) are:
+
+- Github App name - i.e. `Jenkins - <team name>`
+- Homepage URL - your company domain or a github repository
+- Webhook URL - your jenkins instance, i.e. `https://<jenkins-host>/github-webhook/`
+
+Permissions this plugin uses:
+
+- Commit statuses - Read and Write
+- Contents: Read-only (to read the `Jenkinsfile` and the repository content during `git fetch`). You may need "Read & write" to update the repository such as tagging releases
+- Metadata: Read-only
+- Pull requests: Read-only
+
+Under _Subscribe to events_, enable all events.
+
+Click 'Create GitHub app'
+
+You now need to generate a private key authenticating to the GitHub app
+
+Click the 'generate a private key' option.
+
+After a couple of seconds the key will be downloaded to your downloads folder.
+
+Now you need to convert the key into a different format that Jenkins can use:
+
+[source,shell]
+----
+openssl pkcs8 -topk8 -inform PEM -outform PEM -in key-in-your-downloads-folder.pem -out converted-github-app.pem -nocrypt
+----
+
+== Install the GitHub app
+
+- From the install app section of newly created app, install the app to your organization.
+
+== Adding the Jenkins credential
+
+=== UI
+
+- From the Jenkins main page click 'Credentials'
+- Pick your credential store, normally `(global)`
+- Click 'Add credentials'
+
+Fill out the form:
+
+- Kind: GitHub app
+- ID: i.e. github-app-<team-name>
+- App ID: the github app ID, it can be found in the 'About' section of your GitHub app in the general tab.
+- API endpoint (optional, only required for GitHub enterprise this will only show up if a GitHub enterprise server is configured).
+- Key: click add, paste the contents of the converted private key
+- Advanced: (optional) If you've installed your same GitHub app on multiple organizations you need the next step
+  * Owner: the name of the organisation or user, i.e. jenkinsci for https://github.com/jenkinsci
+- Click OK
+
+=== link:https://github.com/jenkinsci/configuration-as-code-plugin[Configuration as Code Plugin]
+
+[source,yaml]
+----
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+        - gitHubApp:
+            appID: "1111"
+            description: "GitHub app"
+            id: "github-app"
+            # apiUri: https://my-custom-github-enterprise.com/api/v3 # optional only required for GitHub enterprise
+            privateKey: "${GITHUB_APP_KEY}"
+----
+
+== Configuring the github organization folder
+
+See the link:https://docs.cloudbees.com/docs/admin-resources/latest/plugins/github-branch-source[main documentation]
+for how to create a GitHub folder.
+
+- Load the folders configuration page
+- Select the GitHub app credentials in the 'Credentials field drop down
+- If you are using GitHub enterprise make sure the API url is set to your server,
+(note you currently need to set the API url on both the credential and the job).
+
+After selecting the credential you should see:
+
+[quote]
+----
+GHApp verified, remaining rate limit: 5000
+----
+
+- Click save
+- Click 'Scan organization now'
+- Click 'Scan organisation log'
+
+Verify at the bottom of the scan log it says:
+
+[quote]
+----
+Finished: SUCCESS
+----
+
+=== Help?
+
+Raise an issue on link:https://issues.jenkins-ci.org/[Jenkins jira]
+setting the 'component' to be `github-branch-source-plugin`
