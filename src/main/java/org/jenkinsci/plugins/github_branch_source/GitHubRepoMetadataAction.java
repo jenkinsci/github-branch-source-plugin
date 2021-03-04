@@ -33,50 +33,39 @@ import jenkins.scm.api.metadata.AvatarMetadataAction;
  */
 public class GitHubRepoMetadataAction extends AvatarMetadataAction {
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String getAvatarIconClassName() {
-        return "icon-github-repo";
-    }
+  /** {@inheritDoc} */
+  @Override
+  public String getAvatarIconClassName() {
+    return "icon-github-repo";
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String getAvatarDescription() {
-        return Messages.GitHubRepoMetadataAction_IconDescription();
-    }
+  /** {@inheritDoc} */
+  @Override
+  public String getAvatarDescription() {
+    return Messages.GitHubRepoMetadataAction_IconDescription();
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        return true;
-
+  /** {@inheritDoc} */
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int hashCode() {
-        return 0;
+    if (o == null || getClass() != o.getClass()) {
+      return false;
     }
+    return true;
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public String toString() {
-        return "GitHubRepoMetadataAction{}";
-    }
+  /** {@inheritDoc} */
+  @Override
+  public int hashCode() {
+    return 0;
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public String toString() {
+    return "GitHubRepoMetadataAction{}";
+  }
 }
