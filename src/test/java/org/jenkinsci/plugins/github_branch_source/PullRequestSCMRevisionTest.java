@@ -25,209 +25,355 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import jenkins.scm.api.SCMHead;
-import jenkins.scm.api.SCMHeadOrigin;
-import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GitHub;
-
-import hudson.AbortException;
-
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
+import hudson.AbortException;
+import jenkins.scm.api.SCMHead;
+import jenkins.scm.api.SCMHeadOrigin;
+import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+import org.junit.Before;
+import org.junit.Test;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
+
 public class PullRequestSCMRevisionTest extends AbstractGitHubWireMockTest {
-    private GitHub github;
-    private GHRepository repo;
+  private GitHub github;
+  private GHRepository repo;
 
-    @Before
-    public void setupRevisionTests() throws Exception {
-        github = Connector.connect("http://localhost:" + githubApi.port(), null);
-        repo = github.getRepository("cloudbeers/yolo");
+  @Before
+  public void setupRevisionTests() throws Exception {
+    github = Connector.connect("http://localhost:" + githubApi.port(), null);
+    repo = github.getRepository("cloudbeers/yolo");
+  }
+
+  public static SCMHead master = new BranchSCMHead("master");
+  public static PullRequestSCMHead prHead =
+      new PullRequestSCMHead(
+          "",
+          "stephenc",
+          "yolo",
+          "master",
+          1,
+          (BranchSCMHead) master,
+          SCMHeadOrigin.DEFAULT,
+          ChangeRequestCheckoutStrategy.HEAD);
+  public static PullRequestSCMHead prMerge =
+      new PullRequestSCMHead(
+          "",
+          "stephenc",
+          "yolo",
+          "master",
+          1,
+          (BranchSCMHead) master,
+          SCMHeadOrigin.DEFAULT,
+          ChangeRequestCheckoutStrategy.MERGE);
+
+  @Test
+  public void createHeadwithNullMergeRevision() throws Exception {
+    PullRequestSCMHead currentHead = prHead;
+    PullRequestSCMHead otherHead = prMerge;
+
+    PullRequestSCMRevision currentRevision =
+        new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision");
+    assertThat(currentRevision.toString(), is("pr-branch-revision"));
+
+    try {
+      currentRevision.validateMergeHash();
+    } catch (AbortException e) {
+      fail("Validation should succeed, but: " + e.getMessage());
     }
 
-    public static SCMHead master = new BranchSCMHead("master");
-    public static PullRequestSCMHead prHead = new PullRequestSCMHead("", "stephenc", "yolo", "master", 1, (BranchSCMHead) master,
-        SCMHeadOrigin.DEFAULT, ChangeRequestCheckoutStrategy.HEAD);
-    public static PullRequestSCMHead prMerge = new PullRequestSCMHead("", "stephenc", "yolo", "master", 1, (BranchSCMHead) master,
-        SCMHeadOrigin.DEFAULT, ChangeRequestCheckoutStrategy.MERGE);
+    // equivalence
+    assertTrue(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision-changed", "pr-branch-revision", "any")));
+    assertFalse(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision-changed", "pr-branch-revision-changed", "any")));
+    assertFalse(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                otherHead, "master-revision-changed", "pr-branch-revision", "any")));
 
-    @Test
-    public void createHeadwithNullMergeRevision() throws Exception {
-        PullRequestSCMHead currentHead = prHead;
-        PullRequestSCMHead otherHead = prMerge;
+    // equality
+    assertThat(
+        currentRevision,
+        is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", null)));
+    assertThat(
+        currentRevision,
+        is(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision", "pr-branch-revision", "any")));
+    assertThat(
+        currentRevision,
+        is(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision-changed", "pr-branch-revision", "any")));
+    assertThat(
+        currentRevision,
+        not(
+            is(
+                new PullRequestSCMRevision(
+                    currentHead, "master-revision", "pr-branch-revision-changed", "any"))));
 
-        PullRequestSCMRevision currentRevision = new PullRequestSCMRevision(
-            currentHead, "master-revision", "pr-branch-revision");
-        assertThat(currentRevision.toString(), is("pr-branch-revision"));
+    assertThat(
+        currentRevision,
+        not(
+            is(
+                new PullRequestSCMRevision(
+                    otherHead, "master-revision", "pr-branch-revision", null))));
+  }
 
-        try {
-            currentRevision.validateMergeHash();
-        } catch (AbortException e) {
-            fail("Validation should succeed, but: " + e.getMessage());
-        }
+  @Test
+  public void createHeadwithMergeRevision() throws Exception {
+    PullRequestSCMHead currentHead = prHead;
+    PullRequestSCMHead otherHead = prMerge;
 
-        // equivalence
-        assertTrue(currentRevision.equivalent(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision", "any")));
-        assertFalse(currentRevision.equivalent(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision-changed", "any")));
-        assertFalse(currentRevision.equivalent(new PullRequestSCMRevision(otherHead, "master-revision-changed", "pr-branch-revision", "any")));
-
-        // equality
-        assertThat(currentRevision,
-            is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", null)));
-        assertThat(currentRevision,
-            is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", "any")));
-        assertThat(currentRevision,
-            is(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision", "any")));
-        assertThat(currentRevision,
-            not(is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision-changed", "any"))));
-
-        assertThat(currentRevision,
-            not(is(new PullRequestSCMRevision(otherHead, "master-revision", "pr-branch-revision", null))));
-    }
-
-    @Test
-    public void createHeadwithMergeRevision() throws Exception {
-        PullRequestSCMHead currentHead = prHead;
-        PullRequestSCMHead otherHead = prMerge;
-
-        PullRequestSCMRevision currentRevision = new PullRequestSCMRevision(
+    PullRequestSCMRevision currentRevision =
+        new PullRequestSCMRevision(
             currentHead, "master-revision", "pr-branch-revision", "pr-merge-revision");
-        assertThat(currentRevision.toString(), is("pr-branch-revision"));
+    assertThat(currentRevision.toString(), is("pr-branch-revision"));
 
-        try {
-            currentRevision.validateMergeHash();
-        } catch (AbortException e) {
-            fail("Validation should succeed, but: " + e.getMessage());
-        }
-
-        // equivalence
-        assertTrue(currentRevision.equivalent(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision", "any")));
-        assertFalse(currentRevision.equivalent(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision-changed", "any")));
-        assertFalse(currentRevision.equivalent(new PullRequestSCMRevision(otherHead, "master-revision-changed", "pr-branch-revision", "any")));
-
-        // equality
-        assertThat(currentRevision,
-            is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", null)));
-        assertThat(currentRevision,
-            is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", "any")));
-        assertThat(currentRevision,
-            is(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision", "any")));
-        assertThat(currentRevision,
-            not(is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision-changed", "any"))));
-
-        assertThat(currentRevision,
-            not(is(new PullRequestSCMRevision(otherHead, "master-revision", "pr-branch-revision", null))));
+    try {
+      currentRevision.validateMergeHash();
+    } catch (AbortException e) {
+      fail("Validation should succeed, but: " + e.getMessage());
     }
 
-    @Test
-    public void createMergewithNullMergeRevision() throws Exception {
-        PullRequestSCMHead currentHead = prMerge;
-        PullRequestSCMHead otherHead = prHead;
+    // equivalence
+    assertTrue(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision-changed", "pr-branch-revision", "any")));
+    assertFalse(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision-changed", "pr-branch-revision-changed", "any")));
+    assertFalse(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                otherHead, "master-revision-changed", "pr-branch-revision", "any")));
 
-        PullRequestSCMRevision currentRevision = new PullRequestSCMRevision(
-            currentHead, "master-revision", "pr-branch-revision");
-        assertThat(currentRevision.toString(), is("pr-branch-revision+master-revision (UNKNOWN_MERGE_STATE)"));
+    // equality
+    assertThat(
+        currentRevision,
+        is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", null)));
+    assertThat(
+        currentRevision,
+        is(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision", "pr-branch-revision", "any")));
+    assertThat(
+        currentRevision,
+        is(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision-changed", "pr-branch-revision", "any")));
+    assertThat(
+        currentRevision,
+        not(
+            is(
+                new PullRequestSCMRevision(
+                    currentHead, "master-revision", "pr-branch-revision-changed", "any"))));
 
-        try {
-            currentRevision.validateMergeHash();
-        } catch (AbortException e) {
-            fail("Validation should succeed, but: " + e.getMessage());
-        }
+    assertThat(
+        currentRevision,
+        not(
+            is(
+                new PullRequestSCMRevision(
+                    otherHead, "master-revision", "pr-branch-revision", null))));
+  }
 
-        // equivalence
-        assertTrue(currentRevision.equivalent(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision", "any")));
-        assertFalse(currentRevision.equivalent(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision-changed", "any")));
-        assertFalse(currentRevision.equivalent(new PullRequestSCMRevision(otherHead, "master-revision-changed", "pr-branch-revision", "any")));
+  @Test
+  public void createMergewithNullMergeRevision() throws Exception {
+    PullRequestSCMHead currentHead = prMerge;
+    PullRequestSCMHead otherHead = prHead;
 
-        // equality
-        assertThat(currentRevision,
-            is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", null)));
-        assertThat(currentRevision,
-            is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", "any")));
-        assertThat(currentRevision,
-            not(is(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision", "any"))));
-        assertThat(currentRevision,
-            not(is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision-changed", "any"))));
+    PullRequestSCMRevision currentRevision =
+        new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision");
+    assertThat(
+        currentRevision.toString(), is("pr-branch-revision+master-revision (UNKNOWN_MERGE_STATE)"));
 
-        assertThat(currentRevision,
-            not(is(new PullRequestSCMRevision(otherHead, "master-revision", "pr-branch-revision", null))));
+    try {
+      currentRevision.validateMergeHash();
+    } catch (AbortException e) {
+      fail("Validation should succeed, but: " + e.getMessage());
     }
 
-    @Test
-    public void createMergewithNotMergeableRevision() throws Exception {
-        PullRequestSCMHead currentHead = prMerge;
-        PullRequestSCMHead otherHead = prHead;
+    // equivalence
+    assertTrue(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision-changed", "pr-branch-revision", "any")));
+    assertFalse(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision-changed", "pr-branch-revision-changed", "any")));
+    assertFalse(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                otherHead, "master-revision-changed", "pr-branch-revision", "any")));
 
-        PullRequestSCMRevision currentRevision = new PullRequestSCMRevision(
-            currentHead, "master-revision", "pr-branch-revision", PullRequestSCMRevision.NOT_MERGEABLE_HASH);
-        assertThat(currentRevision.toString(), is("pr-branch-revision+master-revision (NOT_MERGEABLE)"));
+    // equality
+    assertThat(
+        currentRevision,
+        is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", null)));
+    assertThat(
+        currentRevision,
+        is(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision", "pr-branch-revision", "any")));
+    assertThat(
+        currentRevision,
+        not(
+            is(
+                new PullRequestSCMRevision(
+                    currentHead, "master-revision-changed", "pr-branch-revision", "any"))));
+    assertThat(
+        currentRevision,
+        not(
+            is(
+                new PullRequestSCMRevision(
+                    currentHead, "master-revision", "pr-branch-revision-changed", "any"))));
 
-        // validation should fail for this PR.
-        Exception abort = null;
-        try {
-            currentRevision.validateMergeHash();
-        } catch (Exception e) {
-            abort = e;
-        }
-        assertThat(abort, instanceOf(AbortException.class));
-        assertThat(abort.getMessage(), containsString("Not mergeable"));
+    assertThat(
+        currentRevision,
+        not(
+            is(
+                new PullRequestSCMRevision(
+                    otherHead, "master-revision", "pr-branch-revision", null))));
+  }
 
-        // equivalence
-        assertTrue(currentRevision.equivalent(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision", "any")));
-        assertFalse(currentRevision.equivalent(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision-changed", "any")));
-        assertFalse(currentRevision.equivalent(new PullRequestSCMRevision(otherHead, "master-revision-changed", "pr-branch-revision", "any")));
+  @Test
+  public void createMergewithNotMergeableRevision() throws Exception {
+    PullRequestSCMHead currentHead = prMerge;
+    PullRequestSCMHead otherHead = prHead;
 
-        // equality
-        assertThat(currentRevision,
-            is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", null)));
-        assertThat(currentRevision,
-            is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", "any")));
-        assertThat(currentRevision,
-            not(is(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision", "any"))));
-        assertThat(currentRevision,
-            not(is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision-changed", "any"))));
+    PullRequestSCMRevision currentRevision =
+        new PullRequestSCMRevision(
+            currentHead,
+            "master-revision",
+            "pr-branch-revision",
+            PullRequestSCMRevision.NOT_MERGEABLE_HASH);
+    assertThat(
+        currentRevision.toString(), is("pr-branch-revision+master-revision (NOT_MERGEABLE)"));
 
-        assertThat(currentRevision,
-            not(is(new PullRequestSCMRevision(otherHead, "master-revision", "pr-branch-revision", null))));
+    // validation should fail for this PR.
+    Exception abort = null;
+    try {
+      currentRevision.validateMergeHash();
+    } catch (Exception e) {
+      abort = e;
     }
+    assertThat(abort, instanceOf(AbortException.class));
+    assertThat(abort.getMessage(), containsString("Not mergeable"));
 
-    @Test
-    public void createMergewithMergeRevision() throws Exception {
-        PullRequestSCMHead currentHead = prMerge;
-        PullRequestSCMHead otherHead = prHead;
+    // equivalence
+    assertTrue(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision-changed", "pr-branch-revision", "any")));
+    assertFalse(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision-changed", "pr-branch-revision-changed", "any")));
+    assertFalse(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                otherHead, "master-revision-changed", "pr-branch-revision", "any")));
 
-        PullRequestSCMRevision currentRevision = new PullRequestSCMRevision(
+    // equality
+    assertThat(
+        currentRevision,
+        is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", null)));
+    assertThat(
+        currentRevision,
+        is(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision", "pr-branch-revision", "any")));
+    assertThat(
+        currentRevision,
+        not(
+            is(
+                new PullRequestSCMRevision(
+                    currentHead, "master-revision-changed", "pr-branch-revision", "any"))));
+    assertThat(
+        currentRevision,
+        not(
+            is(
+                new PullRequestSCMRevision(
+                    currentHead, "master-revision", "pr-branch-revision-changed", "any"))));
+
+    assertThat(
+        currentRevision,
+        not(
+            is(
+                new PullRequestSCMRevision(
+                    otherHead, "master-revision", "pr-branch-revision", null))));
+  }
+
+  @Test
+  public void createMergewithMergeRevision() throws Exception {
+    PullRequestSCMHead currentHead = prMerge;
+    PullRequestSCMHead otherHead = prHead;
+
+    PullRequestSCMRevision currentRevision =
+        new PullRequestSCMRevision(
             currentHead, "master-revision", "pr-branch-revision", "pr-merge-revision");
-        assertThat(currentRevision.toString(), is("pr-branch-revision+master-revision (pr-merge-revision)"));
+    assertThat(
+        currentRevision.toString(), is("pr-branch-revision+master-revision (pr-merge-revision)"));
 
-        try {
-            currentRevision.validateMergeHash();
-        } catch (AbortException e) {
-            fail("Validation should succeed, but: " + e.getMessage());
-        }
-
-        // equivalence
-        assertTrue(currentRevision.equivalent(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision", "any")));
-        assertFalse(currentRevision.equivalent(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision-changed", "any")));
-        assertFalse(currentRevision.equivalent(new PullRequestSCMRevision(otherHead, "master-revision-changed", "pr-branch-revision", "any")));
-
-        // equality
-        assertThat(currentRevision,
-            is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", null)));
-        assertThat(currentRevision,
-            is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", "any")));
-        assertThat(currentRevision,
-            not(is(new PullRequestSCMRevision(currentHead, "master-revision-changed", "pr-branch-revision", "any"))));
-        assertThat(currentRevision,
-            not(is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision-changed", "any"))));
-
-        assertThat(currentRevision,
-            not(is(new PullRequestSCMRevision(otherHead, "master-revision", "pr-branch-revision", null))));
+    try {
+      currentRevision.validateMergeHash();
+    } catch (AbortException e) {
+      fail("Validation should succeed, but: " + e.getMessage());
     }
+
+    // equivalence
+    assertTrue(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision-changed", "pr-branch-revision", "any")));
+    assertFalse(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision-changed", "pr-branch-revision-changed", "any")));
+    assertFalse(
+        currentRevision.equivalent(
+            new PullRequestSCMRevision(
+                otherHead, "master-revision-changed", "pr-branch-revision", "any")));
+
+    // equality
+    assertThat(
+        currentRevision,
+        is(new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", null)));
+    assertThat(
+        currentRevision,
+        is(
+            new PullRequestSCMRevision(
+                currentHead, "master-revision", "pr-branch-revision", "any")));
+    assertThat(
+        currentRevision,
+        not(
+            is(
+                new PullRequestSCMRevision(
+                    currentHead, "master-revision-changed", "pr-branch-revision", "any"))));
+    assertThat(
+        currentRevision,
+        not(
+            is(
+                new PullRequestSCMRevision(
+                    currentHead, "master-revision", "pr-branch-revision-changed", "any"))));
+
+    assertThat(
+        currentRevision,
+        not(
+            is(
+                new PullRequestSCMRevision(
+                    otherHead, "master-revision", "pr-branch-revision", null))));
+  }
 }
