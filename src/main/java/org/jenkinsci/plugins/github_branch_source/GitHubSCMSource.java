@@ -2620,6 +2620,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource implements DataBoundRe
         throw new GitHubSCMSource.WrappedException(e);
       }
     }
+  }
 
     @Override
     public void close() throws IOException {
