@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.15</version>
+        <version>4.16</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <revision>2.9.4</revision>
+        <revision>2.10.3</revision>
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.116</version>
+            <version>1.122</version>
         </dependency>
         <dependency>
             <groupId>com.coravy.hudson.plugins.github</groupId>
@@ -53,7 +53,7 @@
         <dependency>
             <groupId>io.jenkins.plugins</groupId>
             <artifactId>jjwt-api</artifactId>
-            <version>0.11.2-3.3ae26ccdac4e</version>
+            <version>0.11.2-5.143e44951c52</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -65,12 +65,6 @@
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
             <artifactId>workflow-multibranch</artifactId>
             <scope>test</scope>
-        </dependency>
-        <!-- TODO remove once branch-api >= 2.6.3 in bom -->
-        <dependency>
-            <groupId>org.jenkins-ci.plugins</groupId>
-            <artifactId>branch-api</artifactId>
-            <version>2.6.3</version>
         </dependency>
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
@@ -124,7 +118,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.263.x</artifactId>
-                <version>20</version>
+                <version>23</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -133,8 +127,71 @@
                 <artifactId>commons-lang3</artifactId>
                 <version>3.11</version>
             </dependency>
+            <!-- TODO remove once branch-api >= 2.6.3 in bom -->
+            <dependency>
+                <groupId>org.jenkins-ci.plugins</groupId>
+                <artifactId>branch-api</artifactId>
+                <version>2.6.3</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>com.diffplug.spotless</groupId>
+                <artifactId>spotless-maven-plugin</artifactId>
+                <version>2.8.1</version>
+                <executions>
+                    <execution>
+                        <id>spotless-check</id>
+                        <!-- runs in verify phase by default -->
+                        <goals>
+                            <!-- can be disabled using -Dspotless.check.skip=true -->
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <java>
+                        <googleJavaFormat>
+                            <style>GOOGLE</style>
+                        </googleJavaFormat>
+                    </java>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <profiles>
+        <profile>
+            <id>ci-non-windows</id>
+            <activation>
+                <property>
+                    <name>set.changelist</name>
+                </property>
+                <os>
+                    <family>!windows</family>
+                </os>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.diffplug.spotless</groupId>
+                        <artifactId>spotless-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>spotless-check</id>
+                                <!-- In CI, run check early in the build -->
+                                <phase>process-sources</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <repositories>
         <repository>
             <id>repo.jenkins-ci.org</id>
