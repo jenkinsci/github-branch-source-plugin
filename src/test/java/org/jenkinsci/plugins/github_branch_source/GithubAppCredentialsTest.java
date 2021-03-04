@@ -4,6 +4,8 @@ import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.CredentialsStore;
 import com.cloudbees.plugins.credentials.domains.Domain;
+import com.github.tomakehurst.wiremock.http.RequestMethod;
+import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import hudson.logging.LogRecorder;
 import hudson.logging.LogRecorderManager;
 import hudson.model.ParametersDefinitionProperty;
@@ -109,6 +111,15 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
     @Before
     public void setUpWireMock() throws Exception {
+        GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleOnOver);
+
+        // During credential refreshes we should never check rate_limit
+        githubApi.stubFor(
+            get(urlEqualTo("/rate_limit"))
+                .willReturn(aResponse()
+                        .withStatus(500)
+                ));
+
         //Add wiremock responses for App, App Installation, and App Installation Token
         githubApi.stubFor(
             get(urlEqualTo("/app"))
@@ -298,6 +309,10 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                     "Generating App Installation Token for app ID 54321"
                     // next call uses cached token
                 ));
+
+            // Getting the token for via AuthorizationProvider on controller should not check rate_limit
+            githubApi.verify(0,  RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/rate_limit")));
+
         } finally {
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
             logRecorder.doClear();
@@ -400,6 +415,34 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
             // Check success after output.  Output will be more informative if something goes wrong.
             assertThat(run.getResult(), equalTo(Result.SUCCESS));
+
+            // Getting the token for via AuthorizationProvider on controller should not check rate_limit
+            // Getting the token for agents via remoting to the controller should not check rate_limit
+            githubApi.verify(0,  RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/rate_limit")));
+        } finally {
+            GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
+            logRecorder.doClear();
+        }
+    }
+
+    @Test
+    public void testPassword() throws Exception {
+        long notStaleSeconds = GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
+        try {
+            appCredentials.setApiUri(githubApi.baseUrl());
+
+            // We want to demonstrate successful caching without waiting for the default 1 minute
+            // Must set this to a large enough number to avoid flaky test
+            GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = 5;
+
+            // Ensure we are working from sufficiently clean cache state
+            Thread.sleep(Duration.ofSeconds(GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS + 2)
+                .toMillis());
+
+            appCredentials.getPassword();
+
+            // Getting the token for a credential via getPassword() not check rate_limit
+            githubApi.verify(0,  RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/rate_limit")));
 
         } finally {
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
