@@ -58,7 +58,8 @@ public enum ApiRateLimitChecker {
                         }
                     }
                     if (expiration != now) {
-                        writeLog("Jenkins is attempting to evenly distribute GitHub API requests. To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
+                        writeLog("Jenkins is attempting to evenly distribute GitHub API requests. "
+                                + "To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
                     }
                     return expiration;
                 }
@@ -66,7 +67,7 @@ public enum ApiRateLimitChecker {
         }
     },
 
-    /**å
+    /**
      * Restrict GitHub API requests only when near or above rate limit.
      */
     ThrottleOnOver(Messages.ApiRateLimitChecker_ThrottleOnOver()) {
@@ -81,7 +82,8 @@ public enum ApiRateLimitChecker {
                     if (rateLimit.getRemaining() >= buffer) {
                         return now;
                     }
-                    writeLog("Jenkins is restricting GitHub API requests only when near or above the rate limit. To configure a different rate limiting strategy, such as having Jenkins attempt to evenly distribute GitHub API requests, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
+                    writeLog("Jenkins is restricting GitHub API requests only when near or above the rate limit. "
+                            + "To configure a different rate limiting strategy, such as having Jenkins attempt to evenly distribute GitHub API requests, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
                     return calculateExpirationWhenBufferExceeded(rateLimit, now, buffer);
                 }
             };
@@ -96,7 +98,8 @@ public enum ApiRateLimitChecker {
             if (GitHubServerConfig.GITHUB_URL.equals(apiUrl)) {
                 // If the GitHub public API is being used, this will fallback to ThrottleOnOver
                 LocalChecker checker = ThrottleOnOver.getChecker(listener, apiUrl);
-                checker.writeLog("GitHub throttling is disabled, which is not allowed for public GitHub usage, so ThrottleOnOver will be used instead. To configure a different rate limiting strategy, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
+                checker.writeLog("GitHub throttling is disabled, which is not allowed for public GitHub usage, "
+                        + "so ThrottleOnOver will be used instead. To configure a different rate limiting strategy, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
                 return checker;
             } else {
                 return new LocalChecker(listener) {
@@ -196,7 +199,8 @@ public enum ApiRateLimitChecker {
                 // If a checker was not configured for this thread, try our best and continue.
                 configureThreadLocalChecker(new LogTaskListener(LOGGER, Level.INFO), GitHubServerConfig.GITHUB_URL);
                 checker = getLocalChecker();
-                checker.writeLog("LocalChecker for rate limit was not set for this thread. Configured using system settings.");
+                checker.writeLog("LocalChecker for rate limit was not set for this thread. "
+                        + "Configured using system settings.");
             }
             return checker.checkRateLimit(rateLimitRecord, count);
         }
