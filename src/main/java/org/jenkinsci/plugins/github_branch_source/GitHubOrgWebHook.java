@@ -40,103 +40,117 @@ import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 
-/**
- * Manages the GitHub organization webhook.
- */
+/** Manages the GitHub organization webhook. */
 public class GitHubOrgWebHook {
 
-    private static final Logger LOGGER = Logger.getLogger(GitHubOrgWebHook.class.getName());
-    private static final List<GHEvent> EVENTS = Arrays.asList(GHEvent.REPOSITORY, GHEvent.PUSH, GHEvent.PULL_REQUEST, GHEvent.PULL_REQUEST_REVIEW_COMMENT);
+  private static final Logger LOGGER = Logger.getLogger(GitHubOrgWebHook.class.getName());
+  private static final List<GHEvent> EVENTS =
+      Arrays.asList(
+          GHEvent.REPOSITORY,
+          GHEvent.PUSH,
+          GHEvent.PULL_REQUEST,
+          GHEvent.PULL_REQUEST_REVIEW_COMMENT);
 
-    public static void register(GitHub hub, String orgName) throws IOException {
-        String url = getWebhookUrl();
-        if (url == null) {
-            return;
-        }
-
-        GHUser u = hub.getUser(orgName);
-        FileBoolean orghook = new FileBoolean(getTrackingFile(orgName));
-        if (orghook.isOff()) {
-            try {
-                GHOrganization org = hub.getOrganization(orgName);
-                boolean found = false;
-                for (GHHook hook : org.getHooks()) {
-                    if (hook.getConfig().get("url").equals(url)) {
-                        found = !hook.getEvents().containsAll(EVENTS);
-                        break;
-                    }
-                }
-                if (!found) {
-                    org.createWebHook(new URL(url), EVENTS);
-                    LOGGER.log(Level.INFO, "A webhook was registered for the organization {0}", org.getHtmlUrl());
-                    // keep trying until the hook gets successfully installed
-                    // if the user doesn't have the proper permission, this will cause
-                    // a repeated failure, but this code doesn't execute too often.
-                }
-                orghook.on();
-            } catch (FileNotFoundException e) {
-                LOGGER.log(Level.WARNING, "Failed to register GitHub Org hook to {0} (missing permissions?): {1}",
-                        new Object[]{u.getHtmlUrl(), e.getMessage()});
-                LOGGER.log(Level.FINE, null, e);
-            } catch (RateLimitExceededException e) {
-                LOGGER.log(Level.WARNING, "Failed to register GitHub Org hook to {0}: {1}",
-                        new Object[]{u.getHtmlUrl(), e.getMessage()});
-                LOGGER.log(Level.FINE, null, e);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Failed to register GitHub Org hook to " + u.getHtmlUrl(), e);
-            }
-        }
+  public static void register(GitHub hub, String orgName) throws IOException {
+    String url = getWebhookUrl();
+    if (url == null) {
+      return;
     }
 
-    private static File getTrackingFile(String orgName) {
-        return new File(Jenkins.get().getRootDir(), "github-webhooks/GitHubOrgHook." + orgName);
+    GHUser u = hub.getUser(orgName);
+    FileBoolean orghook = new FileBoolean(getTrackingFile(orgName));
+    if (orghook.isOff()) {
+      try {
+        GHOrganization org = hub.getOrganization(orgName);
+        boolean found = false;
+        for (GHHook hook : org.getHooks()) {
+          if (hook.getConfig().get("url").equals(url)) {
+            found = !hook.getEvents().containsAll(EVENTS);
+            break;
+          }
+        }
+        if (!found) {
+          org.createWebHook(new URL(url), EVENTS);
+          LOGGER.log(
+              Level.INFO, "A webhook was registered for the organization {0}", org.getHtmlUrl());
+          // keep trying until the hook gets successfully installed
+          // if the user doesn't have the proper permission, this will cause
+          // a repeated failure, but this code doesn't execute too often.
+        }
+        orghook.on();
+      } catch (FileNotFoundException e) {
+        LOGGER.log(
+            Level.WARNING,
+            "Failed to register GitHub Org hook to {0} (missing permissions?): {1}",
+            new Object[] {u.getHtmlUrl(), e.getMessage()});
+        LOGGER.log(Level.FINE, null, e);
+      } catch (RateLimitExceededException e) {
+        LOGGER.log(
+            Level.WARNING,
+            "Failed to register GitHub Org hook to {0}: {1}",
+            new Object[] {u.getHtmlUrl(), e.getMessage()});
+        LOGGER.log(Level.FINE, null, e);
+      } catch (IOException e) {
+        LOGGER.log(Level.WARNING, "Failed to register GitHub Org hook to " + u.getHtmlUrl(), e);
+      }
+    }
+  }
+
+  private static File getTrackingFile(String orgName) {
+    return new File(Jenkins.get().getRootDir(), "github-webhooks/GitHubOrgHook." + orgName);
+  }
+
+  public static void deregister(GitHub hub, String orgName) throws IOException {
+    String url = getWebhookUrl();
+    if (url == null) {
+      return;
     }
 
-    public static void deregister(GitHub hub, String orgName) throws IOException {
-        String url = getWebhookUrl();
-        if (url == null) {
-            return;
+    GHUser u = hub.getUser(orgName);
+    FileBoolean orghook = new FileBoolean(getTrackingFile(orgName));
+    if (orghook.isOn()) {
+      try {
+        GHOrganization org = hub.getOrganization(orgName);
+        for (GHHook hook : org.getHooks()) {
+          if (hook.getConfig().get("url").equals(url)) {
+            hook.delete();
+            LOGGER.log(
+                Level.INFO,
+                "A webhook was deregistered for the organization {0}",
+                org.getHtmlUrl());
+            // keep trying until the hook gets successfully uninstalled
+            // if the user doesn't have the proper permission, this will cause
+            // a repeated failure, but this code doesn't execute too often.
+          }
         }
+        orghook.off();
+      } catch (FileNotFoundException e) {
+        LOGGER.log(
+            Level.WARNING,
+            "Failed to deregister GitHub Org hook to {0} (missing permissions?): {1}",
+            new Object[] {u.getHtmlUrl(), e.getMessage()});
+        LOGGER.log(Level.FINE, null, e);
+      } catch (RateLimitExceededException e) {
+        LOGGER.log(
+            Level.WARNING,
+            "Failed to deregister GitHub Org hook to {0}: {1}",
+            new Object[] {u.getHtmlUrl(), e.getMessage()});
+        LOGGER.log(Level.FINE, null, e);
+      } catch (IOException e) {
+        LOGGER.log(Level.WARNING, "Failed to deregister GitHub Org hook to " + u.getHtmlUrl(), e);
+      }
+    }
+  }
 
-        GHUser u = hub.getUser(orgName);
-        FileBoolean orghook = new FileBoolean(getTrackingFile(orgName));
-        if (orghook.isOn()) {
-            try {
-                GHOrganization org = hub.getOrganization(orgName);
-                for (GHHook hook : org.getHooks()) {
-                    if (hook.getConfig().get("url").equals(url)) {
-                        hook.delete();
-                        LOGGER.log(Level.INFO, "A webhook was deregistered for the organization {0}", org.getHtmlUrl());
-                        // keep trying until the hook gets successfully uninstalled
-                        // if the user doesn't have the proper permission, this will cause
-                        // a repeated failure, but this code doesn't execute too often.
-                    }
-                }
-                orghook.off();
-            } catch (FileNotFoundException e) {
-                LOGGER.log(Level.WARNING, "Failed to deregister GitHub Org hook to {0} (missing permissions?): {1}",
-                        new Object[]{u.getHtmlUrl(), e.getMessage()});
-                LOGGER.log(Level.FINE, null, e);
-            } catch (RateLimitExceededException e) {
-                LOGGER.log(Level.WARNING, "Failed to deregister GitHub Org hook to {0}: {1}",
-                        new Object[]{u.getHtmlUrl(), e.getMessage()});
-                LOGGER.log(Level.FINE, null, e);
-            } catch (IOException e) {
-                LOGGER.log(Level.WARNING, "Failed to deregister GitHub Org hook to " + u.getHtmlUrl(), e);
-            }
-        }
+  private static String getWebhookUrl() {
+    String rootUrl = System.getProperty("jenkins.hook.url");
+    if (rootUrl == null) {
+      rootUrl = Jenkins.get().getRootUrl();
+    }
+    if (rootUrl == null) {
+      return rootUrl;
     }
 
-    private static String getWebhookUrl() {
-        String rootUrl = System.getProperty("jenkins.hook.url");
-        if (rootUrl == null) {
-            rootUrl = Jenkins.get().getRootUrl();
-        }
-        if (rootUrl == null) {
-            return rootUrl;
-        }
-
-        return rootUrl + "github-webhook/";
-    }
-
+    return rootUrl + "github-webhook/";
+  }
 }
