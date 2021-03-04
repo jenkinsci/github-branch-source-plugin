@@ -108,6 +108,16 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
+    public void fetchReposWithoutTeamSlug() throws Exception {
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(SCMSourceObserver.filter(observer, "Hello-World", "github-branch-source-plugin", "unknown", "basic", "yolo", "yolo-archived"));
+
+        assertThat(projectNames, containsInAnyOrder("basic", "yolo", "yolo-archived"));
+    }
+
+    @Test
     public void fetchReposFromTeamSlug() throws Exception {
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
@@ -115,10 +125,37 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
         List<SCMTrait<? extends SCMTrait<?>>> traits = new ArrayList<>(navigator.getTraits());
         traits.add(new TeamSlugTrait("justice-league"));
         navigator.setTraits(traits);
-        navigator.visitSources(SCMSourceObserver.filter(observer, "Hello-World", "github-branch-source-plugin"));
+        navigator.visitSources(SCMSourceObserver.filter(observer, "Hello-World", "github-branch-source-plugin", "unknown", "basic", "yolo", "yolo-archived"));
 
-        assertThat(projectNames, containsInAnyOrder("Hello-World", "github-branch-source-plugin"));
+        assertThat(projectNames, containsInAnyOrder("Hello-World", "github-branch-source-plugin", "basic", "yolo-archived"));
     }
+
+    @Test
+    public void fetchOneRepoWithTeamSlug_InTeam() throws Exception {
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        List<SCMTrait<? extends SCMTrait<?>>> traits = new ArrayList<>(navigator.getTraits());
+        traits.add(new TeamSlugTrait("justice-league"));
+        navigator.setTraits(traits);
+        navigator.visitSources(SCMSourceObserver.filter(observer,   "yolo-archived"));
+
+        assertThat(projectNames, containsInAnyOrder( "yolo-archived"));
+    }
+
+    @Test
+    public void fetchOneRepoWithTeamSlug_NotInTeam() throws Exception {
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        List<SCMTrait<? extends SCMTrait<?>>> traits = new ArrayList<>(navigator.getTraits());
+        traits.add(new TeamSlugTrait("justice-league"));
+        navigator.setTraits(traits);
+        navigator.visitSources(SCMSourceObserver.filter(observer, "yolo"));
+
+        assertThat(projectNames,  empty());
+    }
+
 
     @Test
     public void fetchOneRepo_BelongingToAuthenticatedUser() throws Exception {
@@ -133,6 +170,45 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
+    public void fetchRepos_BelongingToAuthenticatedUser_FilteredByTopic() throws Exception {
+        setCredentials(Collections.singletonList(credentials));
+        navigator = navigatorForRepoOwner("stephenc", credentials.getId());
+        navigator.setTraits(Collections.singletonList(new TopicsTrait("awesome")));
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(observer);
+
+        assertEquals(projectNames, Collections.singleton("yolo"));
+    }
+
+    @Test
+    public void fetchRepos_BelongingToAuthenticatedUser_FilteredByTopic_RemovesAll() throws Exception {
+        setCredentials(Collections.singletonList(credentials));
+        navigator = navigatorForRepoOwner("stephenc", credentials.getId());
+        navigator.setTraits(Collections.singletonList(new TopicsTrait("nope")));
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(observer);
+
+        assertEquals(projectNames, Collections.emptySet());
+    }
+
+    @Test
+    public void fetchRepos_BelongingToAuthenticatedUser_FilteredByMultipleTopics() throws Exception {
+        setCredentials(Collections.singletonList(credentials));
+        navigator = navigatorForRepoOwner("stephenc", credentials.getId());
+        navigator.setTraits(Collections.singletonList(new TopicsTrait("cool, great,was-awesome")));
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(observer);
+
+        assertEquals(projectNames, Collections.singleton("yolo-archived"));
+    }
+
+    @Test
     public void fetchOneRepo_BelongingToAuthenticatedUser_ExcludingArchived() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
@@ -143,6 +219,19 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
         navigator.visitSources(SCMSourceObserver.filter(observer, "yolo-archived"));
 
         assertThat(projectNames, empty());
+    }
+
+    @Test
+    public void fetchOneRepo_ExcludingPublic() throws Exception {
+        setCredentials(Collections.singletonList(credentials));
+        navigator = navigatorForRepoOwner("stephenc", credentials.getId());
+        navigator.setTraits(Collections.singletonList(new ExcludePublicRepositoriesTrait()));
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(SCMSourceObserver.filter(observer, "yolo-private"));
+
+        assertThat(projectNames, containsInAnyOrder("yolo-private"));
     }
 
     @Test
@@ -220,9 +309,9 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
         final SCMSourceObserver observer = getObserver(projectNames);
 
         navigator.visitSources(
-                SCMSourceObserver.filter(observer, "Hello-World", "github-branch-source-plugin", "yolo-archived"));
+                SCMSourceObserver.filter(observer, "unknown", "basic", "yolo", "yolo-archived"));
 
-        assertThat(projectNames, containsInAnyOrder("Hello-World", "github-branch-source-plugin", "yolo-archived"));
+        assertThat(projectNames, containsInAnyOrder("basic", "yolo", "yolo-archived"));
     }
 
     @Test
@@ -232,9 +321,21 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
         final SCMSourceObserver observer = getObserver(projectNames);
 
         navigator.visitSources(
-                SCMSourceObserver.filter(observer, "Hello-World", "github-branch-source-plugin", "yolo-archived"));
+                SCMSourceObserver.filter(observer, "unknown", "basic", "yolo", "yolo-archived"));
 
-        assertThat(projectNames, containsInAnyOrder("Hello-World", "github-branch-source-plugin"));
+        assertThat(projectNames, containsInAnyOrder("basic", "yolo"));
+    }
+
+    @Test
+    public void fetchRepos_BelongingToOrg_ExcludingPublic() throws Exception {
+        navigator.setTraits(Collections.singletonList(new ExcludePublicRepositoriesTrait()));
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(
+                SCMSourceObserver.filter(observer, "Hello-World", "github-branch-source-plugin", "yolo-private"));
+
+        assertThat(projectNames, containsInAnyOrder("yolo-private"));
     }
 
     @Test
@@ -245,7 +346,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
 
         navigator.visitSources(observer);
 
-        assertThat(projectNames, containsInAnyOrder("yolo", "yolo-archived"));
+        assertThat(projectNames, containsInAnyOrder("yolo", "yolo-archived", "yolo-private"));
     }
 
     @Test
@@ -265,9 +366,9 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
-        navigator.visitSources(SCMSourceObserver.filter(observer, "Hello-World", "other-repo"));
+        navigator.visitSources(SCMSourceObserver.filter(observer, "yolo", "rando-unknown"));
 
-        assertEquals(projectNames, Collections.singleton("Hello-World"));
+        assertEquals(projectNames, Collections.singleton("yolo"));
     }
 
     @Test

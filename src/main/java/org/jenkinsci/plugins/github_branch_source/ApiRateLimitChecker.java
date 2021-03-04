@@ -3,77 +3,67 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Util;
 import hudson.model.TaskListener;
+import hudson.util.LogTaskListener;
+import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
+import org.kohsuke.github.RateLimitChecker;
 
 import java.io.IOException;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public enum ApiRateLimitChecker {
+
     /**
      * Attempt to evenly distribute GitHub API requests.
      */
     ThrottleForNormalize(Messages.ApiRateLimitChecker_ThrottleForNormalize()) {
         @Override
-        public void checkApiRateLimit(@NonNull TaskListener listener, GitHub github) throws IOException, InterruptedException {
-            boolean check = true;
-            while (check) {
-                check = false;
-                long start = System.currentTimeMillis();
-                GHRateLimit rateLimit = github.getRateLimit();
-                // the buffer is how much we want to avoid using to cover unplanned over-use
-                int buffer = calculateBuffer(rateLimit.limit);
-                // the burst is how much we want to allow for speedier response outside of the throttle
-                int burst = calculateNormalizedBurst(rateLimit.limit);
-                // the ideal is how much remaining we should have (after a burst)
-                long rateLimitResetMillis = rateLimit.getResetDate().getTime() - start;
-                double resetProgress = Math.max(0, rateLimitResetMillis / MILLIS_PER_HOUR);
-                int ideal = (int) ((rateLimit.limit - buffer - burst) * resetProgress) + buffer;
-                if (rateLimit.remaining >= ideal && rateLimit.remaining < ideal + buffer) {
-                    listener.getLogger().println(GitHubConsoleNote.create(start, String.format(
-                            "GitHub API Usage: Current quota has %d remaining (%d under budget). Next quota of %d in %s",
-                            rateLimit.remaining, rateLimit.remaining - ideal, rateLimit.limit,
-                            Util.getTimeSpanString(rateLimitResetMillis)
-                    )));
-                } else if (rateLimit.remaining < ideal) {
-                    check = true;
-                    final long expiration;
-                    if (rateLimit.remaining < buffer) {
-                        // nothing we can do, we have burned into our buffer, wait for reset
-                        // we add a little bit of random to prevent CPU overload when the limit is due to reset but GitHub
-                        // hasn't actually reset yet (clock synchronization is a hard problem)
-                        if (rateLimitResetMillis < 0) {
-                            expiration = System.currentTimeMillis() + ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS);
-                            listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                    "GitHub API Usage: Current quota has %d remaining (%d over budget). Next quota of %d due now. Sleeping for %s.",
-                                    rateLimit.remaining, ideal - rateLimit.remaining, rateLimit.limit,
-                                    Util.getTimeSpanString(expiration - System.currentTimeMillis())
-                            )));
-                        } else {
-                            expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS);
-                            listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                    "GitHub API Usage: Current quota has %d remaining (%d over budget). Next quota of %d in %s. Sleeping until reset.",
-                                    rateLimit.remaining, ideal - rateLimit.remaining, rateLimit.limit,
-                                    Util.getTimeSpanString(rateLimitResetMillis)
-                            )));
-                        }
+        public LocalChecker getChecker(@NonNull TaskListener listener, String apiUrl) {
+            return new LocalChecker(listener) {
+                @Override
+                long checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now) throws InterruptedException {
+                    long expiration = now;
+                    // the buffer is how much we want to avoid using to cover unplanned over-use
+                    int buffer = calculateBuffer(rateLimit.getLimit());
+                    if (rateLimit.getRemaining() < buffer) {
+                        // nothing we can do, we have burned into our minimum buffer, wait for reset
+                        expiration = calculateExpirationWhenBufferExceeded(rateLimit, now, buffer);
                     } else {
-                        // work out how long until remaining == ideal + 0.1 * buffer (to give some spend)
-                        double targetFraction = (rateLimit.remaining - buffer * 1.1) / (rateLimit.limit - buffer - burst);
-                        expiration = rateLimit.getResetDate().getTime()
+                        // the burst is how much we want to allow for speedier response outside of the throttle
+                        int burst = calculateNormalizedBurst(rateLimit.getLimit());
+                        // the ideal is how much remaining we should have (after a burst)
+                        long rateLimitResetMillis = rateLimit.getResetDate().getTime() - now;
+                        double resetProgress = Math.max(0, rateLimitResetMillis / MILLIS_PER_HOUR);
+                        int ideal = (int) ((rateLimit.getLimit() - buffer - burst) * resetProgress) + buffer;
+                        if (rateLimit.getRemaining() < ideal) {
+                            // work out how long until remaining == ideal + 0.1 * buffer (to give some spend)
+                            double targetFraction = (rateLimit.getRemaining() - buffer * 1.1) / (rateLimit
+                                .getLimit() - buffer - burst);
+                            expiration = rateLimit.getResetDate().getTime()
                                 - Math.max(0, (long) (targetFraction * MILLIS_PER_HOUR))
                                 + ENTROPY.nextInt(1000);
-                        listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                                "GitHub API Usage: Current quota has %d remaining (%d over budget). Next quota of %d in %s. Sleeping for %s.",
-                                rateLimit.remaining, ideal - rateLimit.remaining, rateLimit.limit,
-                                Util.getTimeSpanString(rateLimitResetMillis),
-                                Util.getTimeSpanString(expiration - System.currentTimeMillis())
-                        )));
+                            writeLog(String.format(
+                                        "Jenkins-Imposed API Limiter: Current quota for Github API usage has %d remaining (%d over budget). Next quota of %d in %s. Sleeping for %s.",
+                                        rateLimit.getRemaining(),
+                                        ideal - rateLimit.getRemaining(),
+                                        rateLimit.getLimit(),
+                                        Util.getTimeSpanString(rateLimitResetMillis),
+                                        // The GitHubRateLimitChecker adds a one second sleep to each notification loop
+                                        Util.getTimeSpanString(1000 + expiration - now)));
+                        }
                     }
-                    waitUntilRateLimit(listener, github, rateLimit, expiration);
+                    if (expiration != now) {
+                        writeLog("Jenkins is attempting to evenly distribute GitHub API requests. "
+                                + "To configure a different rate limiting strategy, such as having Jenkins restrict GitHub API requests only when near or above the GitHub rate limit, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
+                    }
+                    return expiration;
                 }
-            }
+            };
         }
     },
 
@@ -82,29 +72,60 @@ public enum ApiRateLimitChecker {
      */
     ThrottleOnOver(Messages.ApiRateLimitChecker_ThrottleOnOver()) {
         @Override
-        public void checkApiRateLimit(@NonNull TaskListener listener, GitHub github) throws IOException, InterruptedException {
-            boolean check = true;
-            while (check) {
-                GHRateLimit rateLimit = github.getRateLimit();
-                // the buffer is how much we want to avoid using to cover unplanned over-use
-                int buffer = calculateBuffer(rateLimit.limit);
-                // check that we have at least our minimum buffer of remaining calls
-                if (rateLimit.remaining >= buffer) {
-                    break;
+        public LocalChecker getChecker(@NonNull TaskListener listener, String apiUrl) {
+            return new LocalChecker(listener) {
+                @Override
+                long checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now) throws InterruptedException {
+                    // the buffer is how much we want to avoid using to cover unplanned over-use
+                    int buffer = calculateBuffer(rateLimit.getLimit());
+                    // check that we have at least our minimum buffer of remaining calls
+                    if (rateLimit.getRemaining() >= buffer) {
+                        return now;
+                    }
+                    writeLog("Jenkins is restricting GitHub API requests only when near or above the rate limit. "
+                            + "To configure a different rate limiting strategy, such as having Jenkins attempt to evenly distribute GitHub API requests, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
+                    return calculateExpirationWhenBufferExceeded(rateLimit, now, buffer);
                 }
-                final long expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS);
-                listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), String.format(
-                        "GitHub API Usage: Current quota has %d remaining (%d over buffer). Next quota of %d due in %s. Sleeping for %s.",
-                        rateLimit.remaining, buffer - rateLimit.remaining, rateLimit.limit,
-                        Util.getTimeSpanString(expiration - System.currentTimeMillis()),
-                        Util.getTimeSpanString(NOTIFICATION_WAIT_MILLIS)
-
-                )));
-                waitUntilRateLimit(listener, github, rateLimit, expiration);
+            };
+        }
+    },
+    /**
+     * Ignore GitHub API Rate limit. Useful for GitHub Enterprise instances that might not have a limit set up.
+     */
+    NoThrottle(Messages.ApiRateLimitChecker_NoThrottle()) {
+        @Override
+        public LocalChecker getChecker(@NonNull TaskListener listener, String apiUrl) {
+            if (GitHubServerConfig.GITHUB_URL.equals(apiUrl)) {
+                // If the GitHub public API is being used, this will fallback to ThrottleOnOver
+                LocalChecker checker = ThrottleOnOver.getChecker(listener, apiUrl);
+                checker.writeLog("GitHub throttling is disabled, which is not allowed for public GitHub usage, "
+                        + "so ThrottleOnOver will be used instead. To configure a different rate limiting strategy, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
+                return checker;
+            } else {
+                return new LocalChecker(listener) {
+                    @Override
+                    long checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now) throws InterruptedException {
+                        return now;
+                    }
+                };
             }
         }
     };
 
+    /**
+     * Logger for printing output even when task listener is not set
+     */
+    private static final Logger LOGGER = Logger.getLogger(ApiRateLimitChecker.class.getName());
+
+    /**
+     * Thread-local rate limit checkers.
+     *
+     * In Jenkins multiple threads can call into one {@link GitHub} instance with each wanting to
+     * receive logging output on a different listener. {@link RateLimitChecker} does not support
+     * anything like this.  We use thread-local checker instances to track rate limit checking
+     * state for each thread.
+     */
+    private static final ThreadLocal<LocalChecker> localRateLimitChecker = new ThreadLocal<>();
 
     private static final double MILLIS_PER_HOUR = TimeUnit.HOURS.toMillis(1);
     private static Random ENTROPY = new Random();
@@ -128,7 +149,6 @@ public enum ApiRateLimitChecker {
     private String displayName;
 
     ApiRateLimitChecker(String displayName) {
-
         this.displayName = displayName;
     }
 
@@ -136,8 +156,148 @@ public enum ApiRateLimitChecker {
         return displayName;
     }
 
-    public abstract void checkApiRateLimit(@NonNull TaskListener listener, GitHub github)
-            throws IOException, InterruptedException;
+    public static void configureThreadLocalChecker(@NonNull TaskListener listener, @NonNull GitHub gitHub) {
+        configureThreadLocalChecker(listener, gitHub.getApiUrl());
+    }
+
+    private static void configureThreadLocalChecker(TaskListener listener, String apiUrl) {
+        LocalChecker checker = GitHubConfiguration.get().getApiRateLimitChecker().getChecker(listener, apiUrl);
+        localRateLimitChecker.set(checker);
+    }
+
+    /**
+     * For test purposes only.
+     */
+    static LocalChecker getLocalChecker() {
+        return localRateLimitChecker.get();
+    }
+
+    /**
+     * For test purposes only.
+     */
+    static void resetLocalChecker() {
+        localRateLimitChecker.set(null);
+    }
+
+    /**
+     * This method is the old code path for rate limit checks
+     *
+     * It has been slowly refactored until it almost matches the behavior of the GitHubRateLimitChecker.
+     * @deprecated rate limit checking is done automatically. Use {@link #configureThreadLocalChecker(TaskListener, GitHub)} instead.
+     */
+    @Deprecated
+    public void checkApiRateLimit(TaskListener listener, GitHub gitHub) throws IOException, InterruptedException {
+        configureThreadLocalChecker(listener, gitHub);
+    }
+
+    static final class RateLimitCheckerAdapter extends RateLimitChecker {
+        @Override
+        protected boolean checkRateLimit(GHRateLimit.Record rateLimitRecord,
+                                         long count) throws InterruptedException {
+            LocalChecker checker = getLocalChecker();
+            if (checker == null) {
+                // If a checker was not configured for this thread, try our best and continue.
+                configureThreadLocalChecker(new LogTaskListener(LOGGER, Level.INFO), GitHubServerConfig.GITHUB_URL);
+                checker = getLocalChecker();
+                checker.writeLog("LocalChecker for rate limit was not set for this thread. "
+                        + "Configured using system settings.");
+            }
+            return checker.checkRateLimit(rateLimitRecord, count);
+        }
+    }
+
+    static abstract class LocalChecker {
+        @NonNull
+        private final TaskListener listener;
+        private long expiration;
+
+        LocalChecker(@NonNull TaskListener listener) {
+            this.listener = Objects.requireNonNull(listener);
+            resetExpiration();
+        }
+
+        protected boolean checkRateLimit(GHRateLimit.Record rateLimitRecord,
+                                         long count) throws InterruptedException {
+            if (count == 0) {
+                resetExpiration();
+            }
+            long now = System.currentTimeMillis();
+            if (waitUntilRateLimit(now, expiration, count)) {
+                return true;
+            }
+            long newExpiration = this.checkRateLimitImpl(rateLimitRecord, count, now);
+            if (newExpiration > expiration) {
+                count = 0;
+            }
+            return waitUntilRateLimit(now, newExpiration, count);
+        }
+
+        // internal for testing
+        abstract long checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now) throws InterruptedException;
+
+        void resetExpiration() {
+            expiration = Long.MIN_VALUE;
+        }
+
+        long calculateExpirationWhenBufferExceeded(GHRateLimit.Record rateLimit, long now, int buffer) {
+            long expiration;
+            long rateLimitResetMillis = rateLimit.getResetDate().getTime() - now;
+            // we add a little bit of random to prevent CPU overload when the limit is due to reset but GitHub
+            // hasn't actually reset yet (clock synchronization is a hard problem)
+            if (rateLimitResetMillis < 0) {
+                expiration = now + ENTROPY.nextInt(
+                    EXPIRATION_WAIT_MILLIS);
+                writeLog(String.format(
+                    "Jenkins-Imposed API Limiter: Current quota for Github API usage has %d remaining (%d over budget). Next quota of %d due now. Sleeping for %s.",
+                    rateLimit.getRemaining(),
+                    buffer - rateLimit.getRemaining(),
+                    rateLimit.getLimit(),
+                    // The GitHubRateLimitChecker adds a one second sleep to each notification loop
+                    Util.getTimeSpanString(1000 + expiration - now)));
+            } else {
+                expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(
+                    EXPIRATION_WAIT_MILLIS);
+                writeLog(String.format(
+                    "Jenkins-Imposed API Limiter: Current quota for Github API usage has %d remaining (%d over budget). Next quota of %d in %s. Sleeping until reset.",
+                    rateLimit.getRemaining(),
+                    buffer - rateLimit.getRemaining(),
+                    rateLimit.getLimit(),
+                    Util.getTimeSpanString(rateLimitResetMillis)));
+            }
+            return expiration;
+        }
+
+        // Internal for testing
+        boolean waitUntilRateLimit(long now, long expiration, long count) throws InterruptedException {
+            boolean waiting = expiration > now;
+            if (waiting) {
+                long nextNotify = now + NOTIFICATION_WAIT_MILLIS;
+                this.expiration = expiration;
+                if (count > 0) {
+                    writeLog(String.format(
+                        "Jenkins-Imposed API Limiter: Still sleeping, now only %s remaining.",
+                        Util.getTimeSpanString(expiration - now)
+                    ));
+                }
+                if (Thread.interrupted()) {
+                    throw new InterruptedException();
+                }
+                long sleep = Math.min(expiration, nextNotify) - now;
+                if (sleep > 0) {
+                    Thread.sleep(sleep);
+                }
+            } else {
+                resetExpiration();
+            }
+            return waiting;
+        }
+
+        void writeLog(String output) {
+            listener.getLogger().println(GitHubConsoleNote.create(System.currentTimeMillis(), output));
+        }
+    }
+
+    public abstract LocalChecker getChecker(@NonNull TaskListener listener, String apiUrl);
 
     static int calculateBuffer(int limit) {
         return Math.max(15, limit / 20);
@@ -145,35 +305,5 @@ public enum ApiRateLimitChecker {
 
     static int calculateNormalizedBurst(int rateLimit) {
         return rateLimit < 1000 ? Math.max(5, rateLimit / 10) : Math.max(200, rateLimit / 5);
-    }
-
-    private static void waitUntilRateLimit(@NonNull TaskListener listener, GitHub github, GHRateLimit rateLimit, long expiration) throws InterruptedException, IOException {
-        long nextNotify = System.currentTimeMillis() + NOTIFICATION_WAIT_MILLIS;
-        while (expiration > System.currentTimeMillis()) {
-            if (Thread.interrupted()) {
-                throw new InterruptedException();
-            }
-            long sleep = Math.min(expiration, nextNotify) - System.currentTimeMillis();
-            if (sleep > 0) {
-                Thread.sleep(sleep);
-            }
-
-            nextNotify += NOTIFICATION_WAIT_MILLIS;
-            long now = System.currentTimeMillis();
-            if (now < expiration) {
-                GHRateLimit current = github.getRateLimit();
-                if (current.remaining > rateLimit.remaining
-                        || current.getResetDate().getTime() > rateLimit.getResetDate().getTime()) {
-                    listener.getLogger().println(GitHubConsoleNote.create(now,
-                            "GitHub API Usage: The quota may have been refreshed earlier than expected, rechecking..."
-                    ));
-                    break;
-                }
-                listener.getLogger().println(GitHubConsoleNote.create(now, String.format(
-                        "GitHub API Usage: Still sleeping, now only %s remaining.",
-                        Util.getTimeSpanString(expiration - now)
-                )));
-            }
-        }
     }
 }

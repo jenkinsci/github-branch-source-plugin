@@ -59,10 +59,11 @@ import org.kohsuke.github.GitHub;
 /**
  * Manages GitHub Statuses.
  *
- * Job (associated to a PR) scheduled: PENDING
- * Build doing a checkout: PENDING
- * Build done: SUCCESS, FAILURE or ERROR
- *
+ * <ul>
+ * <li>Job (associated to a PR) scheduled: PENDING</li>
+ * <li>Build doing a checkout: PENDING</li>
+ * <li>Build done: SUCCESS, FAILURE or ERROR</li>
+ * </ul>
  */
 public class GitHubBuildStatusNotification {
 
@@ -176,6 +177,7 @@ public class GitHubBuildStatusNotification {
 
     /**
      * With this listener one notifies to GitHub when a Job has been scheduled.
+     *
      * Sends: GHCommitState.PENDING
      */
     @Extension
@@ -208,9 +210,8 @@ public class GitHubBuildStatusNotification {
             Computer.threadPoolForRemoting.submit(new Runnable() {
                 @Override
                 public void run() {
-                    GitHub gitHub = null;
                     try {
-                        gitHub = lookUpGitHub(job);
+                        GitHub gitHub = lookUpGitHub(job);
                         try {
                             if (gitHub == null || gitHub.rateLimit().remaining < 8) {
                                 // we are an optimization to signal commit status early, no point waiting for
@@ -269,8 +270,6 @@ public class GitHubBuildStatusNotification {
                                 "Could not update commit status to PENDING. Rate limit exhausted",
                                 LOGGER.isLoggable(Level.FINE) ? e : null);
                         LOGGER.log(Level.FINE, null, e);
-                    } finally {
-                        Connector.release(gitHub);
                     }
                 }
             });
@@ -280,6 +279,7 @@ public class GitHubBuildStatusNotification {
 
     /**
      * With this listener one notifies to GitHub when the SCM checkout process has started.
+     *
      * Possible option: GHCommitState.PENDING
      */
     @Extension
@@ -295,6 +295,7 @@ public class GitHubBuildStatusNotification {
 
     /**
      * With this listener one notifies to GitHub the build result.
+     *
      * Possible options: GHCommitState.SUCCESS, GHCommitState.ERROR or GHCommitState.FAILURE
      */
     @Extension

@@ -1,0 +1,84 @@
+[
+  {
+    "id": 654321,
+    "account": {
+      "login": "cloudbeers",
+      "id": 4181899,
+      "node_id": "asdfasdfasdf",
+      "url": "https://api.github.com/orgs/cloudbeers",
+      "html_url": "https://github.com/cloudbeers",
+      "followers_url": "https://api.github.com/users/cloudbeers/followers",
+      "following_url": "https://api.github.com/users/cloudbeers/following{/other_user}",
+      "gists_url": "https://api.github.com/users/cloudbeers/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/cloudbeers/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/cloudbeers/subscriptions",
+      "organizations_url": "https://api.github.com/users/cloudbeers/orgs",
+      "repos_url": "https://api.github.com/users/cloudbeers/repos",
+      "events_url": "https://api.github.com/users/cloudbeers/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/cloudbeers/received_events",
+      "type": "Organization",
+      "site_admin": false
+    },
+    "repository_selection": "selected",
+    "access_tokens_url": "https://api.github.com/app/installations/654321/access_tokens",
+    "repositories_url": "https://api.github.com/installation/repositories",
+    "html_url": "https://github.com/organizations/cloudbeers/settings/installations/654321",
+    "app_id": 54321,
+    "target_id": 4181899,
+    "target_type": "Organization",
+    "permissions": {
+      "checks": "write",
+      "pull_requests": "write",
+      "contents": "read",
+      "metadata": "read"
+    },
+    "events": [
+      "pull_request",
+      "push"
+    ],
+    "created_at": "2019-07-04T01:19:36.000Z",
+    "updated_at": "2019-07-30T22:48:09.000Z",
+    "single_file_name": null
+  },
+  {
+    "id": 754321,
+    "account": {
+      "login": "bogus",
+      "id": 0,
+      "node_id": "asdfasdfasdff",
+      "url": "https://api.github.com/orgs/bogus",
+      "html_url": "https://github.com/bogus",
+      "followers_url": "https://api.github.com/users/bogus/followers",
+      "following_url": "https://api.github.com/users/bogus/following{/other_user}",
+      "gists_url": "https://api.github.com/users/bogus/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/bogus/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/bogus/subscriptions",
+      "organizations_url": "https://api.github.com/users/bogus/orgs",
+      "repos_url": "https://api.github.com/users/v/repos",
+      "events_url": "https://api.github.com/users/bogus/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/bogus/received_events",
+      "type": "Organization",
+      "site_admin": false
+    },
+    "repository_selection": "selected",
+    "access_tokens_url": "https://api.github.com/app/installations/754321/access_tokens",
+    "repositories_url": "https://api.github.com/installation/repositories",
+    "html_url": "https://github.com/organizations/bogus/settings/installations/754321",
+    "app_id": 54321,
+    "target_id": 4181899,
+    "target_type": "Organization",
+    "permissions": {
+      "checks": "write",
+      "pull_requests": "write",
+      "contents": "read",
+      "metadata": "read"
+    },
+    "events": [
+      "pull_request",
+      "push"
+    ],
+    "created_at": "2019-07-04T01:19:36.000Z",
+    "updated_at": "2019-07-30T22:48:09.000Z",
+    "single_file_name": null
+  }
+]
