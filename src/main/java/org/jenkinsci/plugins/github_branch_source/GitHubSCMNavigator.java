@@ -1238,6 +1238,32 @@ public class GitHubSCMNavigator extends SCMNavigator {
     } catch (HttpException e) {
       throw new AbortException(e.getMessage());
     }
+  }
+
+  /** {@inheritDoc} */
+  @Override
+  public void afterSave(@NonNull SCMNavigatorOwner owner) {
+    GitHubWebHook.get().registerHookFor(owner);
+    try {
+      // FIXME MINOR HACK ALERT
+      StandardCredentials credentials =
+          Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId);
+      GitHub hub = Connector.connect(getApiUri(), credentials);
+      try {
+        GitHubOrgWebHook.register(hub, repoOwner);
+      } finally {
+        Connector.release(hub);
+      }
+    } catch (IOException e) {
+      DescriptorImpl.LOGGER.log(Level.WARNING, e.getMessage(), e);
+    }
+  }
+
+  @Symbol("github")
+  @Extension
+  public static class DescriptorImpl extends SCMNavigatorDescriptor implements IconSpec {
+
+    private static final Logger LOGGER = Logger.getLogger(DescriptorImpl.class.getName());
 
     try {
       // Input data validation
