@@ -35,6 +35,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
+import hudson.Functions;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
@@ -947,8 +948,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
         try {
-            checkApiUrlValidity(github, credentials);
-            Connector.checkApiRateLimit(listener, github);
+            Connector.configureLocalRateLimitChecker(listener, github);
 
             try {
                 // Input data validation
@@ -1004,13 +1004,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                         public SCMSourceCriteria.Probe create(@NonNull BranchSCMHead head,
                                                                               @Nullable SCMRevisionImpl revisionInfo)
                                                 throws IOException, InterruptedException {
-                                            return new GitHubSCMProbe(github, ghRepository, head, revisionInfo);
+                                            return new GitHubSCMProbe(
+                                                apiUri,
+                                                credentials,
+                                                ghRepository,
+                                                head,
+                                                revisionInfo);
                                         }
                                     }, new CriteriaWitness(listener))) {
                                 listener.getLogger().format("%n  %d branches were processed (query completed)%n", count);
                                 break;
-                            } else {
-                                request.checkApiRateLimit();
                             }
                         }
                         listener.getLogger().format("%n  %d branches were processed%n", count);
@@ -1034,10 +1037,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         for (final GHPullRequest pr : request.getPullRequests()) {
                             int number = pr.getNumber();
                             try {
-                                retrievePullRequest(github, ghRepository, pr, strategies, request, listener);
+                                retrievePullRequest(apiUri, credentials, ghRepository, pr, strategies, request, listener);
                             } catch (FileNotFoundException e) {
                                 listener.getLogger().format("%n  Error while processing pull request %d%n", number);
-                                listener.getLogger().format("%n  Reason: %s%n", e);
+                                Functions.printStackTrace(e, listener.getLogger());
                                 errorCount++;
                             }
                             count++;
@@ -1090,14 +1093,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                         public SCMSourceCriteria.Probe create(@NonNull GitHubTagSCMHead head,
                                                                               @Nullable GitTagSCMRevision revisionInfo)
                                                 throws IOException, InterruptedException {
-                                            return new GitHubSCMProbe(github, ghRepository, head, revisionInfo);
+                                            return new GitHubSCMProbe(
+                                                apiUri,
+                                                credentials,
+                                                ghRepository,
+                                                head,
+                                                revisionInfo);
                                         }
                                     }, new CriteriaWitness(listener))) {
                                 listener.getLogger()
                                         .format("%n  %d tags were processed (query completed)%n", count);
                                 break;
-                            } else {
-                                request.checkApiRateLimit();
                             }
                         }
                         listener.getLogger().format("%n  %d tags were processed%n", count);
@@ -1142,7 +1148,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     private static void retrievePullRequest(
-        @NonNull final GitHub github,
+        final String apiUri,
+        final StandardCredentials credentials,
         @NonNull final GHRepository ghRepository,
         @NonNull final GHPullRequest pr,
         @NonNull final Map<Boolean, Set<ChangeRequestCheckoutStrategy>> strategies,
@@ -1172,7 +1179,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
             // PR details only needed for merge PRs
             if (strategy == ChangeRequestCheckoutStrategy.MERGE) {
-                ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
+                // The probe github will be closed along with the probe.
+                final GitHub gitHub = Connector.connect(apiUri, credentials);
+                try {
+                    ensureDetailedGHPullRequest(pr, listener, gitHub, ghRepository);
+                }
+                finally {
+                    Connector.release(gitHub);
+                }
             }
 
             if (request.process(new PullRequestSCMHead(
@@ -1189,8 +1203,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             if (!trusted) {
                                 listener.getLogger().format("    (not from a trusted source)%n");
                             }
-                            return new GitHubSCMProbe(github, ghRepository,
-                                    trusted ? head : head.getTarget(), null);
+                            return new GitHubSCMProbe(
+                                apiUri, credentials,
+                                ghRepository, trusted ? head : head.getTarget(), null);
                         }
                     },
                     new SCMSourceRequest.LazyRevisionLambda<PullRequestSCMHead, SCMRevision, Void>() {
@@ -1200,7 +1215,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                                 @Nullable Void ignored)
                                 throws IOException, InterruptedException {
 
-                            return createPullRequestSCMRevision(pr, head, listener, github, ghRepository);
+                            return createPullRequestSCMRevision(pr, head, listener, ghRepository);
                         }
                     },
                     new MergabilityWitness(pr, strategy, listener),
@@ -1210,8 +1225,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         "%n  Pull request %d processed (query completed)%n",
                         number
                 );
-            } else {
-                request.checkApiRateLimit();
             }
         }
     }
@@ -1224,8 +1237,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
         try {
-            checkApiUrlValidity(github, credentials);
-            Connector.checkApiRateLimit(listener, github);
+            Connector.configureLocalRateLimitChecker(listener, github);
             Set<String> result = new TreeSet<>();
 
             try {
@@ -1317,8 +1329,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
         try {
-            checkApiUrlValidity(github, credentials);
-            Connector.checkApiRateLimit(listener, github);
+            Connector.configureLocalRateLimitChecker(listener, github);
             // Input data validation
             if (isBlank(repository)) {
                 throw new AbortException("No repository selected, skipping");
@@ -1337,7 +1348,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 int number = Integer.parseInt(prMatcher.group(1));
                 listener.getLogger().format("Attempting to resolve %s as pull request %d%n", headName, number);
                 try {
-                    Connector.checkApiRateLimit(listener, github);
                     GHPullRequest pr = ghRepository.getPullRequest(number);
                     if (pr != null) {
                         boolean fork = !ghRepository.getOwner().equals(pr.getHead().getUser());
@@ -1394,7 +1404,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         if (head.isMerge()) {
                             ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
                         }
-                        PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, head, listener, github, ghRepository);
+                        PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, head, listener, ghRepository);
 
                         switch (strategy) {
                             case MERGE:
@@ -1523,15 +1533,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    private void checkApiUrlValidity(GitHub github, StandardCredentials credentials) throws IOException {
-        try {
-            Connector.checkApiUrlValidity(github, credentials);
-        } catch (HttpException e) {
-            String message = String.format("It seems %s is unreachable", apiUri);
-            throw new IOException(message, e);
-        }
-    }
-
     private static class WrappedException extends RuntimeException {
 
         public WrappedException(Throwable cause) {
@@ -1563,11 +1564,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         try {
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
-            return new GitHubSCMProbe(github, repo, head, revision);
+            return new GitHubSCMProbe(apiUri, credentials, repo, head, revision);
         } catch (IOException | RuntimeException | Error e) {
-            Connector.release(github);
             throw e;
+        } finally {
+            Connector.release(github);
         }
+
     }
 
     @Override
@@ -1578,23 +1581,20 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         // Github client and validation
         GitHub github = Connector.connect(apiUri, credentials);
         try {
-            checkApiUrlValidity(github, credentials);
-
             try {
                 Connector.checkConnectionValidity(apiUri, listener, credentials, github);
-                Connector.checkApiRateLimit(listener, github);
+                Connector.configureLocalRateLimitChecker(listener, github);
                 String fullName = repoOwner + "/" + repository;
                 ghRepository = github.getRepository(fullName);
                 final GHRepository ghRepository = this.ghRepository;
                 resolvedRepositoryUrl = ghRepository.getHtmlUrl();
                 if (head instanceof PullRequestSCMHead) {
                     PullRequestSCMHead prhead = (PullRequestSCMHead) head;
-                    Connector.checkApiRateLimit(listener, github);
                     GHPullRequest pr = ghRepository.getPullRequest(prhead.getNumber());
                     if (prhead.isMerge()) {
                         ensureDetailedGHPullRequest(pr, listener, github, ghRepository);
                     }
-                    PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, prhead, listener, github, ghRepository);
+                    PullRequestSCMRevision prRev = createPullRequestSCMRevision(pr, prhead, listener, ghRepository);
                     prRev.validateMergeHash();
                     return prRev;
                 } else if (head instanceof GitHubTagSCMHead) {
@@ -1619,7 +1619,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    private static PullRequestSCMRevision createPullRequestSCMRevision(GHPullRequest pr, PullRequestSCMHead prhead, TaskListener listener, GitHub github, GHRepository ghRepository) throws IOException, InterruptedException {
+    private static PullRequestSCMRevision createPullRequestSCMRevision(GHPullRequest pr, PullRequestSCMHead prhead, TaskListener listener, GHRepository ghRepository) throws IOException, InterruptedException {
         String baseHash = pr.getBase().getSha();
         String prHeadHash = pr.getHead().getSha();
         String mergeHash = null;
@@ -1680,7 +1680,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         final long sleep = 1000;
         int retryCountdown = 4;
 
-        Connector.checkApiRateLimit(listener, github);
         while (pr.getMergeable() == null && retryCountdown > 1) {
             listener.getLogger().format(
                 "Waiting for GitHub to create a merge commit for pull request %d.  Retrying %d more times...%n",
@@ -1688,7 +1687,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 retryCountdown);
             retryCountdown -= 1;
             Thread.sleep(sleep);
-            Connector.checkApiRateLimit(listener, github);
         }
 
 
@@ -1721,8 +1719,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     try {
                         GitHub github = Connector.connect(apiUri, credentials);
                         try {
-                            checkApiUrlValidity(github, credentials);
-                            Connector.checkApiRateLimit(listener, github);
+                            Connector.configureLocalRateLimitChecker(listener, github);
                             ghRepository = github.getRepository(fullName);
                             LOGGER.log(Level.INFO, "Got remote pull requests from {0}", fullName);
                             int n = 0;
@@ -1734,9 +1731,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                         repository == null ? null : repository.getName(),
                                         pr.getHead().getRef()));
                                 n++;
-                                if (n % 30  == 0) { // default page size is 30
-                                    Connector.checkApiRateLimit(listener, github);
-                                }
                             }
                         } finally {
                             Connector.release(github);
@@ -2352,7 +2346,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         @Override
         protected Iterable<GHPullRequest> create() {
             try {
-                request.checkApiRateLimit();
                 Set<Integer> prs = request.getRequestedPullRequestNumbers();
                 if (prs != null && prs.size() == 1) {
                     Integer number = prs.iterator().next();
@@ -2382,7 +2375,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 return new CacheUpdatingIterable(LazyPullRequests.this.repo.queryPullRequests()
                         .state(GHIssueState.OPEN)
                         .list());
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException e) {
                 throw new GitHubSCMSource.WrappedException(e);
             }
         }
@@ -2421,9 +2414,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     if (users.containsKey(user.getLogin())) {
                         // looked up this user already
                         user = users.get(user.getLogin());
-                    } else {
-                        // going to be making a request to populate the user record
-                        request.checkApiRateLimit();
                     }
                     ContributorMetadataAction contributor = new ContributorMetadataAction(
                         user.getLogin(),
@@ -2437,7 +2427,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     request.listener().getLogger().format("%n  Could not find user %s for pull request %d.%n",
                        user == null ? "null" : user.getLogin(), number);
                     throw new WrappedException(e);
-                } catch (IOException | InterruptedException e) {
+                } catch (IOException e) {
                     throw new WrappedException(e);
                 }
 
@@ -2472,7 +2462,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         @Override
         protected Iterable<GHBranch> create() {
             try {
-                request.checkApiRateLimit();
                 Set<String> branchNames = request.getRequestedOriginBranchNames();
                 if (branchNames != null && branchNames.size() == 1) {
                     String branchName = branchNames.iterator().next();
@@ -2502,7 +2491,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     }
                 });
                 return values;
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException e) {
                 throw new GitHubSCMSource.WrappedException(e);
             }
         }
@@ -2521,7 +2510,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         @Override
         protected Iterable<GHRef> create() {
             try {
-                request.checkApiRateLimit();
                 final Set<String> tagNames = request.getRequestedTagNames();
                 if (tagNames != null && tagNames.size() == 1) {
                     String tagName = tagNames.iterator().next();
@@ -2616,7 +2604,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         };
                     }
                 };
-            } catch (IOException | InterruptedException e) {
+            } catch (IOException e) {
                 throw new GitHubSCMSource.WrappedException(e);
             }
         }
@@ -2733,8 +2721,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             try {
                 GitHub github = Connector.connect(apiUri, credentials);
                 try {
-                    checkApiUrlValidity(github, credentials);
-                    Connector.checkApiRateLimit(listener, github);
+                    Connector.configureLocalRateLimitChecker(listener, github);
 
                     // Input data validation
                     Connector.checkConnectionValidity(apiUri, listener, credentials, github);
@@ -2764,7 +2751,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         if (isBlank(getRepository())) {
                             collaboratorNames = Collections.singleton(repoOwner);
                         } else {
-                            request.checkApiRateLimit();
                             String fullName = repoOwner + "/" + repository;
                             ghRepository = github.getRepository(fullName);
                             resolvedRepositoryUrl = ghRepository.getHtmlUrl();

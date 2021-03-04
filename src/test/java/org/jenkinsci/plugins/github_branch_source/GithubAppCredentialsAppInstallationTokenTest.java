@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.github_branch_source;
 
+import hudson.util.Secret;
 import org.junit.Test;
 
 import java.time.Duration;
@@ -17,24 +18,25 @@ public class GithubAppCredentialsAppInstallationTokenTest {
         long now;
 
         now = Instant.now().getEpochSecond();
-        token = new GitHubAppCredentials.AppInstallationToken("", now);
+        Secret secret = Secret.fromString("secret-token");
+        token = new GitHubAppCredentials.AppInstallationToken(secret, now);
         assertThat(token.isStale(), is(false));
         assertThat(token.getTokenStaleEpochSeconds(), equalTo(now + GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS));
 
         now = Instant.now().getEpochSecond();
-        token = new GitHubAppCredentials.AppInstallationToken("",
+        token = new GitHubAppCredentials.AppInstallationToken(secret,
             now + Duration.ofMinutes(15).getSeconds());
         assertThat(token.isStale(), is(false));
         assertThat(token.getTokenStaleEpochSeconds(), equalTo(now + GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS));
 
         now = Instant.now().getEpochSecond();
-        token = new GitHubAppCredentials.AppInstallationToken("",
+        token = new GitHubAppCredentials.AppInstallationToken(secret,
             now + GitHubAppCredentials.AppInstallationToken.STALE_BEFORE_EXPIRATION_SECONDS + 2);
         assertThat(token.isStale(), is(false));
         assertThat(token.getTokenStaleEpochSeconds(), equalTo(now + GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS));
 
         now = Instant.now().getEpochSecond();
-        token = new GitHubAppCredentials.AppInstallationToken("",
+        token = new GitHubAppCredentials.AppInstallationToken(secret,
             now + GitHubAppCredentials.AppInstallationToken.STALE_BEFORE_EXPIRATION_SECONDS + Duration
                 .ofMinutes(7)
                 .getSeconds());
@@ -43,7 +45,7 @@ public class GithubAppCredentialsAppInstallationTokenTest {
             equalTo(now + Duration.ofMinutes(7).getSeconds()));
 
         now = Instant.now().getEpochSecond();
-        token = new GitHubAppCredentials.AppInstallationToken("",
+        token = new GitHubAppCredentials.AppInstallationToken(secret,
             now + Duration.ofMinutes(90).getSeconds());
         assertThat(token.isStale(), is(false));
         assertThat(token.getTokenStaleEpochSeconds(),
@@ -55,7 +57,7 @@ public class GithubAppCredentialsAppInstallationTokenTest {
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = -10;
 
             now = Instant.now().getEpochSecond();
-            token = new GitHubAppCredentials.AppInstallationToken("", now);
+            token = new GitHubAppCredentials.AppInstallationToken(secret, now);
             assertThat(token.isStale(), is(false));
             assertThat(token.getTokenStaleEpochSeconds(), equalTo(now + 1));
 

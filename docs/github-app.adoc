@@ -36,7 +36,7 @@ You'll need the permission to create a new credential and update job configurati
 
 == Creating the GitHub app
 
-link:https://developer.github.com/apps/building-github-apps/creating-a-github-app/[Follow the GitHub guide for creating an app]
+link:https://docs.github.com/en/developers/apps/creating-a-github-app[Follow the GitHub guide for creating an app]
 
 The only fields you need to fill out (currently) are:
 
