@@ -28,9 +28,8 @@ import com.cloudbees.jenkins.GitHubRepositoryName;
 import com.cloudbees.jenkins.GitHubRepositoryNameContributor;
 import hudson.Extension;
 import hudson.model.Item;
-import jenkins.scm.api.SCMSourceOwner;
-
 import java.util.Collection;
+import jenkins.scm.api.SCMSourceOwner;
 
 /**
  * Finds the repository name(s) associated with a {@link SCMSourceOwner}'s {@link GitHubSCMSource}s.
@@ -41,20 +40,20 @@ import java.util.Collection;
 @Extension
 public class GitHubSCMSourceRepositoryNameContributor extends GitHubRepositoryNameContributor {
 
-    @Override
-    public void parseAssociatedNames(Item item, Collection<GitHubRepositoryName> result) {
-        if (item instanceof SCMSourceOwner) {
-            SCMSourceOwner mp = (SCMSourceOwner) item;
-            for (Object o : mp.getSCMSources()) {
-                if (o instanceof GitHubSCMSource) {
-                    GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) o;
-                    result.add(new GitHubRepositoryName(
-                            RepositoryUriResolver.hostnameFromApiUri(gitHubSCMSource.getApiUri()),
-                            gitHubSCMSource.getRepoOwner(),
-                            gitHubSCMSource.getRepository()));
-
-                }
-            }
+  @Override
+  public void parseAssociatedNames(Item item, Collection<GitHubRepositoryName> result) {
+    if (item instanceof SCMSourceOwner) {
+      SCMSourceOwner mp = (SCMSourceOwner) item;
+      for (Object o : mp.getSCMSources()) {
+        if (o instanceof GitHubSCMSource) {
+          GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) o;
+          result.add(
+              new GitHubRepositoryName(
+                  RepositoryUriResolver.hostnameFromApiUri(gitHubSCMSource.getApiUri()),
+                  gitHubSCMSource.getRepoOwner(),
+                  gitHubSCMSource.getRepository()));
         }
+      }
     }
+  }
 }

@@ -27,9 +27,9 @@ package org.jenkinsci.plugins.github_branch_source;
 import java.io.Closeable;
 
 /**
- * Package private interface to allow {@link GitHubSCMFile} and {@link GitHubSCMFileSystem} to be aware of the state
- * of their connection.
+ * Package private interface to allow {@link GitHubSCMFile} and {@link GitHubSCMFileSystem} to be
+ * aware of the state of their connection.
  */
 interface GitHubClosable extends Closeable {
-    boolean isOpen();
+  boolean isOpen();
 }
