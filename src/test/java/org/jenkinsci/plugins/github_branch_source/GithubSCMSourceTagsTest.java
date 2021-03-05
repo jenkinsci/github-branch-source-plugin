@@ -264,7 +264,7 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
         GitHubSCMSourceRequest request = context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
         GHRepository repoSpy = Mockito.spy(repo);
         PagedIterable<GHRef> iterableSpy = (PagedIterable<GHRef>)Mockito.mock(PagedIterable.class);
-        Mockito.when(repoSpy.listRefs("tags")).thenReturn(iterableSpy);
+        Mockito.when(repoSpy.listRefs("tags")).thenReturn(iterableSpy).thenCallRealMethod();
 
         PagedIterator<GHRef> iteratorSpy = (PagedIterator<GHRef>)Mockito.mock(PagedIterator.class);
         Mockito.when(iterableSpy.iterator()).thenReturn(iteratorSpy);

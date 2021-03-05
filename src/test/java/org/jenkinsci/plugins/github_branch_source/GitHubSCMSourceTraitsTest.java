@@ -540,7 +540,7 @@ public class GitHubSCMSourceTraitsTest {
     @Test
     public void given__instance__when__setTraits__then__traitsSet() {
         GitHubSCMSource instance = new GitHubSCMSource("testing", "test-repo");
-        instance.setTraits(Arrays.asList(new BranchDiscoveryTrait(1),
+        instance.setTraits(Arrays.asList(new BranchDiscoveryTrait(BranchDiscoveryTrait.EXCLUDE_PRS),
                 new SSHCheckoutTrait("value")));
         assertThat(instance.getTraits(),
                 containsInAnyOrder(

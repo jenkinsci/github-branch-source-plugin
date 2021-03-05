@@ -36,7 +36,7 @@ You'll need the permission to create a new credential and update job configurati
 
 == Creating the GitHub app
 
-link:https://developer.github.com/apps/building-github-apps/creating-a-github-app/[Follow the GitHub guide for creating an app]
+link:https://docs.github.com/en/developers/apps/creating-a-github-app[Follow the GitHub guide for creating an app]
 
 The only fields you need to fill out (currently) are:
 
@@ -50,7 +50,6 @@ Permissions this plugin uses:
 - Contents: Read-only (to read the `Jenkinsfile` and the repository content during `git fetch`). You may need "Read & write" to update the repository such as tagging releases
 - Metadata: Read-only
 - Pull requests: Read-only
-- Webhooks (optional) - If you want the plugin to manage webhooks for you, Read and Write
 
 You are not required to use webhooks but it strongly recommeded over alternatives such as polling. To use webhooks, you can give your GitHub App "Read and Write" permission to Webhooks (noted above) and the plugin will configure your repositories to send the appropriate events. Otherwise you can manually configure the app handle all events needed by this plugin, in which case the app will not need webhook permissions.
 
@@ -94,7 +93,8 @@ Fill out the form:
 - App ID: the github app ID, it can be found in the 'About' section of your GitHub app in the general tab.
 - API endpoint (optional, only required for GitHub enterprise this will only show up if a GitHub enterprise server is configured).
 - Key: click add, paste the contents of the converted private key
-- Passphrase: do not fill this field, it will be ignored
+- Advanced: (optional) If you've installed your same GitHub app on multiple organizations you need the next step
+  * Owner: the name of the organisation or user, i.e. jenkinsci for https://github.com/jenkinsci
 - Click OK
 
 === link:https://github.com/jenkinsci/configuration-as-code-plugin[Configuration as Code Plugin]
@@ -144,4 +144,4 @@ Finished: SUCCESS
 === Help?
 
 Raise an issue on link:https://issues.jenkins-ci.org/[Jenkins jira]
-setting the 'component' to be `github-brance-source-plugin`
+setting the 'component' to be `github-branch-source-plugin`

@@ -108,8 +108,10 @@ class GitHubSCMFile extends SCMFile {
                             info = TypeInfo.NON_DIRECTORY_CONFIRMED;
                             resolved = true;
                         } catch (IOException e) {
-                            if (e.getCause() instanceof IOException
-                                    && e.getCause().getCause() instanceof JsonMappingException) {
+                            // Upcoming version of github-api hoists JsonMappingException up one level
+                            // Support both the old and the new structure
+                            if (e.getCause() instanceof JsonMappingException
+                                || e.getCause() != null && e.getCause().getCause() instanceof JsonMappingException ) {
                                 metadata = repo.getDirectoryContent(getPath(),
                                         ref.indexOf('/') == -1 ? ref : Constants.R_REFS + ref);
                                 info = TypeInfo.DIRECTORY_CONFIRMED;
