@@ -799,6 +799,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         }
 
         @SuppressWarnings("unused") // jelly
+        @Deprecated
         public boolean isApiUriSelectable() {
             return !GitHubConfiguration.get().getEndpoints().isEmpty();
         }
