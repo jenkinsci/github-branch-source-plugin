@@ -51,7 +51,13 @@ Permissions this plugin uses:
 - Metadata: Read-only
 - Pull requests: Read-only
 
-Under _Subscribe to events_, enable all events.
+You are not required to use webhooks but it strongly recommeded over alternatives such as polling. To use webhooks, you can give your GitHub App "Read and Write" permission to Webhooks (noted above) and the plugin will configure your repositories to send the appropriate events. Otherwise you can manually configure the app handle all events needed by this plugin, in which case the app will not need webhook permissions.
+
+You should configure the app to receive at least the following events:
+
+- Pull request
+- Push
+- Repository (automatically add  required read-only "Administration" permission)
 
 Click 'Create GitHub app'
 
