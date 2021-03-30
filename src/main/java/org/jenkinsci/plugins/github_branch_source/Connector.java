@@ -384,7 +384,7 @@ public class Connector {
             GitHubConnection.connect(
                 connectionId, gb.build(), cache, credentials instanceof GitHubAppCredentials);
       }
-
+      
       return record.getGitHub();
     }
   }
@@ -667,7 +667,6 @@ public class Connector {
         boolean cleanupCacheFolder)
         throws IOException {
       GitHubConnection record = new GitHubConnection(gitHub, cache, cleanupCacheFolder);
-      record.verifyConnection();
       connections.put(connectionId, record);
       reverseLookup.put(record.gitHub, record);
       return record;
