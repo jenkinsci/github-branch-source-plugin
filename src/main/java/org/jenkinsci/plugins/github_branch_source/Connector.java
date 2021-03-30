@@ -653,7 +653,6 @@ public class Connector {
       GitHubConnection record;
       record = connections.get(connectionId);
       if (record != null) {
-        record.verifyConnection();
         record.usageCount += 1;
         record.lastUsed = System.currentTimeMillis();
       }
