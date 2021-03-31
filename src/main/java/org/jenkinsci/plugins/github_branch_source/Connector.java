@@ -384,7 +384,6 @@ public class Connector {
             GitHubConnection.connect(
                 connectionId, gb.build(), cache, credentials instanceof GitHubAppCredentials);
       }
-      
       return record.getGitHub();
     }
   }
