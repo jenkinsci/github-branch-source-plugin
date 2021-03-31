@@ -64,6 +64,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -90,7 +91,7 @@ import org.kohsuke.github.extras.okhttp3.OkHttpConnector;
 public class Connector {
   private static final Logger LOGGER = Logger.getLogger(Connector.class.getName());
 
-  private static final Map<ConnectionId, GitHubConnection> connections = new HashMap<>();
+  private static final Map<ConnectionId, GitHubConnection> connections = new ConcurrentHashMap<>();
   private static final Map<GitHub, GitHubConnection> reverseLookup = new HashMap<>();
 
   private static final Map<TaskListener, Map<GitHub, Void>> checked = new WeakHashMap<>();
@@ -363,9 +364,9 @@ public class Connector {
 
     ConnectionId connectionId = new ConnectionId(apiUrl, hash);
 
-    synchronized (connections) {
-      GitHubConnection record = GitHubConnection.lookup(connectionId);
-      if (record == null) {
+    GitHubConnection record = GitHubConnection.lookup(connectionId);
+    if (record == null) {
+      synchronized (connections) {
         Cache cache = getCache(jenkins, apiUrl, authHash, username);
 
         GitHubBuilder gb = createGitHubBuilder(apiUrl, cache);
@@ -384,9 +385,9 @@ public class Connector {
             GitHubConnection.connect(
                 connectionId, gb.build(), cache, credentials instanceof GitHubAppCredentials);
       }
-      
-      return record.getGitHub();
     }
+
+    return record.getGitHub();
   }
 
   /**
