@@ -702,17 +702,17 @@ public class Connector {
     }
 
     public void verifyConnection() throws IOException {
-        if (lastVerified.get() > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
-          return;
-        }
-        try {
-          gitHub.checkApiUrlValidity();
-        } catch (HttpException e) {
-          String message = String.format("It seems %s is unreachable", gitHub.getApiUrl());
-          throw new IOException(message, e);
-        }
-        lastVerified.compareAndSet(lastVerified.get(), System.currentTimeMillis());
+      if (lastVerified.get() > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
+        return;
       }
+      try {
+        gitHub.checkApiUrlValidity();
+      } catch (HttpException e) {
+        String message = String.format("It seems %s is unreachable", gitHub.getApiUrl());
+        throw new IOException(message, e);
+      }
+      lastVerified.compareAndSet(lastVerified.get(), System.currentTimeMillis());
+    }
   }
 
   private static class ConnectionId {
