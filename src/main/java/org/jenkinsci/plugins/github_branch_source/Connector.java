@@ -638,7 +638,7 @@ public class Connector {
     @CheckForNull private final Cache cache;
 
     private final boolean cleanupCacheFolder;
-    private int usageCount = 1;
+    private int usageCount = 0;
     private long lastUsed = System.currentTimeMillis();
     private long lastVerified = Long.MIN_VALUE;
 
