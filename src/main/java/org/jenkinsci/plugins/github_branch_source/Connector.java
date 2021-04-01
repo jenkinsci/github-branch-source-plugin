@@ -94,7 +94,7 @@ public class Connector {
   private static final Logger LOGGER = Logger.getLogger(Connector.class.getName());
 
   private static final Map<ConnectionId, GitHubConnection> connections = new ConcurrentHashMap<>();
-  private static final Map<GitHub, GitHubConnection> reverseLookup = new ConcurrentHashMap<>();
+  private static final Map<GitHub, ConnectionId> reverseLookup = new ConcurrentHashMap<>();
 
   private static final Map<TaskListener, Map<GitHub, Void>> checked = new WeakHashMap<>();
   private static final long API_URL_REVALIDATE_MILLIS = TimeUnit.MINUTES.toMillis(5);
@@ -395,7 +395,7 @@ public class Connector {
               }
             });
 
-    reverseLookup.putIfAbsent(record.gitHub, record);
+    reverseLookup.putIfAbsent(record.gitHub, connectionId);
     record.verifyConnection();
     return record.getGitHub();
   }
@@ -479,7 +479,11 @@ public class Connector {
       return;
     }
 
-    GitHubConnection record = reverseLookup.get(hub);
+    ConnectionId connectionId = reverseLookup.get(hub);
+    if (connectionId == null) {
+      return;
+    }
+    GitHubConnection record = connections.get(connectionId);
     if (record != null) {
       try {
         record.release();
