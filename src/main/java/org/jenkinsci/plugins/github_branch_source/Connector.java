@@ -626,7 +626,9 @@ public class Connector {
       // and has not been looked up or released for the last 30 minutes
       long unusedThreshold = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(30);
 
-      GitHubConnection.removeAllUnused(unusedThreshold);
+      synchronized (connections) {
+        GitHubConnection.removeAllUnused(unusedThreshold);
+      }
     }
   }
 
@@ -702,6 +704,7 @@ public class Connector {
     }
 
     public void verifyConnection() throws IOException {
+      synchronized (this) {
         if (lastVerified.get() > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
           return;
         }
@@ -713,6 +716,7 @@ public class Connector {
         }
         lastVerified.compareAndSet(lastVerified.get(), System.currentTimeMillis());
       }
+    }
   }
 
   private static class ConnectionId {
