@@ -626,9 +626,7 @@ public class Connector {
       // and has not been looked up or released for the last 30 minutes
       long unusedThreshold = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(30);
 
-      synchronized (connections) {
-        GitHubConnection.removeAllUnused(unusedThreshold);
-      }
+      GitHubConnection.removeAllUnused(unusedThreshold);
     }
   }
 
