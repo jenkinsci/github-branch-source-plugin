@@ -638,7 +638,7 @@ public class Connector {
     private final boolean cleanupCacheFolder;
     private final AtomicInteger usageCount = new AtomicInteger(0);
     private final AtomicLong lastUsed = new AtomicLong(System.currentTimeMillis());
-    private final AtomicLong lastVerified = new AtomicLong(Long.MIN_VALUE);
+    private long lastVerified = Long.MIN_VALUE;
 
     private GitHubConnection(GitHub gitHub, Cache cache, boolean cleanupCacheFolder) {
       this.gitHub = gitHub;
@@ -703,7 +703,7 @@ public class Connector {
 
     public void verifyConnection() throws IOException {
       synchronized (this) {
-        if (lastVerified.get() > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
+        if (lastVerified > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
           return;
         }
         try {
@@ -712,7 +712,7 @@ public class Connector {
           String message = String.format("It seems %s is unreachable", gitHub.getApiUrl());
           throw new IOException(message, e);
         }
-        lastVerified.compareAndSet(lastVerified.get(), System.currentTimeMillis());
+        lastVerified = System.currentTimeMillis();
       }
     }
   }
