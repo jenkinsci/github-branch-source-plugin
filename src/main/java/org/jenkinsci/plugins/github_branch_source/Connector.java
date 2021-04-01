@@ -65,6 +65,8 @@ import java.util.Random;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -386,10 +388,8 @@ public class Connector {
                   gb.withAuthorizationProvider(
                       ImmutableAuthorizationProvider.fromLoginAndPassword(username, password));
                 }
-                GitHubConnection newConnection =
-                    new GitHubConnection(
-                        gb.build(), cache, credentials instanceof GitHubAppCredentials);
-                return newConnection;
+                return new GitHubConnection(
+                    gb.build(), cache, credentials instanceof GitHubAppCredentials);
               } catch (IOException e) {
                 throw new RuntimeException(e.getMessage(), e);
               }
@@ -638,9 +638,9 @@ public class Connector {
     @CheckForNull private final Cache cache;
 
     private final boolean cleanupCacheFolder;
-    private int usageCount = 0;
-    private long lastUsed = System.currentTimeMillis();
-    private long lastVerified = Long.MIN_VALUE;
+    private final AtomicInteger usageCount = new AtomicInteger(0);
+    private final AtomicLong lastUsed = new AtomicLong(System.currentTimeMillis());
+    private final AtomicLong lastVerified = new AtomicLong(Long.MIN_VALUE);
 
     private GitHubConnection(GitHub gitHub, Cache cache, boolean cleanupCacheFolder) {
       this.gitHub = gitHub;
@@ -660,23 +660,22 @@ public class Connector {
     @NonNull
     private static GitHubConnection lookup(
         @NonNull ConnectionId connectionId,
-        @NonNull Function<ConnectionId, GitHubConnection> generator)
-        throws IOException {
+        @NonNull Function<ConnectionId, GitHubConnection> generator) {
       GitHubConnection record;
       record = connections.computeIfAbsent(connectionId, generator);
-      record.usageCount += 1;
-      record.lastUsed = System.currentTimeMillis();
+      record.usageCount.incrementAndGet();
+      record.lastUsed.compareAndSet(record.lastUsed.get(), System.currentTimeMillis());
       return record;
     }
 
     private void release() throws IOException {
-      if (this.usageCount <= 0) {
+      if (this.usageCount.get() <= 0) {
         throw new IOException(
             "Tried to release a GitHubConnection that should have no references.");
       }
 
-      this.usageCount -= 1;
-      this.lastUsed = System.currentTimeMillis();
+      this.usageCount.decrementAndGet();
+      this.lastUsed.compareAndSet(this.lastUsed.get(), System.currentTimeMillis());
     }
 
     private static void removeAllUnused(long threshold) throws IOException {
@@ -686,8 +685,8 @@ public class Connector {
         Map.Entry<ConnectionId, GitHubConnection> entry = iterator.next();
         try {
           GitHubConnection record = Objects.requireNonNull(entry.getValue());
-          long lastUse = record.lastUsed;
-          if (record.usageCount == 0 && lastUse < threshold) {
+          long lastUse = record.lastUsed.get();
+          if (record.usageCount.get() == 0 && lastUse < threshold) {
             iterator.remove();
             reverseLookup.remove(record.gitHub);
             if (record.cache != null && record.cleanupCacheFolder) {
@@ -706,7 +705,7 @@ public class Connector {
 
     public void verifyConnection() throws IOException {
       synchronized (this) {
-        if (lastVerified > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
+        if (lastVerified.get() > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
           return;
         }
         try {
@@ -715,7 +714,7 @@ public class Connector {
           String message = String.format("It seems %s is unreachable", gitHub.getApiUrl());
           throw new IOException(message, e);
         }
-        lastVerified = System.currentTimeMillis();
+        lastVerified.compareAndSet(lastVerified.get(), System.currentTimeMillis());
       }
     }
   }
