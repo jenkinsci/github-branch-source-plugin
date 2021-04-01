@@ -483,6 +483,7 @@ public class Connector {
     if (connectionId == null) {
       return;
     }
+
     GitHubConnection record = connections.get(connectionId);
     if (record != null) {
       try {
@@ -671,12 +672,15 @@ public class Connector {
     }
 
     private void release() throws IOException {
-      if (this.usageCount.get() <= 0) {
+      long count = this.usageCount.decrementAndGet();
+      if (count < 0) {
+        // if this happens we should try not to remain in a bad state
+        // but there's no guarantees.
+        this.usageCount.incrementAndGet();
         throw new IOException(
             "Tried to release a GitHubConnection that should have no references.");
       }
 
-      this.usageCount.decrementAndGet();
       this.lastUsed.compareAndSet(this.lastUsed.get(), System.currentTimeMillis());
     }
 
