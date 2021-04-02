@@ -57,7 +57,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -67,7 +66,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.CheckForNull;
@@ -372,7 +371,7 @@ public class Connector {
     GitHubConnection record =
         GitHubConnection.lookup(
             connectionId,
-            id -> {
+            () -> {
               try {
                 Cache cache = getCache(jenkins, apiUrl, authHash, username);
 
@@ -395,7 +394,6 @@ public class Connector {
               }
             });
 
-    reverseLookup.putIfAbsent(record.gitHub, connectionId);
     record.verifyConnection();
     return record.getGitHub();
   }
@@ -641,7 +639,7 @@ public class Connector {
     @CheckForNull private final Cache cache;
 
     private final boolean cleanupCacheFolder;
-    private final AtomicInteger usageCount = new AtomicInteger(0);
+    private final AtomicInteger usageCount = new AtomicInteger(1);
     private final AtomicLong lastUsed = new AtomicLong(System.currentTimeMillis());
     private long lastVerified = Long.MIN_VALUE;
 
@@ -662,12 +660,22 @@ public class Connector {
 
     @NonNull
     private static GitHubConnection lookup(
-        @NonNull ConnectionId connectionId,
-        @NonNull Function<ConnectionId, GitHubConnection> generator) {
+        @NonNull ConnectionId connectionId, @NonNull Supplier<GitHubConnection> generator) {
       GitHubConnection record;
-      record = connections.computeIfAbsent(connectionId, generator);
-      record.usageCount.incrementAndGet();
-      record.lastUsed.compareAndSet(record.lastUsed.get(), System.currentTimeMillis());
+      record =
+          connections.compute(
+              connectionId,
+              (id, connection) -> {
+                if (connection == null) {
+                  connection = generator.get();
+                  reverseLookup.put(connection.gitHub, id);
+                } else {
+                  connection.usageCount.incrementAndGet();
+                  connection.lastUsed.set(System.currentTimeMillis());
+                }
+
+                return connection;
+              });
       return record;
     }
 
@@ -685,27 +693,31 @@ public class Connector {
     }
 
     private static void removeAllUnused(long threshold) throws IOException {
-      for (Iterator<Map.Entry<ConnectionId, GitHubConnection>> iterator =
-              connections.entrySet().iterator();
-          iterator.hasNext(); ) {
-        Map.Entry<ConnectionId, GitHubConnection> entry = iterator.next();
-        try {
-          GitHubConnection record = Objects.requireNonNull(entry.getValue());
-          long lastUse = record.lastUsed.get();
-          if (record.usageCount.get() == 0 && lastUse < threshold) {
-            iterator.remove();
-            reverseLookup.remove(record.gitHub);
-            if (record.cache != null && record.cleanupCacheFolder) {
-              record.cache.delete();
-              record.cache.close();
-            }
-          }
-        } catch (IOException | NullPointerException e) {
-          LOGGER.log(
-              WARNING,
-              "Exception removing cache directory for unused connection: " + entry.getKey(),
-              e);
-        }
+      for (ConnectionId connectionId : connections.keySet()) {
+        connections.computeIfPresent(
+            connectionId,
+            (id, record) -> {
+              long lastUse = record.lastUsed.get();
+              if (record.usageCount.get() == 0 && lastUse < threshold) {
+                try {
+                  if (record.cache != null && record.cleanupCacheFolder) {
+                    record.cache.delete();
+                    record.cache.close();
+                  }
+                } catch (IOException e) {
+                  LOGGER.log(
+                      WARNING,
+                      "Exception removing cache directory for unused connection: " + id,
+                      e);
+                }
+                reverseLookup.remove(record.gitHub);
+
+                // returning null will remove the connection
+                record = null;
+              }
+
+              return record;
+            });
       }
     }
 
