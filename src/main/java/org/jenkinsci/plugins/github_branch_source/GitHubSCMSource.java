@@ -928,8 +928,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
    */
   private boolean checkObserverIncludesType(Set<SCMHead> includes, @NonNull Class t) {
     Iterator iterator = includes.iterator();
-    while(iterator.hasNext()) {
-      if(t.isInstance(iterator.next())) {
+    while (iterator.hasNext()) {
+      if (t.isInstance(iterator.next())) {
         return true;
       }
     }
