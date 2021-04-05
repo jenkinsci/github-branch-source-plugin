@@ -931,10 +931,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
    * @return true if the includes list contains at least one element with the provided class type.
    */
   private boolean checkObserverIncludesType(Set<SCMHead> includes, @NonNull Class t) {
-    Iterator iterator = includes.iterator();
-    while (iterator.hasNext()) {
-      if (t.isInstance(iterator.next())) {
-        return true;
+    if (includes != null) {
+      Iterator iterator = includes.iterator();
+      while (iterator.hasNext()) {
+        if (t.isInstance(iterator.next())) {
+          return true;
+        }
       }
     }
     return false;
@@ -1052,8 +1054,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
           if (request.isFetchPRs()
               && !request.isComplete()
               && (event == null
-                  || this.checkObserverIncludesType(
-                      observer.getIncludes(), PullRequestSCMHead.class))) {
+                  || (this.checkObserverIncludesType(
+                      observer.getIncludes(), PullRequestSCMHead.class)))) {
             listener.getLogger().format("%n  Checking pull-requests...%n");
             int count = 0;
             int errorCount = 0;
