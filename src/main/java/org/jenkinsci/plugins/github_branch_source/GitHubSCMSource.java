@@ -1002,7 +1002,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
           // examination if the observer has any include event of each type BranchSCMHead, PullRequestSCMHead or GitHubTagSCMHead.
           // But when a project scan is triggered we don't have any event so a full examination should happen.
 
-          if (request.isFetchBranches() && !request.isComplete() && (event == null || checkObserverIncludesType(observer.getIncludes(), BranchSCMHead.class))) {
+          if (request.isFetchBranches() && !request.isComplete() && (event == null || this.checkObserverIncludesType(observer.getIncludes(), BranchSCMHead.class))) {
             listener.getLogger().format("%n  Checking branches...%n");
             int count = 0;
             for (final GHBranch branch : request.getBranches()) {
@@ -1037,7 +1037,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             listener.getLogger().format("%n  %d branches were processed%n", count);
           }
-          if (request.isFetchPRs() && !request.isComplete() && (event == null || checkObserverIncludesType(observer.getIncludes(), PullRequestSCMHead.class))) {
+          if (request.isFetchPRs() && !request.isComplete() && (event == null || this.checkObserverIncludesType(observer.getIncludes(), PullRequestSCMHead.class))) {
             listener.getLogger().format("%n  Checking pull-requests...%n");
             int count = 0;
             int errorCount = 0;
@@ -1073,7 +1073,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                   .format("%n  %d pull requests encountered errors and were orphaned.%n", count);
             }
           }
-          if (request.isFetchTags() && !request.isComplete() && (event == null || checkObserverIncludesType(observer.getIncludes(), GitHubTagSCMHead.class))) {
+          if (request.isFetchTags() && !request.isComplete() && (event == null || this.checkObserverIncludesType(observer.getIncludes(), GitHubTagSCMHead.class))) {
             listener.getLogger().format("%n  Checking tags...%n");
             int count = 0;
             for (final GHRef tag : request.getTags()) {
