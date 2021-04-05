@@ -83,7 +83,6 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHAppInstallationToken;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
-import org.kohsuke.github.HttpException;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.authorization.ImmutableAuthorizationProvider;
 import org.kohsuke.github.extras.okhttp3.OkHttpConnector;
@@ -726,12 +725,12 @@ public class Connector {
         if (lastVerified > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
           return;
         }
-        try {
-          gitHub.checkApiUrlValidity();
-        } catch (HttpException e) {
-          String message = String.format("It seems %s is unreachable", gitHub.getApiUrl());
-          throw new IOException(message, e);
-        }
+
+        // Connection verification should ignore rate limits
+        // It is possible this method will exceed the rate limit,
+        // but very unlikely.
+        ApiRateLimitChecker.verifyConnection(gitHub);
+
         lastVerified = System.currentTimeMillis();
       }
     }
