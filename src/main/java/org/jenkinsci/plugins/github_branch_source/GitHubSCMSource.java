@@ -921,8 +921,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
   }
 
   /**
-   * Simple method to iterate a set of {@link SCMHeadObserver#getIncludes()} branches/tags/pr that will be possible observed and to check if at least one element is an instance of a provided class.
-   * @param includes set of {@link SCMHeadObserver#getIncludes()} that are possible going to be observed.
+   * Simple method to iterate a set of {@link SCMHeadObserver#getIncludes()} branches/tags/pr that
+   * will be possible observed and to check if at least one element is an instance of a provided
+   * class.
+   *
+   * @param includes set of {@link SCMHeadObserver#getIncludes()} that are possible going to be
+   *     observed.
    * @param t Class type to compare the set elements to.
    * @return true if the includes list contains at least one element with the provided class type.
    */
@@ -996,13 +1000,21 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
               });
 
           // JENKINS-65071
-          // Observer has information about the events to analyze. To avoid unnecessary processing and GitHub API requests,
-          // it is necessary to check if this event contains a set of {@link SCMHead} instances of a type.
-          // When we open or close a Pull request we don't need a TAG examination because the even doesn't have any TAG. So, we only trigger a
-          // examination if the observer has any include event of each type BranchSCMHead, PullRequestSCMHead or GitHubTagSCMHead.
-          // But when a project scan is triggered we don't have any event so a full examination should happen.
+          // Observer has information about the events to analyze. To avoid unnecessary processing
+          // and GitHub API requests,
+          // it is necessary to check if this event contains a set of {@link SCMHead} instances of a
+          // type.
+          // When we open or close a Pull request we don't need a TAG examination because the even
+          // doesn't have any TAG. So, we only trigger a
+          // examination if the observer has any include event of each type BranchSCMHead,
+          // PullRequestSCMHead or GitHubTagSCMHead.
+          // But when a project scan is triggered we don't have any event so a full examination
+          // should happen.
 
-          if (request.isFetchBranches() && !request.isComplete() && (event == null || this.checkObserverIncludesType(observer.getIncludes(), BranchSCMHead.class))) {
+          if (request.isFetchBranches()
+              && !request.isComplete()
+              && (event == null
+                  || this.checkObserverIncludesType(observer.getIncludes(), BranchSCMHead.class))) {
             listener.getLogger().format("%n  Checking branches...%n");
             int count = 0;
             for (final GHBranch branch : request.getBranches()) {
@@ -1037,7 +1049,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             listener.getLogger().format("%n  %d branches were processed%n", count);
           }
-          if (request.isFetchPRs() && !request.isComplete() && (event == null || this.checkObserverIncludesType(observer.getIncludes(), PullRequestSCMHead.class))) {
+          if (request.isFetchPRs()
+              && !request.isComplete()
+              && (event == null
+                  || this.checkObserverIncludesType(
+                      observer.getIncludes(), PullRequestSCMHead.class))) {
             listener.getLogger().format("%n  Checking pull-requests...%n");
             int count = 0;
             int errorCount = 0;
@@ -1073,7 +1089,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                   .format("%n  %d pull requests encountered errors and were orphaned.%n", count);
             }
           }
-          if (request.isFetchTags() && !request.isComplete() && (event == null || this.checkObserverIncludesType(observer.getIncludes(), GitHubTagSCMHead.class))) {
+          if (request.isFetchTags()
+              && !request.isComplete()
+              && (event == null
+                  || this.checkObserverIncludesType(
+                      observer.getIncludes(), GitHubTagSCMHead.class))) {
             listener.getLogger().format("%n  Checking tags...%n");
             int count = 0;
             for (final GHRef tag : request.getTags()) {
