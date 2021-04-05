@@ -921,10 +921,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
   }
 
   /**
-   * Simple method to iterate a set and to check if  each element is an instance of a provided class.
-   * @param includes Observer includes list.
-   * @param t Class to compare instances.
-   * @return true if the includes list containes some element with the provided class type.
+   * Simple method to iterate a set of {@link SCMHeadObserver#getIncludes()} branches/tags/pr that will be possible observed and to check if at least one element is an instance of a provided class.
+   * @param includes set of {@link SCMHeadObserver#getIncludes()} that are possible going to be observed.
+   * @param t Class type to compare the set elements to.
+   * @return true if the includes list contains at least one element with the provided class type.
    */
   private boolean checkObserverIncludesType(Set<SCMHead> includes, @NonNull Class t) {
     Iterator iterator = includes.iterator();
@@ -997,8 +997,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
           // JENKINS-65071
           // Observer has information about the events to analyze. To avoid unnecessary processing and GitHub API requests,
-          // it is necessary to check if this event has the necessary includes to perform each examination.
-          // When we open or close a Pull request we don't need a TAG examination. So, we only trigger a
+          // it is necessary to check if this event contains a set of {@link SCMHead} instances of a type.
+          // When we open or close a Pull request we don't need a TAG examination because the even doesn't have any TAG. So, we only trigger a
           // examination if the observer has any include event of each type BranchSCMHead, PullRequestSCMHead or GitHubTagSCMHead.
           // But when a project scan is triggered we don't have any event so a full examination should happen.
 
