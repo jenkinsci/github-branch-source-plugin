@@ -818,4 +818,63 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
       r.jenkins.remove(dummy);
     }
   }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testCheckIncludesBranchSCMHeadType() throws Exception {
+    Set<SCMHead> includes = Collections.singleton(new BranchSCMHead("non-existent-branch"));
+
+    assertTrue(this.source.checkObserverIncludesType(includes, BranchSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(includes, PullRequestSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(includes, GitHubTagSCMHead.class));
+  }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testCheckIncludesPullRequestSCMHeadType() throws Exception {
+    Set<SCMHead> includes =
+        Collections.singleton(
+            new PullRequestSCMHead(
+                "PR-1",
+                "rfvm",
+                "http://localhost:" + githubApi.port(),
+                "master",
+                1,
+                new BranchSCMHead("master"),
+                SCMHeadOrigin.DEFAULT,
+                ChangeRequestCheckoutStrategy.MERGE));
+
+    assertTrue(this.source.checkObserverIncludesType(includes, PullRequestSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(includes, BranchSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(includes, GitHubTagSCMHead.class));
+  }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testCheckIncludesGitHubTagSCMHeadType() throws Exception {
+    Set<SCMHead> includes =
+        Collections.singleton(new GitHubTagSCMHead("non-existent-tag", System.currentTimeMillis()));
+
+    assertTrue(this.source.checkObserverIncludesType(includes, GitHubTagSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(includes, PullRequestSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(includes, BranchSCMHead.class));
+  }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testCheckIncludesEmpty() throws Exception {
+    Set<SCMHead> includes = Collections.emptySet();
+
+    assertFalse(this.source.checkObserverIncludesType(includes, GitHubTagSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(includes, PullRequestSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(includes, BranchSCMHead.class));
+  }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testCheckIncludesNull() throws Exception {
+    assertFalse(this.source.checkObserverIncludesType(null, GitHubTagSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(null, PullRequestSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(null, BranchSCMHead.class));
+  }
 }

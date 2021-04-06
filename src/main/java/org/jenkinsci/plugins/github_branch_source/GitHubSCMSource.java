@@ -930,7 +930,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
    * @param t Class type to compare the set elements to.
    * @return true if the includes list contains at least one element with the provided class type.
    */
-  private boolean checkObserverIncludesType(Set<SCMHead> includes, @NonNull Class t) {
+  public boolean checkObserverIncludesType(Set<SCMHead> includes, @NonNull Class t) {
     if (includes != null) {
       Iterator iterator = includes.iterator();
       while (iterator.hasNext()) {
