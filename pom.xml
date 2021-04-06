@@ -25,7 +25,7 @@
         <changelist>-SNAPSHOT</changelist>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
-        <jenkins.version>2.281-rc30929.f24d46502521</jenkins.version> <!-- TODO https://github.com/jenkinsci/jenkins/pull/5065 -->
+        <jenkins.version>2.283</jenkins.version>
         <useBeta>true</useBeta>
     </properties>
 
