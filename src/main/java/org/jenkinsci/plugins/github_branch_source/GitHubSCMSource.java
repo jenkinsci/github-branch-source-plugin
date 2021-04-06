@@ -1006,7 +1006,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
           // and GitHub API requests,
           // it is necessary to check if this event contains a set of {@link SCMHead} instances of a
           // type.
-          // When we open or close a Pull request we don't need a TAG examination because the even
+          // When we open or close a Pull request we don't need a TAG examination because the event
           // doesn't have any TAG. So, we only trigger a
           // examination if the observer has any include event of each type BranchSCMHead,
           // PullRequestSCMHead or GitHubTagSCMHead.
