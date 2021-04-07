@@ -475,6 +475,9 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
     for (int i = 0; i < 6; i++) {
       assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), i));
     }
+
+    assertEquals(initialRequestCount + 5, handler.getView().size());
+
     // This simulates the waiting until refreshed
     currentChecker.resetExpiration();
     assertFalse(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 9));
@@ -493,7 +496,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
             "Jenkins is attempting to evenly distribute GitHub API requests"));
 
     // The last scenario will trigger back to under budget with a full limit but no new messages
-    assertEquals(initialRequestCount + 6, handler.getView().size());
+    assertEquals(initialRequestCount + 5, handler.getView().size());
   }
 
   /**
