@@ -53,6 +53,9 @@ public class GitHubAppCredentials extends BaseStandardCredentials
       ", has it been installed to your GitHub organisation / user?";
 
   private static final String ERROR_NOT_INSTALLED = ERROR_AUTHENTICATING_GITHUB_APP + NOT_INSTALLED;
+  private static final String ERROR_NO_OWNER_MATCHING =
+      "Found multiple installations for GitHub app ID %s but none match credential owner \"%s\". "
+          + "Set the right owner in the credential advanced options";
 
   /**
    * When a new {@link AppInstallationToken} is generated, wait this many seconds before continuing.
@@ -217,7 +220,9 @@ public class GitHubAppCredentials extends BaseStandardCredentials
                 .filter(installation -> installation.getAccount().getLogin().equals(owner))
                 .findAny()
                 .orElseThrow(
-                    () -> new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId)));
+                    () ->
+                        new IllegalArgumentException(
+                            String.format(ERROR_NO_OWNER_MATCHING, appId, owner)));
       }
 
       GHAppInstallationToken appInstallationToken =
