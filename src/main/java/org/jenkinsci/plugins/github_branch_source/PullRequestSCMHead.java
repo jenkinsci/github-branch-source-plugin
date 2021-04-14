@@ -27,8 +27,6 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
-
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -143,7 +141,16 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
       BranchSCMHead target,
       SCMHeadOrigin origin,
       ChangeRequestCheckoutStrategy strategy) {
-    this(name, sourceOwner, sourceRepo, sourceBranch, number, target, origin, Collections.emptySet(), strategy);
+    this(
+        name,
+        sourceOwner,
+        sourceRepo,
+        sourceBranch,
+        number,
+        target,
+        origin,
+        Collections.emptySet(),
+        strategy);
   }
 
   /** {@inheritDoc} */
