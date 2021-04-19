@@ -171,6 +171,33 @@ public enum ApiRateLimitChecker {
     localRateLimitChecker.set(checker);
   }
 
+  /**
+   * Verify a GitHub connection
+   *
+   * <p>WARNING: this call is not protected by rate limit checking. It is possible to exceed the
+   * rate limit by calling this method.
+   *
+   * <p>This method should only be called from {@link Connector}. This works without any locking
+   * because the checker is local to this thread.
+   *
+   * @param gitHub the GitHub connection to check for validity
+   */
+  static void verifyConnection(GitHub gitHub) throws IOException {
+    Objects.requireNonNull(gitHub);
+    LocalChecker checker = getLocalChecker();
+    try {
+      TaskListener listener =
+          checker != null ? checker.listener : new LogTaskListener(LOGGER, Level.INFO);
+
+      // Pass empty apiUrl to force no rate limit checking
+      localRateLimitChecker.set(NoThrottle.getChecker(listener, ""));
+
+      gitHub.checkApiUrlValidity();
+    } finally {
+      localRateLimitChecker.set(checker);
+    }
+  }
+
   /** For test purposes only. */
   static LocalChecker getLocalChecker() {
     return localRateLimitChecker.get();
