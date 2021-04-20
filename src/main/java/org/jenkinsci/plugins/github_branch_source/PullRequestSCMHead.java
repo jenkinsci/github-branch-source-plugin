@@ -28,7 +28,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
@@ -41,7 +40,6 @@ import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
 
@@ -62,7 +60,6 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
   private final String sourceOwner;
   private final String sourceRepo;
   private final String sourceBranch;
-  private final Set<String> labelNames;
   private final SCMHeadOrigin origin;
   /** Only populated if de-serializing instances. */
   private transient Metadata metadata;
@@ -75,7 +72,6 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
     this.sourceOwner = copy.sourceOwner;
     this.sourceRepo = copy.sourceRepo;
     this.sourceBranch = copy.sourceBranch;
-    this.labelNames = copy.labelNames;
     this.origin = copy.origin;
     this.metadata = copy.metadata;
   }
@@ -92,12 +88,6 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
     this.sourceOwner = repository == null ? null : repository.getOwnerName();
     this.sourceRepo = repository == null ? null : repository.getName();
     this.sourceBranch = pr.getHead().getRef();
-    this.labelNames = new HashSet<>();
-
-    // Add all labels
-    for (final GHLabel label : pr.getLabels()) {
-      labelNames.add(label.getName());
-    }
 
     if (pr.getRepository().getOwnerName().equalsIgnoreCase(sourceOwner)) {
       this.origin = SCMHeadOrigin.DEFAULT;
@@ -119,7 +109,6 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
       int number,
       BranchSCMHead target,
       SCMHeadOrigin origin,
-      Set<String> labelNames,
       ChangeRequestCheckoutStrategy strategy) {
     super(name);
     this.merge = ChangeRequestCheckoutStrategy.MERGE == strategy;
@@ -129,28 +118,6 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
     this.sourceRepo = sourceRepo;
     this.sourceBranch = sourceBranch;
     this.origin = origin;
-    this.labelNames = labelNames;
-  }
-
-  public PullRequestSCMHead(
-      @NonNull String name,
-      String sourceOwner,
-      String sourceRepo,
-      String sourceBranch,
-      int number,
-      BranchSCMHead target,
-      SCMHeadOrigin origin,
-      ChangeRequestCheckoutStrategy strategy) {
-    this(
-        name,
-        sourceOwner,
-        sourceRepo,
-        sourceBranch,
-        number,
-        target,
-        origin,
-        Collections.emptySet(),
-        strategy);
   }
 
   /** {@inheritDoc} */
@@ -242,11 +209,6 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
 
   public String getSourceRepo() {
     return sourceRepo;
-  }
-
-  @NonNull
-  public Set<String> getLabelNames() {
-    return labelNames;
   }
 
   @NonNull

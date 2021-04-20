@@ -1,10 +1,17 @@
 package org.jenkinsci.plugins.github_branch_source;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.*;
 
+import com.github.tomakehurst.wiremock.common.SingleRootFileSource;
+import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import com.google.common.collect.Sets;
+
+import java.io.File;
 import java.util.Collections;
 import java.util.List;
 import jenkins.scm.api.SCMHead;
@@ -12,16 +19,26 @@ import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMHeadPrefilter;
+import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 
-public class WildcardPullRequestLabelFilterTraitTest {
+public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
 
-  @ClassRule public static JenkinsRule r = new JenkinsRule();
+  public WildcardPullRequestLabelFilterTraitTest() {
+    this.source = new GitHubSCMSource("cloudbeers", "yolo", null, false);
+  }
 
   @Test
   public void testNoLabelsAndNoIncludesGivenNotExcluded() {
+    // Situation: Hitting the Github API for a PR and getting a PR with no labels
+    githubApi.stubFor(
+            get(urlEqualTo("/repos/cloudbeers/yolo/pulls/5"))
+                    .willReturn(
+                            aResponse()
+                                    .withHeader("Content-Type", "application/json; charset=utf-8")
+                                    .withBodyFile("body-yolo-pulls-5-no-labels.json")));
     GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
     WildcardPullRequestLabelFilterTrait instance =
         new WildcardPullRequestLabelFilterTrait(null, null);
@@ -31,23 +48,26 @@ public class WildcardPullRequestLabelFilterTraitTest {
     SCMHeadPrefilter prefilter = prefilters.get(0);
     SCMHead scmHead =
         new PullRequestSCMHead(
-            "PR-1",
-            "does-not-exists",
-            "http://does-not-exist.test",
-            "feature/1",
-            1,
+            "PR-5",
+            "cloudbeers",
+            "http://localhost:" + githubApi.port(),
+            "feature/5",
+            5,
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
-            Collections.emptySet(),
             ChangeRequestCheckoutStrategy.MERGE);
-    assertThat(
-        prefilter.isExcluded(
-            new GitHubSCMSource("does-not-exist", "http://does-not-exist.test"), scmHead),
-        equalTo(false));
+      assertThat(prefilter.isExcluded(source, scmHead), equalTo(false));
   }
 
   @Test
   public void testNoLabelsAndWithIncludesGivenExcluded() {
+    // Situation: Hitting the Github API for a PR and getting a PR with no labels
+    githubApi.stubFor(
+            get(urlEqualTo("/repos/cloudbeers/yolo/pulls/5"))
+                    .willReturn(
+                            aResponse()
+                                    .withHeader("Content-Type", "application/json; charset=utf-8")
+                                    .withBodyFile("body-yolo-pulls-5-no-labels.json")));
     GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
     WildcardPullRequestLabelFilterTrait instance =
         new WildcardPullRequestLabelFilterTrait("include", null);
@@ -57,96 +77,101 @@ public class WildcardPullRequestLabelFilterTraitTest {
     SCMHeadPrefilter prefilter = prefilters.get(0);
     SCMHead scmHead =
         new PullRequestSCMHead(
-            "PR-1",
-            "does-not-exists",
-            "http://does-not-exist.test",
-            "feature/1",
-            1,
+            "PR-5",
+            "cloudbeers",
+            "http://localhost:" + githubApi.port(),
+            "feature/5",
+            5,
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
-            Collections.emptySet(),
             ChangeRequestCheckoutStrategy.MERGE);
-    assertThat(
-        prefilter.isExcluded(
-            new GitHubSCMSource("does-not-exist", "http://does-not-exist.test"), scmHead),
-        equalTo(true));
+    assertThat(prefilter.isExcluded(source, scmHead), equalTo(true));
   }
 
   @Test
   public void testLabelsMatchesIncludesNotExcludesNotExcluded() {
+    // Situation: Hitting the Github API for a PR and getting a PR with labels [include-me, exclude-me]
+    githubApi.stubFor(
+        get(urlEqualTo("/repos/cloudbeers/yolo/pulls/5"))
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json; charset=utf-8")
+                    .withBodyFile("body-yolo-pulls-5-with-labels.json")));
     GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
     WildcardPullRequestLabelFilterTrait instance =
-        new WildcardPullRequestLabelFilterTrait("include", "exclude");
+        new WildcardPullRequestLabelFilterTrait("include*", "no-match");
     instance.decorateContext(probe);
     List<SCMHeadPrefilter> prefilters = probe.prefilters();
     assertThat(prefilters, hasSize(1));
     SCMHeadPrefilter prefilter = prefilters.get(0);
     SCMHead scmHead =
         new PullRequestSCMHead(
-            "PR-1",
-            "does-not-exists",
-            "http://does-not-exist.test",
-            "feature/1",
-            1,
+            "PR-5",
+            "cloudbeers",
+            "http://localhost:" + githubApi.port(),
+            "feature/5",
+            5,
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
-            Collections.singleton("include"),
             ChangeRequestCheckoutStrategy.MERGE);
-    assertThat(
-        prefilter.isExcluded(
-            new GitHubSCMSource("does-not-exist", "http://does-not-exist.test"), scmHead),
-        equalTo(false));
+    assertThat(prefilter.isExcluded(source, scmHead), equalTo(false));
   }
 
   @Test
   public void testLabelsMatchesIncludesAndExcludesExcluded() {
+    // Situation: Hitting the Github API for a PR and getting a PR with labels [include-me, exclude-me]
+    githubApi.stubFor(
+        get(urlEqualTo("/repos/cloudbeers/yolo/pulls/5"))
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json; charset=utf-8")
+                    .withBodyFile("body-yolo-pulls-5-with-labels.json")));
     GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
     WildcardPullRequestLabelFilterTrait instance =
-        new WildcardPullRequestLabelFilterTrait("include", "exclude");
+        new WildcardPullRequestLabelFilterTrait("include*", "exclude*");
     instance.decorateContext(probe);
     List<SCMHeadPrefilter> prefilters = probe.prefilters();
     assertThat(prefilters, hasSize(1));
     SCMHeadPrefilter prefilter = prefilters.get(0);
     SCMHead scmHead =
         new PullRequestSCMHead(
-            "PR-1",
-            "does-not-exists",
-            "http://does-not-exist.test",
-            "feature/1",
-            1,
+            "PR-5",
+            "cloudbeers",
+            "http://localhost:" + githubApi.port(),
+            "feature/5",
+            5,
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
-            Sets.newHashSet("include", "exclude"),
             ChangeRequestCheckoutStrategy.MERGE);
-    assertThat(
-        prefilter.isExcluded(
-            new GitHubSCMSource("does-not-exist", "http://does-not-exist.test"), scmHead),
-        equalTo(true));
+    assertThat(prefilter.isExcluded(source, scmHead), equalTo(true));
   }
 
   @Test
   public void testLabelsMatchesExcludesNotIncludesExcluded() {
+    // Situation: Hitting the Github API for a PR and getting a PR with labels [include-me, exclude-me]
+    githubApi.stubFor(
+        get(urlEqualTo("/repos/cloudbeers/yolo/pulls/5"))
+            .willReturn(
+                aResponse()
+                    .withHeader("Content-Type", "application/json; charset=utf-8")
+                    .withBodyFile("body-yolo-pulls-5-with-labels.json")));
     GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
     WildcardPullRequestLabelFilterTrait instance =
-        new WildcardPullRequestLabelFilterTrait("include", "exclude");
+        new WildcardPullRequestLabelFilterTrait("no-match", "exclude*");
     instance.decorateContext(probe);
     List<SCMHeadPrefilter> prefilters = probe.prefilters();
     assertThat(prefilters, hasSize(1));
     SCMHeadPrefilter prefilter = prefilters.get(0);
     SCMHead scmHead =
         new PullRequestSCMHead(
-            "PR-1",
-            "does-not-exists",
-            "http://does-not-exist.test",
-            "feature/1",
-            1,
+            "PR-5",
+            "cloudbeers",
+            "http://localhost:" + githubApi.port(),
+            "feature/5",
+            5,
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
-            Collections.singleton("exclude"),
             ChangeRequestCheckoutStrategy.MERGE);
-    assertThat(
-        prefilter.isExcluded(
-            new GitHubSCMSource("does-not-exist", "http://does-not-exist.test"), scmHead),
-        equalTo(true));
+    assertThat(prefilter.isExcluded(source, scmHead), equalTo(true));
   }
 }
