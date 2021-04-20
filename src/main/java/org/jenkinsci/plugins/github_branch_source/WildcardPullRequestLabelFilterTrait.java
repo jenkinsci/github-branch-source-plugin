@@ -4,14 +4,11 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-
+import hudson.model.Item;
 import java.io.IOException;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import hudson.model.Item;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.trait.SCMHeadPrefilter;
@@ -77,18 +74,25 @@ public class WildcardPullRequestLabelFilterTrait extends SCMSourceTrait {
               GitHubSCMSource githubRequest = (GitHubSCMSource) request;
               String apiUri = githubRequest.getApiUri();
               StandardCredentials credentials =
-                      Connector.lookupScanCredentials((Item) request.getOwner(), apiUri, githubRequest.getCredentialsId());
+                  Connector.lookupScanCredentials(
+                      (Item) request.getOwner(), apiUri, githubRequest.getCredentialsId());
               // Github client and validation
               GitHub github = Connector.connect(apiUri, credentials);
-              GHRepository repository = github.getRepository(githubRequest.getRepoOwner() + '/' + githubRequest.getRepository());
+              GHRepository repository =
+                  github.getRepository(
+                      githubRequest.getRepoOwner() + '/' + githubRequest.getRepository());
               if (repository == null) {
                 return false;
               }
-              GHPullRequest pullRequest = repository.getPullRequest(((PullRequestSCMHead) head).getNumber());
+              GHPullRequest pullRequest =
+                  repository.getPullRequest(((PullRequestSCMHead) head).getNumber());
               if (pullRequest == null) {
                 return false;
               }
-              Set<String> prLabels = pullRequest.getLabels().stream().map(GHLabel::getName).collect(Collectors.toSet());
+              Set<String> prLabels =
+                  pullRequest.getLabels().stream()
+                      .map(GHLabel::getName)
+                      .collect(Collectors.toSet());
               // If no labels only allow the PR when the include is "*" (include everything)
               if (prLabels.isEmpty()) {
                 return !"*".equals(includes);
