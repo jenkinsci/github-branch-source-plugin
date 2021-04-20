@@ -75,7 +75,7 @@ public class PullRequestSCMHead extends SCMHead implements ChangeRequestSCMHead2
     this.sourceOwner = copy.sourceOwner;
     this.sourceRepo = copy.sourceRepo;
     this.sourceBranch = copy.sourceBranch;
-    this.labelNames = copy.labelNames;
+    this.labelNames = new HashSet<>(copy.labelNames);
     this.origin = copy.origin;
     this.metadata = copy.metadata;
   }
