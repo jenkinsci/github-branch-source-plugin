@@ -1,18 +1,17 @@
 package org.jenkinsci.plugins.github_branch_source;
 
-import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import hudson.model.Item;
-import java.io.IOException;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.trait.SCMHeadFilter;
 import jenkins.scm.api.trait.SCMHeadPrefilter;
 import jenkins.scm.api.trait.SCMSourceContext;
+import jenkins.scm.api.trait.SCMSourceRequest;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.trait.Selection;
@@ -20,8 +19,6 @@ import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.Symbol;
 import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHPullRequest;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GitHub;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -64,30 +61,18 @@ public class WildcardPullRequestLabelFilterTrait extends SCMSourceTrait {
   }
 
   protected void decorateContext(SCMSourceContext<?, ?> context) {
-    context.withPrefilter(
-        new SCMHeadPrefilter() {
-          public boolean isExcluded(@NonNull SCMSource request, @NonNull SCMHead head) {
-            if (!(request instanceof GitHubSCMSource) || !(head instanceof PullRequestSCMHead)) {
+    context.withFilter(
+        new SCMHeadFilter() {
+          public boolean isExcluded(@NonNull SCMSourceRequest request, @NonNull SCMHead head) {
+            if (!(request instanceof GitHubSCMSourceRequest)
+                || !(head instanceof PullRequestSCMHead)) {
               return false;
             }
-            try {
-              GitHubSCMSource githubRequest = (GitHubSCMSource) request;
-              String apiUri = githubRequest.getApiUri();
-              StandardCredentials credentials =
-                  Connector.lookupScanCredentials(
-                      (Item) request.getOwner(), apiUri, githubRequest.getCredentialsId());
-              // Github client and validation
-              GitHub github = Connector.connect(apiUri, credentials);
-              GHRepository repository =
-                  github.getRepository(
-                      githubRequest.getRepoOwner() + '/' + githubRequest.getRepository());
-              if (repository == null) {
-                return false;
-              }
-              GHPullRequest pullRequest =
-                  repository.getPullRequest(((PullRequestSCMHead) head).getNumber());
-              if (pullRequest == null) {
-                return false;
+            GitHubSCMSourceRequest githubRequest = (GitHubSCMSourceRequest) request;
+            PullRequestSCMHead prHead = (PullRequestSCMHead) head;
+            for (GHPullRequest pullRequest : githubRequest.getPullRequests()) {
+              if (pullRequest.getNumber() != prHead.getNumber()) {
+                continue;
               }
               Set<String> prLabels =
                   pullRequest.getLabels().stream()
@@ -103,10 +88,8 @@ public class WildcardPullRequestLabelFilterTrait extends SCMSourceTrait {
               }
               // Otherwise if none of the labels match the includes the pr build will be excluded
               return prLabels.stream().noneMatch(getPattern(getIncludes()).asPredicate());
-            } catch (IOException ex) {
-              // Couldn't identify labels no filtering
-              return false;
             }
+            return false;
           }
         });
   }

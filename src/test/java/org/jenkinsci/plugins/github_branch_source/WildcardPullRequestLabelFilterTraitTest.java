@@ -5,15 +5,18 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.*;
 
+import hudson.model.TaskListener;
+import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
-import jenkins.scm.api.trait.SCMHeadPrefilter;
+import jenkins.scm.api.trait.SCMHeadFilter;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
 
@@ -22,7 +25,7 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
   }
 
   @Test
-  public void testNoLabelsAndNoIncludesGivenNotExcluded() {
+  public void testNoLabelsAndNoIncludesGivenNotExcluded() throws IOException, InterruptedException {
     // Situation: Hitting the Github API for a PR and getting a PR with no labels
     githubApi.stubFor(
         get(urlEqualTo("/repos/cloudbeers/yolo/pulls/5"))
@@ -34,9 +37,9 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
     WildcardPullRequestLabelFilterTrait instance =
         new WildcardPullRequestLabelFilterTrait(null, null);
     instance.decorateContext(probe);
-    List<SCMHeadPrefilter> prefilters = probe.prefilters();
-    assertThat(prefilters, hasSize(1));
-    SCMHeadPrefilter prefilter = prefilters.get(0);
+    List<SCMHeadFilter> filters = probe.filters();
+    assertThat(filters, hasSize(1));
+    SCMHeadFilter filter = filters.get(0);
     SCMHead scmHead =
         new PullRequestSCMHead(
             "PR-5",
@@ -47,11 +50,15 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
-    assertThat(prefilter.isExcluded(source, scmHead), equalTo(false));
+    GitHubSCMSourceRequest request =
+        new GitHubSCMSourceRequest(source, probe, Mockito.mock(TaskListener.class));
+    request.setPullRequests(
+        Collections.singleton(github.getRepository("cloudbeers/yolo").getPullRequest(5)));
+    assertThat(filter.isExcluded(request, scmHead), equalTo(false));
   }
 
   @Test
-  public void testNoLabelsAndWithIncludesGivenExcluded() {
+  public void testNoLabelsAndWithIncludesGivenExcluded() throws IOException, InterruptedException {
     // Situation: Hitting the Github API for a PR and getting a PR with no labels
     githubApi.stubFor(
         get(urlEqualTo("/repos/cloudbeers/yolo/pulls/5"))
@@ -63,9 +70,9 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
     WildcardPullRequestLabelFilterTrait instance =
         new WildcardPullRequestLabelFilterTrait("include", null);
     instance.decorateContext(probe);
-    List<SCMHeadPrefilter> prefilters = probe.prefilters();
-    assertThat(prefilters, hasSize(1));
-    SCMHeadPrefilter prefilter = prefilters.get(0);
+    List<SCMHeadFilter> filters = probe.filters();
+    assertThat(filters, hasSize(1));
+    SCMHeadFilter filter = filters.get(0);
     SCMHead scmHead =
         new PullRequestSCMHead(
             "PR-5",
@@ -76,11 +83,16 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
-    assertThat(prefilter.isExcluded(source, scmHead), equalTo(true));
+    GitHubSCMSourceRequest request =
+        new GitHubSCMSourceRequest(source, probe, Mockito.mock(TaskListener.class));
+    request.setPullRequests(
+        Collections.singleton(github.getRepository("cloudbeers/yolo").getPullRequest(5)));
+    assertThat(filter.isExcluded(request, scmHead), equalTo(true));
   }
 
   @Test
-  public void testLabelsMatchesIncludesNotExcludesNotExcluded() {
+  public void testLabelsMatchesIncludesNotExcludesNotExcluded()
+      throws IOException, InterruptedException {
     // Situation: Hitting the Github API for a PR and getting a PR with labels [include-me,
     // exclude-me]
     githubApi.stubFor(
@@ -93,9 +105,9 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
     WildcardPullRequestLabelFilterTrait instance =
         new WildcardPullRequestLabelFilterTrait("include*", "no-match");
     instance.decorateContext(probe);
-    List<SCMHeadPrefilter> prefilters = probe.prefilters();
-    assertThat(prefilters, hasSize(1));
-    SCMHeadPrefilter prefilter = prefilters.get(0);
+    List<SCMHeadFilter> filters = probe.filters();
+    assertThat(filters, hasSize(1));
+    SCMHeadFilter filter = filters.get(0);
     SCMHead scmHead =
         new PullRequestSCMHead(
             "PR-5",
@@ -106,11 +118,16 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
-    assertThat(prefilter.isExcluded(source, scmHead), equalTo(false));
+    GitHubSCMSourceRequest request =
+        new GitHubSCMSourceRequest(source, probe, Mockito.mock(TaskListener.class));
+    request.setPullRequests(
+        Collections.singleton(github.getRepository("cloudbeers/yolo").getPullRequest(5)));
+    assertThat(filter.isExcluded(request, scmHead), equalTo(false));
   }
 
   @Test
-  public void testLabelsMatchesIncludesAndExcludesExcluded() {
+  public void testLabelsMatchesIncludesAndExcludesExcluded()
+      throws IOException, InterruptedException {
     // Situation: Hitting the Github API for a PR and getting a PR with labels [include-me,
     // exclude-me]
     githubApi.stubFor(
@@ -123,9 +140,9 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
     WildcardPullRequestLabelFilterTrait instance =
         new WildcardPullRequestLabelFilterTrait("include*", "exclude*");
     instance.decorateContext(probe);
-    List<SCMHeadPrefilter> prefilters = probe.prefilters();
-    assertThat(prefilters, hasSize(1));
-    SCMHeadPrefilter prefilter = prefilters.get(0);
+    List<SCMHeadFilter> filters = probe.filters();
+    assertThat(filters, hasSize(1));
+    SCMHeadFilter filter = filters.get(0);
     SCMHead scmHead =
         new PullRequestSCMHead(
             "PR-5",
@@ -136,11 +153,16 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
-    assertThat(prefilter.isExcluded(source, scmHead), equalTo(true));
+    GitHubSCMSourceRequest request =
+        new GitHubSCMSourceRequest(source, probe, Mockito.mock(TaskListener.class));
+    request.setPullRequests(
+        Collections.singleton(github.getRepository("cloudbeers/yolo").getPullRequest(5)));
+    assertThat(filter.isExcluded(request, scmHead), equalTo(true));
   }
 
   @Test
-  public void testLabelsMatchesExcludesNotIncludesExcluded() {
+  public void testLabelsMatchesExcludesNotIncludesExcluded()
+      throws IOException, InterruptedException {
     // Situation: Hitting the Github API for a PR and getting a PR with labels [include-me,
     // exclude-me]
     githubApi.stubFor(
@@ -153,9 +175,9 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
     WildcardPullRequestLabelFilterTrait instance =
         new WildcardPullRequestLabelFilterTrait("no-match", "exclude*");
     instance.decorateContext(probe);
-    List<SCMHeadPrefilter> prefilters = probe.prefilters();
-    assertThat(prefilters, hasSize(1));
-    SCMHeadPrefilter prefilter = prefilters.get(0);
+    List<SCMHeadFilter> filters = probe.filters();
+    assertThat(filters, hasSize(1));
+    SCMHeadFilter filter = filters.get(0);
     SCMHead scmHead =
         new PullRequestSCMHead(
             "PR-5",
@@ -166,6 +188,10 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
-    assertThat(prefilter.isExcluded(source, scmHead), equalTo(true));
+    GitHubSCMSourceRequest request =
+        new GitHubSCMSourceRequest(source, probe, Mockito.mock(TaskListener.class));
+    request.setPullRequests(
+        Collections.singleton(github.getRepository("cloudbeers/yolo").getPullRequest(5)));
+    assertThat(filter.isExcluded(request, scmHead), equalTo(true));
   }
 }
