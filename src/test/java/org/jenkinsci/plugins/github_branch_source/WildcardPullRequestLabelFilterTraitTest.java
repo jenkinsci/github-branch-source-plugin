@@ -103,7 +103,8 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
             ChangeRequestCheckoutStrategy.MERGE);
     GitHubSCMSourceRequest request =
         new GitHubSCMSourceRequest(source, probe, Mockito.mock(TaskListener.class));
-    // Situation: Hitting the Github API for a PR and getting a PR with a label that matches the includes only
+    // Situation: Hitting the Github API for a PR and getting a PR with a label that matches the
+    // includes only
     GHPullRequest pullRequest = Mockito.mock(GHPullRequest.class);
     Mockito.when(pullRequest.getNumber()).thenReturn(5);
     GHLabel label = Mockito.mock(GHLabel.class);
@@ -135,7 +136,8 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
             ChangeRequestCheckoutStrategy.MERGE);
     GitHubSCMSourceRequest request =
         new GitHubSCMSourceRequest(source, probe, Mockito.mock(TaskListener.class));
-    // Situation: Hitting the Github API for a PR and getting a PR with a label that matches the includes and excludes
+    // Situation: Hitting the Github API for a PR and getting a PR with a label that matches the
+    // includes and excludes
     GHPullRequest pullRequest = Mockito.mock(GHPullRequest.class);
     Mockito.when(pullRequest.getNumber()).thenReturn(5);
     GHLabel label = Mockito.mock(GHLabel.class);
@@ -167,7 +169,8 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
             ChangeRequestCheckoutStrategy.MERGE);
     GitHubSCMSourceRequest request =
         new GitHubSCMSourceRequest(source, probe, Mockito.mock(TaskListener.class));
-    // Situation: Hitting the Github API for a PR and getting a PR with a label that matches the excludes only
+    // Situation: Hitting the Github API for a PR and getting a PR with a label that matches the
+    // excludes only
     GHPullRequest pullRequest = Mockito.mock(GHPullRequest.class);
     Mockito.when(pullRequest.getNumber()).thenReturn(5);
     GHLabel label = Mockito.mock(GHLabel.class);
