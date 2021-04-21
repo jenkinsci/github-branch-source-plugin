@@ -3,7 +3,6 @@ package org.jenkinsci.plugins.github_branch_source;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
-import hudson.model.TaskListener;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -40,8 +39,7 @@ public class IgnoreDraftPullRequestFilterTraitTest extends GitSCMSourceBase {
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
-    GitHubSCMSourceRequest request =
-        new GitHubSCMSourceRequest(source, probe, null);
+    GitHubSCMSourceRequest request = new GitHubSCMSourceRequest(source, probe, null);
     // Situation: Hitting the Github API for a PR and getting a PR that is a draft
     GHPullRequest pullRequest = Mockito.mock(GHPullRequest.class);
     Mockito.when(pullRequest.getNumber()).thenReturn(5);
@@ -68,8 +66,7 @@ public class IgnoreDraftPullRequestFilterTraitTest extends GitSCMSourceBase {
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
-    GitHubSCMSourceRequest request =
-        new GitHubSCMSourceRequest(source, probe, null);
+    GitHubSCMSourceRequest request = new GitHubSCMSourceRequest(source, probe, null);
     // Situation: Hitting the Github API for a PR and getting a PR that is not a draft
     GHPullRequest pullRequest = Mockito.mock(GHPullRequest.class);
     Mockito.when(pullRequest.getNumber()).thenReturn(5);
