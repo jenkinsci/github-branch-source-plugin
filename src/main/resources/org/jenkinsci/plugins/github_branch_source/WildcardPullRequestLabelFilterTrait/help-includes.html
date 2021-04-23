@@ -24,6 +24,8 @@
 <div>
     Space-separated list of project pull request label patterns to consider.
     You may use <code>*</code> as a wildcard; for example: <code>jenkins *-plugin</code>
- 
+    <br>
+    If the pull request has any label that matches any include pattern, it will be included.
+    <br>
     If the pull request has no labels it will only be included if the includes filter is <code>*</code>.
 </div>
