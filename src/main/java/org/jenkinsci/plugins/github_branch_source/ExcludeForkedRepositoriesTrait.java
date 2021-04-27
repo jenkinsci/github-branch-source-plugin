@@ -9,7 +9,6 @@ import jenkins.scm.impl.trait.Selection;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-
 /**
  * A {@link Selection} trait that will restrict the discovery of repositories that have been forked.
  */
@@ -17,7 +16,7 @@ public class ExcludeForkedRepositoriesTrait extends SCMNavigatorTrait {
 
   /** Constructor for stapler. */
   @DataBoundConstructor
-  public ExcludeForkedRepositoriesTrait() { }
+  public ExcludeForkedRepositoriesTrait() {}
 
   /** {@inheritDoc} */
   @Override
