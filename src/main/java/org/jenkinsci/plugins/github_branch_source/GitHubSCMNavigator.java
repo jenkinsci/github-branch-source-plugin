@@ -1009,6 +1009,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             System.currentTimeMillis(),
                             String.format(
                                 "Skipping repository %s because it is public", repo.getName())));
+              } else if (repo.getSource() != null
+                  && gitHubSCMNavigatorContext.isExcludeForkedRepositories()) {
+                witness.record(repo.getName(), false);
+                listener
+                    .getLogger()
+                    .println(
+                        GitHubConsoleNote.create(
+                            System.currentTimeMillis(),
+                            String.format(
+                                "Skipping repository %s because it is a fork", repo.getName())));
               } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                 listener
                     .getLogger()
@@ -1091,6 +1101,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                           String.format(
                               "Skipping repository %s because it is public", repo.getName())));
 
+            } else if (repo.getSource() != null
+                && gitHubSCMNavigatorContext.isExcludeForkedRepositories()) {
+              witness.record(repo.getName(), false);
+              listener
+                .getLogger()
+                .println(
+                    GitHubConsoleNote.create(
+                      System.currentTimeMillis(),
+                      String.format(
+                        "Skipping repository %s because it is a fork", repo.getName())));
             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
               listener
                   .getLogger()
@@ -1144,6 +1164,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                           String.format(
                               "Skipping repository %s because it is missing one or more of the following topics: '%s'",
                               repo.getName(), gitHubSCMNavigatorContext.getTopics())));
+            } else if (repo.getSource() != null
+                && gitHubSCMNavigatorContext.isExcludeForkedRepositories()) {
+              witness.record(repo.getName(), false);
+              listener
+                .getLogger()
+                .println(
+                    GitHubConsoleNote.create(
+                      System.currentTimeMillis(),
+                      String.format(
+                        "Skipping repository %s because it is a fork", repo.getName())));
             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
               listener
                   .getLogger()
@@ -1285,6 +1315,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             String.format(
                                 "Skipping repository %s because it is public", repo.getName())));
 
+              } else if (repo.getSource() != null
+                  && gitHubSCMNavigatorContext.isExcludeForkedRepositories()) {
+                witness.record(repo.getName(), false);
+                listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                        System.currentTimeMillis(),
+                        String.format(
+                          "Skipping repository %s because it is a fork", repo.getName())));
               } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                 listener
                     .getLogger()
@@ -1356,6 +1396,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                           System.currentTimeMillis(),
                           String.format(
                               "Skipping repository %s because it is public", repo.getName())));
+            } else if (repo.getSource() != null
+                && gitHubSCMNavigatorContext.isExcludeForkedRepositories()) {
+              witness.record(repo.getName(), false);
+              listener
+                .getLogger()
+                .println(
+                    GitHubConsoleNote.create(
+                      System.currentTimeMillis(),
+                      String.format(
+                        "Skipping repository %s because it is a fork", repo.getName())));
 
             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
               listener
@@ -1424,6 +1474,17 @@ public class GitHubSCMNavigator extends SCMNavigator {
                           System.currentTimeMillis(),
                           String.format(
                               "Skipping repository %s because it is public", repo.getName())));
+
+            } else if (repo.getSource() != null
+                && gitHubSCMNavigatorContext.isExcludeForkedRepositories()) {
+              witness.record(repo.getName(), false);
+              listener
+                .getLogger()
+                .println(
+                    GitHubConsoleNote.create(
+                      System.currentTimeMillis(),
+                      String.format(
+                        "Skipping repository %s because it is a fork", repo.getName())));
 
             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
               listener
