@@ -1164,8 +1164,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
                           String.format(
                               "Skipping repository %s because it is missing one or more of the following topics: '%s'",
                               repo.getName(), gitHubSCMNavigatorContext.getTopics())));
-            } else if (repo.getSource() != null
-                && gitHubSCMNavigatorContext.isExcludeForkedRepositories()) {
+            } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories()
+                && repo.getSource() != null) {
               witness.record(repo.getName(), false);
               listener
                   .getLogger()
