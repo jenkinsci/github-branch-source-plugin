@@ -1009,8 +1009,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             System.currentTimeMillis(),
                             String.format(
                                 "Skipping repository %s because it is public", repo.getName())));
-              } else if (repo.getSource() != null
-                  && gitHubSCMNavigatorContext.isExcludeForkedRepositories()) {
+              } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories() 
+                  && repo.getSource() != null) {
                 witness.record(repo.getName(), false);
                 listener
                     .getLogger()
