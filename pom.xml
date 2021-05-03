@@ -8,7 +8,7 @@
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
-    <version>2.9.8</version>
+    <version>${revision}${changelist}</version>
     <packaging>hpi</packaging>
     <name>GitHub Branch Source Plugin</name>
     <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <revision>2.9.8</revision>
+        <revision>2.9.9</revision>
         <changelist>-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
@@ -34,7 +34,7 @@
         <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
         <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
         <url>https://github.com/${gitHubRepo}</url>
-        <tag>github-branch-source-2.9.8</tag>
+        <tag>${scmTag}</tag>
     </scm>
     <dependencies>
         <dependency>
