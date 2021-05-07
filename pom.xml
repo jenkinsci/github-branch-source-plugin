@@ -26,7 +26,7 @@
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
-        <jenkins.version>2.283</jenkins.version>
+        <jenkins.version>2.277.1</jenkins.version>
         <useBeta>true</useBeta>
     </properties>
 
