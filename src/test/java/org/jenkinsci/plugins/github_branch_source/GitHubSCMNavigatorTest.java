@@ -261,9 +261,9 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     final Set<String> projectNames = new HashSet<>();
     final SCMSourceObserver observer = getObserver(projectNames);
 
-    navigator.visitSources(SCMSourceObserver.filter(observer, "yolo-original"));
+    navigator.visitSources(SCMSourceObserver.filter(observer, "yolo-private"));
 
-    assertThat(projectNames, containsInAnyOrder("yolo-original"));
+    assertThat(projectNames, containsInAnyOrder("yolo-private"));
   }
 
   @Test
