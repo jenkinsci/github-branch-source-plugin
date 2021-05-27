@@ -46,8 +46,9 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
   private static Slave agent;
   private static final String myAppCredentialsId = "myAppCredentialsId";
+  private static final String myAppCredentialsNoOwnerId = "myAppCredentialsNoOwnerId";
   private static CredentialsStore store;
-  private static GitHubAppCredentials appCredentials;
+  private static GitHubAppCredentials appCredentials, appCredentialsNoOwner;
   private static LogRecorder logRecorder;
 
   // https://stackoverflow.com/a/22176759/4951015
@@ -101,6 +102,14 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             Secret.fromString(PKCS8_PRIVATE_KEY));
     appCredentials.setOwner("cloudbeers");
     store.addCredentials(Domain.global(), appCredentials);
+    appCredentialsNoOwner =
+        new GitHubAppCredentials(
+            CredentialsScope.GLOBAL,
+            myAppCredentialsNoOwnerId,
+            "sample",
+            "54321",
+            Secret.fromString(PKCS8_PRIVATE_KEY));
+    store.addCredentials(Domain.global(), appCredentialsNoOwner);
 
     // Add agent
     agent = r.createOnlineSlave();
@@ -517,6 +526,19 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
           0,
           RequestPatternBuilder.newRequestPattern(
               RequestMethod.GET, urlPathEqualTo("/rate_limit")));
+
+      // Test credentials when owner is not set
+      appCredentialsNoOwner.setApiUri(githubApi.baseUrl());
+      try {
+        appCredentialsNoOwner.getPassword();
+        fail("Expected IllegalArgumentException");
+      } catch (IllegalArgumentException e) {
+        // ok
+        assertEquals(
+            e.getMessage(),
+            "Found multiple installations for GitHub app ID 54321 but none match credential owner \"null\". "
+                + "Set the right owner in the credential advanced options");
+      }
 
     } finally {
       GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
