@@ -254,6 +254,19 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
   }
 
   @Test
+  public void fetchOneRepo_ExcludingForked() throws Exception {
+    setCredentials(Collections.singletonList(credentials));
+    navigator = navigatorForRepoOwner("stephenc", credentials.getId());
+    navigator.setTraits(Collections.singletonList(new ExcludeForkedRepositoriesTrait()));
+    final Set<String> projectNames = new HashSet<>();
+    final SCMSourceObserver observer = getObserver(projectNames);
+
+    navigator.visitSources(SCMSourceObserver.filter(observer, "yolo-private"));
+
+    assertThat(projectNames, containsInAnyOrder("yolo-private"));
+  }
+
+  @Test
   public void fetchOneRepo_BelongingToOrg() throws Exception {
     final Set<String> projectNames = new HashSet<>();
     final SCMSourceObserver observer = getObserver(projectNames);
