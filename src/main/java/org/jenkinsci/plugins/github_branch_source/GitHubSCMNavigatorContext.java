@@ -50,6 +50,9 @@ public class GitHubSCMNavigatorContext
   /** If true, public repositories will be ignored. */
   private boolean excludePublicRepositories;
 
+  /** If true, forked repositories will be ignored. */
+  private boolean excludeForkedRepositories;
+
   /** {@inheritDoc} */
   @NonNull
   @Override
@@ -96,6 +99,11 @@ public class GitHubSCMNavigatorContext
     return excludePublicRepositories;
   }
 
+  /** @return True if forked repositories should be ignored, false if they should be included. */
+  public boolean isExcludeForkedRepositories() {
+    return excludeForkedRepositories;
+  }
+
   /** @param excludeArchivedRepositories Set true to exclude archived repositories */
   public void setExcludeArchivedRepositories(boolean excludeArchivedRepositories) {
     this.excludeArchivedRepositories = excludeArchivedRepositories;
@@ -104,5 +112,10 @@ public class GitHubSCMNavigatorContext
   /** @param excludePublicRepositories Set true to exclude public repositories */
   public void setExcludePublicRepositories(boolean excludePublicRepositories) {
     this.excludePublicRepositories = excludePublicRepositories;
+  }
+
+  /** @param excludeForkedRepositories Set true to exclude archived repositories */
+  public void setExcludeForkedRepositories(boolean excludeForkedRepositories) {
+    this.excludeForkedRepositories = excludeForkedRepositories;
   }
 }
