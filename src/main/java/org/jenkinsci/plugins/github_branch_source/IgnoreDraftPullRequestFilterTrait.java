@@ -52,7 +52,7 @@ public class IgnoreDraftPullRequestFilterTrait extends SCMSourceTrait {
         });
   }
 
-  @Symbol({"ignoreDraftPullRequestFilter"})
+  @Symbol({"gitHubIgnoreDraftPullRequestFilter"})
   @Extension
   @Selection
   public static class DescriptorImpl extends SCMSourceTraitDescriptor {
