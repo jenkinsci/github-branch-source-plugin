@@ -3,7 +3,6 @@ package org.jenkinsci.plugins.github_branch_source;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
-import hudson.model.TaskListener;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -42,8 +41,7 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
-    GitHubSCMSourceRequest request =
-        new GitHubSCMSourceRequest(source, probe, Mockito.mock(TaskListener.class));
+    GitHubSCMSourceRequest request = new GitHubSCMSourceRequest(source, probe, null);
     // Situation: Hitting the Github API for a PR and getting a PR with no labels
     GHPullRequest pullRequest = Mockito.mock(GHPullRequest.class);
     Mockito.when(pullRequest.getNumber()).thenReturn(5);
@@ -71,8 +69,7 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
-    GitHubSCMSourceRequest request =
-        new GitHubSCMSourceRequest(source, probe, Mockito.mock(TaskListener.class));
+    GitHubSCMSourceRequest request = new GitHubSCMSourceRequest(source, probe, null);
     // Situation: Hitting the Github API for a PR and getting a PR with no labels
     GHPullRequest pullRequest = Mockito.mock(GHPullRequest.class);
     Mockito.when(pullRequest.getNumber()).thenReturn(5);
@@ -101,8 +98,7 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
-    GitHubSCMSourceRequest request =
-        new GitHubSCMSourceRequest(source, probe, Mockito.mock(TaskListener.class));
+    GitHubSCMSourceRequest request = new GitHubSCMSourceRequest(source, probe, null);
     // Situation: Hitting the Github API for a PR and getting a PR with a label that matches the
     // includes only
     GHPullRequest pullRequest = Mockito.mock(GHPullRequest.class);
@@ -134,8 +130,7 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
-    GitHubSCMSourceRequest request =
-        new GitHubSCMSourceRequest(source, probe, Mockito.mock(TaskListener.class));
+    GitHubSCMSourceRequest request = new GitHubSCMSourceRequest(source, probe, null);
     // Situation: Hitting the Github API for a PR and getting a PR with a label that matches the
     // includes and excludes
     GHPullRequest pullRequest = Mockito.mock(GHPullRequest.class);
@@ -167,8 +162,7 @@ public class WildcardPullRequestLabelFilterTraitTest extends GitSCMSourceBase {
             new BranchSCMHead("master"),
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
-    GitHubSCMSourceRequest request =
-        new GitHubSCMSourceRequest(source, probe, Mockito.mock(TaskListener.class));
+    GitHubSCMSourceRequest request = new GitHubSCMSourceRequest(source, probe, null);
     // Situation: Hitting the Github API for a PR and getting a PR with a label that matches the
     // excludes only
     GHPullRequest pullRequest = Mockito.mock(GHPullRequest.class);

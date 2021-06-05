@@ -4,6 +4,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import jenkins.scm.api.SCMHead;
@@ -74,20 +75,55 @@ public class WildcardPullRequestLabelFilterTrait extends SCMSourceTrait {
               if (pullRequest.getNumber() != prHead.getNumber()) {
                 continue;
               }
+              boolean allLabelsIncluded = "*".equals(includes);
               Set<String> prLabels =
                   pullRequest.getLabels().stream()
                       .map(GHLabel::getName)
                       .collect(Collectors.toSet());
               // If no labels only allow the PR when the include is "*" (include everything)
               if (prLabels.isEmpty()) {
-                return !"*".equals(includes);
+                if (!allLabelsIncluded) {
+                  request
+                      .listener()
+                      .getLogger()
+                      .format(
+                          "%n    Won't Build PR %s. PR has no labels and inclusion does not match '*'.%n",
+                          "#" + prHead.getNumber());
+                  return true;
+                }
+                return false;
               }
               // If any labels match the excludes the pr build will be excluded
-              if (prLabels.stream().anyMatch(getPattern(getExcludes()).asPredicate())) {
-                return true;
+              if (!excludes.isEmpty()) {
+                Predicate<String> exclusionPredicate = getPattern(getExcludes()).asPredicate();
+                for (String prLabel : prLabels) {
+                  if (exclusionPredicate.test(prLabel)) {
+                    request
+                        .listener()
+                        .getLogger()
+                        .format(
+                            "%n    Won't Build PR %s. Label %s is marked for exclusion.%n",
+                            "#" + prHead.getNumber(), prLabel);
+                    return true;
+                  }
+                }
               }
-              // Otherwise if none of the labels match the includes the pr build will be excluded
-              return prLabels.stream().noneMatch(getPattern(getIncludes()).asPredicate());
+              // If all labels are included the don't exclude the PR
+              if (allLabelsIncluded) {
+                return false;
+              }
+              // Otherwise if any of the labels match the includes the pr build will be included
+              if (prLabels.stream().anyMatch(getPattern(getIncludes()).asPredicate())) {
+                return false;
+              }
+              // no labels match the includes therefore the PR will be excluded
+              request
+                  .listener()
+                  .getLogger()
+                  .format(
+                      "%n    Won't Build PR %s. No labels match inclusion [%s].%n",
+                      "#" + prHead.getNumber(), prLabels);
+              return true;
             }
             return false;
           }
