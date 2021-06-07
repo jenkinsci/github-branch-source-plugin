@@ -83,6 +83,7 @@ import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
 import net.jcip.annotations.GuardedBy;
 import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
+import org.jenkins.ui.icon.IconFormat;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
 import org.jenkinsci.Symbol;
@@ -1008,6 +1009,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             System.currentTimeMillis(),
                             String.format(
                                 "Skipping repository %s because it is public", repo.getName())));
+              } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories()
+                  && repo.getSource() != null) {
+                witness.record(repo.getName(), false);
+                listener
+                    .getLogger()
+                    .println(
+                        GitHubConsoleNote.create(
+                            System.currentTimeMillis(),
+                            String.format(
+                                "Skipping repository %s because it is a fork", repo.getName())));
               } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                 listener
                     .getLogger()
@@ -1090,6 +1101,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                           String.format(
                               "Skipping repository %s because it is public", repo.getName())));
 
+            } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories()
+                && repo.getSource() != null) {
+              witness.record(repo.getName(), false);
+              listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                          System.currentTimeMillis(),
+                          String.format(
+                              "Skipping repository %s because it is a fork", repo.getName())));
             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
               listener
                   .getLogger()
@@ -1143,6 +1164,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                           String.format(
                               "Skipping repository %s because it is missing one or more of the following topics: '%s'",
                               repo.getName(), gitHubSCMNavigatorContext.getTopics())));
+            } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories()
+                && repo.getSource() != null) {
+              witness.record(repo.getName(), false);
+              listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                          System.currentTimeMillis(),
+                          String.format(
+                              "Skipping repository %s because it is a fork", repo.getName())));
             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
               listener
                   .getLogger()
@@ -1284,6 +1315,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             String.format(
                                 "Skipping repository %s because it is public", repo.getName())));
 
+              } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories()
+                  && repo.getSource() != null) {
+                witness.record(repo.getName(), false);
+                listener
+                    .getLogger()
+                    .println(
+                        GitHubConsoleNote.create(
+                            System.currentTimeMillis(),
+                            String.format(
+                                "Skipping repository %s because it is a fork", repo.getName())));
               } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                 listener
                     .getLogger()
@@ -1355,6 +1396,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                           System.currentTimeMillis(),
                           String.format(
                               "Skipping repository %s because it is public", repo.getName())));
+            } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories()
+                && repo.getSource() != null) {
+              witness.record(repo.getName(), false);
+              listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                          System.currentTimeMillis(),
+                          String.format(
+                              "Skipping repository %s because it is a fork", repo.getName())));
 
             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
               listener
@@ -1423,6 +1474,17 @@ public class GitHubSCMNavigator extends SCMNavigator {
                           System.currentTimeMillis(),
                           String.format(
                               "Skipping repository %s because it is public", repo.getName())));
+
+            } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories()
+                && repo.getSource() != null) {
+              witness.record(repo.getName(), false);
+              listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                          System.currentTimeMillis(),
+                          String.format(
+                              "Skipping repository %s because it is a fork", repo.getName())));
 
             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
               listener
@@ -1776,65 +1838,77 @@ public class GitHubSCMNavigator extends SCMNavigator {
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-logo icon-sm",
-              "plugin/github-branch-source/images/16x16/github-logo.png",
-              Icon.ICON_SMALL_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
+              Icon.ICON_SMALL_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-logo icon-md",
-              "plugin/github-branch-source/images/24x24/github-logo.png",
-              Icon.ICON_MEDIUM_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
+              Icon.ICON_MEDIUM_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-logo icon-lg",
-              "plugin/github-branch-source/images/32x32/github-logo.png",
-              Icon.ICON_LARGE_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
+              Icon.ICON_LARGE_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-logo icon-xlg",
-              "plugin/github-branch-source/images/48x48/github-logo.png",
-              Icon.ICON_XLARGE_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
+              Icon.ICON_XLARGE_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
 
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-repo icon-sm",
-              "plugin/github-branch-source/images/16x16/github-repo.png",
-              Icon.ICON_SMALL_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
+              Icon.ICON_SMALL_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-repo icon-md",
-              "plugin/github-branch-source/images/24x24/github-repo.png",
-              Icon.ICON_MEDIUM_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
+              Icon.ICON_MEDIUM_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-repo icon-lg",
-              "plugin/github-branch-source/images/32x32/github-repo.png",
-              Icon.ICON_LARGE_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
+              Icon.ICON_LARGE_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-repo icon-xlg",
-              "plugin/github-branch-source/images/48x48/github-repo.png",
-              Icon.ICON_XLARGE_STYLE));
+              "github-branch-source/images/svgs/sprite-github.svg#github-repo",
+              Icon.ICON_XLARGE_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
 
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-branch icon-sm",
-              "plugin/github-branch-source/images/16x16/github-branch.png",
-              Icon.ICON_SMALL_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
+              Icon.ICON_SMALL_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-branch icon-md",
-              "plugin/github-branch-source/images/24x24/github-branch.png",
-              Icon.ICON_MEDIUM_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
+              Icon.ICON_MEDIUM_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-branch icon-lg",
-              "plugin/github-branch-source/images/32x32/github-branch.png",
-              Icon.ICON_LARGE_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
+              Icon.ICON_LARGE_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-branch icon-xlg",
-              "plugin/github-branch-source/images/48x48/github-branch.png",
-              Icon.ICON_XLARGE_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
+              Icon.ICON_XLARGE_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
     }
   }
 

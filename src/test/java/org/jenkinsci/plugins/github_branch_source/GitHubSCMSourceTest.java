@@ -54,6 +54,7 @@ import hudson.model.FreeStyleProject;
 import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.model.User;
+import hudson.scm.SCM;
 import hudson.security.ACL;
 import hudson.security.ACLContext;
 import hudson.security.AuthorizationStrategy;
@@ -79,6 +80,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
+import org.mockito.Mockito;
 
 @RunWith(Parameterized.class)
 public class GitHubSCMSourceTest extends GitSCMSourceBase {
@@ -133,6 +135,58 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
                     .withBodyFile("body-yolo-pulls-2-mergeable-true.json"))
             .willSetStateTo("Pull Request Merge Hash - retry 2"));
   }
+
+  SCMHeadEvent<PushGHEventSubscriber> pushEvent =
+      new SCMHeadEvent<PushGHEventSubscriber>(
+          SCMEvent.Type.CREATED, System.currentTimeMillis(), null, null) {
+        @Override
+        public boolean isMatch(@NonNull SCMNavigator scmNavigator) {
+          return false;
+        }
+
+        @NonNull
+        @Override
+        public String getSourceName() {
+          return null;
+        }
+
+        @NonNull
+        @Override
+        public Map<SCMHead, SCMRevision> heads(@NonNull SCMSource scmSource) {
+          return null;
+        }
+
+        @Override
+        public boolean isMatch(@NonNull SCM scm) {
+          return false;
+        }
+      };
+
+  SCMHeadEvent<PullRequestGHEventSubscriber> pullRequestEvent =
+      new SCMHeadEvent<PullRequestGHEventSubscriber>(
+          SCMEvent.Type.CREATED, System.currentTimeMillis(), null, null) {
+        @Override
+        public boolean isMatch(@NonNull SCMNavigator scmNavigator) {
+          return false;
+        }
+
+        @NonNull
+        @Override
+        public String getSourceName() {
+          return null;
+        }
+
+        @NonNull
+        @Override
+        public Map<SCMHead, SCMRevision> heads(@NonNull SCMSource scmSource) {
+          return null;
+        }
+
+        @Override
+        public boolean isMatch(@NonNull SCM scm) {
+          return false;
+        }
+      };
 
   @Test
   @Issue("JENKINS-48035")
@@ -817,5 +871,157 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
       r.jenkins.setAuthorizationStrategy(strategy);
       r.jenkins.remove(dummy);
     }
+  }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testCheckIncludesBranchSCMHeadType() throws Exception {
+    SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+    Mockito.when(mockSCMHeadObserver.getIncludes())
+        .thenReturn(Collections.singleton(new BranchSCMHead("existent-branch")));
+
+    assertTrue(this.source.checkObserverIncludesType(mockSCMHeadObserver, BranchSCMHead.class));
+    assertFalse(
+        this.source.checkObserverIncludesType(mockSCMHeadObserver, PullRequestSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(mockSCMHeadObserver, GitHubTagSCMHead.class));
+  }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testCheckIncludesPullRequestSCMHeadType() throws Exception {
+    SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+    Mockito.when(mockSCMHeadObserver.getIncludes())
+        .thenReturn(
+            Collections.singleton(
+                new PullRequestSCMHead(
+                    "PR-1",
+                    "rfvm",
+                    "http://localhost:" + githubApi.port(),
+                    "master",
+                    1,
+                    new BranchSCMHead("master"),
+                    SCMHeadOrigin.DEFAULT,
+                    ChangeRequestCheckoutStrategy.MERGE)));
+
+    assertTrue(
+        this.source.checkObserverIncludesType(mockSCMHeadObserver, PullRequestSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(mockSCMHeadObserver, BranchSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(mockSCMHeadObserver, GitHubTagSCMHead.class));
+  }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testCheckIncludesGitHubTagSCMHeadType() throws Exception {
+    SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+    Mockito.when(mockSCMHeadObserver.getIncludes())
+        .thenReturn(
+            Collections.singleton(
+                new GitHubTagSCMHead("non-existent-tag", System.currentTimeMillis())));
+
+    assertTrue(this.source.checkObserverIncludesType(mockSCMHeadObserver, GitHubTagSCMHead.class));
+    assertFalse(
+        this.source.checkObserverIncludesType(mockSCMHeadObserver, PullRequestSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(mockSCMHeadObserver, BranchSCMHead.class));
+  }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testCheckIncludesEmpty() throws Exception {
+    SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+    Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(Collections.emptySet());
+
+    assertFalse(this.source.checkObserverIncludesType(mockSCMHeadObserver, GitHubTagSCMHead.class));
+    assertFalse(
+        this.source.checkObserverIncludesType(mockSCMHeadObserver, PullRequestSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(mockSCMHeadObserver, BranchSCMHead.class));
+  }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testCheckIncludesNull() throws Exception {
+    SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+    Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(null);
+
+    assertFalse(this.source.checkObserverIncludesType(mockSCMHeadObserver, GitHubTagSCMHead.class));
+    assertFalse(
+        this.source.checkObserverIncludesType(mockSCMHeadObserver, PullRequestSCMHead.class));
+    assertFalse(this.source.checkObserverIncludesType(mockSCMHeadObserver, BranchSCMHead.class));
+  }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testShouldRetrieveBranchSCMHeadType() throws Exception {
+    SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+    Mockito.when(mockSCMHeadObserver.getIncludes())
+        .thenReturn(Collections.singleton(new BranchSCMHead("existent-branch")));
+
+    assertTrue(
+        this.source.shouldRetrieve(mockSCMHeadObserver, this.pushEvent, BranchSCMHead.class));
+    assertFalse(
+        this.source.shouldRetrieve(mockSCMHeadObserver, this.pushEvent, PullRequestSCMHead.class));
+    assertFalse(
+        this.source.shouldRetrieve(mockSCMHeadObserver, this.pushEvent, GitHubTagSCMHead.class));
+  }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testShouldRetrievePullRequestSCMHeadType() throws Exception {
+    SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+    Mockito.when(mockSCMHeadObserver.getIncludes())
+        .thenReturn(
+            Collections.singleton(
+                new PullRequestSCMHead(
+                    "PR-1",
+                    "rfvm",
+                    "http://localhost:" + githubApi.port(),
+                    "master",
+                    1,
+                    new BranchSCMHead("master"),
+                    SCMHeadOrigin.DEFAULT,
+                    ChangeRequestCheckoutStrategy.MERGE)));
+
+    assertTrue(
+        this.source.shouldRetrieve(
+            mockSCMHeadObserver, this.pullRequestEvent, PullRequestSCMHead.class));
+    assertFalse(
+        this.source.shouldRetrieve(
+            mockSCMHeadObserver, this.pullRequestEvent, BranchSCMHead.class));
+    assertFalse(
+        this.source.shouldRetrieve(
+            mockSCMHeadObserver, this.pullRequestEvent, GitHubTagSCMHead.class));
+  }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testShouldRetrieveTagSCMHeadType() throws Exception {
+    SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+    Mockito.when(mockSCMHeadObserver.getIncludes())
+        .thenReturn(
+            Collections.singleton(
+                new GitHubTagSCMHead("non-existent-tag", System.currentTimeMillis())));
+
+    assertTrue(
+        this.source.shouldRetrieve(
+            mockSCMHeadObserver, this.pullRequestEvent, GitHubTagSCMHead.class));
+    assertFalse(
+        this.source.shouldRetrieve(
+            mockSCMHeadObserver, this.pullRequestEvent, PullRequestSCMHead.class));
+    assertFalse(
+        this.source.shouldRetrieve(
+            mockSCMHeadObserver, this.pullRequestEvent, BranchSCMHead.class));
+  }
+
+  @Test
+  @Issue("JENKINS-65071")
+  public void testShouldRetrieveNullEvent() throws Exception {
+    SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+    Mockito.when(mockSCMHeadObserver.getIncludes())
+        .thenReturn(
+            Collections.singleton(
+                new GitHubTagSCMHead("non-existent-tag", System.currentTimeMillis())));
+
+    assertTrue(this.source.shouldRetrieve(mockSCMHeadObserver, null, GitHubTagSCMHead.class));
+    assertTrue(this.source.shouldRetrieve(mockSCMHeadObserver, null, PullRequestSCMHead.class));
+    assertTrue(this.source.shouldRetrieve(mockSCMHeadObserver, null, BranchSCMHead.class));
   }
 }
