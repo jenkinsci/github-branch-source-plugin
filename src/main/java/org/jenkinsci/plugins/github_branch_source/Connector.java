@@ -57,6 +57,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -97,7 +98,7 @@ public class Connector {
   private static final Map<TaskListener, Map<GitHub, Void>> checked = new WeakHashMap<>();
   private static final long API_URL_REVALIDATE_MILLIS = TimeUnit.MINUTES.toMillis(5);
 
-  private static final Random ENTROPY = new Random();
+  private static final Random ENTROPY = new SecureRandom();
   private static final String SALT = Long.toHexString(ENTROPY.nextLong());
   private static final OkHttpClient baseClient = new OkHttpClient();
 
@@ -337,28 +338,29 @@ public class Connector {
     } else if (credentials instanceof GitHubAppCredentials) {
       password = null;
       gitHubAppCredentials = (GitHubAppCredentials) credentials;
+
       hash =
-          Util.getDigestOf(
-              gitHubAppCredentials.getAppID()
-                  + gitHubAppCredentials.getOwner()
-                  + gitHubAppCredentials.getPrivateKey().getPlainText()
-                  + SALT); // want to ensure pooling by credential
+          getDigestOf(
+              gitHubAppCredentials.getAppID(),
+              gitHubAppCredentials.getOwner(),
+              gitHubAppCredentials.getPrivateKey().getPlainText(),
+              SALT); // want to ensure pooling by credential
       authHash =
-          Util.getDigestOf(
-              gitHubAppCredentials.getAppID()
-                  + "::"
-                  + gitHubAppCredentials.getOwner()
-                  + "::"
-                  + gitHubAppCredentials.getPrivateKey().getPlainText()
-                  + "::"
-                  + jenkins.getLegacyInstanceId());
+          getDigestOf(
+              gitHubAppCredentials.getAppID(),
+              "::",
+              gitHubAppCredentials.getOwner(),
+              "::",
+              gitHubAppCredentials.getPrivateKey().getPlainText(),
+              "::",
+              jenkins.getLegacyInstanceId());
       username = gitHubAppCredentials.getUsername();
     } else if (credentials instanceof StandardUsernamePasswordCredentials) {
       StandardUsernamePasswordCredentials c = (StandardUsernamePasswordCredentials) credentials;
       username = c.getUsername();
       password = c.getPassword().getPlainText();
-      hash = Util.getDigestOf(password + SALT); // want to ensure pooling by credential
-      authHash = Util.getDigestOf(password + "::" + jenkins.getLegacyInstanceId());
+      hash = getDigestOf(password, SALT); // want to ensure pooling by credential
+      authHash = getDigestOf(password, "::", jenkins.getLegacyInstanceId());
       gitHubAppCredentials = null;
     } else {
       // TODO OAuth support
@@ -450,25 +452,35 @@ public class Connector {
     int cacheSize = GitHubSCMSource.getCacheSize();
     if (cacheSize > 0) {
       File cacheBase = new File(jenkins.getRootDir(), GitHubSCMProbe.class.getName() + ".cache");
-      File cacheDir = null;
-      try {
-        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-        sha256.update(apiUrl.getBytes(StandardCharsets.UTF_8));
-        sha256.update("::".getBytes(StandardCharsets.UTF_8));
-        if (username != null) {
-          sha256.update(username.getBytes(StandardCharsets.UTF_8));
-        }
-        sha256.update("::".getBytes(StandardCharsets.UTF_8));
-        sha256.update(authHash.getBytes(StandardCharsets.UTF_8));
-        cacheDir = new File(cacheBase, Base64.encodeBase64URLSafeString(sha256.digest()));
-      } catch (NoSuchAlgorithmException e) {
-        // no cache for you mr non-spec compliant JVM
-      }
-      if (cacheDir != null) {
-        cache = new Cache(cacheDir, cacheSize * 1024L * 1024L);
-      }
+      String cacheDirName = getDigestOf(apiUrl, "::", username, "::", authHash);
+      File cacheDir = new File(cacheBase, cacheDirName);
+      cache = new Cache(cacheDir, cacheSize * 1024L * 1024L);
     }
     return cache;
+  }
+
+  /**
+   * Gets a digest of a set of strings.
+   *
+   * <p>This method tries to use SHA-256 but will fall back to MD5. String items that are null are
+   * ignored.
+   *
+   * @param strings
+   * @return
+   */
+  static String getDigestOf(String... strings) {
+    MessageDigest digester;
+    try {
+      digester = MessageDigest.getInstance("SHA-256");
+    } catch (NoSuchAlgorithmException e) {
+      throw new Error(e); // never happens
+    }
+    for (String item : strings) {
+      if (item != null) {
+        digester.update(item.getBytes(StandardCharsets.UTF_8));
+      }
+    }
+    return Base64.encodeBase64URLSafeString(digester.digest());
   }
 
   public static void release(@CheckForNull GitHub hub) {
