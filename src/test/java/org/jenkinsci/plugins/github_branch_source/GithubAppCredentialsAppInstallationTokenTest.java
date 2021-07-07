@@ -17,8 +17,9 @@ public class GithubAppCredentialsAppInstallationTokenTest {
     long now;
 
     now = Instant.now().getEpochSecond();
+    String owner = "test";
     Secret secret = Secret.fromString("secret-token");
-    token = new GitHubAppCredentials.AppInstallationToken(secret, now);
+    token = new GitHubAppCredentials.AppInstallationToken(owner, secret, now);
     assertThat(token.isStale(), is(false));
     assertThat(
         token.getTokenStaleEpochSeconds(),
@@ -27,7 +28,7 @@ public class GithubAppCredentialsAppInstallationTokenTest {
     now = Instant.now().getEpochSecond();
     token =
         new GitHubAppCredentials.AppInstallationToken(
-            secret, now + Duration.ofMinutes(15).getSeconds());
+            owner, secret, now + Duration.ofMinutes(15).getSeconds());
     assertThat(token.isStale(), is(false));
     assertThat(
         token.getTokenStaleEpochSeconds(),
@@ -36,6 +37,7 @@ public class GithubAppCredentialsAppInstallationTokenTest {
     now = Instant.now().getEpochSecond();
     token =
         new GitHubAppCredentials.AppInstallationToken(
+            owner,
             secret,
             now + GitHubAppCredentials.AppInstallationToken.STALE_BEFORE_EXPIRATION_SECONDS + 2);
     assertThat(token.isStale(), is(false));
@@ -46,6 +48,7 @@ public class GithubAppCredentialsAppInstallationTokenTest {
     now = Instant.now().getEpochSecond();
     token =
         new GitHubAppCredentials.AppInstallationToken(
+            owner,
             secret,
             now
                 + GitHubAppCredentials.AppInstallationToken.STALE_BEFORE_EXPIRATION_SECONDS
@@ -57,7 +60,7 @@ public class GithubAppCredentialsAppInstallationTokenTest {
     now = Instant.now().getEpochSecond();
     token =
         new GitHubAppCredentials.AppInstallationToken(
-            secret, now + Duration.ofMinutes(90).getSeconds());
+            owner, secret, now + Duration.ofMinutes(90).getSeconds());
     assertThat(token.isStale(), is(false));
     assertThat(
         token.getTokenStaleEpochSeconds(),
@@ -69,7 +72,7 @@ public class GithubAppCredentialsAppInstallationTokenTest {
       GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = -10;
 
       now = Instant.now().getEpochSecond();
-      token = new GitHubAppCredentials.AppInstallationToken(secret, now);
+      token = new GitHubAppCredentials.AppInstallationToken(owner, secret, now);
       assertThat(token.isStale(), is(false));
       assertThat(token.getTokenStaleEpochSeconds(), equalTo(now + 1));
 

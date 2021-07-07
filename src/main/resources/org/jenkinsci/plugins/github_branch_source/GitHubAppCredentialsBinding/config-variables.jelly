@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler" xmlns:c="/lib/credentials">
+  <f:entry title="${%GitHub App Id Variable}" field="appIdVariable">
+    <f:textbox default="GITHUB_APP_ID"/>
+  </f:entry>
+  <f:entry title="${%GitHub Token Variable}" field="tokenVariable">
+    <f:textbox default="GITHUB_TOKEN"/>
+  </f:entry>
+  <f:entry title="${%GitHub Owner Variable}" field="ownerVariable">
+    <f:textbox default="GITHUB_OWNER"/>
+  </f:entry>
+  <f:entry title="${%GitHub Owner Override}" field="owner">
+     <f:textbox default=""/>
+  </f:entry>
+</j:jelly>
