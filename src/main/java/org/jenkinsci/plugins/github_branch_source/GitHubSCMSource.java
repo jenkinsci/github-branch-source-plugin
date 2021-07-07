@@ -2270,6 +2270,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
       return result;
     }
 
+    @Deprecated
     public boolean isApiUriSelectable() {
       return !GitHubConfiguration.get().getEndpoints().isEmpty();
     }

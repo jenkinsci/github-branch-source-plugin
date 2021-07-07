@@ -610,6 +610,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials
     }
 
     @SuppressWarnings("unused") // jelly
+    @Deprecated
     public boolean isApiUriSelectable() {
       return !GitHubConfiguration.get().getEndpoints().isEmpty();
     }
