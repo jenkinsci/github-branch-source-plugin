@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import static org.apache.commons.lang.StringUtils.removeEnd;
 import static org.jenkinsci.plugins.github_branch_source.GitHubSCMSource.GITHUB_COM;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -73,22 +74,14 @@ class GitHubRepositoryInfo {
   }
 
   @NonNull
-  public static GitHubRepositoryInfo forRepositoryUrl(@NonNull String repositoryUrl) {
-    String trimmedRepoUrl = repositoryUrl.trim();
-    if (StringUtils.isBlank(trimmedRepoUrl)) {
-      throw new IllegalArgumentException("Repository URL must not be empty");
+  public static GitHubRepositoryInfo forRepositoryUrl(@CheckForNull String repositoryUrl) {
+    if (repositoryUrl == null) {
+      repositoryUrl = "";
     }
-    URL url;
-    try {
-      url = new URL(trimmedRepoUrl);
-    } catch (MalformedURLException e) {
-      throw new IllegalArgumentException(e);
-    }
-    if (!url.getProtocol().equals("http") && !url.getProtocol().equals("https")) {
-      throw new IllegalArgumentException(
-          "Invalid repository URL scheme (must be HTTPS or HTTP): " + url.getProtocol());
-    }
+    URL url = getTrimmedUrl(repositoryUrl);
+
     String apiUri = guessApiUri(url);
+
     String[] pathParts = StringUtils.removeStart(url.getPath(), "/").split("/");
     if (pathParts.length != 2) {
       throw new IllegalArgumentException("Invalid repository URL: " + repositoryUrl);
@@ -99,7 +92,26 @@ class GitHubRepositoryInfo {
     }
   }
 
-  private static String guessApiUri(URL repositoryUrl) {
+  @NonNull
+  private static URL getTrimmedUrl(@NonNull String repositoryUrl) {
+    String trimmedRepoUrl = repositoryUrl.trim();
+    if (StringUtils.isBlank(trimmedRepoUrl)) {
+      throw new IllegalArgumentException("Repository URL must not be empty");
+    }
+    URL url;
+    try {
+      url = new URL(trimmedRepoUrl);
+    } catch (MalformedURLException e) {
+      throw new IllegalArgumentException(e.getMessage(), e);
+    }
+    if (!url.getProtocol().equals("http") && !url.getProtocol().equals("https")) {
+      throw new IllegalArgumentException(
+          "Invalid repository URL scheme (must be HTTPS or HTTP): " + url.getProtocol());
+    }
+    return url;
+  }
+
+  private static String guessApiUri(@NonNull URL repositoryUrl) {
     StringBuilder sb = new StringBuilder();
     sb.append(repositoryUrl.getProtocol());
     sb.append("://");

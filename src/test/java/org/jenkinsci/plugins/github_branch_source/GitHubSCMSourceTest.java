@@ -64,6 +64,7 @@ import hudson.util.LogTaskListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.branch.BranchSource;
@@ -92,9 +93,28 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
   @Parameterized.Parameters(name = "{index}: revision={0}")
   public static GitHubSCMSource[] revisions() {
     return new GitHubSCMSource[] {
-      new GitHubSCMSource("cloudbeers", "yolo", null, false),
-      new GitHubSCMSource("", "", "https://github.com/cloudbeers/yolo", true)
+      new GitHubSCMSource("cloudbeers", "yolo"),
+      new GitHubSCMSource("https://github.com/cloudbeers/yolo"),
+      createGitHubSCMSource(
+          source -> {
+            // If all three values are provided the URL is used.
+            source.setRepository("yolo-bad");
+
+            source.setRepositoryUrl("https://github.com/cloudbeers/yolo");
+
+            // This is also possible.
+            // getRepoOwner will be out of sync, but getRepositoryUrl will ignore
+            source.setRepoOwner("invalid-owner");
+          })
     };
+  }
+
+  static GitHubSCMSource createGitHubSCMSource(Consumer<GitHubSCMSource> initializer) {
+    GitHubSCMSource source = new GitHubSCMSource();
+    if (initializer != null) {
+      initializer.accept(source);
+    }
+    return source;
   }
 
   @Before
