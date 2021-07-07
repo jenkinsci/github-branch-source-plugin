@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import static org.junit.Assert.assertEquals;
 
+import hudson.model.Cause;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import jenkins.scm.api.SCMEvent;
@@ -52,6 +53,7 @@ public class EventsTest {
 
   private static SCMEvent.Type firedEventType;
   private static GHSubscriberEvent ghEvent;
+  private static Cause[] firedEventCauses;
 
   @BeforeClass
   public static void setupDelay() {
@@ -61,8 +63,10 @@ public class EventsTest {
   @Before
   public void resetFiredEvent() {
     firedEventType = null;
+    firedEventCauses = null;
     ghEvent = null;
     TestSCMEventListener.setReceived(false);
+    TestSCMEventListener.setError(null);
   }
 
   @AfterClass
@@ -75,6 +79,11 @@ public class EventsTest {
     PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
 
     firedEventType = SCMEvent.Type.CREATED;
+    firedEventCauses =
+        new Cause[] {
+          new GitHubSenderCause(
+              6752317, "baxterthehacker", null, GitHubSenderCause.Kind.BRANCH_CREATED)
+        };
     ghEvent = callOnEvent(subscriber, "EventsTest/pushEventCreated.json");
     waitAndAssertReceived(true);
   }
@@ -84,6 +93,11 @@ public class EventsTest {
     PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
 
     firedEventType = SCMEvent.Type.REMOVED;
+    firedEventCauses =
+        new Cause[] {
+          new GitHubSenderCause(
+              6752317, "baxterthehacker", null, GitHubSenderCause.Kind.BRANCH_DELETED)
+        };
     ghEvent = callOnEvent(subscriber, "EventsTest/pushEventRemoved.json");
     waitAndAssertReceived(true);
   }
@@ -93,6 +107,11 @@ public class EventsTest {
     PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
 
     firedEventType = SCMEvent.Type.UPDATED;
+    firedEventCauses =
+        new Cause[] {
+          new GitHubSenderCause(
+              6752317, "baxterthehacker", null, GitHubSenderCause.Kind.BRANCH_UPDATED)
+        };
     ghEvent = callOnEvent(subscriber, "EventsTest/pushEventUpdated.json");
     waitAndAssertReceived(true);
   }
@@ -102,6 +121,11 @@ public class EventsTest {
     PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
     firedEventType = SCMEvent.Type.CREATED;
+    firedEventCauses =
+        new Cause[] {
+          new GitHubSenderCause(
+              6752317, "baxterthehacker", null, GitHubSenderCause.Kind.PULL_REQUEST_CREATED)
+        };
     ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventCreated.json");
     waitAndAssertReceived(true);
   }
@@ -111,6 +135,11 @@ public class EventsTest {
     PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
     firedEventType = SCMEvent.Type.REMOVED;
+    firedEventCauses =
+        new Cause[] {
+          new GitHubSenderCause(
+              6752317, "baxterthehacker", null, GitHubSenderCause.Kind.PULL_REQUEST_DELETED)
+        };
     ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventRemoved.json");
     waitAndAssertReceived(true);
   }
@@ -120,6 +149,11 @@ public class EventsTest {
     PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
     firedEventType = SCMEvent.Type.UPDATED;
+    firedEventCauses =
+        new Cause[] {
+          new GitHubSenderCause(
+              6752317, "baxterthehacker", null, GitHubSenderCause.Kind.PULL_REQUEST_UPDATED)
+        };
     ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventUpdated.json");
     waitAndAssertReceived(true);
   }
@@ -129,6 +163,11 @@ public class EventsTest {
     PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
     firedEventType = SCMEvent.Type.UPDATED;
+    firedEventCauses =
+        new Cause[] {
+          new GitHubSenderCause(
+              6752317, "baxterthehacker", null, GitHubSenderCause.Kind.PULL_REQUEST_UPDATED)
+        };
     ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventUpdatedSync.json");
     waitAndAssertReceived(true);
   }
@@ -139,6 +178,7 @@ public class EventsTest {
     GitHubRepositoryEventSubscriber subscriber = new GitHubRepositoryEventSubscriber();
 
     firedEventType = SCMEvent.Type.CREATED;
+    firedEventCauses = new Cause[] {};
     ghEvent = callOnEvent(subscriber, "EventsTest/repositoryEventCreated.json");
     waitAndAssertReceived(true);
   }
@@ -194,26 +234,35 @@ public class EventsTest {
         "Event should have " + ((!received) ? "not " : "") + "been received",
         received,
         TestSCMEventListener.didReceive());
+    if (TestSCMEventListener.didError() != null) {
+      throw TestSCMEventListener.didError();
+    }
   }
 
   @TestExtension
   public static class TestSCMEventListener extends jenkins.scm.api.SCMEventListener {
 
     private static boolean eventReceived = false;
+    private static Error error = null;
 
     public void onSCMHeadEvent(SCMHeadEvent<?> event) {
-      receiveEvent(event.getType(), event.getOrigin());
+      receiveEvent(event.getType(), event.getOrigin(), event.asCauses());
     }
 
     public void onSCMSourceEvent(SCMSourceEvent<?> event) {
-      receiveEvent(event.getType(), event.getOrigin());
+      receiveEvent(event.getType(), event.getOrigin(), event.asCauses());
     }
 
-    private void receiveEvent(SCMEvent.Type type, String origin) {
+    private void receiveEvent(SCMEvent.Type type, String origin, Cause[] causes) {
       eventReceived = true;
 
-      assertEquals("Event type should be the same", type, firedEventType);
-      assertEquals("Event origin should be the same", origin, ghEvent.getOrigin());
+      try {
+        assertEquals("Event type should be the same", type, firedEventType);
+        assertEquals("Event causes should be the same", causes, firedEventCauses);
+        assertEquals("Event origin should be the same", origin, ghEvent.getOrigin());
+      } catch (Error e) {
+        error = e;
+      }
     }
 
     public static boolean didReceive() {
@@ -222,6 +271,14 @@ public class EventsTest {
 
     public static void setReceived(boolean received) {
       eventReceived = received;
+    }
+
+    public static Error didError() {
+      return error;
+    }
+
+    public static void setError(Error e) {
+      error = e;
     }
   }
 }
