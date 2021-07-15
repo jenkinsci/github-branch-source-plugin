@@ -1881,7 +1881,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-repo icon-xlg",
-              "github-branch-source/images/svgs/sprite-github.svg#github-repo",
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
               Icon.ICON_XLARGE_STYLE,
               IconFormat.EXTERNAL_SVG_SPRITE));
 
