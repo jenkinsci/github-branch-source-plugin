@@ -150,6 +150,10 @@
                     <java>
                         <googleJavaFormat>
                             <style>GOOGLE</style>
+                            <!-- Last version that supports Java 8, the plugin does handle this internally
+                                 but it will give different versions based off of the JVM version, not good for CI
+                             -->
+                            <version>1.7</version>
                         </googleJavaFormat>
                     </java>
                 </configuration>
