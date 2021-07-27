@@ -38,6 +38,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.Util;
@@ -88,6 +89,7 @@ import org.kohsuke.github.authorization.ImmutableAuthorizationProvider;
 import org.kohsuke.github.extras.okhttp3.OkHttpConnector;
 
 /** Utilities that could perhaps be moved into {@code github-api}. */
+@SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
 public class Connector {
   private static final Logger LOGGER = Logger.getLogger(Connector.class.getName());
 

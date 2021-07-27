@@ -32,6 +32,7 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Item;
 import hudson.model.Queue;
 import hudson.plugins.git.GitSCM;
@@ -58,8 +59,10 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
  *
  * @since 2.2.0
  */
+@SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
 public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
 
+  private static final Random ENTROPY = new Random();
   /** Singleton instance of {@link HttpsRepositoryUriResolver}. */
   static final HttpsRepositoryUriResolver HTTPS = new HttpsRepositoryUriResolver();
   /** Singleton instance of {@link SshRepositoryUriResolver}. */
@@ -301,8 +304,6 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
                   "remotes/" + remoteName() + "/pr-" + head.getNumber() + "-upstream-" + name;
             }
             if (localNames.contains(localName)) {
-              // ok we're just going to mangle our way to something that works
-              Random entropy = new Random();
               while (localNames.contains(localName)) {
                 localName =
                     "remotes/"
@@ -312,7 +313,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
                         + "-upstream-"
                         + name
                         + "-"
-                        + Integer.toHexString(entropy.nextInt(Integer.MAX_VALUE));
+                        + Integer.toHexString(ENTROPY.nextInt(Integer.MAX_VALUE));
               }
             }
             withRefSpec("+refs/heads/" + name + ":refs/" + localName);
