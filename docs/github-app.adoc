@@ -51,7 +51,30 @@ Permissions this plugin uses:
 - Metadata: Read-only
 - Pull requests: Read-only
 
-Under _Subscribe to events_, enable all events.
+Under _Subscribe to events_, enable the following events:
+
+- Meta
+- Security advisory
+- Commit comment
+- Create
+- Delete
+- Fork
+- Gollum
+- Label
+- Milestone
+- Public
+- Pull request
+- Pull request review
+- Pull request review comment
+- Push
+- Release
+- Repository
+- Repository dispatch
+- Star
+- Status
+- Watch
+- Workflow dispatch
+- Workflow run
 
 Click 'Create GitHub app'
 
