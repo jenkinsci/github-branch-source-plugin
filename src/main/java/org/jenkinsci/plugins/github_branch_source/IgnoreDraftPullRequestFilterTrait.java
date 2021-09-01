@@ -61,5 +61,15 @@ public class IgnoreDraftPullRequestFilterTrait extends SCMSourceTrait {
     public String getDisplayName() {
       return Messages.IgnoreDraftPullRequestFilterTrait_DisplayName();
     }
+
+    @Override
+    public Class<? extends SCMSourceContext> getContextClass() {
+      return GitHubSCMSourceContext.class;
+    }
+
+    @Override
+    public Class<? extends SCMSource> getSourceClass() {
+      return GitHubSCMSource.class;
+    }
   }
 }
