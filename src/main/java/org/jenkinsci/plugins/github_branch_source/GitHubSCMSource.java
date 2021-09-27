@@ -116,6 +116,7 @@ import jenkins.scm.impl.form.NamedArrayList;
 import jenkins.scm.impl.trait.Discovery;
 import jenkins.scm.impl.trait.Selection;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
+import jenkins.util.SystemProperties;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.jenkinsci.Symbol;
@@ -1786,15 +1787,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
       GHPullRequest pr, TaskListener listener, GitHub github, GHRepository ghRepository)
       throws IOException, InterruptedException {
     final long sleep = 1000;
-    int retryCountdown = 4;
+    int retryCountdown = SystemProperties.getInteger(GitHubSCMSource.class.getName() + ".mergeableStatusRetries", Integer.valueOf(4));
 
     while (pr.getMergeable() == null && retryCountdown > 1) {
       listener
           .getLogger()
           .format(
               "Waiting for GitHub to create a merge commit for pull request %d.  Retrying %d more times...%n",
-              pr.getNumber(), retryCountdown);
-      retryCountdown -= 1;
+              pr.getNumber(), --retryCountdown);
       Thread.sleep(sleep);
     }
   }
