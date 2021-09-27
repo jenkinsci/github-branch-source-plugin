@@ -1787,7 +1787,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
       GHPullRequest pr, TaskListener listener, GitHub github, GHRepository ghRepository)
       throws IOException, InterruptedException {
     final long sleep = 1000;
-    int retryCountdown = SystemProperties.getInteger(GitHubSCMSource.class.getName() + ".mergeableStatusRetries", Integer.valueOf(4));
+    int retryCountdown =
+        SystemProperties.getInteger(
+            GitHubSCMSource.class.getName() + ".mergeableStatusRetries", Integer.valueOf(4));
 
     while (pr.getMergeable() == null && retryCountdown > 1) {
       listener
