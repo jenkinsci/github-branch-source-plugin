@@ -183,6 +183,11 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
    */
   private static final Object pullRequestSourceMapLock = new Object();
 
+  /** Number of times we will retry asking GitHub for the mergeable status of a PR. */
+  private static /* mostly final */ int mergeableStatusRetries =
+      SystemProperties.getInteger(
+          GitHubSCMSource.class.getName() + ".mergeableStatusRetries", Integer.valueOf(4));
+
   //////////////////////////////////////////////////////////////////////
   // Configuration fields
   //////////////////////////////////////////////////////////////////////
@@ -1787,9 +1792,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
       GHPullRequest pr, TaskListener listener, GitHub github, GHRepository ghRepository)
       throws IOException, InterruptedException {
     final long sleep = 1000;
-    int retryCountdown =
-        SystemProperties.getInteger(
-            GitHubSCMSource.class.getName() + ".mergeableStatusRetries", Integer.valueOf(4));
+    int retryCountdown = mergeableStatusRetries;
 
     while (pr.getMergeable() == null && retryCountdown > 1) {
       listener
