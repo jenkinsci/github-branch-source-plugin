@@ -58,6 +58,7 @@ public class GitHubSCMSourceContext
    * requests.
    */
   private boolean wantForkPRs;
+
   /** Set of {@link ChangeRequestCheckoutStrategy} to create for each origin pull request. */
   @NonNull
   private Set<ChangeRequestCheckoutStrategy> originPRStrategies =
@@ -74,6 +75,7 @@ public class GitHubSCMSourceContext
    * @since 2.3.2
    */
   private final List<AbstractGitHubNotificationStrategy> notificationStrategies = new ArrayList<>();
+  private final List<AbstractGitHubSCMHeadProcessErrorStrategy> headProcessErrorStrategies = new ArrayList<>();
 
   /**
    * Constructor.
@@ -171,6 +173,10 @@ public class GitHubSCMSourceContext
       return Collections.singletonList(new DefaultGitHubNotificationStrategy());
     }
     return Collections.unmodifiableList(notificationStrategies);
+  }
+
+  public final List<AbstractGitHubSCMHeadProcessErrorStrategy> headProcessErrorStrategies() {
+    return Collections.unmodifiableList(headProcessErrorStrategies);
   }
   /**
    * Returns {@code true} if notifications should be disabled.
@@ -293,6 +299,25 @@ public class GitHubSCMSourceContext
       AbstractGitHubNotificationStrategy strategy) {
     if (!notificationStrategies.contains(strategy)) {
       notificationStrategies.add(strategy);
+    }
+    return this;
+  }
+
+  public final GitHubSCMSourceContext withHeadProcessErrorStrategies(
+      List<AbstractGitHubSCMHeadProcessErrorStrategy> strategies) {
+    headProcessErrorStrategies.clear();
+    for (AbstractGitHubSCMHeadProcessErrorStrategy strategy : strategies) {
+      if (!headProcessErrorStrategies.contains(strategy)) {
+        headProcessErrorStrategies.add(strategy);
+      }
+    }
+    return this;
+  }
+
+  public final GitHubSCMSourceContext withHeadProcessErrorStrategy(
+      AbstractGitHubSCMHeadProcessErrorStrategy strategy) {
+    if (!headProcessErrorStrategies.contains(strategy)) {
+      headProcessErrorStrategies.add(strategy);
     }
     return this;
   }

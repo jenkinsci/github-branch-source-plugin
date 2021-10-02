@@ -26,6 +26,7 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
+import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
@@ -142,7 +143,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
     try {
       int index = path.lastIndexOf('/') + 1;
       List<GHContent> directoryContent =
-          repo.getDirectoryContent(path.substring(0, index), Constants.R_REFS + ref);
+        repo.getDirectoryContent(path.substring(0, index), Constants.R_REFS + ref);
       for (GHContent content : directoryContent) {
         if (content.getPath().equals(path)) {
           if (content.isFile()) {
@@ -163,6 +164,11 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
       }
     } catch (FileNotFoundException fnf) {
       // means that does not exist and this is handled below this try/catch block.
+    //} catch (IOException e) {
+      //Throwable t = e.getCause();
+      //if (!(t instanceof MismatchedInputException)) {
+        //throw e;
+      //}
     }
     return SCMProbeStat.fromType(SCMFile.Type.NONEXISTENT);
   }

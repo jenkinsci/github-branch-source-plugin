@@ -1,0 +1,12 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+  <f:entry title="Ignore Branch Scanning Errors" field="ignoreBranch">
+    <f:checkbox />
+  </f:entry>
+  <f:entry title="Ignore Pull Request Scanning Errors" field="ignorePR">
+    <f:checkbox />
+  </f:entry>
+  <f:entry title="Ignore Tag Scanning Errors" field="ignoreTag">
+    <f:checkbox />
+  </f:entry>
+</j:jelly>
