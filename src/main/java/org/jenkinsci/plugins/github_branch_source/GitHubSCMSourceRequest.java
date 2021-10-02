@@ -30,7 +30,6 @@ import hudson.model.TaskListener;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
-
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMSource;
@@ -62,6 +61,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
   @NonNull private final Set<ChangeRequestCheckoutStrategy> originPRStrategies;
   /** The {@link ChangeRequestCheckoutStrategy} to create for each fork pull request. */
   @NonNull private final Set<ChangeRequestCheckoutStrategy> forkPRStrategies;
+
   private final List<AbstractGitHubSCMHeadProcessErrorStrategy> headProcessErrorStrategies;
   /**
    * The set of pull request numbers that the request is scoped to or {@code null} if the request is

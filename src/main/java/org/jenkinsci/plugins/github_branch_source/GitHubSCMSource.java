@@ -36,7 +36,6 @@ import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
-import com.fasterxml.jackson.databind.exc.MismatchedInputException;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
@@ -1057,26 +1056,27 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
               BranchSCMHead head = new BranchSCMHead(branchName);
               try {
                 if (request.process(
-                  head,
-                  new SCMRevisionImpl(head, branch.getSHA1()),
-                  new SCMSourceRequest.ProbeLambda<BranchSCMHead, SCMRevisionImpl>() {
-                    @NonNull
-                    @Override
-                    public SCMSourceCriteria.Probe create(
-                      @NonNull BranchSCMHead head, @Nullable SCMRevisionImpl revisionInfo)
-                      throws IOException, InterruptedException {
-                      return new GitHubSCMProbe(
-                        apiUri, credentials, ghRepository, head, revisionInfo);
-                    }
-                  },
-                  new CriteriaWitness(listener))) {
+                    head,
+                    new SCMRevisionImpl(head, branch.getSHA1()),
+                    new SCMSourceRequest.ProbeLambda<BranchSCMHead, SCMRevisionImpl>() {
+                      @NonNull
+                      @Override
+                      public SCMSourceCriteria.Probe create(
+                          @NonNull BranchSCMHead head, @Nullable SCMRevisionImpl revisionInfo)
+                          throws IOException, InterruptedException {
+                        return new GitHubSCMProbe(
+                            apiUri, credentials, ghRepository, head, revisionInfo);
+                      }
+                    },
+                    new CriteriaWitness(listener))) {
                   listener
-                    .getLogger()
-                    .format("%n  %d branches were processed (query completed)%n", count);
+                      .getLogger()
+                      .format("%n  %d branches were processed (query completed)%n", count);
                   break;
                 }
               } catch (IOException e) {
-                if (request.headProcessErrorStrategies().stream().anyMatch(item -> item.shouldIgnore(head, e))) {
+                if (request.headProcessErrorStrategies().stream()
+                    .anyMatch(item -> item.shouldIgnore(head, e))) {
                   listener.getLogger().format("%n  Error while processing branch %s%n", branchName);
                   Functions.printStackTrace(e, listener.getLogger());
                   errorCount++;
@@ -1088,8 +1088,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             listener.getLogger().format("%n  %d branches were processed%n", count);
             if (errorCount > 0) {
               listener
-                .getLogger()
-                .format("%n  %d branches encountered errors and were orphaned.%n", errorCount);
+                  .getLogger()
+                  .format("%n  %d branches encountered errors and were orphaned.%n", errorCount);
             }
           }
           if (request.isFetchPRs()
@@ -1118,9 +1118,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     apiUri, credentials, ghRepository, pr, strategies, request, listener);
               } catch (IOException e) {
                 PullRequestSCMHead head = new PullRequestSCMHead(pr, "PR", false);
-                if (e instanceof FileNotFoundException ||
-                    request.headProcessErrorStrategies().stream().anyMatch(item -> item.shouldIgnore(head, e))) {
-                  listener.getLogger().format("%n  Error while processing pull request %d%n", number);
+                if (e instanceof FileNotFoundException
+                    || request.headProcessErrorStrategies().stream()
+                        .anyMatch(item -> item.shouldIgnore(head, e))) {
+                  listener
+                      .getLogger()
+                      .format("%n  Error while processing pull request %d%n", number);
                   Functions.printStackTrace(e, listener.getLogger());
                   errorCount++;
                 } else {
@@ -1133,7 +1136,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (errorCount > 0) {
               listener
                   .getLogger()
-                  .format("%n  %d pull requests encountered errors and were orphaned.%n", errorCount);
+                  .format(
+                      "%n  %d pull requests encountered errors and were orphaned.%n", errorCount);
             }
           }
           if (request.isFetchTags()
@@ -1180,25 +1184,25 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
               GitHubTagSCMHead head = new GitHubTagSCMHead(tagName, tagDate);
               try {
                 if (request.process(
-                  head,
-                  new GitTagSCMRevision(head, sha),
-                  new SCMSourceRequest.ProbeLambda<GitHubTagSCMHead, GitTagSCMRevision>() {
-                    @NonNull
-                    @Override
-                    public SCMSourceCriteria.Probe create(
-                      @NonNull GitHubTagSCMHead head, @Nullable GitTagSCMRevision revisionInfo)
-                      throws IOException, InterruptedException {
-                      return new GitHubSCMProbe(
-                        apiUri, credentials, ghRepository, head, revisionInfo);
-                    }
-                  },
-                  new CriteriaWitness(listener))) {
+                    head,
+                    new GitTagSCMRevision(head, sha),
+                    new SCMSourceRequest.ProbeLambda<GitHubTagSCMHead, GitTagSCMRevision>() {
+                      @NonNull
+                      @Override
+                      public SCMSourceCriteria.Probe create(
+                          @NonNull GitHubTagSCMHead head, @Nullable GitTagSCMRevision revisionInfo)
+                          throws IOException, InterruptedException {
+                        return new GitHubSCMProbe(
+                            apiUri, credentials, ghRepository, head, revisionInfo);
+                      }
+                    },
+                    new CriteriaWitness(listener))) {
                   listener
-                    .getLogger()
-                    .format("%n  %d tags were processed (query completed)%n", count);
+                      .getLogger()
+                      .format("%n  %d tags were processed (query completed)%n", count);
                   break;
                 }
-              } catch(IOException e) {
+              } catch (IOException e) {
                 if (e instanceof FileNotFoundException || true) {
                   listener.getLogger().format("%n  Error while processing tag %s%n", tagName);
                   Functions.printStackTrace(e, listener.getLogger());
@@ -1209,8 +1213,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             listener.getLogger().format("%n  %d tags were processed%n", count);
             if (errorCount > 0) {
               listener
-                .getLogger()
-                .format("%n  %d tags encountered errors and were orphaned.%n", errorCount);
+                  .getLogger()
+                  .format("%n  %d tags encountered errors and were orphaned.%n", errorCount);
             }
           }
         }

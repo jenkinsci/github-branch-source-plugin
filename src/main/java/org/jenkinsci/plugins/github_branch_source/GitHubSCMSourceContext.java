@@ -75,7 +75,9 @@ public class GitHubSCMSourceContext
    * @since 2.3.2
    */
   private final List<AbstractGitHubNotificationStrategy> notificationStrategies = new ArrayList<>();
-  private final List<AbstractGitHubSCMHeadProcessErrorStrategy> headProcessErrorStrategies = new ArrayList<>();
+
+  private final List<AbstractGitHubSCMHeadProcessErrorStrategy> headProcessErrorStrategies =
+      new ArrayList<>();
 
   /**
    * Constructor.

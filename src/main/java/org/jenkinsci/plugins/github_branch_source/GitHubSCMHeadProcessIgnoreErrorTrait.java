@@ -2,6 +2,7 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import java.util.Objects;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMSource;
@@ -11,20 +12,18 @@ import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-import java.util.Objects;
-
 public class GitHubSCMHeadProcessIgnoreErrorTrait extends SCMSourceTrait {
   private boolean ignoreBranch;
   private boolean ignorePR;
   private boolean ignoreTag;
 
   @DataBoundConstructor
-  public GitHubSCMHeadProcessIgnoreErrorTrait(boolean ignoreBranch, boolean ignorePR, boolean ignoreTag) {
+  public GitHubSCMHeadProcessIgnoreErrorTrait(
+      boolean ignoreBranch, boolean ignorePR, boolean ignoreTag) {
     this.ignoreBranch = ignoreBranch;
     this.ignorePR = ignorePR;
     this.ignoreTag = ignoreTag;
   }
-
 
   public boolean isIgnoreBranch() {
     return ignoreBranch;
@@ -41,7 +40,8 @@ public class GitHubSCMHeadProcessIgnoreErrorTrait extends SCMSourceTrait {
   @Override
   protected void decorateContext(SCMSourceContext<?, ?> context) {
     GitHubSCMSourceContext githubContext = (GitHubSCMSourceContext) context;
-    githubContext.withHeadProcessErrorStrategy(new GitHubSCMHeadProcessIgnoreErrorStrategy(ignoreBranch, ignorePR, ignoreTag));
+    githubContext.withHeadProcessErrorStrategy(
+        new GitHubSCMHeadProcessIgnoreErrorStrategy(ignoreBranch, ignorePR, ignoreTag));
   }
 
   @Override
@@ -74,13 +74,15 @@ public class GitHubSCMHeadProcessIgnoreErrorTrait extends SCMSourceTrait {
     }
   }
 
-  private static final class GitHubSCMHeadProcessIgnoreErrorStrategy extends AbstractGitHubSCMHeadProcessErrorStrategy {
+  private static final class GitHubSCMHeadProcessIgnoreErrorStrategy
+      extends AbstractGitHubSCMHeadProcessErrorStrategy {
 
     private boolean ignoreBranch;
     private boolean ignorePR;
     private boolean ignoreTag;
 
-    public GitHubSCMHeadProcessIgnoreErrorStrategy(boolean ignoreBranch, boolean ignorePR, boolean ignoreTag) {
+    public GitHubSCMHeadProcessIgnoreErrorStrategy(
+        boolean ignoreBranch, boolean ignorePR, boolean ignoreTag) {
       this.ignoreBranch = ignoreBranch;
       this.ignorePR = ignorePR;
       this.ignoreTag = ignoreTag;
@@ -108,7 +110,9 @@ public class GitHubSCMHeadProcessIgnoreErrorTrait extends SCMSourceTrait {
       if (this == o) return true;
       if (o == null || getClass() != o.getClass()) return false;
       GitHubSCMHeadProcessIgnoreErrorStrategy that = (GitHubSCMHeadProcessIgnoreErrorStrategy) o;
-      return ignoreBranch == that.ignoreBranch && ignorePR == that.ignorePR && ignoreTag == that.ignoreTag;
+      return ignoreBranch == that.ignoreBranch
+          && ignorePR == that.ignorePR
+          && ignoreTag == that.ignoreTag;
     }
 
     @Override
