@@ -59,6 +59,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -78,7 +79,6 @@ import jenkins.scm.api.SCMSourceOwner;
 import jenkins.util.JenkinsJVM;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
@@ -482,7 +482,7 @@ public class Connector {
         digester.update(item.getBytes(StandardCharsets.UTF_8));
       }
     }
-    return Base64.encodeBase64URLSafeString(digester.digest());
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(digester.digest());
   }
 
   public static void release(@CheckForNull GitHub hub) {
