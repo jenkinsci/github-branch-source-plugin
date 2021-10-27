@@ -94,6 +94,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHRepositorySearchBuilder;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
@@ -904,6 +905,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
   @NonNull
   @Override
   protected String id() {
+    final GitHubSCMNavigatorContext gitHubSCMNavigatorContext =
+        new GitHubSCMNavigatorContext().withTraits(traits);
+    if (!gitHubSCMNavigatorContext.getTopics().isEmpty()) {
+      return StringUtils.defaultIfBlank(apiUri, GitHubSCMSource.GITHUB_URL)
+          + "::"
+          + repoOwner
+          + "::"
+          + String.join("::", gitHubSCMNavigatorContext.getTopics());
+    }
     return StringUtils.defaultIfBlank(apiUri, GitHubSCMSource.GITHUB_URL) + "::" + repoOwner;
   }
 
@@ -943,7 +953,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
       }
 
       GitHubSCMNavigatorContext gitHubSCMNavigatorContext =
-          new GitHubSCMNavigatorContext().withTraits(traits);
+          new GitHubSCMNavigatorContext().withTraits(getTraits());
 
       try (GitHubSCMNavigatorRequest request =
           gitHubSCMNavigatorContext.newRequest(this, observer)) {
@@ -972,7 +982,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     GitHubConsoleNote.create(
                         System.currentTimeMillis(),
                         String.format("Looking up repositories of myself %s", repoOwner)));
-            for (GHRepository repo : myself.listRepositories(100)) {
+            final Iterable<GHRepository> repositories;
+            if (!gitHubSCMNavigatorContext.getTopics().isEmpty()) {
+              repositories =
+                  getGhRepositoriesBasedOnTopics(
+                      listener, github, gitHubSCMNavigatorContext.getTopics());
+            } else {
+              repositories = myself.listRepositories(100);
+            }
+
+            for (GHRepository repo : repositories) {
               if (!repo.getOwnerName().equals(repoOwner)) {
                 continue; // ignore repos in other orgs when using GHMyself
               }
@@ -1039,7 +1058,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return;
           }
         }
-
         GHOrganization org = getGhOrganization(github);
         if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
           listener
@@ -1063,6 +1081,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 org.getTeamBySlug(gitHubSCMNavigatorContext.getTeamSlug())
                     .listRepositories()
                     .withPageSize(100);
+          } else if (!gitHubSCMNavigatorContext.getTopics().isEmpty()) {
+            repositories =
+                getGhRepositoriesBasedOnTopics(
+                    listener, github, gitHubSCMNavigatorContext.getTopics());
           } else {
             repositories = org.listRepositories(100);
           }
@@ -1200,6 +1222,19 @@ public class GitHubSCMNavigator extends SCMNavigator {
     } finally {
       Connector.release(github);
     }
+  }
+
+  private Iterable<GHRepository> getGhRepositoriesBasedOnTopics(
+      final TaskListener listener, final GitHub github, final List<String> topics) {
+    listener
+        .getLogger()
+        .println(
+            GitHubConsoleNote.create(
+                System.currentTimeMillis(),
+                String.format("Looking up repositories for topics: '%s'", topics)));
+    final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
+    topics.forEach(t -> ghRepositorySearchBuilder.q("topic:" + t));
+    return ghRepositorySearchBuilder.q("org:" + getRepoOwner()).list();
   }
 
   private GHOrganization getGhOrganization(final GitHub github) throws IOException {
@@ -1881,7 +1916,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-repo icon-xlg",
-              "github-branch-source/images/svgs/sprite-github.svg#github-repo",
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
               Icon.ICON_XLARGE_STYLE,
               IconFormat.EXTERNAL_SVG_SPRITE));
 
