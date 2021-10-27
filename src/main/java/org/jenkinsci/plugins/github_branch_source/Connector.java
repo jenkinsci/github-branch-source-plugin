@@ -58,6 +58,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -77,7 +78,6 @@ import jenkins.scm.api.SCMSourceOwner;
 import jenkins.util.JenkinsJVM;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
@@ -462,7 +462,9 @@ public class Connector {
         }
         sha256.update("::".getBytes(StandardCharsets.UTF_8));
         sha256.update(authHash.getBytes(StandardCharsets.UTF_8));
-        cacheDir = new File(cacheBase, Base64.encodeBase64URLSafeString(sha256.digest()));
+        cacheDir =
+            new File(
+                cacheBase, Base64.getUrlEncoder().withoutPadding().encodeToString(sha256.digest()));
       } catch (NoSuchAlgorithmException e) {
         // no cache for you mr non-spec compliant JVM
       }
