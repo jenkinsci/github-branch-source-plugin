@@ -464,8 +464,7 @@ public class Connector {
   /**
    * Gets a digest of a set of strings.
    *
-   * <p>This method tries to use SHA-256 but will fall back to MD5. String items that are null are
-   * ignored.
+   * <p>This method uses SHA-256. String items that are null are ignored.
    *
    * @param strings
    * @return
