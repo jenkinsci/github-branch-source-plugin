@@ -43,6 +43,12 @@
             <version>1.122</version>
         </dependency>
         <dependency>
+            <!-- test for 4.9.2 --> 
+            <groupId>io.jenkins.plugins</groupId>
+            <artifactId>okhttp-api</artifactId>
+            <version>3.14.9-20211030-rc77.2e72ec389e0e</version>
+        </dependency>
+        <dependency>
             <groupId>com.coravy.hudson.plugins.github</groupId>
             <artifactId>github</artifactId>
             <version>1.34.1</version>
