@@ -2,7 +2,6 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
-import javax.annotation.Nonnull;
 import jenkins.scm.api.trait.SCMNavigatorContext;
 import jenkins.scm.api.trait.SCMNavigatorTrait;
 import jenkins.scm.api.trait.SCMNavigatorTraitDescriptor;
@@ -57,7 +56,7 @@ public class TeamSlugTrait extends SCMNavigatorTrait {
       return GitHubSCMNavigatorContext.class;
     }
 
-    @Nonnull
+    @NonNull
     @Override
     public String getDisplayName() {
       return Messages.TeamSlugTrait_displayName();
