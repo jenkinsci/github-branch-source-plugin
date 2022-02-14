@@ -100,7 +100,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             "sample",
             "54321",
             Secret.fromString(PKCS8_PRIVATE_KEY));
-    appCredentials.setOwner("cloudbeers");
+    appCredentials.setOwner("cloudBeers");
     store.addCredentials(Domain.global(), appCredentials);
     appCredentialsNoOwner =
         new GitHubAppCredentials(
