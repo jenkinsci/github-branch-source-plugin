@@ -217,7 +217,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials
       } else {
         appInstallation =
             appInstallations.stream()
-                .filter(installation -> installation.getAccount().getLogin().equalsIgnoreCase(owner))
+                .filter(
+                    installation -> installation.getAccount().getLogin().equalsIgnoreCase(owner))
                 .findAny()
                 .orElseThrow(
                     () ->
