@@ -84,7 +84,6 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.annotation.Nonnull;
 import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource;
@@ -397,7 +396,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
    *
    * @param apiUri the api uri
    */
-  void forceApiUri(@Nonnull String apiUri) {
+  void forceApiUri(@NonNull String apiUri) {
     this.apiUri = apiUri;
   }
 
@@ -2097,16 +2096,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
       return Messages.GitHubSCMSource_DisplayName();
     }
 
-    @Nonnull
-    public Map<String, Object> customInstantiate(@Nonnull Map<String, Object> arguments) {
+    @NonNull
+    public Map<String, Object> customInstantiate(@NonNull Map<String, Object> arguments) {
       Map<String, Object> arguments2 = new TreeMap<>(arguments);
       arguments2.remove("repositoryUrl");
       arguments2.remove("configuredByUrl");
       return arguments2;
     }
 
-    @Nonnull
-    public UninstantiatedDescribable customUninstantiate(@Nonnull UninstantiatedDescribable ud) {
+    @NonNull
+    public UninstantiatedDescribable customUninstantiate(@NonNull UninstantiatedDescribable ud) {
       Map<String, Object> scmArguments = new TreeMap<>(ud.getArguments());
       scmArguments.remove("repositoryUrl");
       scmArguments.remove("configuredByUrl");
