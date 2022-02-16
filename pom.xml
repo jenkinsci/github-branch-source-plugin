@@ -21,7 +21,7 @@
     </licenses>
 
     <properties>
-        <revision>2.11.4</revision>
+        <revision>2.11.5</revision>
         <changelist>-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
@@ -119,7 +119,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.289.x</artifactId>
-                <version>987.v4ade2e49fe70</version>
+                <version>1090.v0a_33df40457a_</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
