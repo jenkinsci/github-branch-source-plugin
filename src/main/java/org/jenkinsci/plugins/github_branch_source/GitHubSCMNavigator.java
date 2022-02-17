@@ -1233,8 +1233,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 System.currentTimeMillis(),
                 String.format("Looking up repositories for topics: '%s'", topics)));
     final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
-    topics.forEach(t -> ghRepositorySearchBuilder.q("topic:" + t));
-    return ghRepositorySearchBuilder.q("org:" + getRepoOwner()).list();
+    topics.forEach(ghRepositorySearchBuilder::topic);
+    ghRepositorySearchBuilder.q("org:" + getRepoOwner());
+    return ghRepositorySearchBuilder.list().withPageSize(100);
   }
 
   private GHOrganization getGhOrganization(final GitHub github) throws IOException {
