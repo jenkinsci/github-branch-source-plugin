@@ -118,9 +118,9 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
     // Would use LoggerRule, but need to get agent logs as well
     LogRecorderManager mgr = r.jenkins.getLog();
     logRecorder = new LogRecorder(GitHubAppCredentials.class.getName());
-    mgr.logRecorders.put(GitHubAppCredentials.class.getName(), logRecorder);
+    mgr.getRecorders().add(logRecorder);
     LogRecorder.Target t = new LogRecorder.Target(GitHubAppCredentials.class.getName(), Level.FINE);
-    logRecorder.targets.add(t);
+    logRecorder.getLoggers().add(t);
     logRecorder.save();
     t.enable();
   }
