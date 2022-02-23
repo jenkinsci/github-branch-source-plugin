@@ -72,6 +72,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import io.jenkins.plugins.okhttp.api.JenkinsOkHttpClient;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.util.JenkinsJVM;
@@ -100,7 +102,7 @@ public class Connector {
 
   private static final Random ENTROPY = new Random();
   private static final String SALT = Long.toHexString(ENTROPY.nextLong());
-  private static final OkHttpClient baseClient = new OkHttpClient();
+  private static final OkHttpClient baseClient = JenkinsOkHttpClient.newClientBuilder(new OkHttpClient()).build();
 
   private Connector() {
     throw new IllegalAccessError("Utility class");
