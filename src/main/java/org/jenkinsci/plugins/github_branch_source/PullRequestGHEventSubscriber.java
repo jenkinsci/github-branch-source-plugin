@@ -29,6 +29,7 @@ import static org.kohsuke.github.GHEvent.PULL_REQUEST;
 
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.model.Item;
 import hudson.scm.SCM;
@@ -45,7 +46,6 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMEvent;
 import jenkins.scm.api.SCMHead;
