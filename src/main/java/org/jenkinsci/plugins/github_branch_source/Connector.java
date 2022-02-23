@@ -37,6 +37,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
@@ -71,8 +72,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.util.JenkinsJVM;
@@ -319,7 +318,7 @@ public class Connector {
         GitClient.CREDENTIALS_MATCHER);
   }
 
-  public static @Nonnull GitHub connect(
+  public static @NonNull GitHub connect(
       @CheckForNull String apiUri, @CheckForNull final StandardCredentials credentials)
       throws IOException {
     apiUri = Util.fixEmptyAndTrim(apiUri);
@@ -412,13 +411,13 @@ public class Connector {
    * @return a configured GitHubBuilder instance
    * @throws IOException if I/O error occurs
    */
-  static GitHubBuilder createGitHubBuilder(@Nonnull String apiUrl) throws IOException {
+  static GitHubBuilder createGitHubBuilder(@NonNull String apiUrl) throws IOException {
     return createGitHubBuilder(apiUrl, null);
   }
 
-  @Nonnull
+  @NonNull
   private static GitHubBuilder createGitHubBuilder(
-      @Nonnull String apiUrl, @CheckForNull Cache cache) throws IOException {
+      @NonNull String apiUrl, @CheckForNull Cache cache) throws IOException {
     String host;
     try {
       host = new URL(apiUrl).getHost();
@@ -444,9 +443,9 @@ public class Connector {
 
   @CheckForNull
   private static Cache getCache(
-      @Nonnull Jenkins jenkins,
-      @Nonnull String apiUrl,
-      @Nonnull String authHash,
+      @NonNull Jenkins jenkins,
+      @NonNull String apiUrl,
+      @NonNull String authHash,
       @CheckForNull String username) {
     Cache cache = null;
     int cacheSize = GitHubSCMSource.getCacheSize();
@@ -513,8 +512,8 @@ public class Connector {
    * @param host GitHub's hostname to build proxy to
    * @return proxy to use it in connector. Should not be null as it can lead to unexpected behaviour
    */
-  @Nonnull
-  private static Proxy getProxy(@Nonnull String host) {
+  @NonNull
+  private static Proxy getProxy(@NonNull String host) {
     Jenkins jenkins = Jenkins.getInstanceOrNull();
     if (jenkins == null || jenkins.proxy == null) {
       return Proxy.NO_PROXY;
