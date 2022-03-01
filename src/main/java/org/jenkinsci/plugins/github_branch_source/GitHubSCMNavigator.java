@@ -992,7 +992,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
 
             for (GHRepository repo : repositories) {
-              if (!repo.getOwnerName().equals(repoOwner)) {
+              if (!repoOwner.equals(repo.getOwnerName())) {
                 continue; // ignore repos in other orgs when using GHMyself
               }
 
