@@ -1,6 +1,7 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
@@ -15,6 +16,7 @@ import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.RateLimitChecker;
 
+@SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
 public enum ApiRateLimitChecker {
 
   /** Attempt to evenly distribute GitHub API requests. */
@@ -169,6 +171,33 @@ public enum ApiRateLimitChecker {
     LocalChecker checker =
         GitHubConfiguration.get().getApiRateLimitChecker().getChecker(listener, apiUrl);
     localRateLimitChecker.set(checker);
+  }
+
+  /**
+   * Verify a GitHub connection
+   *
+   * <p>WARNING: this call is not protected by rate limit checking. It is possible to exceed the
+   * rate limit by calling this method.
+   *
+   * <p>This method should only be called from {@link Connector}. This works without any locking
+   * because the checker is local to this thread.
+   *
+   * @param gitHub the GitHub connection to check for validity
+   */
+  static void verifyConnection(GitHub gitHub) throws IOException {
+    Objects.requireNonNull(gitHub);
+    LocalChecker checker = getLocalChecker();
+    try {
+      TaskListener listener =
+          checker != null ? checker.listener : new LogTaskListener(LOGGER, Level.INFO);
+
+      // Pass empty apiUrl to force no rate limit checking
+      localRateLimitChecker.set(NoThrottle.getChecker(listener, ""));
+
+      gitHub.checkApiUrlValidity();
+    } finally {
+      localRateLimitChecker.set(checker);
+    }
   }
 
   /** For test purposes only. */

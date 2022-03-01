@@ -10,25 +10,24 @@ import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
- * A {@link Selection} trait that will restrict the discovery of repositories that have been
- * archived.
+ * A {@link Selection} trait that will restrict the discovery of repositories that have been forked.
  */
-public class ExcludeArchivedRepositoriesTrait extends SCMNavigatorTrait {
+public class ExcludeForkedRepositoriesTrait extends SCMNavigatorTrait {
 
   /** Constructor for stapler. */
   @DataBoundConstructor
-  public ExcludeArchivedRepositoriesTrait() {}
+  public ExcludeForkedRepositoriesTrait() {}
 
   /** {@inheritDoc} */
   @Override
   protected void decorateContext(SCMNavigatorContext<?, ?> context) {
     super.decorateContext(context);
     GitHubSCMNavigatorContext ctx = (GitHubSCMNavigatorContext) context;
-    ctx.setExcludeArchivedRepositories(true);
+    ctx.setExcludeForkedRepositories(true);
   }
 
-  /** Exclude archived repositories filter */
-  @Symbol("gitHubExcludeArchivedRepositories")
+  /** Exclude forked repositories filter */
+  @Symbol("gitHubExcludeForkedRepositories")
   @Extension
   @Selection
   public static class DescriptorImpl extends SCMNavigatorTraitDescriptor {
@@ -41,7 +40,7 @@ public class ExcludeArchivedRepositoriesTrait extends SCMNavigatorTrait {
     @NonNull
     @Override
     public String getDisplayName() {
-      return Messages.ExcludeArchivedRepositoriesTrait_displayName();
+      return Messages.ExcludeForkedRepositoriesTrait_displayName();
     }
   }
 }

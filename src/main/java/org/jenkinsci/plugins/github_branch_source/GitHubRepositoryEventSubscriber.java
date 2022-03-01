@@ -30,6 +30,7 @@ import static org.kohsuke.github.GHEvent.REPOSITORY;
 
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.model.Item;
 import java.io.IOException;
@@ -41,7 +42,6 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.annotation.Nullable;
 import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMNavigatorOwner;
 import jenkins.scm.api.SCMSource;

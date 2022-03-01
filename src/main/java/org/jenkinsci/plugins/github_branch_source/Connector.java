@@ -37,7 +37,9 @@ import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
 import hudson.Util;
@@ -57,41 +59,41 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
 import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.annotation.CheckForNull;
-import javax.annotation.Nonnull;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.util.JenkinsJVM;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHAppInstallationToken;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
-import org.kohsuke.github.HttpException;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.authorization.ImmutableAuthorizationProvider;
 import org.kohsuke.github.extras.okhttp3.OkHttpConnector;
 
 /** Utilities that could perhaps be moved into {@code github-api}. */
+@SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
 public class Connector {
   private static final Logger LOGGER = Logger.getLogger(Connector.class.getName());
 
-  private static final Map<ConnectionId, GitHubConnection> connections = new HashMap<>();
-  private static final Map<GitHub, GitHubConnection> reverseLookup = new HashMap<>();
+  private static final Map<ConnectionId, GitHubConnection> connections = new ConcurrentHashMap<>();
+  private static final Map<GitHub, ConnectionId> reverseLookup = new ConcurrentHashMap<>();
 
   private static final Map<TaskListener, Map<GitHub, Void>> checked = new WeakHashMap<>();
   private static final long API_URL_REVALIDATE_MILLIS = TimeUnit.MINUTES.toMillis(5);
@@ -316,23 +318,25 @@ public class Connector {
         GitClient.CREDENTIALS_MATCHER);
   }
 
-  public static @Nonnull GitHub connect(
-      @CheckForNull String apiUri, @CheckForNull StandardCredentials credentials)
+  public static @NonNull GitHub connect(
+      @CheckForNull String apiUri, @CheckForNull final StandardCredentials credentials)
       throws IOException {
-    String apiUrl = Util.fixEmptyAndTrim(apiUri);
-    apiUrl = apiUrl != null ? apiUrl : GitHubServerConfig.GITHUB_URL;
-    String username;
-    String password = null;
-    String hash;
-    String authHash;
-    GitHubAppCredentials gitHubAppCredentials = null;
-    Jenkins jenkins = Jenkins.get();
+    apiUri = Util.fixEmptyAndTrim(apiUri);
+    final String apiUrl = apiUri != null ? apiUri : GitHubServerConfig.GITHUB_URL;
+    final String username;
+    final String password;
+    final String hash;
+    final String authHash;
+    final GitHubAppCredentials gitHubAppCredentials;
+    final Jenkins jenkins = Jenkins.get();
     if (credentials == null) {
       username = null;
       password = null;
       hash = "anonymous";
       authHash = "anonymous";
+      gitHubAppCredentials = null;
     } else if (credentials instanceof GitHubAppCredentials) {
+      password = null;
       gitHubAppCredentials = (GitHubAppCredentials) credentials;
       hash =
           Util.getDigestOf(
@@ -356,37 +360,42 @@ public class Connector {
       password = c.getPassword().getPlainText();
       hash = Util.getDigestOf(password + SALT); // want to ensure pooling by credential
       authHash = Util.getDigestOf(password + "::" + jenkins.getLegacyInstanceId());
+      gitHubAppCredentials = null;
     } else {
       // TODO OAuth support
       throw new IOException("Unsupported credential type: " + credentials.getClass().getName());
     }
 
-    ConnectionId connectionId = new ConnectionId(apiUrl, hash);
+    final ConnectionId connectionId = new ConnectionId(apiUrl, hash);
 
-    synchronized (connections) {
-      GitHubConnection record = GitHubConnection.lookup(connectionId);
-      if (record == null) {
-        Cache cache = getCache(jenkins, apiUrl, authHash, username);
+    GitHubConnection record =
+        GitHubConnection.lookup(
+            connectionId,
+            () -> {
+              try {
+                Cache cache = getCache(jenkins, apiUrl, authHash, username);
 
-        GitHubBuilder gb = createGitHubBuilder(apiUrl, cache);
+                GitHubBuilder gb = createGitHubBuilder(apiUrl, cache);
 
-        if (gitHubAppCredentials != null) {
-          gb.withAuthorizationProvider(gitHubAppCredentials.getAuthorizationProvider());
-        } else if (username != null && password != null) {
-          // At the time of this change this works for OAuth tokens as well.
-          // This may not continue to work in the future, as GitHub has deprecated Login/Password
-          // credentials.
-          gb.withAuthorizationProvider(
-              ImmutableAuthorizationProvider.fromLoginAndPassword(username, password));
-        }
+                if (gitHubAppCredentials != null) {
+                  gb.withAuthorizationProvider(gitHubAppCredentials.getAuthorizationProvider());
+                } else if (username != null && password != null) {
+                  // At the time of this change this works for OAuth tokens as well.
+                  // This may not continue to work in the future, as GitHub has deprecated
+                  // Login/Password
+                  // credentials.
+                  gb.withAuthorizationProvider(
+                      ImmutableAuthorizationProvider.fromLoginAndPassword(username, password));
+                }
+                return new GitHubConnection(
+                    gb.build(), cache, credentials instanceof GitHubAppCredentials);
+              } catch (IOException e) {
+                throw new RuntimeException(e.getMessage(), e);
+              }
+            });
 
-        record =
-            GitHubConnection.connect(
-                connectionId, gb.build(), cache, credentials instanceof GitHubAppCredentials);
-      }
-
-      return record.getGitHub();
-    }
+    record.verifyConnection();
+    return record.getGitHub();
   }
 
   /**
@@ -402,13 +411,13 @@ public class Connector {
    * @return a configured GitHubBuilder instance
    * @throws IOException if I/O error occurs
    */
-  static GitHubBuilder createGitHubBuilder(@Nonnull String apiUrl) throws IOException {
+  static GitHubBuilder createGitHubBuilder(@NonNull String apiUrl) throws IOException {
     return createGitHubBuilder(apiUrl, null);
   }
 
-  @Nonnull
+  @NonNull
   private static GitHubBuilder createGitHubBuilder(
-      @Nonnull String apiUrl, @CheckForNull Cache cache) throws IOException {
+      @NonNull String apiUrl, @CheckForNull Cache cache) throws IOException {
     String host;
     try {
       host = new URL(apiUrl).getHost();
@@ -434,9 +443,9 @@ public class Connector {
 
   @CheckForNull
   private static Cache getCache(
-      @Nonnull Jenkins jenkins,
-      @Nonnull String apiUrl,
-      @Nonnull String authHash,
+      @NonNull Jenkins jenkins,
+      @NonNull String apiUrl,
+      @NonNull String authHash,
       @CheckForNull String username) {
     Cache cache = null;
     int cacheSize = GitHubSCMSource.getCacheSize();
@@ -452,7 +461,9 @@ public class Connector {
         }
         sha256.update("::".getBytes(StandardCharsets.UTF_8));
         sha256.update(authHash.getBytes(StandardCharsets.UTF_8));
-        cacheDir = new File(cacheBase, Base64.encodeBase64URLSafeString(sha256.digest()));
+        cacheDir =
+            new File(
+                cacheBase, Base64.getUrlEncoder().withoutPadding().encodeToString(sha256.digest()));
       } catch (NoSuchAlgorithmException e) {
         // no cache for you mr non-spec compliant JVM
       }
@@ -468,14 +479,17 @@ public class Connector {
       return;
     }
 
-    synchronized (connections) {
-      GitHubConnection record = reverseLookup.get(hub);
-      if (record != null) {
-        try {
-          record.release();
-        } catch (IOException e) {
-          LOGGER.log(WARNING, "There is a mismatch in connect and release calls.", e);
-        }
+    ConnectionId connectionId = reverseLookup.get(hub);
+    if (connectionId == null) {
+      return;
+    }
+
+    GitHubConnection record = connections.get(connectionId);
+    if (record != null) {
+      try {
+        record.release();
+      } catch (IOException e) {
+        LOGGER.log(WARNING, "There is a mismatch in connect and release calls.", e);
       }
     }
   }
@@ -498,8 +512,8 @@ public class Connector {
    * @param host GitHub's hostname to build proxy to
    * @return proxy to use it in connector. Should not be null as it can lead to unexpected behaviour
    */
-  @Nonnull
-  private static Proxy getProxy(@Nonnull String host) {
+  @NonNull
+  private static Proxy getProxy(@NonNull String host) {
     Jenkins jenkins = Jenkins.getInstanceOrNull();
     if (jenkins == null || jenkins.proxy == null) {
       return Proxy.NO_PROXY;
@@ -617,20 +631,18 @@ public class Connector {
       // and has not been looked up or released for the last 30 minutes
       long unusedThreshold = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(30);
 
-      synchronized (connections) {
-        GitHubConnection.removeAllUnused(unusedThreshold);
-      }
+      GitHubConnection.removeAllUnused(unusedThreshold);
     }
   }
 
-  private static class GitHubConnection {
+  static class GitHubConnection {
     @NonNull private final GitHub gitHub;
 
     @CheckForNull private final Cache cache;
 
     private final boolean cleanupCacheFolder;
-    private int usageCount = 1;
-    private long lastUsed = System.currentTimeMillis();
+    private final AtomicInteger usageCount = new AtomicInteger(1);
+    private final AtomicLong lastUsed = new AtomicLong(System.currentTimeMillis());
     private long lastVerified = Long.MIN_VALUE;
 
     private GitHubConnection(GitHub gitHub, Cache cache, boolean cleanupCacheFolder) {
@@ -648,64 +660,66 @@ public class Connector {
       return gitHub;
     }
 
-    @CheckForNull
-    private static GitHubConnection lookup(@NonNull ConnectionId connectionId) throws IOException {
-      GitHubConnection record;
-      record = connections.get(connectionId);
-      if (record != null) {
-        record.verifyConnection();
-        record.usageCount += 1;
-        record.lastUsed = System.currentTimeMillis();
-      }
-      return record;
-    }
-
     @NonNull
-    private static GitHubConnection connect(
-        @NonNull ConnectionId connectionId,
-        @NonNull GitHub gitHub,
-        @CheckForNull Cache cache,
-        boolean cleanupCacheFolder)
-        throws IOException {
-      GitHubConnection record = new GitHubConnection(gitHub, cache, cleanupCacheFolder);
-      record.verifyConnection();
-      connections.put(connectionId, record);
-      reverseLookup.put(record.gitHub, record);
+    private static GitHubConnection lookup(
+        @NonNull ConnectionId connectionId, @NonNull Supplier<GitHubConnection> generator) {
+      GitHubConnection record;
+      record =
+          connections.compute(
+              connectionId,
+              (id, connection) -> {
+                if (connection == null) {
+                  connection = generator.get();
+                  reverseLookup.put(connection.gitHub, id);
+                } else {
+                  connection.usageCount.incrementAndGet();
+                  connection.lastUsed.set(System.currentTimeMillis());
+                }
+
+                return connection;
+              });
       return record;
     }
 
     private void release() throws IOException {
-      if (this.usageCount <= 0) {
+      long count = this.usageCount.decrementAndGet();
+      if (count < 0) {
+        // if this happens we should try not to remain in a bad state
+        // but there's no guarantees.
+        this.usageCount.incrementAndGet();
         throw new IOException(
             "Tried to release a GitHubConnection that should have no references.");
       }
 
-      this.usageCount -= 1;
-      this.lastUsed = System.currentTimeMillis();
+      this.lastUsed.compareAndSet(this.lastUsed.get(), System.currentTimeMillis());
     }
 
     private static void removeAllUnused(long threshold) throws IOException {
-      for (Iterator<Map.Entry<ConnectionId, GitHubConnection>> iterator =
-              connections.entrySet().iterator();
-          iterator.hasNext(); ) {
-        Map.Entry<ConnectionId, GitHubConnection> entry = iterator.next();
-        try {
-          GitHubConnection record = Objects.requireNonNull(entry.getValue());
-          long lastUse = record.lastUsed;
-          if (record.usageCount == 0 && lastUse < threshold) {
-            iterator.remove();
-            reverseLookup.remove(record.gitHub);
-            if (record.cache != null && record.cleanupCacheFolder) {
-              record.cache.delete();
-              record.cache.close();
-            }
-          }
-        } catch (IOException | NullPointerException e) {
-          LOGGER.log(
-              WARNING,
-              "Exception removing cache directory for unused connection: " + entry.getKey(),
-              e);
-        }
+      for (ConnectionId connectionId : connections.keySet()) {
+        connections.computeIfPresent(
+            connectionId,
+            (id, record) -> {
+              long lastUse = record.lastUsed.get();
+              if (record.usageCount.get() == 0 && lastUse < threshold) {
+                try {
+                  if (record.cache != null && record.cleanupCacheFolder) {
+                    record.cache.delete();
+                    record.cache.close();
+                  }
+                } catch (IOException e) {
+                  LOGGER.log(
+                      WARNING,
+                      "Exception removing cache directory for unused connection: " + id,
+                      e);
+                }
+                reverseLookup.remove(record.gitHub);
+
+                // returning null will remove the connection
+                record = null;
+              }
+
+              return record;
+            });
       }
     }
 
@@ -714,12 +728,12 @@ public class Connector {
         if (lastVerified > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
           return;
         }
-        try {
-          gitHub.checkApiUrlValidity();
-        } catch (HttpException e) {
-          String message = String.format("It seems %s is unreachable", gitHub.getApiUrl());
-          throw new IOException(message, e);
-        }
+
+        // Connection verification should ignore rate limits
+        // It is possible this method will exceed the rate limit,
+        // but very unlikely.
+        ApiRateLimitChecker.verifyConnection(gitHub);
+
         lastVerified = System.currentTimeMillis();
       }
     }
@@ -729,7 +743,7 @@ public class Connector {
     private final String apiUrl;
     private final String credentialsHash;
 
-    private ConnectionId(String apiUrl, String credentialsHash) {
+    ConnectionId(String apiUrl, String credentialsHash) {
       this.apiUrl = apiUrl;
       this.credentialsHash = credentialsHash;
     }
