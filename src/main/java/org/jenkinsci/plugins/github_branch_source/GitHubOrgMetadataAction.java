@@ -78,8 +78,7 @@ public class GitHubOrgMetadataAction extends AvatarMetadataAction {
           : (Stapler.getCurrentRequest().getContextPath()
               + Hudson.RESOURCE_PATH
               + "/plugin/github-branch-source/images/"
-              + size
-              + "/github-logo.png");
+              + "/github-logo.svg");
     } else {
       String[] xy = size.split("x");
       if (xy.length == 0) return avatar;
