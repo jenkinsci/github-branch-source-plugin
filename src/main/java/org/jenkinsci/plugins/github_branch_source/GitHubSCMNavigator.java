@@ -1690,7 +1690,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /** {@inheritDoc} */
     @Override
     public String getIconFilePathPattern() {
-      return "plugin/github-branch-source/images/:size/github-scmnavigator.png";
+      return "plugin/github-branch-source/images/github-scmnavigator.svg";
     }
 
     /** {@inheritDoc} */
@@ -1853,22 +1853,22 @@ public class GitHubSCMNavigator extends SCMNavigator {
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-scm-navigator icon-sm",
-              "plugin/github-branch-source/images/16x16/github-scmnavigator.png",
+              "plugin/github-branch-source/images/svgs/github-scmnavigator.svg",
               Icon.ICON_SMALL_STYLE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-scm-navigator icon-md",
-              "plugin/github-branch-source/images/24x24/github-scmnavigator.png",
+              "plugin/github-branch-source/images/svgs/github-scmnavigator.svg",
               Icon.ICON_MEDIUM_STYLE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-scm-navigator icon-lg",
-              "plugin/github-branch-source/images/32x32/github-scmnavigator.png",
+              "plugin/github-branch-source/images/svgs/github-scmnavigator.svg",
               Icon.ICON_LARGE_STYLE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-scm-navigator icon-xlg",
-              "plugin/github-branch-source/images/48x48/github-scmnavigator.png",
+              "plugin/github-branch-source/images/svgs/github-scmnavigator.svg",
               Icon.ICON_XLARGE_STYLE));
 
       IconSet.icons.addIcon(
