@@ -21,6 +21,7 @@ import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -218,7 +219,12 @@ public class GitHubAppCredentials extends BaseStandardCredentials
         appInstallation =
             appInstallations.stream()
                 .filter(
-                    installation -> installation.getAccount().getLogin().equalsIgnoreCase(owner))
+                    installation ->
+                        installation
+                            .getAccount()
+                            .getLogin()
+                            .toLowerCase(Locale.ROOT)
+                            .equals(owner.toLowerCase(Locale.ROOT)))
                 .findAny()
                 .orElseThrow(
                     () ->
