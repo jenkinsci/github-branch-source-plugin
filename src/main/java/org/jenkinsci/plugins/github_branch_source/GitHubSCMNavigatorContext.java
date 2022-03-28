@@ -42,7 +42,7 @@ public class GitHubSCMNavigatorContext
   private String teamSlug = "";
 
   /** The topic which the repositories must have. */
-  private ArrayList<String> topics = new ArrayList<String>();
+  private List<String> topics = new ArrayList<>();
 
   /** If true, archived repositories will be ignored. */
   private boolean excludeArchivedRepositories;
@@ -76,7 +76,7 @@ public class GitHubSCMNavigatorContext
   }
 
   /** Sets the topics which the repositories must have. */
-  public void setTopics(ArrayList<String> topics) {
+  public void setTopics(List<String> topics) {
     this.topics = topics;
   }
 
