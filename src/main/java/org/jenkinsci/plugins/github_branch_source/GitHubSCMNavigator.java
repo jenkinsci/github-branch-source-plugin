@@ -46,6 +46,8 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -1574,15 +1576,21 @@ public class GitHubSCMNavigator extends SCMNavigator {
     // trusted source
     listener.getLogger().printf("Looking up details of %s...%n", getRepoOwner());
     List<Action> result = new ArrayList<>();
+    String apiUri = getApiUri();
     StandardCredentials credentials =
-        Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId);
-    GitHub hub = Connector.connect(getApiUri(), credentials);
+        Connector.lookupScanCredentials((Item) owner, apiUri, credentialsId);
+    GitHub hub = Connector.connect(apiUri, credentials);
+    boolean privateMode = apiUri == null ? false : determinePrivateMode(apiUri);
     try {
       Connector.configureLocalRateLimitChecker(listener, hub);
       GHUser u = hub.getUser(getRepoOwner());
       String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
       result.add(new ObjectMetadataAction(Util.fixEmpty(u.getName()), null, objectUrl));
-      result.add(new GitHubOrgMetadataAction(u));
+      if (privateMode) {
+        result.add(new GitHubOrgMetadataAction((String) null));
+      } else {
+        result.add(new GitHubOrgMetadataAction(u));
+      }
       result.add(new GitHubLink("icon-github-logo", u.getHtmlUrl()));
       if (objectUrl == null) {
         listener.getLogger().println("Organization URL: unspecified");
@@ -1598,6 +1606,19 @@ public class GitHubSCMNavigator extends SCMNavigator {
     } finally {
       Connector.release(hub);
     }
+  }
+
+  private static boolean determinePrivateMode(String apiUri) {
+    try {
+      GitHub.connectToEnterpriseAnonymously(new URL(apiUri).toString()).checkApiUrlValidity();
+    } catch (MalformedURLException e) {
+      // Ignored
+    } catch (IOException e) {
+      if (e.getMessage().contains("private mode enabled")) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /** {@inheritDoc} */
