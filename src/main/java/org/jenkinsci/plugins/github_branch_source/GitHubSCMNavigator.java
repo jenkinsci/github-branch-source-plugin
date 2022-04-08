@@ -1576,7 +1576,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     // trusted source
     listener.getLogger().printf("Looking up details of %s...%n", getRepoOwner());
     List<Action> result = new ArrayList<>();
-    String apiUri = getApiUri();
+    String apiUri = Util.fixEmptyAndTrim(getApiUri());
     StandardCredentials credentials =
         Connector.lookupScanCredentials((Item) owner, apiUri, credentialsId);
     GitHub hub = Connector.connect(apiUri, credentials);
@@ -1609,10 +1609,13 @@ public class GitHubSCMNavigator extends SCMNavigator {
   }
 
   private static boolean determinePrivateMode(String apiUri) {
+    if (apiURL == null || apiURL.equals(GitHubServerConfig.GITHUB_URL)) {
+      return false;
+    }
     try {
-      GitHub.connectToEnterpriseAnonymously(new URL(apiUri).toString()).checkApiUrlValidity();
+      GitHub.connectToEnterpriseAnonymously(apiUri).checkApiUrlValidity();
     } catch (MalformedURLException e) {
-      // Ignored
+      return true;  // URL is bogus so there is never going to be an avatar - or anything else come to think of it
     } catch (IOException e) {
       if (e.getMessage().contains("private mode enabled")) {
         return true;
