@@ -1580,7 +1580,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     StandardCredentials credentials =
         Connector.lookupScanCredentials((Item) owner, apiUri, credentialsId);
     GitHub hub = Connector.connect(apiUri, credentials);
-    boolean privateMode = apiUri == null ? false : determinePrivateMode(apiUri);
+    boolean privateMode = determinePrivateMode(apiUri);
     try {
       Connector.configureLocalRateLimitChecker(listener, hub);
       GHUser u = hub.getUser(getRepoOwner());
