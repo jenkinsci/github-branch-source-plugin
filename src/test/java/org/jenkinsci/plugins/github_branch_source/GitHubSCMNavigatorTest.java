@@ -254,6 +254,19 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
   }
 
   @Test
+  public void fetchOneRepo_ExcludingPrivate() throws Exception {
+    setCredentials(Collections.singletonList(credentials));
+    navigator = navigatorForRepoOwner("stephenc", credentials.getId());
+    navigator.setTraits(Collections.singletonList(new ExcludePrivateRepositoriesTrait()));
+    final Set<String> projectNames = new HashSet<>();
+    final SCMSourceObserver observer = getObserver(projectNames);
+
+    navigator.visitSources(SCMSourceObserver.filter(observer, "Hello-World"));
+
+    assertThat(projectNames, containsInAnyOrder("Hello-World"));
+  }
+
+  @Test
   public void fetchOneRepo_ExcludingForked() throws Exception {
     setCredentials(Collections.singletonList(credentials));
     navigator = navigatorForRepoOwner("stephenc", credentials.getId());
@@ -369,6 +382,19 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
             observer, "Hello-World", "github-branch-source-plugin", "yolo-private"));
 
     assertThat(projectNames, containsInAnyOrder("yolo-private"));
+  }
+
+  @Test
+  public void fetchRepos_BelongingToOrg_ExcludingPrivate() throws Exception {
+    navigator.setTraits(Collections.singletonList(new ExcludePrivateRepositoriesTrait()));
+    final Set<String> projectNames = new HashSet<>();
+    final SCMSourceObserver observer = getObserver(projectNames);
+
+    navigator.visitSources(
+        SCMSourceObserver.filter(
+            observer, "Hello-World", "github-branch-source-plugin", "yolo-private"));
+
+    assertThat(projectNames, containsInAnyOrder("Hello-World", "github-branch-source-plugin"));
   }
 
   @Test
