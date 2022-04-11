@@ -1609,7 +1609,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
   }
 
   private static boolean determinePrivateMode(String apiUri) {
-    if (apiURL == null || apiURL.equals(GitHubServerConfig.GITHUB_URL)) {
+    if (apiUri== null || apiUri.equals(GitHubServerConfig.GITHUB_URL)) {
       return false;
     }
     try {
