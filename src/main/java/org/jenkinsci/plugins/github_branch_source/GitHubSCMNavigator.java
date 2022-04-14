@@ -47,7 +47,6 @@ import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -1609,13 +1608,14 @@ public class GitHubSCMNavigator extends SCMNavigator {
   }
 
   private static boolean determinePrivateMode(String apiUri) {
-    if (apiUri== null || apiUri.equals(GitHubServerConfig.GITHUB_URL)) {
+    if (apiUri == null || apiUri.equals(GitHubServerConfig.GITHUB_URL)) {
       return false;
     }
     try {
       GitHub.connectToEnterpriseAnonymously(apiUri).checkApiUrlValidity();
     } catch (MalformedURLException e) {
-      return true;  // URL is bogus so there is never going to be an avatar - or anything else come to think of it
+      // URL is bogus so there is never going to be an avatar - or anything else come to think of it
+      return true;
     } catch (IOException e) {
       if (e.getMessage().contains("private mode enabled")) {
         return true;
