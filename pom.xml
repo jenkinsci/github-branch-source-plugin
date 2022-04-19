@@ -39,7 +39,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.122</version>
+            <version>1.303-400.v35c2d8258028</version>
         </dependency>
         <dependency>
             <groupId>com.coravy.hudson.plugins.github</groupId>
@@ -118,7 +118,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.289.x</artifactId>
-                <version>1090.v0a_33df40457a_</version>
+                <version>1280.vd669827e38cd</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -127,6 +127,11 @@
                 <artifactId>commons-lang3</artifactId>
                 <version>3.11</version>
             </dependency>
+          <dependency>
+            <groupId>org.jenkins-ci.main</groupId>
+            <artifactId>jenkins-test-harness</artifactId>
+            <version>1706.v5257fc59612a_</version>
+          </dependency>
         </dependencies>
     </dependencyManagement>
     <build>
