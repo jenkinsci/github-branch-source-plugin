@@ -112,6 +112,10 @@
             <artifactId>workflow-cps-global-lib</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+          <groupId>io.jenkins.plugins</groupId>
+          <artifactId>okhttp-api</artifactId>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>
