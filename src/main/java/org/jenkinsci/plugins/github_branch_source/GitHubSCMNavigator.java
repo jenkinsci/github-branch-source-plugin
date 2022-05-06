@@ -935,7 +935,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     StandardCredentials credentials =
-        Connector.lookupScanCredentials((Item) observer.getContext(), apiUri, credentialsId);
+        Connector.lookupScanCredentials(
+            (Item) observer.getContext(), apiUri, credentialsId, repoOwner);
 
     // Github client and validation
     GitHub github = Connector.connect(apiUri, credentials);
@@ -1262,7 +1263,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     StandardCredentials credentials =
-        Connector.lookupScanCredentials((Item) observer.getContext(), apiUri, credentialsId);
+        Connector.lookupScanCredentials(
+            (Item) observer.getContext(), apiUri, credentialsId, repoOwner);
 
     // Github client and validation
     GitHub github;
@@ -1577,8 +1579,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     List<Action> result = new ArrayList<>();
     String apiUri = Util.fixEmptyAndTrim(getApiUri());
     StandardCredentials credentials =
-        Connector.lookupScanCredentials((Item) owner, apiUri, credentialsId);
-    GitHub hub = Connector.connect(apiUri, credentials);
+        Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId, repoOwner);
+    GitHub hub = Connector.connect(getApiUri(), credentials);
     boolean privateMode = determinePrivateMode(apiUri);
     try {
       Connector.configureLocalRateLimitChecker(listener, hub);
@@ -1631,7 +1633,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     try {
       // FIXME MINOR HACK ALERT
       StandardCredentials credentials =
-          Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId);
+          Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId, repoOwner);
       GitHub hub = Connector.connect(getApiUri(), credentials);
       try {
         GitHubOrgWebHook.register(hub, repoOwner);
@@ -1757,8 +1759,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
     public FormValidation doCheckCredentialsId(
         @CheckForNull @AncestorInPath Item context,
         @QueryParameter String apiUri,
-        @QueryParameter String credentialsId) {
-      return Connector.checkScanCredentials(context, apiUri, credentialsId);
+        @QueryParameter String credentialsId,
+        @QueryParameter String repoOwner) {
+      return Connector.checkScanCredentials(context, apiUri, credentialsId, repoOwner);
     }
 
     /**
