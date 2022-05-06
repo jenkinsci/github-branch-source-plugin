@@ -50,6 +50,7 @@ import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import io.jenkins.plugins.okhttp.api.JenkinsOkHttpClient;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -100,7 +101,8 @@ public class Connector {
 
   private static final Random ENTROPY = new Random();
   private static final String SALT = Long.toHexString(ENTROPY.nextLong());
-  private static final OkHttpClient baseClient = new OkHttpClient();
+  private static final OkHttpClient baseClient =
+      JenkinsOkHttpClient.newClientBuilder(new OkHttpClient()).build();
 
   private Connector() {
     throw new IllegalAccessError("Utility class");
@@ -592,7 +594,8 @@ public class Connector {
 
   /**
    * Alternative to {@link GitHub#isCredentialValid()} that relies on the cached user object in the
-   * {@link GitHub} instance and hence reduced rate limit consumption.
+   * {@link GitHub} instance and hence reduced rate limit consumption. It also uses a separate
+   * endpoint if rate limit checking is disabled.
    *
    * @param gitHub the instance to check.
    * @return {@code true} if the credentials are valid.
@@ -602,7 +605,15 @@ public class Connector {
       return true;
     } else {
       try {
-        gitHub.getRateLimit();
+        // If rate limit checking is disabled, use the meta endpoint instead
+        // of the rate limiting endpoint
+        GitHubConfiguration gitHubConfiguration = GitHubConfiguration.get();
+        if (gitHubConfiguration != null
+            && gitHubConfiguration.getApiRateLimitChecker() == ApiRateLimitChecker.NoThrottle) {
+          gitHub.getMeta();
+        } else {
+          gitHub.getRateLimit();
+        }
         return true;
       } catch (IOException e) {
         if (LOGGER.isLoggable(FINE)) {
