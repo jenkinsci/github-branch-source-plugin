@@ -125,21 +125,7 @@ import org.jenkinsci.plugins.structs.describable.UninstantiatedDescribable;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.github.GHBranch;
-import org.kohsuke.github.GHCommit;
-import org.kohsuke.github.GHException;
-import org.kohsuke.github.GHFileNotFoundException;
-import org.kohsuke.github.GHIssueState;
-import org.kohsuke.github.GHMyself;
-import org.kohsuke.github.GHOrganization;
-import org.kohsuke.github.GHPermissionType;
-import org.kohsuke.github.GHPullRequest;
-import org.kohsuke.github.GHRef;
-import org.kohsuke.github.GHRepository;
-import org.kohsuke.github.GHTagObject;
-import org.kohsuke.github.GHUser;
-import org.kohsuke.github.GitHub;
-import org.kohsuke.github.HttpException;
+import org.kohsuke.github.*;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -985,8 +971,14 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
       @CheckForNull SCMHeadEvent<?> event,
       @NonNull final TaskListener listener)
       throws IOException, InterruptedException {
-    StandardCredentials credentials =
-        Connector.lookupScanCredentials((Item) getOwner(), apiUri, credentialsId);
+    SCMSourceOwner owner = getOwner();
+    StandardCredentials credentials = Connector.lookupScanCredentials(owner, apiUri, credentialsId);
+
+    String shaToProcess = "";
+    if (owner != null && event != null) {
+      shaToProcess = GitHubIncludeRegionsTrait.isBuildableSCMEvent(owner, event);
+    }
+
     // Github client and validation
     final GitHub github = Connector.connect(apiUri, credentials);
     try {
@@ -1044,6 +1036,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             int count = 0;
             for (final GHBranch branch : request.getBranches()) {
               count++;
+
               String branchName = branch.getName();
               listener
                   .getLogger()
@@ -1051,10 +1044,34 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                       "%n    Checking branch %s%n",
                       HyperlinkNote.encodeTo(
                           resolvedRepositoryUrl + "/tree/" + branchName, branchName));
+
+              SCMRevisionImpl revision;
               BranchSCMHead head = new BranchSCMHead(branchName);
+              String eventBranchName = GitHubIncludeRegionsTrait.getBranchFromEvent(event);
+
+              // We're processing an event for a gh webhook, rely on sha to process from above
+              if (branchName.equals(eventBranchName)) {
+                listener
+                    .getLogger()
+                    .format("%n    Processing webhook event for branch %s %n", eventBranchName);
+                listener
+                    .getLogger()
+                    .format("%n    Got commit SHA to process.. using %s %n", shaToProcess);
+                revision = new SCMRevisionImpl(head, shaToProcess);
+              } else { // we're not processing a webhook event, but rather a scan repo event
+                listener
+                    .getLogger()
+                    .format(
+                        "%n    Processing repo scan...getting last built commit for branch %s %n",
+                        branch.getName());
+                String sha = GitHubIncludeRegionsTrait.getOrSetLastBuiltCommit(owner, branch);
+                revision = new SCMRevisionImpl(head, sha);
+              }
+
+              // TODO: fake processing this event if necessary / possible
               if (request.process(
                   head,
-                  new SCMRevisionImpl(head, branch.getSHA1()),
+                  revision,
                   new SCMSourceRequest.ProbeLambda<BranchSCMHead, SCMRevisionImpl>() {
                     @NonNull
                     @Override

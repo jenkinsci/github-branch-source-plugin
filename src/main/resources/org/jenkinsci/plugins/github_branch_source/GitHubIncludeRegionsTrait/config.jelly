@@ -1,0 +1,17 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core"
+         xmlns:st="jelly:stapler"
+         xmlns:d="jelly:define"
+         xmlns:c="/lib/credentials"
+         xmlns:l="/lib/layout"
+         xmlns:t="/lib/hudson"
+         xmlns:f="/lib/form"
+         xmlns:f2="/org/jenkinsci/plugins/github_branch_source/form"
+>
+    <f:entry title="Trigger builds for included regions" field="includeRegions">
+        <f:textarea />
+    </f:entry>
+    <f:entry title="sha strings" field="matchedShas">
+        <f:textarea />
+    </f:entry>
+</j:jelly>
