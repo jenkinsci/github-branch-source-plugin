@@ -26,8 +26,6 @@
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <jenkins.version>2.323</jenkins.version>
         <useBeta>true</useBeta>
-        <!-- TODO remove jth override when we bump the parent version -->
-        <jenkins-test-harness.version>1706.v5257fc59612a_</jenkins-test-harness.version>
     </properties>
 
     <scm>
