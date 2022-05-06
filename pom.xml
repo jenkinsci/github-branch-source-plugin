@@ -24,7 +24,6 @@
         <changelist>999999-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
-        <java.level>8</java.level>
         <jenkins.version>2.323</jenkins.version>
         <useBeta>true</useBeta>
         <!-- TODO remove jth override when we bump the parent version -->
