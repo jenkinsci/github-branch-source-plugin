@@ -27,6 +27,8 @@
         <java.level>8</java.level>
         <jenkins.version>2.323</jenkins.version>
         <useBeta>true</useBeta>
+        <!-- TODO remove jth override when we bump the parent version -->
+        <jenkins-test-harness.version>1706.v5257fc59612a_</jenkins-test-harness.version>
     </properties>
 
     <scm>
@@ -39,7 +41,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.122</version>
+            <version>1.303-400.v35c2d8258028</version>
         </dependency>
         <dependency>
             <groupId>com.coravy.hudson.plugins.github</groupId>
@@ -122,7 +124,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.289.x</artifactId>
-                <version>1090.v0a_33df40457a_</version>
+                <version>1280.vd669827e38cd</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>

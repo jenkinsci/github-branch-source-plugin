@@ -1,6 +1,6 @@
 {
   "request" : {
-    "url" : "/teams/1/repos?per_page=100",
+    "url" : "/organizations/4181899/team/1/repos?per_page=100",
     "method" : "GET"
   },
   "response" : {
