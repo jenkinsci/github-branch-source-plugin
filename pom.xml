@@ -51,7 +51,7 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>credentials</artifactId>
-            <version>1087.v16065d268466</version> <!-- TODO until in BOM -->
+            <version>1087.1089.v2f1b_9a_b_040e4</version> <!-- TODO until in BOM -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
