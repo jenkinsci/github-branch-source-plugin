@@ -27,6 +27,8 @@
         <java.level>8</java.level>
         <jenkins.version>2.323</jenkins.version>
         <useBeta>true</useBeta>
+        <!-- TODO remove jth override when we bump the parent version -->
+        <jenkins-test-harness.version>1706.v5257fc59612a_</jenkins-test-harness.version>
     </properties>
 
     <scm>
@@ -127,11 +129,6 @@
                 <artifactId>commons-lang3</artifactId>
                 <version>3.11</version>
             </dependency>
-          <dependency>
-            <groupId>org.jenkins-ci.main</groupId>
-            <artifactId>jenkins-test-harness</artifactId>
-            <version>1706.v5257fc59612a_</version>
-          </dependency>
         </dependencies>
     </dependencyManagement>
     <build>
