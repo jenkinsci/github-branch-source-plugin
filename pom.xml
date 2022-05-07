@@ -4,7 +4,7 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.38</version>
+        <version>4.40</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
@@ -24,15 +24,12 @@
         <changelist>999999-SNAPSHOT</changelist>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
-        <java.level>8</java.level>
-        <jenkins.version>2.323</jenkins.version>
+        <jenkins.version>2.332.1</jenkins.version>
         <useBeta>true</useBeta>
-        <!-- TODO remove jth override when we bump the parent version -->
-        <jenkins-test-harness.version>1706.v5257fc59612a_</jenkins-test-harness.version>
     </properties>
 
     <scm>
-        <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
+        <connection>scm:git:https://github.com/${gitHubRepo}.git</connection>
         <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
         <url>https://github.com/${gitHubRepo}</url>
         <tag>${scmTag}</tag>
@@ -51,7 +48,6 @@
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>credentials</artifactId>
-            <version>1087.v16065d268466</version> <!-- TODO until in BOM -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -60,7 +56,6 @@
         <dependency>
             <groupId>io.jenkins.plugins</groupId>
             <artifactId>jjwt-api</artifactId>
-            <version>0.11.2-5.143e44951c52</version>
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
@@ -128,7 +123,7 @@
         <dependencies>
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
-                <artifactId>bom-2.289.x</artifactId>
+                <artifactId>bom-2.332.x</artifactId>
                 <version>1280.vd669827e38cd</version>
                 <scope>import</scope>
                 <type>pom</type>
@@ -136,7 +131,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.11</version>
+                <version>3.12.0</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
