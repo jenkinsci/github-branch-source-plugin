@@ -215,7 +215,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials
       GHAppInstallation appInstallation;
       if (appInstallations.size() == 1) {
         appInstallation = appInstallations.get(0);
-      } else if (owner != null) {
+      } else {
         appInstallation =
             appInstallations.stream()
                 .filter(
@@ -230,8 +230,6 @@ public class GitHubAppCredentials extends BaseStandardCredentials
                     () ->
                         new IllegalArgumentException(
                             String.format(ERROR_NO_OWNER_MATCHING, appId, owner)));
-      } else {
-        throw new IllegalArgumentException(String.format(ERROR_NO_OWNER_MATCHING, appId, owner));
       }
 
       GHAppInstallationToken appInstallationToken =
