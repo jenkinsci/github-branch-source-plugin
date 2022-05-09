@@ -50,6 +50,7 @@ import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
+import io.jenkins.plugins.okhttp.api.JenkinsOkHttpClient;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -100,7 +101,8 @@ public class Connector {
 
   private static final Random ENTROPY = new Random();
   private static final String SALT = Long.toHexString(ENTROPY.nextLong());
-  private static final OkHttpClient baseClient = new OkHttpClient();
+  private static final OkHttpClient baseClient =
+      JenkinsOkHttpClient.newClientBuilder(new OkHttpClient()).build();
 
   private Connector() {
     throw new IllegalAccessError("Utility class");
@@ -150,7 +152,7 @@ public class Connector {
    * @param apiUri the api endpoint.
    * @param scanCredentialsId the credentials ID.
    * @return the {@link FormValidation} results.
-   * @deprecated use {@link #checkScanCredentials(Item, String, String)}
+   * @deprecated use {@link #checkScanCredentials(Item, String, String, String)}
    */
   @Deprecated
   public static FormValidation checkScanCredentials(
@@ -166,9 +168,29 @@ public class Connector {
    * @param apiUri the api endpoint.
    * @param scanCredentialsId the credentials ID.
    * @return the {@link FormValidation} results.
+   * @deprecated use {@link #checkScanCredentials(Item, String, String, String)}
    */
+  @Deprecated
   public static FormValidation checkScanCredentials(
       @CheckForNull Item context, String apiUri, String scanCredentialsId) {
+    return checkScanCredentials(context, apiUri, scanCredentialsId, null);
+  }
+
+  /**
+   * Checks the credential ID for use as scan credentials in the supplied context against the
+   * supplied API endpoint.
+   *
+   * @param context the context.
+   * @param apiUri the api endpoint.
+   * @param scanCredentialsId the credentials ID.
+   * @param repoOwner the org/user
+   * @return the {@link FormValidation} results.
+   */
+  public static FormValidation checkScanCredentials(
+      @CheckForNull Item context,
+      String apiUri,
+      String scanCredentialsId,
+      @CheckForNull String repoOwner) {
     if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
         || context != null && !context.hasPermission(Item.EXTENDED_READ)) {
       return FormValidation.ok();
@@ -192,7 +214,8 @@ public class Connector {
           Connector.lookupScanCredentials(
               context,
               StringUtils.defaultIfEmpty(apiUri, GitHubServerConfig.GITHUB_URL),
-              scanCredentialsId);
+              scanCredentialsId,
+              repoOwner);
       if (credentials == null) {
         return FormValidation.error("Credentials not found");
       } else {
@@ -239,7 +262,7 @@ public class Connector {
    * @param apiUri the API endpoint.
    * @param scanCredentialsId the credentials to resolve.
    * @return the {@link StandardCredentials} or {@code null}
-   * @deprecated use {@link #lookupScanCredentials(Item, String, String)}
+   * @deprecated use {@link #lookupScanCredentials(Item, String, String, String)}
    */
   @Deprecated
   @CheckForNull
@@ -258,25 +281,52 @@ public class Connector {
    * @param apiUri the API endpoint.
    * @param scanCredentialsId the credentials to resolve.
    * @return the {@link StandardCredentials} or {@code null}
+   * @deprecated use {@link #lookupScanCredentials(Item, String, String, String)}
    */
+  @Deprecated
   @CheckForNull
   public static StandardCredentials lookupScanCredentials(
       @CheckForNull Item context,
       @CheckForNull String apiUri,
       @CheckForNull String scanCredentialsId) {
+    return lookupScanCredentials(context, apiUri, scanCredentialsId, null);
+  }
+
+  /**
+   * Resolves the specified scan credentials in the specified context for use against the specified
+   * API endpoint.
+   *
+   * @param context the context.
+   * @param apiUri the API endpoint.
+   * @param scanCredentialsId the credentials to resolve.
+   * @param repoOwner the org/user
+   * @return the {@link StandardCredentials} or {@code null}
+   */
+  @CheckForNull
+  public static StandardCredentials lookupScanCredentials(
+      @CheckForNull Item context,
+      @CheckForNull String apiUri,
+      @CheckForNull String scanCredentialsId,
+      @CheckForNull String repoOwner) {
     if (Util.fixEmpty(scanCredentialsId) == null) {
       return null;
     } else {
-      return CredentialsMatchers.firstOrNull(
-          CredentialsProvider.lookupCredentials(
-              StandardUsernameCredentials.class,
-              context,
-              context instanceof Queue.Task
-                  ? ((Queue.Task) context).getDefaultAuthentication()
-                  : ACL.SYSTEM,
-              githubDomainRequirements(apiUri)),
-          CredentialsMatchers.allOf(
-              CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher()));
+      StandardCredentials c =
+          CredentialsMatchers.firstOrNull(
+              CredentialsProvider.lookupCredentials(
+                  StandardUsernameCredentials.class,
+                  context,
+                  context instanceof Queue.Task
+                      ? ((Queue.Task) context).getDefaultAuthentication()
+                      : ACL.SYSTEM,
+                  githubDomainRequirements(apiUri)),
+              CredentialsMatchers.allOf(
+                  CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher()));
+      if (c instanceof GitHubAppCredentials && repoOwner != null) {
+        return ((GitHubAppCredentials) c).withOwner(repoOwner);
+      } else {
+        return c;
+      }
     }
   }
 
@@ -544,7 +594,8 @@ public class Connector {
 
   /**
    * Alternative to {@link GitHub#isCredentialValid()} that relies on the cached user object in the
-   * {@link GitHub} instance and hence reduced rate limit consumption.
+   * {@link GitHub} instance and hence reduced rate limit consumption. It also uses a separate
+   * endpoint if rate limit checking is disabled.
    *
    * @param gitHub the instance to check.
    * @return {@code true} if the credentials are valid.
@@ -554,7 +605,15 @@ public class Connector {
       return true;
     } else {
       try {
-        gitHub.getRateLimit();
+        // If rate limit checking is disabled, use the meta endpoint instead
+        // of the rate limiting endpoint
+        GitHubConfiguration gitHubConfiguration = GitHubConfiguration.get();
+        if (gitHubConfiguration != null
+            && gitHubConfiguration.getApiRateLimitChecker() == ApiRateLimitChecker.NoThrottle) {
+          gitHub.getMeta();
+        } else {
+          gitHub.getRateLimit();
+        }
         return true;
       } catch (IOException e) {
         if (LOGGER.isLoggable(FINE)) {

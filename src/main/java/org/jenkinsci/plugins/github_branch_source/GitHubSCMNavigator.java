@@ -46,6 +46,7 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -934,7 +935,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     StandardCredentials credentials =
-        Connector.lookupScanCredentials((Item) observer.getContext(), apiUri, credentialsId);
+        Connector.lookupScanCredentials(
+            (Item) observer.getContext(), apiUri, credentialsId, repoOwner);
 
     // Github client and validation
     GitHub github = Connector.connect(apiUri, credentials);
@@ -1261,7 +1263,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     StandardCredentials credentials =
-        Connector.lookupScanCredentials((Item) observer.getContext(), apiUri, credentialsId);
+        Connector.lookupScanCredentials(
+            (Item) observer.getContext(), apiUri, credentialsId, repoOwner);
 
     // Github client and validation
     GitHub github;
@@ -1574,15 +1577,21 @@ public class GitHubSCMNavigator extends SCMNavigator {
     // trusted source
     listener.getLogger().printf("Looking up details of %s...%n", getRepoOwner());
     List<Action> result = new ArrayList<>();
+    String apiUri = Util.fixEmptyAndTrim(getApiUri());
     StandardCredentials credentials =
-        Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId);
+        Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId, repoOwner);
     GitHub hub = Connector.connect(getApiUri(), credentials);
+    boolean privateMode = determinePrivateMode(apiUri);
     try {
       Connector.configureLocalRateLimitChecker(listener, hub);
       GHUser u = hub.getUser(getRepoOwner());
       String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
       result.add(new ObjectMetadataAction(Util.fixEmpty(u.getName()), null, objectUrl));
-      result.add(new GitHubOrgMetadataAction(u));
+      if (privateMode) {
+        result.add(new GitHubOrgMetadataAction((String) null));
+      } else {
+        result.add(new GitHubOrgMetadataAction(u));
+      }
       result.add(new GitHubLink("icon-github-logo", u.getHtmlUrl()));
       if (objectUrl == null) {
         listener.getLogger().println("Organization URL: unspecified");
@@ -1600,6 +1609,23 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
   }
 
+  private static boolean determinePrivateMode(String apiUri) {
+    if (apiUri == null || apiUri.equals(GitHubServerConfig.GITHUB_URL)) {
+      return false;
+    }
+    try {
+      GitHub.connectToEnterpriseAnonymously(apiUri).checkApiUrlValidity();
+    } catch (MalformedURLException e) {
+      // URL is bogus so there is never going to be an avatar - or anything else come to think of it
+      return true;
+    } catch (IOException e) {
+      if (e.getMessage().contains("private mode enabled")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** {@inheritDoc} */
   @Override
   public void afterSave(@NonNull SCMNavigatorOwner owner) {
@@ -1607,7 +1633,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     try {
       // FIXME MINOR HACK ALERT
       StandardCredentials credentials =
-          Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId);
+          Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId, repoOwner);
       GitHub hub = Connector.connect(getApiUri(), credentials);
       try {
         GitHubOrgWebHook.register(hub, repoOwner);
@@ -1733,8 +1759,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
     public FormValidation doCheckCredentialsId(
         @CheckForNull @AncestorInPath Item context,
         @QueryParameter String apiUri,
-        @QueryParameter String credentialsId) {
-      return Connector.checkScanCredentials(context, apiUri, credentialsId);
+        @QueryParameter String credentialsId,
+        @QueryParameter String repoOwner) {
+      return Connector.checkScanCredentials(context, apiUri, credentialsId, repoOwner);
     }
 
     /**
