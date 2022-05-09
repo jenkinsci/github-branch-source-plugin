@@ -216,6 +216,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials
       if (appInstallations.size() == 1) {
         appInstallation = appInstallations.get(0);
       } else {
+        final String ownerOrEmpty = owner != null ? owner : "";
         appInstallation =
             appInstallations.stream()
                 .filter(
@@ -224,12 +225,12 @@ public class GitHubAppCredentials extends BaseStandardCredentials
                             .getAccount()
                             .getLogin()
                             .toLowerCase(Locale.ROOT)
-                            .equals(owner.toLowerCase(Locale.ROOT)))
+                            .equals(ownerOrEmpty.toLowerCase(Locale.ROOT)))
                 .findAny()
                 .orElseThrow(
                     () ->
                         new IllegalArgumentException(
-                            String.format(ERROR_NO_OWNER_MATCHING, appId, owner)));
+                            String.format(ERROR_NO_OWNER_MATCHING, appId, ownerOrEmpty)));
       }
 
       GHAppInstallationToken appInstallationToken =
