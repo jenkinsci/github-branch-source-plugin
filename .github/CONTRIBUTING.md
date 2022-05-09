@@ -19,12 +19,12 @@ as a personal attack. (And, of course, if someone feels it is a personal attack,
 
 ## How to submit your contribution
 
-Changes should come in the form of pull requests to the master branch of the main repository. Contributors 
+Changes should come in the form of pull requests to the controller branch of the main repository. Contributors 
 may do so from the origin repository, e.g. 
 `https://github.com/jenkinsci/github-branch-source-plugin`, or from their own fork, e.g. 
 `https://github.com/firstTimeContributor/github-branch-source-plugin`. 
 
-Changes should never be made directly to master. This holds true for all contributions, 
+Changes should never be made directly to controller. This holds true for all contributions, 
 no matter the person or the change. Pull requests allow for easy code review. 
 
 High-impact security patches may sometimes follow an accelerated process. The 
@@ -99,7 +99,7 @@ feedback.
 
 ## Merging and releasing
 
-The process by which pull requests get merged to master is fairly simple, and is described 
+The process by which pull requests get merged to controller is fairly simple, and is described 
 in the [guide for releasing a plugin](https://jenkins.io/doc/developer/publishing/releasing/).
-In short, once changes are merged to master, a release can be generated. Final decisions 
+In short, once changes are merged to controller, a release can be generated. Final decisions 
 on merging and releasing fall to the plugin's maintainer.
