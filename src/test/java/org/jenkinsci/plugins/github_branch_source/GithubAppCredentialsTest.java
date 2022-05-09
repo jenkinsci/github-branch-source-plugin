@@ -536,7 +536,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
         // ok
         assertEquals(
             e.getMessage(),
-            "Found multiple installations for GitHub app ID 54321 but none match credential owner \"null\". "
+            "Found multiple installations for GitHub app ID 54321 but none match credential owner \"\". "
                 + "Set the right owner in the credential advanced options");
       }
 
