@@ -113,6 +113,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
     // Add agent
     agent = r.createSlave("my-agent", null);
+    r.waitOnline(agent);
 
     // Would use LoggerRule, but need to get agent logs as well
     LogRecorderManager mgr = r.jenkins.getLog();
