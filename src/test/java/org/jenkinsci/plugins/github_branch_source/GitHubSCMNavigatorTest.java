@@ -392,9 +392,9 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
 
     navigator.visitSources(
         SCMSourceObserver.filter(
-            observer, "Hello-World", "github-branch-source-plugin", "yolo-private"));
+            observer, "basic", "advanced", "yolo-private"));
 
-    assertThat(projectNames, containsInAnyOrder("Hello-World", "github-branch-source-plugin"));
+    assertThat(projectNames, containsInAnyOrder("basic", "advanced"));
   }
 
   @Test
