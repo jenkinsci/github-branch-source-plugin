@@ -17,7 +17,7 @@
       <f:entry title="${%Repository HTTPS URL}" field="repositoryUrl">
         <f:textbox/>
       </f:entry>
-      <f:validateButton method="validateRepositoryUrlAndCredentials" title="${%Validate}" with="repositoryUrl,credentialsId,repoOwner"/>
+      <f:validateButton method="validateRepositoryUrlAndCredentials" title="${%Validate}" with="repositoryUrl,credentialsId"/>
     </f:nested>
   </f:radioBlock>
   <f:radioBlock name="configuredByUrlRadio" value="false" checked="false" title="${%Repository Scan - Deprecated Visualization}" inline="true">

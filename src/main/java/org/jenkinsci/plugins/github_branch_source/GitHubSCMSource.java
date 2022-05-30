@@ -2130,8 +2130,17 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         @CheckForNull @AncestorInPath Item context,
         @QueryParameter String apiUri,
         @QueryParameter String repoOwner,
-        @QueryParameter String value) {
-      return Connector.checkScanCredentials(context, apiUri, value, repoOwner);
+        @QueryParameter String value,
+        @QueryParameter boolean configuredByUrl) {
+
+      if (!configuredByUrl) {
+        return Connector.checkScanCredentials(context, apiUri, value, repoOwner);
+      } else if (value.isEmpty()) {
+          return FormValidation.warning("Credentials are recommended");
+      } else {
+        // Using the URL-based configuration, that has its own "Validate" button
+        return FormValidation.ok();
+      }
     }
 
     @RequirePOST
@@ -2200,8 +2209,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         @CheckForNull @AncestorInPath Item context,
         @QueryParameter String apiUri,
         @QueryParameter String scanCredentialsId,
-        @QueryParameter String repoOwner) {
-      return doCheckCredentialsId(context, apiUri, scanCredentialsId, repoOwner);
+        @QueryParameter String repoOwner,
+        @QueryParameter boolean configuredByUrl) {
+      return doCheckCredentialsId(context, apiUri, scanCredentialsId, repoOwner, configuredByUrl);
     }
 
     @Restricted(NoExternalUse.class)
