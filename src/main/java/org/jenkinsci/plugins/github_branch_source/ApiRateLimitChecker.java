@@ -412,22 +412,10 @@ public enum ApiRateLimitChecker {
   public abstract LocalChecker getChecker(@NonNull TaskListener listener, String apiUrl);
 
   static int calculateBuffer(int limit) {
-    // listener.getLogger().println("Bose: calculateBuffer: limit:" + limit);
-    // int tempVar = Math.max(15, limit / 20);
-    // listener.getLogger().println("Bose: alculateBuffer: return value:" + tempVar);
     return Math.max(15, limit / 20);
   }
 
   static int calculateNormalizedBurst(int rateLimit) {
-    // listener.getLogger().println("Bose: calculateNormalizedBurst: limit:" + rateLimit);
-    // if (rateLimit < 1000) {
-    //   int tempValue1 = Math.max(5, rateLimit / 10);
-    //   listener.getLogger().println("Bose: calculateNormalizedBurst: return value:" + tempValue1);
-    // }
-    // else{
-    //   int tempValue2 = Math.max(200, rateLimit / 5);
-    //   listener.getLogger().println("Bose: calculateNormalizedBurst: return value:" + tempValue2);
-    // }
     return rateLimit < 1000 ? Math.max(5, rateLimit / 10) : Math.max(200, rateLimit / 5);
   }
 }
