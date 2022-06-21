@@ -6,11 +6,13 @@ import hudson.Util;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
@@ -82,13 +84,29 @@ public enum ApiRateLimitChecker {
             throws InterruptedException {
           // the buffer is how much we want to avoid using to cover unplanned over-use
           int buffer = calculateBuffer(rateLimit.getLimit());
+          listener.getLogger().println("Bose: checkRateLimitImpl: buffer:" + buffer);
+          listener
+              .getLogger()
+              .println(
+                  "Bose: checkRateLimitImpl: rateLimit.getRemaining():" + rateLimit.getRemaining());
+          // writeLog("Bose: checkRateLimitImpl: buffer:" + buffer);
+          // writeLog("Bose: checkRateLimitImpl: rateLimit.getRemaining():" +
+          // rateLimit.getRemaining());
           // check that we have at least our minimum buffer of remaining calls
           if (rateLimit.getRemaining() >= buffer) {
+            // writeLog("Bose: checkRateLimitImpl: now:" + now);
+            listener.getLogger().println("Bose: checkRateLimitImpl: now:" + now);
             return now;
           }
           writeLog(
               "Jenkins is restricting GitHub API requests only when near or above the rate limit. "
                   + "To configure a different rate limiting strategy, such as having Jenkins attempt to evenly distribute GitHub API requests, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
+          // writeLog("Bose: checkRateLimitImpl: rateLimit:" + rateLimit);
+          // writeLog("Bose: checkRateLimitImpl: now:" + now);
+          // writeLog("Bose: checkRateLimitImpl: buffer:" + buffer);
+          listener.getLogger().println("Bose: checkRateLimitImpl: rateLimit:" + rateLimit);
+          listener.getLogger().println("Bose: checkRateLimitImpl: now:" + now);
+          listener.getLogger().println("Bose: checkRateLimitImpl: buffer:" + buffer);
           return calculateExpirationWhenBufferExceeded(rateLimit, now, buffer);
         }
       };
@@ -231,13 +249,22 @@ public enum ApiRateLimitChecker {
         throws InterruptedException {
       LocalChecker checker = getLocalChecker();
       if (checker == null) {
-        // If a checker was not configured for this thread, try our best and continue.
-        configureThreadLocalChecker(
-            new LogTaskListener(LOGGER, Level.INFO), GitHubServerConfig.GITHUB_URL);
+        // If a checker was not configured for this thread, try our best by attempting to get the
+        // URL from the first configured GitHub endpoint, else default to the public endpoint.
+        // NOTE: Defaulting to the public GitHub endpoint is insufficient for those using GitHub
+        // enterprise as it forces rate limit checking in those cases.
+        String apiUrl = GitHubServerConfig.GITHUB_URL;
+        List<Endpoint> endpoints = GitHubConfiguration.get().getEndpoints();
+        if (endpoints.size() > 0 && !StringUtils.isBlank(endpoints.get(0).getApiUri())) {
+          apiUrl = endpoints.get(0).getApiUri();
+        }
+        configureThreadLocalChecker(new LogTaskListener(LOGGER, Level.INFO), apiUrl);
         checker = getLocalChecker();
         checker.writeLog(
             "LocalChecker for rate limit was not set for this thread. "
-                + "Configured using system settings.");
+                + "Configured using system settings with API URL '"
+                + apiUrl
+                + "'.");
       }
       return checker.checkRateLimit(rateLimitRecord, count);
     }
@@ -254,6 +281,8 @@ public enum ApiRateLimitChecker {
 
     protected boolean checkRateLimit(GHRateLimit.Record rateLimitRecord, long count)
         throws InterruptedException {
+      listener.getLogger().println("Bose: checkRateLimit: rateLimitRecord:" + rateLimitRecord);
+      listener.getLogger().println("Bose: checkRateLimit: count:" + count);
       if (count == 0) {
         resetExpiration();
       }
@@ -262,6 +291,10 @@ public enum ApiRateLimitChecker {
         return true;
       }
       long newExpiration = this.checkRateLimitImpl(rateLimitRecord, count, now);
+      listener
+          .getLogger()
+          .println("Bose: return value of checkRateLimitImpl: newExpiration:" + newExpiration);
+      listener.getLogger().println("Bose: calling checkRateLimitImpl: expiration:" + expiration);
       if (newExpiration > expiration) {
         count = 0;
       }
@@ -274,16 +307,30 @@ public enum ApiRateLimitChecker {
 
     void resetExpiration() {
       expiration = Long.MIN_VALUE;
+      listener.getLogger().println("Bose: resetExpiration: expiration:" + expiration);
     }
 
     long calculateExpirationWhenBufferExceeded(GHRateLimit.Record rateLimit, long now, int buffer) {
       long expiration;
       long rateLimitResetMillis = rateLimit.getResetDate().getTime() - now;
+      listener
+          .getLogger()
+          .println(
+              "Bose: calculateExpirationWhenBufferExceeded: rateLimitResetMillis:"
+                  + rateLimitResetMillis);
       // we add a little bit of random to prevent CPU overload when the limit is due to reset but
       // GitHub
       // hasn't actually reset yet (clock synchronization is a hard problem)
       if (rateLimitResetMillis < 0) {
         expiration = now + ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS);
+        listener
+            .getLogger()
+            .println("Bose: calculateExpirationWhenBufferExceeded: expiration:" + expiration);
+        listener
+            .getLogger()
+            .println(
+                "Bose: calculateExpirationWhenBufferExceeded: ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS):"
+                    + ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS));
         writeLog(
             String.format(
                 "Jenkins-Imposed API Limiter: Current quota for Github API usage has %d remaining (%d over budget). Next quota of %d due now. Sleeping for %s.",
@@ -293,7 +340,20 @@ public enum ApiRateLimitChecker {
                 // The GitHubRateLimitChecker adds a one second sleep to each notification loop
                 Util.getTimeSpanString(1000 + expiration - now)));
       } else {
+        listener
+            .getLogger()
+            .println(
+                "Bose: calculateExpirationWhenBufferExceeded: rateLimit.getResetDate().getTime():"
+                    + rateLimit.getResetDate().getTime());
+        listener
+            .getLogger()
+            .println(
+                "Bose: calculateExpirationWhenBufferExceeded: ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS):"
+                    + ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS));
         expiration = rateLimit.getResetDate().getTime() + ENTROPY.nextInt(EXPIRATION_WAIT_MILLIS);
+        listener
+            .getLogger()
+            .println("Bose: calculateExpirationWhenBufferExceeded: expiration:" + expiration);
         writeLog(
             String.format(
                 "Jenkins-Imposed API Limiter: Current quota for Github API usage has %d remaining (%d over budget). Next quota of %d in %s. Sleeping until reset.",
@@ -307,9 +367,19 @@ public enum ApiRateLimitChecker {
 
     // Internal for testing
     boolean waitUntilRateLimit(long now, long expiration, long count) throws InterruptedException {
+      listener.getLogger().println("Bose: waitUntilRateLimit: now:" + now);
+      listener.getLogger().println("Bose: waitUntilRateLimit: expiration:" + expiration);
+      listener.getLogger().println("Bose: waitUntilRateLimit: count:" + count);
       boolean waiting = expiration > now;
+      listener.getLogger().println("Bose: waitUntilRateLimit: waiting:" + waiting);
       if (waiting) {
+        listener.getLogger().println("Bose: waitUntilRateLimit: In If: waiting");
         long nextNotify = now + NOTIFICATION_WAIT_MILLIS;
+        listener.getLogger().println("Bose: waitUntilRateLimit: nextNotify:" + nextNotify);
+        listener
+            .getLogger()
+            .println(
+                "Bose: waitUntilRateLimit: NOTIFICATION_WAIT_MILLIS:" + NOTIFICATION_WAIT_MILLIS);
         this.expiration = expiration;
         if (count > 0) {
           writeLog(
@@ -320,11 +390,15 @@ public enum ApiRateLimitChecker {
         if (Thread.interrupted()) {
           throw new InterruptedException();
         }
+        listener.getLogger().println("Bose: waitUntilRateLimit: expiration:" + expiration);
         long sleep = Math.min(expiration, nextNotify) - now;
+        listener.getLogger().println("Bose: waitUntilRateLimit: now at sleep:" + now);
+        listener.getLogger().println("Bose: waitUntilRateLimit: sleep:" + sleep);
         if (sleep > 0) {
           Thread.sleep(sleep);
         }
       } else {
+        listener.getLogger().println("Bose: waitUntilRateLimit: In else of: waiting");
         resetExpiration();
       }
       return waiting;
@@ -338,10 +412,22 @@ public enum ApiRateLimitChecker {
   public abstract LocalChecker getChecker(@NonNull TaskListener listener, String apiUrl);
 
   static int calculateBuffer(int limit) {
+    // listener.getLogger().println("Bose: calculateBuffer: limit:" + limit);
+    // int tempVar = Math.max(15, limit / 20);
+    // listener.getLogger().println("Bose: alculateBuffer: return value:" + tempVar);
     return Math.max(15, limit / 20);
   }
 
   static int calculateNormalizedBurst(int rateLimit) {
+    // listener.getLogger().println("Bose: calculateNormalizedBurst: limit:" + rateLimit);
+    // if (rateLimit < 1000) {
+    //   int tempValue1 = Math.max(5, rateLimit / 10);
+    //   listener.getLogger().println("Bose: calculateNormalizedBurst: return value:" + tempValue1);
+    // }
+    // else{
+    //   int tempValue2 = Math.max(200, rateLimit / 5);
+    //   listener.getLogger().println("Bose: calculateNormalizedBurst: return value:" + tempValue2);
+    // }
     return rateLimit < 1000 ? Math.max(5, rateLimit / 10) : Math.max(200, rateLimit / 5);
   }
 }
