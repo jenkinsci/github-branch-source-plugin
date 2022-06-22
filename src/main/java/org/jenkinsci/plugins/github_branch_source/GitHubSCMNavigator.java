@@ -92,6 +92,7 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.github.GHFork;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHRepository;
@@ -986,9 +987,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         String.format("Looking up repositories of myself %s", repoOwner)));
             final Iterable<GHRepository> repositories;
             if (!gitHubSCMNavigatorContext.getTopics().isEmpty()) {
-              repositories =
-                  getGhRepositoriesBasedOnTopics(
-                      listener, github, gitHubSCMNavigatorContext.getTopics());
+              listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                          System.currentTimeMillis(),
+                          String.format(
+                              "Looking up repositories for topics: '%s'",
+                              gitHubSCMNavigatorContext.getTopics())));
+              repositories = searchRepositories(github, gitHubSCMNavigatorContext);
             } else {
               repositories = myself.listRepositories(100);
             }
@@ -1094,9 +1101,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     .listRepositories()
                     .withPageSize(100);
           } else if (!gitHubSCMNavigatorContext.getTopics().isEmpty()) {
-            repositories =
-                getGhRepositoriesBasedOnTopics(
-                    listener, github, gitHubSCMNavigatorContext.getTopics());
+            listener
+                .getLogger()
+                .println(
+                    GitHubConsoleNote.create(
+                        System.currentTimeMillis(),
+                        String.format(
+                            "Looking up repositories for topics: '%s'",
+                            gitHubSCMNavigatorContext.getTopics())));
+            repositories = searchRepositories(github, gitHubSCMNavigatorContext);
           } else {
             repositories = org.listRepositories(100);
           }
@@ -1247,17 +1260,14 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
   }
 
-  private Iterable<GHRepository> getGhRepositoriesBasedOnTopics(
-      final TaskListener listener, final GitHub github, final List<String> topics) {
-    listener
-        .getLogger()
-        .println(
-            GitHubConsoleNote.create(
-                System.currentTimeMillis(),
-                String.format("Looking up repositories for topics: '%s'", topics)));
+  private Iterable<GHRepository> searchRepositories(
+      final GitHub github, final GitHubSCMNavigatorContext context) {
     final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
-    topics.forEach(ghRepositorySearchBuilder::topic);
-    ghRepositorySearchBuilder.q("org:" + getRepoOwner());
+    context.getTopics().forEach(ghRepositorySearchBuilder::topic);
+    ghRepositorySearchBuilder.org(getRepoOwner());
+    if(!context.isExcludeForkedRepositories()) {
+      ghRepositorySearchBuilder.q("fork:true");
+    }
     return ghRepositorySearchBuilder.list().withPageSize(100);
   }
 
