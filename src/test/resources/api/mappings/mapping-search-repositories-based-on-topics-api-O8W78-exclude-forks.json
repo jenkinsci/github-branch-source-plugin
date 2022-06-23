@@ -8,13 +8,13 @@
     },
     "queryParameters" : {
       "q" : {
-        "equalTo" : "topic:awesome org:stephenc fork:true"
+        "equalTo" : "topic:api org:stephenc"
       }
     }
   },
   "response" : {
     "status" : 200,
-    "bodyFileName" : "body-search-user-repos-O8W78.json",
+    "bodyFileName" : "body-search-user-repos-O8W78-no-forks.json",
     "headers" : {
       "Date" : "Fri, 31 Jan 2020 10:49:58 GMT",
       "Content-Type" : "application/json; charset=utf-8",
