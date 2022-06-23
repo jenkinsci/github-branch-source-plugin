@@ -92,7 +92,6 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.github.GHFork;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHRepository;
@@ -1265,7 +1264,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
     context.getTopics().forEach(ghRepositorySearchBuilder::topic);
     ghRepositorySearchBuilder.org(getRepoOwner());
-    if(!context.isExcludeForkedRepositories()) {
+    if (!context.isExcludeForkedRepositories()) {
       ghRepositorySearchBuilder.q("fork:true");
     }
     return ghRepositorySearchBuilder.list().withPageSize(100);
