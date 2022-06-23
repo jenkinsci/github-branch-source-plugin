@@ -73,7 +73,6 @@ import jenkins.plugins.git.GitSCMSource;
 import jenkins.scm.api.*;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
-import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.Before;
@@ -878,7 +877,8 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
   @Test
   @Issue("JENKINS-68633")
   public void doCheckCredentialsId() {
-    GitHubSCMSource.DescriptorImpl descriptor = (GitHubSCMSource.DescriptorImpl) source.getDescriptor();
+    GitHubSCMSource.DescriptorImpl descriptor =
+        (GitHubSCMSource.DescriptorImpl) source.getDescriptor();
 
     // If no credentials are supplied, display the warning
     FormValidation test = descriptor.doCheckCredentialsId(null, "", "", "", true);
@@ -893,7 +893,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     assertThat(test.kind, is(FormValidation.Kind.OK));
   }
 
-    @Test
+  @Test
   @Issue("JENKINS-65071")
   public void testCheckIncludesBranchSCMHeadType() throws Exception {
     SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);

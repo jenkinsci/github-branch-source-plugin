@@ -2136,7 +2136,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
       if (!configuredByUrl) {
         return Connector.checkScanCredentials(context, apiUri, value, repoOwner);
       } else if (value.isEmpty()) {
-          return FormValidation.warning("Credentials are recommended");
+        return FormValidation.warning("Credentials are recommended");
       } else {
         // Using the URL-based configuration, that has its own "Validate" button
         return FormValidation.ok();
