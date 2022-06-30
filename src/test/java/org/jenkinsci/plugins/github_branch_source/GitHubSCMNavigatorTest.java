@@ -45,6 +45,7 @@ import hudson.security.SecurityRealm;
 import hudson.util.ListBoxModel;
 import hudson.util.LogTaskListener;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -198,6 +199,21 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     navigator.visitSources(observer);
 
     assertEquals(projectNames, Collections.singleton("yolo"));
+  }
+
+  @Test
+  public void fetchRepos_BelongingToAuthenticatedUser_FilteredByTopic_ExcludeForks()
+      throws Exception {
+    setCredentials(Collections.singletonList(credentials));
+    navigator = navigatorForRepoOwner("stephenc", credentials.getId());
+    navigator.setTraits(
+        Arrays.asList(new TopicsTrait("api"), new ExcludeForkedRepositoriesTrait()));
+    final Set<String> projectNames = new HashSet<>();
+    final SCMSourceObserver observer = getObserver(projectNames);
+
+    navigator.visitSources(observer);
+
+    assertEquals(Collections.singleton("yolo-archived"), projectNames);
   }
 
   @Test
