@@ -31,6 +31,7 @@ import com.cloudbees.jenkins.GitHubRepositoryName;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
+import hudson.model.Cause;
 import hudson.model.Item;
 import hudson.scm.SCM;
 import java.io.IOException;
@@ -57,6 +58,7 @@ import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMHeadPrefilter;
+import org.apache.commons.lang3.ArrayUtils;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
 import org.kohsuke.github.GHEvent;
@@ -186,6 +188,36 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
 
     private boolean isApiMatch(String apiUri) {
       return repoHost.equalsIgnoreCase(RepositoryUriResolver.hostnameFromApiUri(apiUri));
+    }
+
+    @Override
+    public Cause[] asCauses() {
+      Cause[] causes = super.asCauses();
+      long senderId = getPayload().getSender().getId();
+      String senderLogin = getPayload().getSender().getLogin();
+      String senderName = null;
+      try {
+        senderName = getPayload().getSender().getName();
+      } catch (IOException e) {
+        LOGGER.warning("couldn't determine sender name");
+      }
+      GitHubSenderCause.Kind kind;
+      String action = getPayload().getAction();
+      if ("opened".equals(action)) {
+        kind = GitHubSenderCause.Kind.PULL_REQUEST_CREATED;
+      } else if ("reopened".equals(action)
+          || "synchronize".equals(action)
+          || "edited".equals(action)) {
+        kind = GitHubSenderCause.Kind.PULL_REQUEST_UPDATED;
+      } else if ("closed".equals(action)) {
+        kind = GitHubSenderCause.Kind.PULL_REQUEST_DELETED;
+      } else {
+        kind = GitHubSenderCause.Kind.PULL_REQUEST_OTHER;
+      }
+      causes =
+          ArrayUtils.addAll(
+              causes, new Cause[] {new GitHubSenderCause(senderId, senderLogin, senderName, kind)});
+      return causes;
     }
 
     @Override
