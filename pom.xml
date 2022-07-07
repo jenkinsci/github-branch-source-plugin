@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <version>4.29</version>
+        <version>4.38</version>
         <relativePath />
     </parent>
     <artifactId>github-branch-source</artifactId>
-    <version>2.11.4</version>
+    <version>${changelist}</version>
     <packaging>hpi</packaging>
     <name>GitHub Branch Source Plugin</name>
     <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
@@ -21,31 +22,37 @@
     </licenses>
 
     <properties>
-        <revision>2.11.4</revision>
-        <changelist>-SNAPSHOT</changelist>
+        <changelist>9.9.9-CustomBuild-06212022</changelist>
         <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
         <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
         <java.level>8</java.level>
-        <jenkins.version>2.289.1</jenkins.version>
+        <jenkins.version>2.323</jenkins.version>
         <useBeta>true</useBeta>
+        <!-- TODO remove jth override when we bump the parent version -->
+        <jenkins-test-harness.version>1706.v5257fc59612a_</jenkins-test-harness.version>
     </properties>
 
     <scm>
         <connection>scm:git:git://github.com/${gitHubRepo}.git</connection>
         <developerConnection>scm:git:git@github.com:${gitHubRepo}.git</developerConnection>
         <url>https://github.com/${gitHubRepo}</url>
-        <tag>github-branch-source-2.11.4</tag>
+        <tag>${scmTag}</tag>
     </scm>
     <dependencies>
         <dependency>
             <groupId>org.jenkins-ci.plugins</groupId>
             <artifactId>github-api</artifactId>
-            <version>1.122</version>
+            <version>1.303-400.v35c2d8258028</version>
         </dependency>
         <dependency>
             <groupId>com.coravy.hudson.plugins.github</groupId>
             <artifactId>github</artifactId>
-            <version>1.34.1</version>
+            <version>1.34.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>credentials</artifactId>
+            <version>1087.v16065d268466</version>            <!-- TODO until in BOM -->
         </dependency>
         <dependency>
             <groupId>org.jenkins-ci.plugins.workflow</groupId>
@@ -70,7 +77,7 @@
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-jre8-standalone</artifactId>
-            <version>2.31.0</version>
+            <version>2.33.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -109,9 +116,14 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.jenkins-ci.plugins.workflow</groupId>
-            <artifactId>workflow-cps-global-lib</artifactId>
+            <groupId>io.jenkins.plugins</groupId>
+            <artifactId>pipeline-groovy-lib</artifactId>
+            <version>589.vb_a_b_4a_a_8c443c</version>            <!-- TODO until in BOM -->
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jenkins.plugins</groupId>
+            <artifactId>okhttp-api</artifactId>
         </dependency>
     </dependencies>
     <dependencyManagement>
@@ -119,7 +131,7 @@
             <dependency>
                 <groupId>io.jenkins.tools.bom</groupId>
                 <artifactId>bom-2.289.x</artifactId>
-                <version>987.v4ade2e49fe70</version>
+                <version>1280.vd669827e38cd</version>
                 <scope>import</scope>
                 <type>pom</type>
             </dependency>
@@ -135,7 +147,7 @@
             <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
-                <version>2.17.3</version>
+                <version>2.22.5</version>
                 <executions>
                     <execution>
                         <id>spotless-check</id>
