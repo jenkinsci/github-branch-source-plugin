@@ -100,7 +100,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             "sample",
             "54321",
             Secret.fromString(PKCS8_PRIVATE_KEY));
-    appCredentials.setOwner("cloudbeers");
+    appCredentials.setOwner("cloudBeers");
     store.addCredentials(Domain.global(), appCredentials);
     appCredentialsNoOwner =
         new GitHubAppCredentials(
@@ -536,7 +536,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
         // ok
         assertEquals(
             e.getMessage(),
-            "Found multiple installations for GitHub app ID 54321 but none match credential owner \"null\". "
+            "Found multiple installations for GitHub app ID 54321 but none match credential owner \"\". "
                 + "Set the right owner in the credential advanced options");
       }
 
