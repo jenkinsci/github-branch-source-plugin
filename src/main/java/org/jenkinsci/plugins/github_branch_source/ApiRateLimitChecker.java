@@ -395,7 +395,8 @@ public enum ApiRateLimitChecker {
         listener.getLogger().println("Bose: waitUntilRateLimit: now at sleep:" + now);
         listener.getLogger().println("Bose: waitUntilRateLimit: sleep:" + sleep);
         if (sleep > 0) {
-          Thread.sleep(sleep);
+          // Thread.sleep(sleep);
+          listener.getLogger().println("Bose: Ignoring Sleep..\nContinue scanning webhooks..");
         }
       } else {
         listener.getLogger().println("Bose: waitUntilRateLimit: In else of: waiting");
