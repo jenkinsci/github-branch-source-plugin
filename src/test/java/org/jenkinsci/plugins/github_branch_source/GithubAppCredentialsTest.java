@@ -466,23 +466,25 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
               "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired",
               // (error forced by wiremock - failed refresh on the agent)
               // "Generating App Installation Token for app ID 54321 on agent", // 1
-              "Generating App Installation Token for app ID 54321"//,
-//              // stop
-//              // (agent log added out of order) "Keeping cached GitHub App Installation Token for
-//              // app ID 54321 on agent: token is stale but has not expired", // 2
-//              // checkout scm - refresh on controller
-//              "Generating App Installation Token for app ID 54321",
-//              // sleep
-//              // checkout scm
-//              "Generating App Installation Token for app ID 54321",
-//              // (error forced by wiremock)
-//              "Failed to update stale GitHub App installation token for app ID 54321 before sending to agent",
-//              // "Generating App Installation Token for app ID 54321 on agent", // 3
-//              "Generating App Installation Token for app ID 54321 for agent",
-//              // checkout scm - refresh on controller
-//              "Generating App Installation Token for app ID 54321"
-//              // checkout scm
-//              // (No token generation)
+              "Generating App Installation Token for app ID 54321" // ,
+              //              // stop
+              //              // (agent log added out of order) "Keeping cached GitHub App
+              // Installation Token for
+              //              // app ID 54321 on agent: token is stale but has not expired", // 2
+              //              // checkout scm - refresh on controller
+              //              "Generating App Installation Token for app ID 54321",
+              //              // sleep
+              //              // checkout scm
+              //              "Generating App Installation Token for app ID 54321",
+              //              // (error forced by wiremock)
+              //              "Failed to update stale GitHub App installation token for app ID 54321
+              // before sending to agent",
+              //              // "Generating App Installation Token for app ID 54321 on agent", // 3
+              //              "Generating App Installation Token for app ID 54321 for agent",
+              //              // checkout scm - refresh on controller
+              //              "Generating App Installation Token for app ID 54321"
+              //              // checkout scm
+              //              // (No token generation)
               ));
 
       // Check success after output.  Output will be more informative if something goes wrong.
