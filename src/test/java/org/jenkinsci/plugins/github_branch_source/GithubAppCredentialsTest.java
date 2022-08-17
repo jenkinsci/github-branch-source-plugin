@@ -448,6 +448,9 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
       List<String> credentialsLog = getOutputLines();
 
+      System.out.println("credentialsLog:");
+      System.out.println(credentialsLog);
+
       // Verify correct messages from GitHubAppCredential logger indicating token was retrieved on
       // agent
       assertThat(
