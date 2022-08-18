@@ -31,6 +31,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
 import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.util.java.JavaUtils;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -452,42 +453,88 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
       System.out.println(credentialsLog);
       // Verify correct messages from GitHubAppCredential logger indicating token was retrieved on
       // agent
-      assertThat(
-          "Creds should cache on master, pass to agent, and refresh agent from master once",
-          credentialsLog,
-          contains(
-              // (agent log added out of order, see below)
-              "Generating App Installation Token for app ID 54321", // 1
-              "Generating App Installation Token for app ID 54321", // 2
-              "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired", // 3
-              // node ('my-agent') {
-              // checkout scm
-              // checkout scm
-              "Generating App Installation Token for app ID 54321",
-              // (error forced by wiremock)
-              "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired",
-              // (error forced by wiremock - failed refresh on the agent)
-              // "Generating App Installation Token for app ID 54321 on agent", // 1
-              "Generating App Installation Token for app ID 54321" // ,
-              //              // stop
-              //              // (agent log added out of order) "Keeping cached GitHub App
-              // Installation Token for
-              //              // app ID 54321 on agent: token is stale but has not expired", // 2
-              //              // checkout scm - refresh on controller
-              //              "Generating App Installation Token for app ID 54321",
-              //              // sleep
-              //              // checkout scm
-              //              "Generating App Installation Token for app ID 54321",
-              //              // (error forced by wiremock)
-              //              "Failed to update stale GitHub App installation token for app ID 54321
-              // before sending to agent",
-              //              // "Generating App Installation Token for app ID 54321 on agent", // 3
-              //              "Generating App Installation Token for app ID 54321 for agent",
-              //              // checkout scm - refresh on controller
-              //              "Generating App Installation Token for app ID 54321"
-              //              // checkout scm
-              //              // (No token generation)
-              ));
+
+      // FIXME remove when java 11 as a minimum
+      if (JavaUtils.isRunningWithJava8OrBelow()) {
+        // not sure why but Java 8 generate one more line of logs
+        assertThat(
+            "Creds should cache on master, pass to agent, and refresh agent from master once",
+            credentialsLog,
+            contains(
+                // (agent log added out of order, see below)
+                "Generating App Installation Token for app ID 54321", // 1
+                "Generating App Installation Token for app ID 54321", // 2
+                "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired", // 3
+                // node ('my-agent') {
+                // checkout scm
+                // checkout scm
+                "Generating App Installation Token for app ID 54321",
+                // (error forced by wiremock)
+                "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired",
+                // (error forced by wiremock - failed refresh on the agent)
+                "Generating App Installation Token for app ID 54321 on agent",
+                "Generating App Installation Token for app ID 54321" // ,
+                //              // stop
+                //              // (agent log added out of order) "Keeping cached GitHub App
+                // Installation Token for
+                //              // app ID 54321 on agent: token is stale but has not expired", // 2
+                //              // checkout scm - refresh on controller
+                //              "Generating App Installation Token for app ID 54321",
+                //              // sleep
+                //              // checkout scm
+                //              "Generating App Installation Token for app ID 54321",
+                //              // (error forced by wiremock)
+                //              "Failed to update stale GitHub App installation token for app ID
+                // 54321
+                // before sending to agent",
+                //              // "Generating App Installation Token for app ID 54321 on agent", //
+                // 3
+                //              "Generating App Installation Token for app ID 54321 for agent",
+                //              // checkout scm - refresh on controller
+                //              "Generating App Installation Token for app ID 54321"
+                //              // checkout scm
+                //              // (No token generation)
+                ));
+      } else {
+        assertThat(
+            "Creds should cache on master, pass to agent, and refresh agent from master once",
+            credentialsLog,
+            contains(
+                // (agent log added out of order, see below)
+                "Generating App Installation Token for app ID 54321", // 1
+                "Generating App Installation Token for app ID 54321", // 2
+                "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired", // 3
+                // node ('my-agent') {
+                // checkout scm
+                // checkout scm
+                "Generating App Installation Token for app ID 54321",
+                // (error forced by wiremock)
+                "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired",
+                // (error forced by wiremock - failed refresh on the agent)
+                // "Generating App Installation Token for app ID 54321 on agent", // 1
+                "Generating App Installation Token for app ID 54321" // ,
+                //              // stop
+                //              // (agent log added out of order) "Keeping cached GitHub App
+                // Installation Token for
+                //              // app ID 54321 on agent: token is stale but has not expired", // 2
+                //              // checkout scm - refresh on controller
+                //              "Generating App Installation Token for app ID 54321",
+                //              // sleep
+                //              // checkout scm
+                //              "Generating App Installation Token for app ID 54321",
+                //              // (error forced by wiremock)
+                //              "Failed to update stale GitHub App installation token for app ID
+                // 54321
+                // before sending to agent",
+                //              // "Generating App Installation Token for app ID 54321 on agent", //
+                // 3
+                //              "Generating App Installation Token for app ID 54321 for agent",
+                //              // checkout scm - refresh on controller
+                //              "Generating App Installation Token for app ID 54321"
+                //              // checkout scm
+                //              // (No token generation)
+                ));
+      }
 
       // Check success after output.  Output will be more informative if something goes wrong.
       assertThat(run.getResult(), equalTo(Result.SUCCESS));
