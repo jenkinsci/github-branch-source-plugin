@@ -583,7 +583,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
       }
 
       // Check success after output.  Output will be more informative if something goes wrong.
-      assertThat(run.getResult(), equalTo(Result.SUCCESS));
+      assertThat("Run should be success, log: " + run.getLog(), run.getResult(), equalTo(Result.SUCCESS));
 
       // Getting the token for via AuthorizationProvider on controller should not check rate_limit
       // Getting the token for agents via remoting to the controller should not check rate_limit
