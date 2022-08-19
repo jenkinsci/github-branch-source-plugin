@@ -515,8 +515,8 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                   // (error forced by wiremock)
                   "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired",
                   // (error forced by wiremock - failed refresh on the agent)
+                  "Generating App Installation Token for app ID 54321",
                   "Generating App Installation Token for app ID 54321" // ,
-                  // "Generating App Installation Token for app ID 54321" // ,
                   //              // stop
                   //              // (agent log added out of order) "Keeping cached GitHub App
                   // Installation Token for
