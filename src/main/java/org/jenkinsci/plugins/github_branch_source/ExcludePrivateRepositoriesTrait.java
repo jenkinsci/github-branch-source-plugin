@@ -9,26 +9,23 @@ import jenkins.scm.impl.trait.Selection;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 
-/**
- * A {@link Selection} trait that will restrict the discovery of repositories that have been
- * archived.
- */
-public class ExcludeArchivedRepositoriesTrait extends SCMNavigatorTrait {
+/** A {@link Selection} trait that will restrict the discovery of repositories that are private. */
+public class ExcludePrivateRepositoriesTrait extends SCMNavigatorTrait {
 
   /** Constructor for stapler. */
   @DataBoundConstructor
-  public ExcludeArchivedRepositoriesTrait() {}
+  public ExcludePrivateRepositoriesTrait() {}
 
   /** {@inheritDoc} */
   @Override
   protected void decorateContext(SCMNavigatorContext<?, ?> context) {
     super.decorateContext(context);
     GitHubSCMNavigatorContext ctx = (GitHubSCMNavigatorContext) context;
-    ctx.setExcludeArchivedRepositories(true);
+    ctx.setExcludePrivateRepositories(true);
   }
 
-  /** Exclude archived repositories filter */
-  @Symbol("gitHubExcludeArchivedRepositories")
+  /** Exclude private repositories filter */
+  @Symbol("gitHubExcludePrivateRepositories")
   @Extension
   @Selection
   public static class DescriptorImpl extends SCMNavigatorTraitDescriptor {
@@ -41,7 +38,7 @@ public class ExcludeArchivedRepositoriesTrait extends SCMNavigatorTrait {
     @NonNull
     @Override
     public String getDisplayName() {
-      return Messages.ExcludeArchivedRepositoriesTrait_displayName();
+      return Messages.ExcludePrivateRepositoriesTrait_displayName();
     }
   }
 }

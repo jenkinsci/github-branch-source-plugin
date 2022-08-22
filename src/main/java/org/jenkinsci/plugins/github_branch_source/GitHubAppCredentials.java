@@ -2,15 +2,20 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import static org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator.DescriptorImpl.getPossibleApiUriItems;
 
+import com.cloudbees.jenkins.GitHubRepositoryName;
+import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
+import com.coravy.hudson.plugins.github.GithubProjectProperty;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.Util;
+import hudson.model.Job;
+import hudson.model.Run;
 import hudson.remoting.Channel;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -20,10 +25,14 @@ import java.io.Serializable;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.scm.api.SCMSource;
 import jenkins.security.SlaveToMasterCallable;
 import jenkins.util.JenkinsJVM;
 import net.sf.json.JSONObject;
@@ -73,9 +82,17 @@ public class GitHubAppCredentials extends BaseStandardCredentials
 
   private String apiUri;
 
+  @SuppressFBWarnings(
+      value = "IS2_INCONSISTENT_SYNC",
+      justification = "#withOwner locking only for #byOwner")
   private String owner;
 
   private transient AppInstallationToken cachedToken;
+
+  /**
+   * Cache of credentials specialized by {@link #owner}, so that {@link #cachedToken} is preserved.
+   */
+  private transient Map<String, GitHubAppCredentials> byOwner;
 
   @DataBoundConstructor
   @SuppressWarnings("unused") // by stapler
@@ -215,14 +232,21 @@ public class GitHubAppCredentials extends BaseStandardCredentials
       if (appInstallations.size() == 1) {
         appInstallation = appInstallations.get(0);
       } else {
+        final String ownerOrEmpty = owner != null ? owner : "";
         appInstallation =
             appInstallations.stream()
-                .filter(installation -> installation.getAccount().getLogin().equals(owner))
+                .filter(
+                    installation ->
+                        installation
+                            .getAccount()
+                            .getLogin()
+                            .toLowerCase(Locale.ROOT)
+                            .equals(ownerOrEmpty.toLowerCase(Locale.ROOT)))
                 .findAny()
                 .orElseThrow(
                     () ->
                         new IllegalArgumentException(
-                            String.format(ERROR_NO_OWNER_MATCHING, appId, owner)));
+                            String.format(ERROR_NO_OWNER_MATCHING, appId, ownerOrEmpty)));
       }
 
       GHAppInstallationToken appInstallationToken =
@@ -308,6 +332,47 @@ public class GitHubAppCredentials extends BaseStandardCredentials
   @Override
   public String getUsername() {
     return appID;
+  }
+
+  @NonNull
+  public synchronized GitHubAppCredentials withOwner(@NonNull String owner) {
+    if (this.owner != null) {
+      if (!owner.equals(this.owner)) {
+        throw new IllegalArgumentException("Owner mismatch: " + this.owner + " vs. " + owner);
+      }
+      return this;
+    }
+    if (byOwner == null) {
+      byOwner = new HashMap<>();
+    }
+    return byOwner.computeIfAbsent(
+        owner,
+        k -> {
+          GitHubAppCredentials clone =
+              new GitHubAppCredentials(getScope(), getId(), getDescription(), appID, privateKey);
+          clone.apiUri = apiUri;
+          clone.owner = owner;
+          return clone;
+        });
+  }
+
+  @NonNull
+  @Override
+  public Credentials forRun(Run<?, ?> context) {
+    if (owner != null) {
+      return this;
+    }
+    Job<?, ?> job = context.getParent();
+    SCMSource src = SCMSource.SourceByItem.findSource(job);
+    if (src instanceof GitHubSCMSource) {
+      return withOwner(((GitHubSCMSource) src).getRepoOwner());
+    }
+    GitHubRepositoryName ghrn =
+        GitHubRepositoryName.create(job.getProperty(GithubProjectProperty.class));
+    if (ghrn != null) {
+      return withOwner(ghrn.userName);
+    }
+    return this;
   }
 
   private AppInstallationToken getCachedToken() {

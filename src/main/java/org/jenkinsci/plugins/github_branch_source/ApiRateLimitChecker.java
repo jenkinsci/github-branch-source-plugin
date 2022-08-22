@@ -6,11 +6,13 @@ import hudson.Util;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
@@ -231,13 +233,22 @@ public enum ApiRateLimitChecker {
         throws InterruptedException {
       LocalChecker checker = getLocalChecker();
       if (checker == null) {
-        // If a checker was not configured for this thread, try our best and continue.
-        configureThreadLocalChecker(
-            new LogTaskListener(LOGGER, Level.INFO), GitHubServerConfig.GITHUB_URL);
+        // If a checker was not configured for this thread, try our best by attempting to get the
+        // URL from the first configured GitHub endpoint, else default to the public endpoint.
+        // NOTE: Defaulting to the public GitHub endpoint is insufficient for those using GitHub
+        // enterprise as it forces rate limit checking in those cases.
+        String apiUrl = GitHubServerConfig.GITHUB_URL;
+        List<Endpoint> endpoints = GitHubConfiguration.get().getEndpoints();
+        if (endpoints.size() > 0 && !StringUtils.isBlank(endpoints.get(0).getApiUri())) {
+          apiUrl = endpoints.get(0).getApiUri();
+        }
+        configureThreadLocalChecker(new LogTaskListener(LOGGER, Level.INFO), apiUrl);
         checker = getLocalChecker();
         checker.writeLog(
             "LocalChecker for rate limit was not set for this thread. "
-                + "Configured using system settings.");
+                + "Configured using system settings with API URL '"
+                + apiUrl
+                + "'.");
       }
       return checker.checkRateLimit(rateLimitRecord, count);
     }
