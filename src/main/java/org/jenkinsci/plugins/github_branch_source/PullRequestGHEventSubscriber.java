@@ -135,7 +135,9 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                   event.getOrigin()));
         } else if ("reopened".equals(action)
             || "synchronize".equals(action)
-            || "edited".equals(action)) {
+            || "edited".equals(action)
+            || "ready_for_review".equals(action)
+            || "converted_to_draft".equals(action)) {
           fireAfterDelay(
               new SCMHeadEventImpl(
                   SCMEvent.Type.UPDATED,

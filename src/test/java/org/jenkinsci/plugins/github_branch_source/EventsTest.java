@@ -137,6 +137,24 @@ public class EventsTest {
   }
 
   @Test
+  public void given_ghPullRequestEventConvertedToDraft_then_updatedHeadEventFired() throws Exception {
+    PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
+
+    firedEventType = SCMEvent.Type.UPDATED;
+    ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventUpdatedConvertedToDraft.json");
+    waitAndAssertReceived(true);
+  }
+
+  @Test
+  public void given_ghPullRequestEventReadyForReview_then_updatedHeadEventFired() throws Exception {
+    PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
+
+    firedEventType = SCMEvent.Type.UPDATED;
+    ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventUpdatedReadyForReview.json");
+    waitAndAssertReceived(true);
+  }
+
+  @Test
   public void given_ghRepositoryEventCreatedFromFork_then_createdSourceEventFired()
       throws Exception {
     GitHubRepositoryEventSubscriber subscriber = new GitHubRepositoryEventSubscriber();
