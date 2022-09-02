@@ -12,14 +12,13 @@ import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import java.io.File;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.jvnet.hudson.test.JenkinsRule;
 
 /** @author Liam Newman */
-public abstract class AbstractGitHubWireMockTest extends Assert {
+public abstract class AbstractGitHubWireMockTest {
 
   // By default the wiremock tests will run without proxy
   // The tests will use only the stubbed data and will fail if requests are made for missing data.

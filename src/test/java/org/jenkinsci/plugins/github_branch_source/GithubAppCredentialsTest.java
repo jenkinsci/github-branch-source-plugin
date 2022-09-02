@@ -1,8 +1,10 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.jenkinsci.plugins.github_branch_source.Connector.createGitHubBuilder;
+import static org.junit.Assert.assertThrows;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
@@ -395,7 +397,8 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
     Assume.assumeTrue(
         "Test will run only on Java11 minimum",
         SystemUtils.isJavaVersionAtLeast(JavaVersion.JAVA_11));
-    long notStaleSeconds = GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
+    final long notStaleSeconds =
+        GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
     try {
       appCredentials.setApiUri(githubApi.baseUrl());
 
@@ -445,10 +448,11 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
       // Create a pipeline job that points the above repo
       WorkflowJob job = r.createProject(WorkflowJob.class, "test-creds");
-      job.setDefinition(new CpsFlowDefinition(jenkinsfile, false));
+      job.setDefinition(new CpsFlowDefinition(jenkinsfile, true));
       job.addProperty(
           new ParametersDefinitionProperty(
               new StringParameterDefinition("REPO", sampleRepo.toString())));
+
       WorkflowRun run = job.scheduleBuild2(0).waitForStart();
       r.waitUntilNoActivity();
 
@@ -541,17 +545,13 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
       // Test credentials when owner is not set
       appCredentialsNoOwner.setApiUri(githubApi.baseUrl());
-      try {
-        appCredentialsNoOwner.getPassword();
-        fail("Expected IllegalArgumentException");
-      } catch (IllegalArgumentException e) {
-        // ok
-        assertEquals(
-            e.getMessage(),
-            "Found multiple installations for GitHub app ID 54321 but none match credential owner \"\". "
-                + "Set the right owner in the credential advanced options");
-      }
-
+      IllegalArgumentException expected =
+          assertThrows(IllegalArgumentException.class, () -> appCredentialsNoOwner.getPassword());
+      assertThat(
+          expected.getMessage(),
+          is(
+              "Found multiple installations for GitHub app ID 54321 but none match credential owner \"\". "
+                  + "Set the right owner in the credential advanced options"));
     } finally {
       GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
       logRecorder.doClear();
