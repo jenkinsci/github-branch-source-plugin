@@ -465,8 +465,6 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
       // Verify correct messages from GitHubAppCredential logger indicating token was retrieved on
       // agent
-      System.out.println(credentialsLog);
-
       assertThat(
           "Creds should cache on master, pass to agent, and refresh agent from master once",
           credentialsLog,
