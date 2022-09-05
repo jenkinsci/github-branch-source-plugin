@@ -577,7 +577,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
     // sort the logs into chronological order
     // then just format the message.
     return result.stream()
-        .sorted(Comparator.comparingLong(lr -> lr.getMillis()))
+        .sorted(Comparator.comparingLong(LogRecord::getMillis))
         .map(formatter::formatMessage)
         .collect(Collectors.toList());
   }
