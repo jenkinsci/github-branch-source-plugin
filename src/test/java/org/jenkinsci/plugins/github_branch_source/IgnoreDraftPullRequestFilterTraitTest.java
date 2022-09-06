@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.github_branch_source;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
