@@ -137,7 +137,8 @@ public class EventsTest {
   }
 
   @Test
-  public void given_ghPullRequestEventConvertedToDraft_then_updatedHeadEventFired() throws Exception {
+  public void given_ghPullRequestEventConvertedToDraft_then_updatedHeadEventFired()
+      throws Exception {
     PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
     firedEventType = SCMEvent.Type.UPDATED;
