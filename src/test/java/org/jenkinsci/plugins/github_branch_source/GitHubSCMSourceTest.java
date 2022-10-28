@@ -1047,7 +1047,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
   @Test
   @Issue("JENKINS-67946")
-  public void testUserNamesWithAndWithoutUnderscores() throws Exception {
+  public void testUserNamesWithAndWithoutUnderscores() {
     // https://docs.github.com/en/enterprise-cloud@latest/admin/identity-and-access-management/managing-iam-for-your-enterprise/username-considerations-for-external-authentication#about-usernames-for-managed-user-accounts
     // https://github.com/github/docs/blob/bfe96c289aee3113724495a2e498c21e2ec404e4/content/admin/identity-and-access-management/using-enterprise-managed-users-for-iam/about-enterprise-managed-users.md#about--data-variablesproductprodname_emus-
     String repoOwnerWithUnderscore = "user_organization";
@@ -1059,5 +1059,4 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     assertTrue(repoOwnerHyphen.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
     assertTrue(repoOwnerHyphenUnderscore.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
   }
-
 }
