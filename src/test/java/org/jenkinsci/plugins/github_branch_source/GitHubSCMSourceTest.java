@@ -1044,4 +1044,20 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     assertTrue(this.source.shouldRetrieve(mockSCMHeadObserver, null, PullRequestSCMHead.class));
     assertTrue(this.source.shouldRetrieve(mockSCMHeadObserver, null, BranchSCMHead.class));
   }
+
+  @Test
+  @Issue("JENKINS-67946")
+  public void testUserNamesWithAndWithoutUnderscores() throws Exception {
+    // https://docs.github.com/en/enterprise-cloud@latest/admin/identity-and-access-management/managing-iam-for-your-enterprise/username-considerations-for-external-authentication#about-usernames-for-managed-user-accounts
+    // https://github.com/github/docs/blob/bfe96c289aee3113724495a2e498c21e2ec404e4/content/admin/identity-and-access-management/using-enterprise-managed-users-for-iam/about-enterprise-managed-users.md#about--data-variablesproductprodname_emus-
+    String repoOwnerWithUnderscore = "user_organization";
+    String repoOwnerNoUnderscore = "username";
+    String repoOwnerHyphen = "user-name";
+    String repoOwnerHyphenUnderscore = "user-name_organization";
+    assertTrue(repoOwnerWithUnderscore.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue(repoOwnerNoUnderscore.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue(repoOwnerHyphen.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue(repoOwnerHyphenUnderscore.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+  }
+
 }
