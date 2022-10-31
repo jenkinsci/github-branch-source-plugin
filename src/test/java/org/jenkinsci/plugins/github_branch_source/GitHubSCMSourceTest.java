@@ -1057,6 +1057,27 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     assertTrue(repoOwnerWithUnderscore.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
     assertTrue(repoOwnerNoUnderscore.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
     assertTrue(repoOwnerHyphen.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
-    assertTrue(repoOwnerHyphenUnderscore.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("abcd".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("1234".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("user123".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("user123-org456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("123-456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("user123_org456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("user123-org456-code789".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("user123-org456_code789".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("abcdefghijqlmnopkrstuvwxyz-123456789012".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+
+    assertFalse("abcdefghijqlmnopkrstuvwxyz-1234567890123".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertFalse("user123@org456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertFalse("user123.org456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertFalse("user123--org456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertFalse("user123-".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertFalse("-user123".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertFalse("user123__org456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertFalse("user123_".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertFalse("_user123".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertFalse("user123-_org456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertFalse("user123_org456-code789".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertFalse("user123_org456_code789".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
   }
 }
