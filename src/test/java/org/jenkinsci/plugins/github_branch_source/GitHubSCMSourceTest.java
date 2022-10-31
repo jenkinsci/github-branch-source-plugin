@@ -1050,13 +1050,10 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
   public void testUserNamesWithAndWithoutUnderscores() {
     // https://docs.github.com/en/enterprise-cloud@latest/admin/identity-and-access-management/managing-iam-for-your-enterprise/username-considerations-for-external-authentication#about-usernames-for-managed-user-accounts
     // https://github.com/github/docs/blob/bfe96c289aee3113724495a2e498c21e2ec404e4/content/admin/identity-and-access-management/using-enterprise-managed-users-for-iam/about-enterprise-managed-users.md#about--data-variablesproductprodname_emus-
-    String repoOwnerWithUnderscore = "user_organization";
-    String repoOwnerNoUnderscore = "username";
-    String repoOwnerHyphen = "user-name";
-    String repoOwnerHyphenUnderscore = "user-name_organization";
-    assertTrue(repoOwnerWithUnderscore.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
-    assertTrue(repoOwnerNoUnderscore.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
-    assertTrue(repoOwnerHyphen.matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("user_organization".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("username".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("user-name".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("user-name_organization".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
     assertTrue("abcd".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
     assertTrue("1234".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
     assertTrue("user123".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
@@ -1065,9 +1062,13 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     assertTrue("user123_org456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
     assertTrue("user123-org456-code789".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
     assertTrue("user123-org456_code789".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
-    assertTrue("abcdefghijqlmnopkrstuvwxyz-123456789012".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue(
+        "abcdefghijqlmnopkrstuvwxyz-123456789012".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
 
-    assertFalse("abcdefghijqlmnopkrstuvwxyz-1234567890123".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    // Valid names should contain alphanumeric characters or single hyphens, and cannot begin or end
+    // with a hyphen, and have a 39 char limit
+    assertFalse(
+        "abcdefghijqlmnopkrstuvwxyz-1234567890123".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
     assertFalse("user123@org456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
     assertFalse("user123.org456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
     assertFalse("user123--org456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
