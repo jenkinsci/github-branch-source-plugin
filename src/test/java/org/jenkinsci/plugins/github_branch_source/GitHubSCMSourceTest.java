@@ -1064,6 +1064,9 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     assertTrue("user123-org456_code789".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
     assertTrue(
         "abcdefghijqlmnopkrstuvwxyz-123456789012".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("a".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("0".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+    assertTrue("a-b-c-d-e-f-g".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
 
     // Valid names should contain alphanumeric characters or single hyphens, and cannot begin or end
     // with a hyphen, and have a 39 char limit
