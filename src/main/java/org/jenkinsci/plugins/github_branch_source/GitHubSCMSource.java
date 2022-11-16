@@ -2522,9 +2522,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     public List<SCMSourceTrait> getTraitsDefaults() {
       return Arrays.asList( // TODO finalize
           new BranchDiscoveryTrait(true, false),
-          new OriginPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.MERGE)),
+          new OriginPullRequestDiscoveryTrait(EnumSet.of(ChangeRequestCheckoutStrategy.HEAD)),
           new ForkPullRequestDiscoveryTrait(
-              EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
+              EnumSet.of(ChangeRequestCheckoutStrategy.HEAD),
               new ForkPullRequestDiscoveryTrait.TrustPermission()));
     }
 
