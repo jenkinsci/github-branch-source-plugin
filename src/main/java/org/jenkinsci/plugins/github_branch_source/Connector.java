@@ -42,11 +42,15 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
+import hudson.ProxyConfiguration;
 import hudson.Util;
+import hudson.XmlFile;
 import hudson.model.Item;
 import hudson.model.PeriodicWork;
 import hudson.model.Queue;
+import hudson.model.Saveable;
 import hudson.model.TaskListener;
+import hudson.model.listeners.SaveableListener;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
@@ -835,6 +839,24 @@ public class Connector {
           + ", credentialsHash="
           + credentialsHash
           + '}';
+    }
+  }
+
+  /**
+   * Change to the {@link ProxyConfiguration} should invalidate the cached {@link GitHub} clients.
+   */
+  @Extension(ordinal = 1)
+  @SuppressWarnings("unused") // Used by Jenkins API
+  public static class OnProxyConfigurationUpdates extends SaveableListener {
+    @Override
+    public void onChange(Saveable o, XmlFile file) {
+      if (o instanceof ProxyConfiguration
+          && Jenkins.getInstanceOrNull() != null
+          && Jenkins.get().proxy != null) {
+        reverseLookup.clear();
+        connections.clear();
+      }
+      super.onChange(o, file);
     }
   }
 }
