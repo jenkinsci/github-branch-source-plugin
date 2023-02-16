@@ -50,7 +50,6 @@ import hudson.model.TaskListener;
 import hudson.security.ACL;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import io.jenkins.plugins.okhttp.api.JenkinsOkHttpClient;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -101,8 +100,6 @@ public class Connector {
 
   private static final Random ENTROPY = new Random();
   private static final String SALT = Long.toHexString(ENTROPY.nextLong());
-  private static final OkHttpClient baseClient =
-      JenkinsOkHttpClient.newClientBuilder(new OkHttpClient()).build();
 
   private Connector() {
     throw new IllegalAccessError("Utility class");
@@ -480,7 +477,7 @@ public class Connector {
     gb.withRateLimitChecker(new ApiRateLimitChecker.RateLimitCheckerAdapter());
     gb.withRateLimitHandler(CUSTOMIZED);
 
-    OkHttpClient.Builder clientBuilder = baseClient.newBuilder();
+    OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
     if (JenkinsJVM.isJenkinsJVM()) {
       clientBuilder.proxy(getProxy(host));
     }
