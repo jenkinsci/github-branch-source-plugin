@@ -69,6 +69,13 @@ public class GitHubSCMSourceTraitsTest {
     recreated.setIncludes("i*");
     recreated.setExcludes("production");
     recreated.setScanCredentialsId("foo");
+    String trust;
+    if (r.jenkins.getPlugin("gitlab-branch-source") != null) {
+      trust =
+          "org.jenkinsci.plugins.github_branch_source.ForkPullRequestDiscoveryTrait$TrustPermission";
+    } else {
+      trust = "TrustPermission";
+    }
     assertThat(
         DescribableModel.uninstantiate2_(recreated).toString(),
         is(
@@ -82,7 +89,9 @@ public class GitHubSCMSourceTraitsTest {
                 + "@gitHubPullRequestDiscovery$OriginPullRequestDiscoveryTrait(strategyId=1), "
                 + "@gitHubForkDiscovery$ForkPullRequestDiscoveryTrait("
                 + "strategyId=2,"
-                + "trust=@gitHubTrustPermissions$TrustPermission()), "
+                + "trust=@gitHubTrustPermissions$"
+                + trust
+                + "()), "
                 + "@headWildcardFilter$WildcardSCMHeadFilterTrait(excludes=production,includes=i*)])"));
   }
 
