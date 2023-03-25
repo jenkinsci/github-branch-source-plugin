@@ -163,6 +163,11 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
       }
     } catch (FileNotFoundException fnf) {
       // means that does not exist and this is handled below this try/catch block.
+      // } catch (IOException e) {
+      // Throwable t = e.getCause();
+      // if (!(t instanceof MismatchedInputException)) {
+      // throw e;
+      // }
     }
     return SCMProbeStat.fromType(SCMFile.Type.NONEXISTENT);
   }
