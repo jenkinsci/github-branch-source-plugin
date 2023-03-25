@@ -1693,7 +1693,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
           }
           PullRequestSCMRevision prRev =
               createPullRequestSCMRevision(pr, prhead, listener, ghRepository);
-          prRev.validateMergeHash();
+          try {
+            prRev.validateMergeHash();
+          } catch (AbortException e) {
+            listener
+                .getLogger()
+                .format(
+                    "Resolved %s as unmergable pull request %d: %s.%n",
+                    prhead.getName(), prhead.getNumber(), prRev.getPullHash());
+            return null;
+          }
           return prRev;
         } else if (head instanceof GitHubTagSCMHead) {
           GitHubTagSCMHead tagHead = (GitHubTagSCMHead) head;
