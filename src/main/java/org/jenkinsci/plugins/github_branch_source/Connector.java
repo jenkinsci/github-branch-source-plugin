@@ -37,6 +37,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import com.cloudbees.plugins.credentials.domains.DomainRequirement;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -46,7 +47,6 @@ import hudson.ProxyConfiguration;
 import hudson.Util;
 import hudson.XmlFile;
 import hudson.model.Item;
-import hudson.model.PeriodicWork;
 import hudson.model.Queue;
 import hudson.model.Saveable;
 import hudson.model.TaskListener;
@@ -96,8 +96,39 @@ import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 public class Connector {
   private static final Logger LOGGER = Logger.getLogger(Connector.class.getName());
 
-  private static final Map<ConnectionId, GitHubConnection> connections = new ConcurrentHashMap<>();
   private static final Map<GitHub, ConnectionId> reverseLookup = new ConcurrentHashMap<>();
+
+  private static final long CACHE_EXPIRATION =
+      Long.getLong(
+          Connector.class.getName() + ".clients.cacheExpirationInSeconds",
+          TimeUnit.MINUTES.toSeconds(30));
+
+  private static final com.github.benmanes.caffeine.cache.Cache<ConnectionId, GitHubConnection>
+      clients =
+          Caffeine.newBuilder()
+              .expireAfterWrite(CACHE_EXPIRATION, TimeUnit.SECONDS)
+              .removalListener(
+                  (key, value, cause) -> {
+                    GitHubConnection client = (GitHubConnection) value;
+                    if (client != null) {
+                      LOGGER.log(
+                          Level.FINE, () -> "Expiring GitHub client " + client + ": " + cause);
+                      reverseLookup.remove(client.gitHub);
+                      if (client.cache != null) {
+                        if (client.cleanupCacheFolder) {
+                          try {
+                            client.cache.evictAll();
+                          } catch (IOException e) {
+                            LOGGER.log(
+                                WARNING,
+                                "Exception evicting cache record for unused connection: " + key,
+                                e);
+                          }
+                        }
+                      }
+                    }
+                  })
+              .build();
 
   private static final Map<TaskListener, Map<GitHub, Void>> checked = new WeakHashMap<>();
   private static final long API_URL_REVALIDATE_MILLIS = TimeUnit.MINUTES.toMillis(5);
@@ -535,7 +566,7 @@ public class Connector {
       return;
     }
 
-    GitHubConnection record = connections.get(connectionId);
+    GitHubConnection record = clients.getIfPresent(connectionId);
     if (record != null) {
       try {
         record.release();
@@ -677,29 +708,9 @@ public class Connector {
     ApiRateLimitChecker.configureThreadLocalChecker(listener, github);
   }
 
-  @Extension
-  public static class UnusedConnectionDestroyer extends PeriodicWork {
-
-    @Override
-    public long getRecurrencePeriod() {
-      return TimeUnit.MINUTES.toMillis(5);
-    }
-
-    @Override
-    protected void doRun() throws Exception {
-      // Free any connection that is unused (zero refs)
-      // and has not been looked up or released for the last 30 minutes
-      long unusedThreshold = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(30);
-
-      GitHubConnection.removeAllUnused(unusedThreshold);
-    }
-  }
-
   static class GitHubConnection {
     @NonNull private final GitHub gitHub;
-
     @CheckForNull private final Cache cache;
-
     private final boolean cleanupCacheFolder;
     private final AtomicInteger usageCount = new AtomicInteger(1);
     private final AtomicLong lastUsed = new AtomicLong(System.currentTimeMillis());
@@ -716,6 +727,7 @@ public class Connector {
      *
      * @return the {@link GitHub} instance
      */
+    @NonNull
     public GitHub getGitHub() {
       return gitHub;
     }
@@ -723,21 +735,15 @@ public class Connector {
     @NonNull
     private static GitHubConnection lookup(
         @NonNull ConnectionId connectionId, @NonNull Supplier<GitHubConnection> generator) {
-      GitHubConnection record;
-      record =
-          connections.compute(
-              connectionId,
-              (id, connection) -> {
-                if (connection == null) {
-                  connection = generator.get();
-                  reverseLookup.put(connection.gitHub, id);
-                } else {
-                  connection.usageCount.incrementAndGet();
-                  connection.lastUsed.set(System.currentTimeMillis());
-                }
-
-                return connection;
-              });
+      GitHubConnection record = clients.getIfPresent(connectionId);
+      if (record == null) {
+        record = generator.get();
+        clients.put(connectionId, record);
+        reverseLookup.put(record.gitHub, connectionId);
+      } else {
+        record.usageCount.incrementAndGet();
+        record.lastUsed.set(System.currentTimeMillis());
+      }
       return record;
     }
 
@@ -752,35 +758,6 @@ public class Connector {
       }
 
       this.lastUsed.compareAndSet(this.lastUsed.get(), System.currentTimeMillis());
-    }
-
-    private static void removeAllUnused(long threshold) throws IOException {
-      for (ConnectionId connectionId : connections.keySet()) {
-        connections.computeIfPresent(
-            connectionId,
-            (id, record) -> {
-              long lastUse = record.lastUsed.get();
-              if (record.usageCount.get() == 0 && lastUse < threshold) {
-                try {
-                  if (record.cache != null && record.cleanupCacheFolder) {
-                    record.cache.delete();
-                    record.cache.close();
-                  }
-                } catch (IOException e) {
-                  LOGGER.log(
-                      WARNING,
-                      "Exception removing cache directory for unused connection: " + id,
-                      e);
-                }
-                reverseLookup.remove(record.gitHub);
-
-                // returning null will remove the connection
-                record = null;
-              }
-
-              return record;
-            });
-      }
     }
 
     public void verifyConnection() throws IOException {
@@ -853,8 +830,7 @@ public class Connector {
       if (o instanceof ProxyConfiguration
           && Jenkins.getInstanceOrNull() != null
           && Jenkins.get().proxy != null) {
-        reverseLookup.clear();
-        connections.clear();
+        clients.invalidateAll();
       }
       super.onChange(o, file);
     }
