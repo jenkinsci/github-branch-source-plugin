@@ -39,35 +39,34 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
  * @since 2.0.0
  */
 public class BranchSCMHead extends SCMHead {
-  /** {@inheritDoc} */
-  public BranchSCMHead(@NonNull String name) {
-    super(name);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public String getPronoun() {
-    return Messages.BranchSCMHead_Pronoun();
-  }
-
-  @Restricted(NoExternalUse.class)
-  @Extension
-  public static class MigrationImpl
-      extends SCMHeadMigration<GitHubSCMSource, SCMHead, AbstractGitSCMSource.SCMRevisionImpl> {
-    public MigrationImpl() {
-      super(GitHubSCMSource.class, SCMHead.class, AbstractGitSCMSource.SCMRevisionImpl.class);
+    /** {@inheritDoc} */
+    public BranchSCMHead(@NonNull String name) {
+        super(name);
     }
 
+    /** {@inheritDoc} */
     @Override
-    public SCMHead migrate(@NonNull GitHubSCMSource source, @NonNull SCMHead head) {
-      return new BranchSCMHead(head.getName());
+    public String getPronoun() {
+        return Messages.BranchSCMHead_Pronoun();
     }
 
-    @Override
-    public SCMRevision migrate(
-        @NonNull GitHubSCMSource source, @NonNull AbstractGitSCMSource.SCMRevisionImpl revision) {
-      return new AbstractGitSCMSource.SCMRevisionImpl(
-          migrate(source, revision.getHead()), revision.getHash());
+    @Restricted(NoExternalUse.class)
+    @Extension
+    public static class MigrationImpl
+            extends SCMHeadMigration<GitHubSCMSource, SCMHead, AbstractGitSCMSource.SCMRevisionImpl> {
+        public MigrationImpl() {
+            super(GitHubSCMSource.class, SCMHead.class, AbstractGitSCMSource.SCMRevisionImpl.class);
+        }
+
+        @Override
+        public SCMHead migrate(@NonNull GitHubSCMSource source, @NonNull SCMHead head) {
+            return new BranchSCMHead(head.getName());
+        }
+
+        @Override
+        public SCMRevision migrate(
+                @NonNull GitHubSCMSource source, @NonNull AbstractGitSCMSource.SCMRevisionImpl revision) {
+            return new AbstractGitSCMSource.SCMRevisionImpl(migrate(source, revision.getHead()), revision.getHash());
+        }
     }
-  }
 }

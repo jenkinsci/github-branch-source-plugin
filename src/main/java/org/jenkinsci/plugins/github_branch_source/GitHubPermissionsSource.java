@@ -33,13 +33,13 @@ import org.kohsuke.github.GHPermissionType;
  * @since 2.2.2
  */
 public abstract class GitHubPermissionsSource {
-  /**
-   * Fetches the permissions of the supplied username.
-   *
-   * @param username the username.
-   * @return the permissions.
-   * @throws IOException if there was an IO error.
-   * @throws InterruptedException if interrupted.
-   */
-  public abstract GHPermissionType fetch(String username) throws IOException, InterruptedException;
+    /**
+     * Fetches the permissions of the supplied username.
+     *
+     * @param username the username.
+     * @return the permissions.
+     * @throws IOException if there was an IO error.
+     * @throws InterruptedException if interrupted.
+     */
+    public abstract GHPermissionType fetch(String username) throws IOException, InterruptedException;
 }

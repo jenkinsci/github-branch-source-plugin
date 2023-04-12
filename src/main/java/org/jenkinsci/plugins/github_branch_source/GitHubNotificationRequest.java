@@ -40,120 +40,120 @@ import org.kohsuke.github.GHCommitState;
  */
 public class GitHubNotificationRequest {
 
-  private final String context;
-  private final String url;
-  private final String message;
-  private final GHCommitState state;
-  private final boolean ignoreError;
+    private final String context;
+    private final String url;
+    private final String message;
+    private final GHCommitState state;
+    private final boolean ignoreError;
 
-  /** @since 2.3.2 */
-  private GitHubNotificationRequest(
-      String context, String url, String message, GHCommitState state, boolean ignoreError) {
-    this.context = context;
-    this.url = url;
-    this.message = message;
-    this.state = state;
-    this.ignoreError = ignoreError;
-  }
+    /** @since 2.3.2 */
+    private GitHubNotificationRequest(
+            String context, String url, String message, GHCommitState state, boolean ignoreError) {
+        this.context = context;
+        this.url = url;
+        this.message = message;
+        this.state = state;
+        this.ignoreError = ignoreError;
+    }
 
-  public static GitHubNotificationRequest build(
-      String context, String url, String message, GHCommitState state, boolean ignoreError) {
-    return new GitHubNotificationRequest(context, url, message, state, ignoreError);
-  }
+    public static GitHubNotificationRequest build(
+            String context, String url, String message, GHCommitState state, boolean ignoreError) {
+        return new GitHubNotificationRequest(context, url, message, state, ignoreError);
+    }
 
-  /**
-   * Returns the context label to be used for a notification
-   *
-   * @return context
-   * @since 2.3.2
-   */
-  public String getContext() {
-    return context;
-  }
+    /**
+     * Returns the context label to be used for a notification
+     *
+     * @return context
+     * @since 2.3.2
+     */
+    public String getContext() {
+        return context;
+    }
 
-  /**
-   * Returns the URL to be supplied with a notification
-   *
-   * @return url
-   * @since 2.3.2
-   */
-  public String getUrl() {
-    return url;
-  }
+    /**
+     * Returns the URL to be supplied with a notification
+     *
+     * @return url
+     * @since 2.3.2
+     */
+    public String getUrl() {
+        return url;
+    }
 
-  /**
-   * Returns the message for a notification
-   *
-   * @return message
-   * @since 2.3.2
-   */
-  public String getMessage() {
-    return message;
-  }
+    /**
+     * Returns the message for a notification
+     *
+     * @return message
+     * @since 2.3.2
+     */
+    public String getMessage() {
+        return message;
+    }
 
-  /**
-   * Returns the commit state of a notification
-   *
-   * @return state
-   * @since 2.3.2
-   */
-  public GHCommitState getState() {
-    return state;
-  }
+    /**
+     * Returns the commit state of a notification
+     *
+     * @return state
+     * @since 2.3.2
+     */
+    public GHCommitState getState() {
+        return state;
+    }
 
-  /**
-   * Returns whether the notification processor should ignore errors when interacting with GitHub
-   *
-   * @return ignoreError
-   * @since 2.3.2
-   */
-  public boolean isIgnoreError() {
-    return ignoreError;
-  }
+    /**
+     * Returns whether the notification processor should ignore errors when interacting with GitHub
+     *
+     * @return ignoreError
+     * @since 2.3.2
+     */
+    public boolean isIgnoreError() {
+        return ignoreError;
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public String toString() {
-    return "GitHubNotificationRequest{"
-        + "context='"
-        + context
-        + '\''
-        + ", url='"
-        + url
-        + '\''
-        + ", message='"
-        + message
-        + '\''
-        + ", state="
-        + state
-        + ", ignoreError="
-        + ignoreError
-        + '}';
-  }
+    /** {@inheritDoc} */
+    @Override
+    public String toString() {
+        return "GitHubNotificationRequest{"
+                + "context='"
+                + context
+                + '\''
+                + ", url='"
+                + url
+                + '\''
+                + ", message='"
+                + message
+                + '\''
+                + ", state="
+                + state
+                + ", ignoreError="
+                + ignoreError
+                + '}';
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+    /** {@inheritDoc} */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
-    GitHubNotificationRequest that = (GitHubNotificationRequest) o;
+        GitHubNotificationRequest that = (GitHubNotificationRequest) o;
 
-    if (ignoreError != that.ignoreError) return false;
-    if (!Objects.equals(context, that.context)) return false;
-    if (!Objects.equals(url, that.url)) return false;
-    if (!Objects.equals(message, that.message)) return false;
-    return state == that.state;
-  }
+        if (ignoreError != that.ignoreError) return false;
+        if (!Objects.equals(context, that.context)) return false;
+        if (!Objects.equals(url, that.url)) return false;
+        if (!Objects.equals(message, that.message)) return false;
+        return state == that.state;
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public int hashCode() {
-    int result = context != null ? context.hashCode() : 0;
-    result = 31 * result + (url != null ? url.hashCode() : 0);
-    result = 31 * result + (message != null ? message.hashCode() : 0);
-    result = 31 * result + (state != null ? state.hashCode() : 0);
-    result = 31 * result + (ignoreError ? 1 : 0);
-    return result;
-  }
+    /** {@inheritDoc} */
+    @Override
+    public int hashCode() {
+        int result = context != null ? context.hashCode() : 0;
+        result = 31 * result + (url != null ? url.hashCode() : 0);
+        result = 31 * result + (message != null ? message.hashCode() : 0);
+        result = 31 * result + (state != null ? state.hashCode() : 0);
+        result = 31 * result + (ignoreError ? 1 : 0);
+        return result;
+    }
 }

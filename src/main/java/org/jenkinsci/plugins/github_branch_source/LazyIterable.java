@@ -34,23 +34,24 @@ import java.util.Iterator;
  * @since 2.2.0
  */
 abstract class LazyIterable<V> implements Iterable<V> {
-  /** The delegate. */
-  @CheckForNull private Iterable<V> delegate;
+    /** The delegate. */
+    @CheckForNull
+    private Iterable<V> delegate;
 
-  /**
-   * Instantiates the delegate.
-   *
-   * @return the delegate.
-   */
-  @NonNull
-  protected abstract Iterable<V> create();
+    /**
+     * Instantiates the delegate.
+     *
+     * @return the delegate.
+     */
+    @NonNull
+    protected abstract Iterable<V> create();
 
-  /** {@inheritDoc} */
-  @Override
-  public synchronized Iterator<V> iterator() {
-    if (delegate == null) {
-      delegate = create();
+    /** {@inheritDoc} */
+    @Override
+    public synchronized Iterator<V> iterator() {
+        if (delegate == null) {
+            delegate = create();
+        }
+        return delegate.iterator();
     }
-    return delegate.iterator();
-  }
 }

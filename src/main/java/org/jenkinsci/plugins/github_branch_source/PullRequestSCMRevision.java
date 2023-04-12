@@ -38,114 +38,102 @@ import org.kohsuke.stapler.export.Exported;
 /** Revision of a pull request. */
 public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequestSCMHead> {
 
-  private static final long serialVersionUID = 1L;
-  static final String NOT_MERGEABLE_HASH = "NOT_MERGEABLE";
+    private static final long serialVersionUID = 1L;
+    static final String NOT_MERGEABLE_HASH = "NOT_MERGEABLE";
 
-  private final @NonNull String baseHash;
-  private final @NonNull String pullHash;
-  private final String mergeHash;
+    private final @NonNull String baseHash;
+    private final @NonNull String pullHash;
+    private final String mergeHash;
 
-  public PullRequestSCMRevision(
-      @NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash) {
-    this(head, baseHash, pullHash, null);
-  }
-
-  PullRequestSCMRevision(
-      @NonNull PullRequestSCMHead head,
-      @NonNull String baseHash,
-      @NonNull String pullHash,
-      String mergeHash) {
-    super(head, new AbstractGitSCMSource.SCMRevisionImpl(head.getTarget(), baseHash));
-    this.baseHash = baseHash;
-    this.pullHash = pullHash;
-    this.mergeHash = mergeHash;
-  }
-
-  @SuppressFBWarnings({
-    "SE_PRIVATE_READ_RESOLVE_NOT_INHERITED",
-    "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"
-  })
-  private Object readResolve() {
-    if (getTarget() == null) {
-      // fix an instance prior to the type migration, thankfully we have all the required info
-      return new PullRequestSCMRevision((PullRequestSCMHead) getHead(), baseHash, pullHash);
+    public PullRequestSCMRevision(
+            @NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash) {
+        this(head, baseHash, pullHash, null);
     }
-    return this;
-  }
 
-  /**
-   * The commit hash of the base branch we are tracking. If {@link
-   * ChangeRequestSCMHead2#getCheckoutStrategy()} {@link ChangeRequestCheckoutStrategy#MERGE}, this
-   * would be the current head of the base branch. Otherwise it would be the PR’s {@code .base.sha},
-   * the common ancestor of the PR branch and the base branch.
-   *
-   * @return the commit hash of the base branch we are tracking.
-   */
-  @NonNull
-  public String getBaseHash() {
-    return baseHash;
-  }
-
-  /**
-   * The commit hash of the head of the pull request branch.
-   *
-   * @return The commit hash of the head of the pull request branch
-   */
-  @Exported
-  @NonNull
-  public String getPullHash() {
-    return pullHash;
-  }
-
-  /**
-   * The commit hash of the head of the pull request branch.
-   *
-   * @return The commit hash of the head of the pull request branch
-   */
-  @CheckForNull
-  public String getMergeHash() {
-    return mergeHash;
-  }
-
-  void validateMergeHash() throws AbortException {
-    if (NOT_MERGEABLE_HASH.equals(this.mergeHash)) {
-      throw new AbortException(
-          "Pull request "
-              + ((PullRequestSCMHead) this.getHead()).getNumber()
-              + " : Not mergeable at "
-              + this.toString());
+    PullRequestSCMRevision(
+            @NonNull PullRequestSCMHead head, @NonNull String baseHash, @NonNull String pullHash, String mergeHash) {
+        super(head, new AbstractGitSCMSource.SCMRevisionImpl(head.getTarget(), baseHash));
+        this.baseHash = baseHash;
+        this.pullHash = pullHash;
+        this.mergeHash = mergeHash;
     }
-  }
 
-  @Override
-  public boolean equivalent(ChangeRequestSCMRevision<?> o) {
-    if (!(o instanceof PullRequestSCMRevision)) {
-      return false;
+    @SuppressFBWarnings({"SE_PRIVATE_READ_RESOLVE_NOT_INHERITED", "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"})
+    private Object readResolve() {
+        if (getTarget() == null) {
+            // fix an instance prior to the type migration, thankfully we have all the required info
+            return new PullRequestSCMRevision((PullRequestSCMHead) getHead(), baseHash, pullHash);
+        }
+        return this;
     }
-    PullRequestSCMRevision other = (PullRequestSCMRevision) o;
 
-    // JENKINS-57583 - Equivalent is used to make decisions about when to build.
-    // mergeHash is an implementation detail of github, generated from base and target
-    // If only mergeHash changes we do not consider it a different revision
-    return getHead().equals(other.getHead()) && pullHash.equals(other.pullHash);
-  }
-
-  @Override
-  public int _hashCode() {
-    return pullHash.hashCode();
-  }
-
-  @Override
-  public String toString() {
-    String result = pullHash;
-    if (getHead() instanceof PullRequestSCMHead && ((PullRequestSCMHead) getHead()).isMerge()) {
-      result +=
-          "+"
-              + baseHash
-              + " ("
-              + StringUtils.defaultIfBlank(mergeHash, "UNKNOWN_MERGE_STATE")
-              + ")";
+    /**
+     * The commit hash of the base branch we are tracking. If {@link
+     * ChangeRequestSCMHead2#getCheckoutStrategy()} {@link ChangeRequestCheckoutStrategy#MERGE}, this
+     * would be the current head of the base branch. Otherwise it would be the PR’s {@code .base.sha},
+     * the common ancestor of the PR branch and the base branch.
+     *
+     * @return the commit hash of the base branch we are tracking.
+     */
+    @NonNull
+    public String getBaseHash() {
+        return baseHash;
     }
-    return result;
-  }
+
+    /**
+     * The commit hash of the head of the pull request branch.
+     *
+     * @return The commit hash of the head of the pull request branch
+     */
+    @Exported
+    @NonNull
+    public String getPullHash() {
+        return pullHash;
+    }
+
+    /**
+     * The commit hash of the head of the pull request branch.
+     *
+     * @return The commit hash of the head of the pull request branch
+     */
+    @CheckForNull
+    public String getMergeHash() {
+        return mergeHash;
+    }
+
+    void validateMergeHash() throws AbortException {
+        if (NOT_MERGEABLE_HASH.equals(this.mergeHash)) {
+            throw new AbortException("Pull request "
+                    + ((PullRequestSCMHead) this.getHead()).getNumber()
+                    + " : Not mergeable at "
+                    + this.toString());
+        }
+    }
+
+    @Override
+    public boolean equivalent(ChangeRequestSCMRevision<?> o) {
+        if (!(o instanceof PullRequestSCMRevision)) {
+            return false;
+        }
+        PullRequestSCMRevision other = (PullRequestSCMRevision) o;
+
+        // JENKINS-57583 - Equivalent is used to make decisions about when to build.
+        // mergeHash is an implementation detail of github, generated from base and target
+        // If only mergeHash changes we do not consider it a different revision
+        return getHead().equals(other.getHead()) && pullHash.equals(other.pullHash);
+    }
+
+    @Override
+    public int _hashCode() {
+        return pullHash.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        String result = pullHash;
+        if (getHead() instanceof PullRequestSCMHead && ((PullRequestSCMHead) getHead()).isMerge()) {
+            result += "+" + baseHash + " (" + StringUtils.defaultIfBlank(mergeHash, "UNKNOWN_MERGE_STATE") + ")";
+        }
+        return result;
+    }
 }

@@ -54,152 +54,149 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * @since 2.2.0
  */
 public class OriginPullRequestDiscoveryTrait extends SCMSourceTrait {
-  /** None strategy. */
-  public static final int NONE = 0;
-  /** Merging the pull request with the current target branch revision. */
-  public static final int MERGE = 1;
-  /** The current pull request revision. */
-  public static final int HEAD = 2;
-  /**
-   * Both the current pull request revision and the pull request merged with the current target
-   * branch revision.
-   */
-  public static final int HEAD_AND_MERGE = 3;
+    /** None strategy. */
+    public static final int NONE = 0;
+    /** Merging the pull request with the current target branch revision. */
+    public static final int MERGE = 1;
+    /** The current pull request revision. */
+    public static final int HEAD = 2;
+    /**
+     * Both the current pull request revision and the pull request merged with the current target
+     * branch revision.
+     */
+    public static final int HEAD_AND_MERGE = 3;
 
-  /** The strategy encoded as a bit-field. */
-  private final int strategyId;
+    /** The strategy encoded as a bit-field. */
+    private final int strategyId;
 
-  /**
-   * Constructor for stapler.
-   *
-   * @param strategyId the strategy id.
-   */
-  @DataBoundConstructor
-  public OriginPullRequestDiscoveryTrait(int strategyId) {
-    this.strategyId = strategyId;
-  }
-
-  /**
-   * Constructor for programmatic instantiation.
-   *
-   * @param strategies the {@link ChangeRequestCheckoutStrategy} instances.
-   */
-  public OriginPullRequestDiscoveryTrait(Set<ChangeRequestCheckoutStrategy> strategies) {
-    this(
-        (strategies.contains(ChangeRequestCheckoutStrategy.MERGE) ? MERGE : NONE)
-            + (strategies.contains(ChangeRequestCheckoutStrategy.HEAD) ? HEAD : NONE));
-  }
-
-  /**
-   * Gets the strategy id.
-   *
-   * @return the strategy id.
-   */
-  public int getStrategyId() {
-    return strategyId;
-  }
-
-  /**
-   * Returns the strategies.
-   *
-   * @return the strategies.
-   */
-  @NonNull
-  public Set<ChangeRequestCheckoutStrategy> getStrategies() {
-    switch (strategyId) {
-      case OriginPullRequestDiscoveryTrait.MERGE:
-        return EnumSet.of(ChangeRequestCheckoutStrategy.MERGE);
-      case OriginPullRequestDiscoveryTrait.HEAD:
-        return EnumSet.of(ChangeRequestCheckoutStrategy.HEAD);
-      case OriginPullRequestDiscoveryTrait.HEAD_AND_MERGE:
-        return EnumSet.of(ChangeRequestCheckoutStrategy.HEAD, ChangeRequestCheckoutStrategy.MERGE);
-      default:
-        return EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
-    }
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  protected void decorateContext(SCMSourceContext<?, ?> context) {
-    GitHubSCMSourceContext ctx = (GitHubSCMSourceContext) context;
-    ctx.wantOriginPRs(true);
-    ctx.withAuthority(new OriginChangeRequestSCMHeadAuthority());
-    ctx.withOriginPRStrategies(getStrategies());
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public boolean includeCategory(@NonNull SCMHeadCategory category) {
-    return category instanceof ChangeRequestSCMHeadCategory;
-  }
-
-  /** Our descriptor. */
-  @Symbol("gitHubPullRequestDiscovery")
-  @Extension
-  @Discovery
-  public static class DescriptorImpl extends SCMSourceTraitDescriptor {
-
-    /** {@inheritDoc} */
-    @Override
-    public String getDisplayName() {
-      return Messages.OriginPullRequestDiscoveryTrait_discoverPullRequestsFromOrigin();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Class<? extends SCMSourceContext> getContextClass() {
-      return GitHubSCMSourceContext.class;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Class<? extends SCMSource> getSourceClass() {
-      return GitHubSCMSource.class;
+    /**
+     * Constructor for stapler.
+     *
+     * @param strategyId the strategy id.
+     */
+    @DataBoundConstructor
+    public OriginPullRequestDiscoveryTrait(int strategyId) {
+        this.strategyId = strategyId;
     }
 
     /**
-     * Populates the strategy options.
+     * Constructor for programmatic instantiation.
      *
-     * @return the strategy options.
+     * @param strategies the {@link ChangeRequestCheckoutStrategy} instances.
+     */
+    public OriginPullRequestDiscoveryTrait(Set<ChangeRequestCheckoutStrategy> strategies) {
+        this((strategies.contains(ChangeRequestCheckoutStrategy.MERGE) ? MERGE : NONE)
+                + (strategies.contains(ChangeRequestCheckoutStrategy.HEAD) ? HEAD : NONE));
+    }
+
+    /**
+     * Gets the strategy id.
+     *
+     * @return the strategy id.
+     */
+    public int getStrategyId() {
+        return strategyId;
+    }
+
+    /**
+     * Returns the strategies.
+     *
+     * @return the strategies.
      */
     @NonNull
-    @Restricted(NoExternalUse.class)
-    @SuppressWarnings("unused") // stapler
-    public ListBoxModel doFillStrategyIdItems() {
-      ListBoxModel result = new ListBoxModel();
-      result.add(Messages.ForkPullRequestDiscoveryTrait_mergeOnly(), String.valueOf(MERGE));
-      result.add(Messages.ForkPullRequestDiscoveryTrait_headOnly(), String.valueOf(HEAD));
-      result.add(
-          Messages.ForkPullRequestDiscoveryTrait_headAndMerge(), String.valueOf(HEAD_AND_MERGE));
-      return result;
+    public Set<ChangeRequestCheckoutStrategy> getStrategies() {
+        switch (strategyId) {
+            case OriginPullRequestDiscoveryTrait.MERGE:
+                return EnumSet.of(ChangeRequestCheckoutStrategy.MERGE);
+            case OriginPullRequestDiscoveryTrait.HEAD:
+                return EnumSet.of(ChangeRequestCheckoutStrategy.HEAD);
+            case OriginPullRequestDiscoveryTrait.HEAD_AND_MERGE:
+                return EnumSet.of(ChangeRequestCheckoutStrategy.HEAD, ChangeRequestCheckoutStrategy.MERGE);
+            default:
+                return EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
+        }
     }
-  }
 
-  /** A {@link SCMHeadAuthority} that trusts origin pull requests */
-  public static class OriginChangeRequestSCMHeadAuthority
-      extends SCMHeadAuthority<SCMSourceRequest, ChangeRequestSCMHead2, SCMRevision> {
     /** {@inheritDoc} */
     @Override
-    protected boolean checkTrusted(
-        @NonNull SCMSourceRequest request, @NonNull ChangeRequestSCMHead2 head) {
-      return SCMHeadOrigin.DEFAULT.equals(head.getOrigin());
+    protected void decorateContext(SCMSourceContext<?, ?> context) {
+        GitHubSCMSourceContext ctx = (GitHubSCMSourceContext) context;
+        ctx.wantOriginPRs(true);
+        ctx.withAuthority(new OriginChangeRequestSCMHeadAuthority());
+        ctx.withOriginPRStrategies(getStrategies());
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean includeCategory(@NonNull SCMHeadCategory category) {
+        return category instanceof ChangeRequestSCMHeadCategory;
     }
 
     /** Our descriptor. */
+    @Symbol("gitHubPullRequestDiscovery")
     @Extension
-    public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+    @Discovery
+    public static class DescriptorImpl extends SCMSourceTraitDescriptor {
 
-      /** {@inheritDoc} */
-      @Override
-      public String getDisplayName() {
-        return Messages.OriginPullRequestDiscoveryTrait_authorityDisplayName();
-      }
+        /** {@inheritDoc} */
+        @Override
+        public String getDisplayName() {
+            return Messages.OriginPullRequestDiscoveryTrait_discoverPullRequestsFromOrigin();
+        }
 
-      /** {@inheritDoc} */
-      @Override
-      public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
-        return SCMHeadOrigin.Default.class.isAssignableFrom(originClass);
-      }
+        /** {@inheritDoc} */
+        @Override
+        public Class<? extends SCMSourceContext> getContextClass() {
+            return GitHubSCMSourceContext.class;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public Class<? extends SCMSource> getSourceClass() {
+            return GitHubSCMSource.class;
+        }
+
+        /**
+         * Populates the strategy options.
+         *
+         * @return the strategy options.
+         */
+        @NonNull
+        @Restricted(NoExternalUse.class)
+        @SuppressWarnings("unused") // stapler
+        public ListBoxModel doFillStrategyIdItems() {
+            ListBoxModel result = new ListBoxModel();
+            result.add(Messages.ForkPullRequestDiscoveryTrait_mergeOnly(), String.valueOf(MERGE));
+            result.add(Messages.ForkPullRequestDiscoveryTrait_headOnly(), String.valueOf(HEAD));
+            result.add(Messages.ForkPullRequestDiscoveryTrait_headAndMerge(), String.valueOf(HEAD_AND_MERGE));
+            return result;
+        }
     }
-  }
+
+    /** A {@link SCMHeadAuthority} that trusts origin pull requests */
+    public static class OriginChangeRequestSCMHeadAuthority
+            extends SCMHeadAuthority<SCMSourceRequest, ChangeRequestSCMHead2, SCMRevision> {
+        /** {@inheritDoc} */
+        @Override
+        protected boolean checkTrusted(@NonNull SCMSourceRequest request, @NonNull ChangeRequestSCMHead2 head) {
+            return SCMHeadOrigin.DEFAULT.equals(head.getOrigin());
+        }
+
+        /** Our descriptor. */
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+
+            /** {@inheritDoc} */
+            @Override
+            public String getDisplayName() {
+                return Messages.OriginPullRequestDiscoveryTrait_authorityDisplayName();
+            }
+
+            /** {@inheritDoc} */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Default.class.isAssignableFrom(originClass);
+            }
+        }
+    }
 }
