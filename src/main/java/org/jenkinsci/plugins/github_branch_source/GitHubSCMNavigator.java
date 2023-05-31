@@ -1637,17 +1637,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
     // trusted source
     listener.getLogger().printf("Looking up details of %s...%n", getRepoOwner());
     List<Action> result = new ArrayList<>();
-    String apiUri = Util.fixEmptyAndTrim(getApiUri());
     StandardCredentials credentials =
         Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId, repoOwner);
     GitHub hub = Connector.connect(getApiUri(), credentials);
-    boolean privateMode = determinePrivateMode(apiUri);
     try {
       Connector.configureLocalRateLimitChecker(listener, hub);
       GHUser u = hub.getUser(getRepoOwner());
       String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
       result.add(new ObjectMetadataAction(Util.fixEmpty(u.getName()), null, objectUrl));
-      if (privateMode) {
+      if (determinePrivateMode(apiUri)) {
         result.add(new GitHubOrgMetadataAction((String) null));
       } else {
         result.add(new GitHubOrgMetadataAction(u));
