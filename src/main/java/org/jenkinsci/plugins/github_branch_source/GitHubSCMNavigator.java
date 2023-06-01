@@ -31,6 +31,8 @@ import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -47,6 +49,7 @@ import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -186,6 +189,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
    * @deprecated use {@link ForkPullRequestDiscoveryTrait}.
    */
   @Deprecated private transient Boolean buildForkPRHead;
+
+  private static final LoadingCache<String, Boolean> privateModeCache = createPrivateModeCache();
 
   /**
    * Constructor.
@@ -1641,9 +1646,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
     StandardCredentials credentials =
         Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId, repoOwner);
     GitHub hub = Connector.connect(getApiUri(), credentials);
+    Connector.configureLocalRateLimitChecker(listener, hub);
     boolean privateMode = determinePrivateMode(apiUri);
     try {
-      Connector.configureLocalRateLimitChecker(listener, hub);
       GHUser u = hub.getUser(getRepoOwner());
       String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
       result.add(new ObjectMetadataAction(Util.fixEmpty(u.getName()), null, objectUrl));
@@ -1669,21 +1674,33 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
   }
 
+  private static LoadingCache<String, Boolean> createPrivateModeCache() {
+    //TODO configurable duration Potentially using Duration.parse.abs?
+    return Caffeine.newBuilder().expireAfterWrite(Duration.ofHours(20)).build(key -> {
+      if (key.equals(GitHubServerConfig.GITHUB_URL)) {
+        return false;
+      }
+      try {
+        GitHub.connectToEnterpriseAnonymously(key).checkApiUrlValidity();
+      } catch (MalformedURLException e) {
+        // URL is bogus so there is never going to be an avatar - or anything else come to think of it
+        return true;
+      } catch (IOException e) {
+        if (e.getMessage().contains("private mode enabled")) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+  }
+
   private static boolean determinePrivateMode(String apiUri) {
     if (apiUri == null || apiUri.equals(GitHubServerConfig.GITHUB_URL)) {
       return false;
     }
-    try {
-      GitHub.connectToEnterpriseAnonymously(apiUri).checkApiUrlValidity();
-    } catch (MalformedURLException e) {
-      // URL is bogus so there is never going to be an avatar - or anything else come to think of it
-      return true;
-    } catch (IOException e) {
-      if (e.getMessage().contains("private mode enabled")) {
-        return true;
-      }
-    }
-    return false;
+    Boolean aBoolean = privateModeCache.get(apiUri);
+    return aBoolean != null && aBoolean;
   }
 
   /** {@inheritDoc} */
