@@ -54,9 +54,6 @@ import io.jenkins.plugins.okhttp.api.JenkinsOkHttpClient;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.Proxy;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -75,7 +72,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSourceOwner;
-import jenkins.util.JenkinsJVM;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
 import org.apache.commons.lang.StringUtils;
@@ -101,8 +97,6 @@ public class Connector {
 
   private static final Random ENTROPY = new Random();
   private static final String SALT = Long.toHexString(ENTROPY.nextLong());
-  private static final OkHttpClient baseClient =
-      JenkinsOkHttpClient.newClientBuilder(new OkHttpClient()).build();
 
   private Connector() {
     throw new IllegalAccessError("Utility class");
@@ -468,22 +462,12 @@ public class Connector {
   @NonNull
   private static GitHubBuilder createGitHubBuilder(
       @NonNull String apiUrl, @CheckForNull Cache cache) throws IOException {
-    String host;
-    try {
-      host = new URL(apiUrl).getHost();
-    } catch (MalformedURLException e) {
-      throw new IOException("Invalid GitHub API URL: " + apiUrl, e);
-    }
-
     GitHubBuilder gb = new GitHubBuilder();
     gb.withEndpoint(apiUrl);
     gb.withRateLimitChecker(new ApiRateLimitChecker.RateLimitCheckerAdapter());
     gb.withRateLimitHandler(CUSTOMIZED);
 
-    OkHttpClient.Builder clientBuilder = baseClient.newBuilder();
-    if (JenkinsJVM.isJenkinsJVM()) {
-      clientBuilder.proxy(getProxy(host));
-    }
+    OkHttpClient.Builder clientBuilder = JenkinsOkHttpClient.newClientBuilder(new OkHttpClient());
     if (cache != null) {
       clientBuilder.cache(cache);
     }
@@ -554,22 +538,6 @@ public class Connector {
     return URIRequirementBuilder.fromUri(
             StringUtils.defaultIfEmpty(apiUri, GitHubServerConfig.GITHUB_URL))
         .build();
-  }
-
-  /**
-   * Uses proxy if configured on pluginManager/advanced page
-   *
-   * @param host GitHub's hostname to build proxy to
-   * @return proxy to use it in connector. Should not be null as it can lead to unexpected behaviour
-   */
-  @NonNull
-  private static Proxy getProxy(@NonNull String host) {
-    Jenkins jenkins = Jenkins.getInstanceOrNull();
-    if (jenkins == null || jenkins.proxy == null) {
-      return Proxy.NO_PROXY;
-    } else {
-      return jenkins.proxy.createProxy(host);
-    }
   }
 
   /** Fail immediately and throw a customized exception. */
