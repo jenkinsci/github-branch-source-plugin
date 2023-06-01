@@ -1675,24 +1675,27 @@ public class GitHubSCMNavigator extends SCMNavigator {
   }
 
   private static LoadingCache<String, Boolean> createPrivateModeCache() {
-    //TODO configurable duration Potentially using Duration.parse.abs?
-    return Caffeine.newBuilder().expireAfterWrite(Duration.ofHours(20)).build(key -> {
-      if (key.equals(GitHubServerConfig.GITHUB_URL)) {
-        return false;
-      }
-      try {
-        GitHub.connectToEnterpriseAnonymously(key).checkApiUrlValidity();
-      } catch (MalformedURLException e) {
-        // URL is bogus so there is never going to be an avatar - or anything else come to think of it
-        return true;
-      } catch (IOException e) {
-        if (e.getMessage().contains("private mode enabled")) {
-          return true;
-        }
-      }
-      return false;
-    });
-
+    // TODO configurable duration Potentially using Duration.parse.abs?
+    return Caffeine.newBuilder()
+        .expireAfterWrite(Duration.ofHours(20))
+        .build(
+            key -> {
+              if (key.equals(GitHubServerConfig.GITHUB_URL)) {
+                return false;
+              }
+              try {
+                GitHub.connectToEnterpriseAnonymously(key).checkApiUrlValidity();
+              } catch (MalformedURLException e) {
+                // URL is bogus so there is never going to be an avatar - or anything else come to
+                // think of it
+                return true;
+              } catch (IOException e) {
+                if (e.getMessage().contains("private mode enabled")) {
+                  return true;
+                }
+              }
+              return false;
+            });
   }
 
   private static boolean determinePrivateMode(String apiUri) {
