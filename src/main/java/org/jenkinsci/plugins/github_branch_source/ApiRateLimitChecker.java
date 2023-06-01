@@ -29,6 +29,7 @@ public enum ApiRateLimitChecker {
         @Override
         long checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now)
             throws InterruptedException {
+          LOGGER.log(Level.FINE, "should not arrive here", new Throwable());
           long expiration = now;
           // the buffer is how much we want to avoid using to cover unplanned over-use
           int buffer = calculateBuffer(rateLimit.getLimit());
@@ -104,6 +105,7 @@ public enum ApiRateLimitChecker {
     @Override
     public LocalChecker getChecker(@NonNull TaskListener listener, String apiUrl) {
       if (GitHubServerConfig.GITHUB_URL.equals(apiUrl)) {
+        LOGGER.log(Level.FINE, "should not arrive here", new Throwable());
         // If the GitHub public API is being used, this will fallback to ThrottleOnOver
         LocalChecker checker = ThrottleOnOver.getChecker(listener, apiUrl);
         checker.writeLog(
@@ -115,6 +117,7 @@ public enum ApiRateLimitChecker {
           @Override
           long checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now)
               throws InterruptedException {
+            LOGGER.log(Level.FINE, "should not arrive here", new Throwable());
             return now;
           }
         };
