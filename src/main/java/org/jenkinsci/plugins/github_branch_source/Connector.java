@@ -42,6 +42,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
+import hudson.ProxyConfiguration;
 import hudson.Util;
 import hudson.model.Item;
 import hudson.model.PeriodicWork;
@@ -54,10 +55,16 @@ import io.jenkins.plugins.okhttp.api.JenkinsOkHttpClient;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
+import java.net.ProxySelector;
+import java.net.SocketAddress;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -70,8 +77,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSourceOwner;
+import jenkins.util.JenkinsJVM;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
 import org.apache.commons.lang.StringUtils;
@@ -468,6 +477,10 @@ public class Connector {
     gb.withRateLimitHandler(CUSTOMIZED);
 
     OkHttpClient.Builder clientBuilder = JenkinsOkHttpClient.newClientBuilder(new OkHttpClient());
+    if (JenkinsJVM.isJenkinsJVM() && Jenkins.get().proxy != null) {
+      // Remove once https://github.com/jenkinsci/okhttp-api-plugin/pull/159 is merged
+      clientBuilder.proxySelector(new JenkinsProxySelector(Jenkins.get().proxy));
+    }
     if (cache != null) {
       clientBuilder.cache(cache);
     }
@@ -806,6 +819,37 @@ public class Connector {
           + ", credentialsHash="
           + credentialsHash
           + '}';
+    }
+  }
+
+  // Remove once https://github.com/jenkinsci/okhttp-api-plugin/pull/159 is merged
+  private static class JenkinsProxySelector extends ProxySelector {
+    private static final Logger LOGGER = Logger.getLogger(JenkinsProxySelector.class.getName());
+    private final ProxyConfiguration configuration;
+    private final Proxy proxy;
+
+    public JenkinsProxySelector(final ProxyConfiguration configuration) {
+      this.configuration = configuration;
+      this.proxy =
+          new Proxy(
+              Proxy.Type.HTTP,
+              InetSocketAddress.createUnresolved(configuration.name, configuration.port));
+    }
+
+    @Override
+    public List<Proxy> select(URI uri) {
+      final String host = uri.getHost();
+      for (Pattern p : configuration.getNoProxyHostPatterns()) {
+        if (p.matcher(host).matches()) {
+          return Collections.singletonList(Proxy.NO_PROXY);
+        }
+      }
+      return Collections.singletonList(proxy);
+    }
+
+    @Override
+    public void connectFailed(URI uri, SocketAddress sa, IOException ioe) {
+      LOGGER.log(Level.WARNING, "Proxy connection failed", ioe);
     }
   }
 }
