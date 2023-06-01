@@ -18,59 +18,54 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /** Trait used to filter any pull requests current set as a draft from building. */
 public class IgnoreDraftPullRequestFilterTrait extends SCMSourceTrait {
 
-  @DataBoundConstructor
-  public IgnoreDraftPullRequestFilterTrait() {}
+    @DataBoundConstructor
+    public IgnoreDraftPullRequestFilterTrait() {}
 
-  protected void decorateContext(SCMSourceContext<?, ?> context) {
-    context.withFilter(
-        new SCMHeadFilter() {
-          @Override
-          public boolean isExcluded(
-              @NonNull final SCMSourceRequest request, @NonNull final SCMHead head)
-              throws IOException {
-            if (!(request instanceof GitHubSCMSourceRequest)
-                || !(head instanceof PullRequestSCMHead)) {
-              return false;
+    protected void decorateContext(SCMSourceContext<?, ?> context) {
+        context.withFilter(new SCMHeadFilter() {
+            @Override
+            public boolean isExcluded(@NonNull final SCMSourceRequest request, @NonNull final SCMHead head)
+                    throws IOException {
+                if (!(request instanceof GitHubSCMSourceRequest) || !(head instanceof PullRequestSCMHead)) {
+                    return false;
+                }
+                GitHubSCMSourceRequest githubRequest = (GitHubSCMSourceRequest) request;
+                PullRequestSCMHead prHead = (PullRequestSCMHead) head;
+                for (GHPullRequest pullRequest : githubRequest.getPullRequests()) {
+                    if (pullRequest.getNumber() != prHead.getNumber()) {
+                        continue;
+                    }
+                    if (pullRequest.isDraft()) {
+                        request.listener()
+                                .getLogger()
+                                .format("%n    Won't Build PR %s. Marked as a draft.%n", "#" + prHead.getNumber());
+                        return true;
+                    }
+                    return false;
+                }
+                return false;
             }
-            GitHubSCMSourceRequest githubRequest = (GitHubSCMSourceRequest) request;
-            PullRequestSCMHead prHead = (PullRequestSCMHead) head;
-            for (GHPullRequest pullRequest : githubRequest.getPullRequests()) {
-              if (pullRequest.getNumber() != prHead.getNumber()) {
-                continue;
-              }
-              if (pullRequest.isDraft()) {
-                request
-                    .listener()
-                    .getLogger()
-                    .format(
-                        "%n    Won't Build PR %s. Marked as a draft.%n", "#" + prHead.getNumber());
-                return true;
-              }
-              return false;
-            }
-            return false;
-          }
         });
-  }
-
-  @Symbol({"gitHubIgnoreDraftPullRequestFilter"})
-  @Extension
-  @Selection
-  public static class DescriptorImpl extends SCMSourceTraitDescriptor {
-    public DescriptorImpl() {}
-
-    public String getDisplayName() {
-      return Messages.IgnoreDraftPullRequestFilterTrait_DisplayName();
     }
 
-    @Override
-    public Class<? extends SCMSourceContext> getContextClass() {
-      return GitHubSCMSourceContext.class;
-    }
+    @Symbol({"gitHubIgnoreDraftPullRequestFilter"})
+    @Extension
+    @Selection
+    public static class DescriptorImpl extends SCMSourceTraitDescriptor {
+        public DescriptorImpl() {}
 
-    @Override
-    public Class<? extends SCMSource> getSourceClass() {
-      return GitHubSCMSource.class;
+        public String getDisplayName() {
+            return Messages.IgnoreDraftPullRequestFilterTrait_DisplayName();
+        }
+
+        @Override
+        public Class<? extends SCMSourceContext> getContextClass() {
+            return GitHubSCMSourceContext.class;
+        }
+
+        @Override
+        public Class<? extends SCMSource> getSourceClass() {
+            return GitHubSCMSource.class;
+        }
     }
-  }
 }
