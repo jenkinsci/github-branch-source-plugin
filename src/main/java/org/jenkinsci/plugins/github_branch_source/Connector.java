@@ -91,7 +91,7 @@ import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.authorization.ImmutableAuthorizationProvider;
-import org.kohsuke.github.extras.okhttp3.OkHttpConnector;
+import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 
 /** Utilities that could perhaps be moved into {@code github-api}. */
 @SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
@@ -484,7 +484,7 @@ public class Connector {
     if (cache != null) {
       clientBuilder.cache(cache);
     }
-    gb.withConnector(new OkHttpConnector(clientBuilder.build()));
+    gb.withConnector(new OkHttpGitHubConnector(clientBuilder.build()));
     return gb;
   }
 
