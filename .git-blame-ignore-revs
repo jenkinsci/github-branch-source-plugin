@@ -1,2 +1,5 @@
+# .git-blame-ignore-revs
 # Reformatted: https://github.com/jenkinsci/github-branch-source-plugin/pull/392
 2b68b4b8b14afa36ee5e243ed8630e2c01a86e2c
+# Use upstream Spotless configuration (#684)
+51545c395c1c893412a4967c4176f377879955f8
