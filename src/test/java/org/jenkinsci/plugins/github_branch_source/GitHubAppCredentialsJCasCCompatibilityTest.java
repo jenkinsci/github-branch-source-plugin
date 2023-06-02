@@ -28,66 +28,64 @@ import org.junit.rules.RuleChain;
 
 public class GitHubAppCredentialsJCasCCompatibilityTest {
 
-  @ConfiguredWithCode("github-app-jcasc-minimal.yaml")
-  public static JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
+    @ConfiguredWithCode("github-app-jcasc-minimal.yaml")
+    public static JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
 
-  private static final String GITHUB_APP_KEY = "SomeString";
+    private static final String GITHUB_APP_KEY = "SomeString";
 
-  @ClassRule
-  public static RuleChain chain =
-      RuleChain.outerRule(new EnvVarsRule().set("GITHUB_APP_KEY", GITHUB_APP_KEY)).around(j);
+    @ClassRule
+    public static RuleChain chain = RuleChain.outerRule(new EnvVarsRule().set("GITHUB_APP_KEY", GITHUB_APP_KEY))
+            .around(j);
 
-  @Test
-  public void should_support_configuration_as_code() {
-    List<DomainCredentials> domainCredentials =
-        SystemCredentialsProvider.getInstance().getDomainCredentials();
+    @Test
+    public void should_support_configuration_as_code() {
+        List<DomainCredentials> domainCredentials =
+                SystemCredentialsProvider.getInstance().getDomainCredentials();
 
-    assertThat(domainCredentials.size(), is(1));
-    List<Credentials> credentials = domainCredentials.get(0).getCredentials();
-    assertThat(credentials.size(), is(1));
+        assertThat(domainCredentials.size(), is(1));
+        List<Credentials> credentials = domainCredentials.get(0).getCredentials();
+        assertThat(credentials.size(), is(1));
 
-    Credentials credential = credentials.get(0);
-    assertThat(credential, instanceOf(GitHubAppCredentials.class));
-    GitHubAppCredentials gitHubAppCredentials = (GitHubAppCredentials) credential;
+        Credentials credential = credentials.get(0);
+        assertThat(credential, instanceOf(GitHubAppCredentials.class));
+        GitHubAppCredentials gitHubAppCredentials = (GitHubAppCredentials) credential;
 
-    assertThat(gitHubAppCredentials.getAppID(), is("1111"));
-    assertThat(gitHubAppCredentials.getDescription(), is("GitHub app 1111"));
-    assertThat(gitHubAppCredentials.getId(), is("github-app"));
-    assertThat(gitHubAppCredentials.getPrivateKey(), hasPlainText(GITHUB_APP_KEY));
-  }
+        assertThat(gitHubAppCredentials.getAppID(), is("1111"));
+        assertThat(gitHubAppCredentials.getDescription(), is("GitHub app 1111"));
+        assertThat(gitHubAppCredentials.getId(), is("github-app"));
+        assertThat(gitHubAppCredentials.getPrivateKey(), hasPlainText(GITHUB_APP_KEY));
+    }
 
-  @Test
-  public void should_support_configuration_export() throws Exception {
-    Sequence credentials = getCredentials();
-    CNode githubApp = credentials.get(0).asMapping().get("gitHubApp");
+    @Test
+    public void should_support_configuration_export() throws Exception {
+        Sequence credentials = getCredentials();
+        CNode githubApp = credentials.get(0).asMapping().get("gitHubApp");
 
-    String exported =
-        toYamlString(githubApp)
-            // replace secret with a constant value
-            .replaceAll("privateKey: .*", "privateKey: \"some-secret-value\"");
+        String exported = toYamlString(githubApp)
+                // replace secret with a constant value
+                .replaceAll("privateKey: .*", "privateKey: \"some-secret-value\"");
 
-    String expected = toStringFromYamlFile(this, "github-app-jcasc-minimal-expected-export.yaml");
+        String expected = toStringFromYamlFile(this, "github-app-jcasc-minimal-expected-export.yaml");
 
-    assertThat(exported, is(expected));
-  }
+        assertThat(exported, is(expected));
+    }
 
-  private Sequence getCredentials() throws Exception {
-    CredentialsRootConfigurator root =
-        Jenkins.get().getExtensionList(CredentialsRootConfigurator.class).get(0);
+    private Sequence getCredentials() throws Exception {
+        CredentialsRootConfigurator root = Jenkins.get()
+                .getExtensionList(CredentialsRootConfigurator.class)
+                .get(0);
 
-    ConfiguratorRegistry registry = ConfiguratorRegistry.get();
-    ConfigurationContext context = new ConfigurationContext(registry);
-    Mapping configNode =
-        Objects.requireNonNull(root.describe(root.getTargetComponent(context), context))
-            .asMapping();
-    Mapping domainCredentials =
-        configNode
-            .get("system")
-            .asMapping()
-            .get("domainCredentials")
-            .asSequence()
-            .get(0)
-            .asMapping();
-    return domainCredentials.get("credentials").asSequence();
-  }
+        ConfiguratorRegistry registry = ConfiguratorRegistry.get();
+        ConfigurationContext context = new ConfigurationContext(registry);
+        Mapping configNode = Objects.requireNonNull(root.describe(root.getTargetComponent(context), context))
+                .asMapping();
+        Mapping domainCredentials = configNode
+                .get("system")
+                .asMapping()
+                .get("domainCredentials")
+                .asSequence()
+                .get(0)
+                .asMapping();
+        return domainCredentials.get("credentials").asSequence();
+    }
 }

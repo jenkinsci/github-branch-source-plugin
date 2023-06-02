@@ -30,25 +30,25 @@ package org.jenkinsci.plugins.github_branch_source;
  */
 @Deprecated // TODO remove once migration from 1.x is no longer supported
 class PullRequestSource {
-  private final String sourceOwner;
-  private final String sourceRepo;
-  private final String sourceBranch;
+    private final String sourceOwner;
+    private final String sourceRepo;
+    private final String sourceBranch;
 
-  PullRequestSource(String sourceOwner, String sourceRepo, String sourceBranch) {
-    this.sourceOwner = sourceOwner;
-    this.sourceRepo = sourceRepo;
-    this.sourceBranch = sourceBranch;
-  }
+    PullRequestSource(String sourceOwner, String sourceRepo, String sourceBranch) {
+        this.sourceOwner = sourceOwner;
+        this.sourceRepo = sourceRepo;
+        this.sourceBranch = sourceBranch;
+    }
 
-  public String getSourceOwner() {
-    return sourceOwner;
-  }
+    public String getSourceOwner() {
+        return sourceOwner;
+    }
 
-  public String getSourceRepo() {
-    return sourceRepo;
-  }
+    public String getSourceRepo() {
+        return sourceRepo;
+    }
 
-  public String getSourceBranch() {
-    return sourceBranch;
-  }
+    public String getSourceBranch() {
+        return sourceBranch;
+    }
 }

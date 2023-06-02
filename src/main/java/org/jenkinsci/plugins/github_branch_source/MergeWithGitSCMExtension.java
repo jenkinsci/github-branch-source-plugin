@@ -40,11 +40,11 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @SuppressFBWarnings("NM_SAME_SIMPLE_NAME_AS_SUPERCLASS")
 public class MergeWithGitSCMExtension extends jenkins.plugins.git.MergeWithGitSCMExtension {
 
-  MergeWithGitSCMExtension(@NonNull String baseName, @CheckForNull String baseHash) {
-    super(baseName, baseHash);
-  }
+    MergeWithGitSCMExtension(@NonNull String baseName, @CheckForNull String baseHash) {
+        super(baseName, baseHash);
+    }
 
-  private Object readResolve() throws ObjectStreamException {
-    return new jenkins.plugins.git.MergeWithGitSCMExtension(getBaseName(), getBaseHash());
-  }
+    private Object readResolve() throws ObjectStreamException {
+        return new jenkins.plugins.git.MergeWithGitSCMExtension(getBaseName(), getBaseHash());
+    }
 }

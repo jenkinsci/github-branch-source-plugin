@@ -36,111 +36,112 @@ import java.util.Set;
  * @param <E> the type of elements in the set.
  */
 abstract class LazySet<E> extends AbstractSet<E> {
-  /** The delegate. */
-  @CheckForNull private Set<E> delegate;
+    /** The delegate. */
+    @CheckForNull
+    private Set<E> delegate;
 
-  /**
-   * Instantiates the delegate.
-   *
-   * @return the delegate.
-   */
-  @NonNull
-  protected abstract Set<E> create();
+    /**
+     * Instantiates the delegate.
+     *
+     * @return the delegate.
+     */
+    @NonNull
+    protected abstract Set<E> create();
 
-  /**
-   * Gets the delegate.
-   *
-   * @return the delegate.
-   */
-  @NonNull
-  private synchronized Set<E> delegate() {
-    if (delegate == null) {
-      delegate = create();
+    /**
+     * Gets the delegate.
+     *
+     * @return the delegate.
+     */
+    @NonNull
+    private synchronized Set<E> delegate() {
+        if (delegate == null) {
+            delegate = create();
+        }
+        return delegate;
     }
-    return delegate;
-  }
 
-  /** {@inheritDoc} */
-  @Override
-  public int size() {
-    return delegate().size();
-  }
+    /** {@inheritDoc} */
+    @Override
+    public int size() {
+        return delegate().size();
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public boolean isEmpty() {
-    return delegate().isEmpty();
-  }
+    /** {@inheritDoc} */
+    @Override
+    public boolean isEmpty() {
+        return delegate().isEmpty();
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public boolean contains(Object o) {
-    return delegate().contains(o);
-  }
+    /** {@inheritDoc} */
+    @Override
+    public boolean contains(Object o) {
+        return delegate().contains(o);
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public Iterator<E> iterator() {
-    return delegate().iterator();
-  }
+    /** {@inheritDoc} */
+    @Override
+    public Iterator<E> iterator() {
+        return delegate().iterator();
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public <T> T[] toArray(T[] a) {
-    return delegate().toArray(a);
-  }
+    /** {@inheritDoc} */
+    @Override
+    public <T> T[] toArray(T[] a) {
+        return delegate().toArray(a);
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public boolean add(E e) {
-    return delegate().add(e);
-  }
+    /** {@inheritDoc} */
+    @Override
+    public boolean add(E e) {
+        return delegate().add(e);
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public boolean remove(Object o) {
-    return delegate().remove(o);
-  }
+    /** {@inheritDoc} */
+    @Override
+    public boolean remove(Object o) {
+        return delegate().remove(o);
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public boolean containsAll(Collection<?> c) {
-    return delegate().containsAll(c);
-  }
+    /** {@inheritDoc} */
+    @Override
+    public boolean containsAll(Collection<?> c) {
+        return delegate().containsAll(c);
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public boolean addAll(Collection<? extends E> c) {
-    return delegate().addAll(c);
-  }
+    /** {@inheritDoc} */
+    @Override
+    public boolean addAll(Collection<? extends E> c) {
+        return delegate().addAll(c);
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public boolean retainAll(Collection<?> c) {
-    return delegate().retainAll(c);
-  }
+    /** {@inheritDoc} */
+    @Override
+    public boolean retainAll(Collection<?> c) {
+        return delegate().retainAll(c);
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public boolean removeAll(Collection<?> c) {
-    return delegate().removeAll(c);
-  }
+    /** {@inheritDoc} */
+    @Override
+    public boolean removeAll(Collection<?> c) {
+        return delegate().removeAll(c);
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public void clear() {
-    delegate().clear();
-  }
+    /** {@inheritDoc} */
+    @Override
+    public void clear() {
+        delegate().clear();
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public boolean equals(Object o) {
-    return delegate().equals(o);
-  }
+    /** {@inheritDoc} */
+    @Override
+    public boolean equals(Object o) {
+        return delegate().equals(o);
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public int hashCode() {
-    return delegate().hashCode();
-  }
+    /** {@inheritDoc} */
+    @Override
+    public int hashCode() {
+        return delegate().hashCode();
+    }
 }

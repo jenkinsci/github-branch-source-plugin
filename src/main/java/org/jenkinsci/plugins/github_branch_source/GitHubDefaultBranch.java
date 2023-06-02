@@ -30,73 +30,78 @@ import java.io.Serializable;
 
 /** @author Stephen Connolly */
 public class GitHubDefaultBranch extends InvisibleAction implements Serializable {
-  private static final long serialVersionUID = 1L;
-  @NonNull private final String repoOwner;
-  @NonNull private final String repository;
-  @NonNull private final String defaultBranch;
+    private static final long serialVersionUID = 1L;
 
-  public GitHubDefaultBranch(
-      @NonNull String repoOwner, @NonNull String repository, @NonNull String defaultBranch) {
-    this.repoOwner = repoOwner;
-    this.repository = repository;
-    this.defaultBranch = defaultBranch;
-  }
+    @NonNull
+    private final String repoOwner;
 
-  @NonNull
-  public String getRepoOwner() {
-    return repoOwner;
-  }
+    @NonNull
+    private final String repository;
 
-  @NonNull
-  public String getRepository() {
-    return repository;
-  }
+    @NonNull
+    private final String defaultBranch;
 
-  @NonNull
-  public String getDefaultBranch() {
-    return defaultBranch;
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
+    public GitHubDefaultBranch(@NonNull String repoOwner, @NonNull String repository, @NonNull String defaultBranch) {
+        this.repoOwner = repoOwner;
+        this.repository = repository;
+        this.defaultBranch = defaultBranch;
     }
 
-    GitHubDefaultBranch that = (GitHubDefaultBranch) o;
-
-    if (!repoOwner.equals(that.repoOwner)) {
-      return false;
+    @NonNull
+    public String getRepoOwner() {
+        return repoOwner;
     }
-    if (!repository.equals(that.repository)) {
-      return false;
+
+    @NonNull
+    public String getRepository() {
+        return repository;
     }
-    return defaultBranch.equals(that.defaultBranch);
-  }
 
-  @Override
-  public int hashCode() {
-    int result = repoOwner.hashCode();
-    result = 31 * result + repository.hashCode();
-    result = 31 * result + defaultBranch.hashCode();
-    return result;
-  }
+    @NonNull
+    public String getDefaultBranch() {
+        return defaultBranch;
+    }
 
-  @Override
-  public String toString() {
-    return "GitHubDefaultBranch{"
-        + "repoOwner='"
-        + repoOwner
-        + '\''
-        + ", repository='"
-        + repository
-        + '\''
-        + ", defaultBranch='"
-        + defaultBranch
-        + '\''
-        + '}';
-  }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        GitHubDefaultBranch that = (GitHubDefaultBranch) o;
+
+        if (!repoOwner.equals(that.repoOwner)) {
+            return false;
+        }
+        if (!repository.equals(that.repository)) {
+            return false;
+        }
+        return defaultBranch.equals(that.defaultBranch);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = repoOwner.hashCode();
+        result = 31 * result + repository.hashCode();
+        result = 31 * result + defaultBranch.hashCode();
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "GitHubDefaultBranch{"
+                + "repoOwner='"
+                + repoOwner
+                + '\''
+                + ", repository='"
+                + repository
+                + '\''
+                + ", defaultBranch='"
+                + defaultBranch
+                + '\''
+                + '}';
+    }
 }

@@ -6,19 +6,19 @@ import jenkins.scm.api.mixin.TagSCMHead;
 
 public class GitHubTagSCMHead extends GitTagSCMHead implements TagSCMHead {
 
-  /**
-   * Constructor.
-   *
-   * @param name the name.
-   * @param timestamp the tag timestamp;
-   */
-  public GitHubTagSCMHead(@NonNull String name, long timestamp) {
-    super(name, timestamp);
-  }
+    /**
+     * Constructor.
+     *
+     * @param name the name.
+     * @param timestamp the tag timestamp;
+     */
+    public GitHubTagSCMHead(@NonNull String name, long timestamp) {
+        super(name, timestamp);
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public String getPronoun() {
-    return Messages.GitHubTagSCMHead_Pronoun();
-  }
+    /** {@inheritDoc} */
+    @Override
+    public String getPronoun() {
+        return Messages.GitHubTagSCMHead_Pronoun();
+    }
 }

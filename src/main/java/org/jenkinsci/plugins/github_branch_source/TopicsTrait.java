@@ -14,74 +14,75 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /** Decorates a {@link SCMNavigatorContext} with GitHub topics */
 public class TopicsTrait extends SCMNavigatorTrait {
 
-  /** The topics */
-  @NonNull private transient List<String> topics;
+    /** The topics */
+    @NonNull
+    private transient List<String> topics;
 
-  private final String topicList;
+    private final String topicList;
 
-  /**
-   * Stapler constructor.
-   *
-   * @param topicList a comma-separated list of topics
-   */
-  @DataBoundConstructor
-  public TopicsTrait(@NonNull String topicList) {
-    this.topicList = topicList;
-    this.topics = new ArrayList<>();
+    /**
+     * Stapler constructor.
+     *
+     * @param topicList a comma-separated list of topics
+     */
+    @DataBoundConstructor
+    public TopicsTrait(@NonNull String topicList) {
+        this.topicList = topicList;
+        this.topics = new ArrayList<>();
 
-    for (String topic : topicList.split(",")) {
-      this.topics.add(topic.trim());
-    }
-  }
-
-  /**
-   * Returns the topics
-   *
-   * @return the topics
-   */
-  @NonNull
-  public List<String> getTopics() {
-    return topics;
-  }
-
-  @NonNull
-  public String getTopicList() {
-    return topicList;
-  }
-
-  @Override
-  protected void decorateContext(final SCMNavigatorContext<?, ?> context) {
-    super.decorateContext(context);
-    ((GitHubSCMNavigatorContext) context).setTopics(topics);
-  }
-
-  private Object readResolve() {
-    if (this.topicList != null) {
-      List<String> tmpTopics = new ArrayList<>();
-      for (String topic : topicList.split(",")) {
-        tmpTopics.add(topic.trim());
-      }
-      topics = tmpTopics;
+        for (String topic : topicList.split(",")) {
+            this.topics.add(topic.trim());
+        }
     }
 
-    return this;
-  }
-
-  /** Topics descriptor. */
-  @Symbol("gitHubTopicsFilter")
-  @Extension
-  @Selection
-  public static class DescriptorImpl extends SCMNavigatorTraitDescriptor {
-
-    @Override
-    public Class<? extends SCMNavigatorContext> getContextClass() {
-      return GitHubSCMNavigatorContext.class;
+    /**
+     * Returns the topics
+     *
+     * @return the topics
+     */
+    @NonNull
+    public List<String> getTopics() {
+        return topics;
     }
 
     @NonNull
-    @Override
-    public String getDisplayName() {
-      return Messages.TopicsTrait_displayName();
+    public String getTopicList() {
+        return topicList;
     }
-  }
+
+    @Override
+    protected void decorateContext(final SCMNavigatorContext<?, ?> context) {
+        super.decorateContext(context);
+        ((GitHubSCMNavigatorContext) context).setTopics(topics);
+    }
+
+    private Object readResolve() {
+        if (this.topicList != null) {
+            List<String> tmpTopics = new ArrayList<>();
+            for (String topic : topicList.split(",")) {
+                tmpTopics.add(topic.trim());
+            }
+            topics = tmpTopics;
+        }
+
+        return this;
+    }
+
+    /** Topics descriptor. */
+    @Symbol("gitHubTopicsFilter")
+    @Extension
+    @Selection
+    public static class DescriptorImpl extends SCMNavigatorTraitDescriptor {
+
+        @Override
+        public Class<? extends SCMNavigatorContext> getContextClass() {
+            return GitHubSCMNavigatorContext.class;
+        }
+
+        @NonNull
+        @Override
+        public String getDisplayName() {
+            return Messages.TopicsTrait_displayName();
+        }
+    }
 }
