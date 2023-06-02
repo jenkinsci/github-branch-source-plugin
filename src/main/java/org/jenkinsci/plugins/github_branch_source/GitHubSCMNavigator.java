@@ -41,6 +41,8 @@ import hudson.Extension;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
 import hudson.model.Action;
 import hudson.model.Item;
 import hudson.model.TaskListener;
@@ -50,6 +52,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -84,6 +87,7 @@ import jenkins.scm.impl.trait.Discovery;
 import jenkins.scm.impl.trait.RegexSCMSourceFilterTrait;
 import jenkins.scm.impl.trait.Selection;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
+import jenkins.util.SystemProperties;
 import net.jcip.annotations.GuardedBy;
 import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
@@ -1553,8 +1557,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     private static LoadingCache<String, Boolean> createPrivateModeCache() {
+        Duration duration = getPrivateModeCacheExpiration();
         // TODO configurable duration Potentially using Duration.parse.abs?
-        return Caffeine.newBuilder().expireAfterWrite(Duration.ofHours(20)).build(key -> {
+        return Caffeine.newBuilder().expireAfterWrite(duration).build(key -> {
             if (key.equals(GitHubServerConfig.GITHUB_URL)) {
                 return false;
             }
@@ -1571,6 +1576,39 @@ public class GitHubSCMNavigator extends SCMNavigator {
             }
             return false;
         });
+    }
+
+    /**
+     * Checks the SystemProperty <code>org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator.PRIVATE_MODE_CACHE_EXP</code>
+     * for a configured duration expression.
+     * The expression should be in the format expected by {@link Duration#parse(CharSequence)}.
+     * If the expression fails to parse the default duration (20 Hours) will be used.
+     *
+     * @return the duration in the system property or the default Duration (20 Hours)
+     * @see Duration#parse(CharSequence)
+     */
+    private static Duration getPrivateModeCacheExpiration() {
+        String d = SystemProperties.getString(GitHubSCMNavigator.class.getName() + ".PRIVATE_MODE_CACHE_EXP", "PT20H");
+        Duration duration;
+        try {
+            duration = Duration.parse(d);
+        } catch (DateTimeParseException | NullPointerException e) {
+            Logger.getLogger(GitHubSCMNavigator.class.getName())
+                    .log(
+                            Level.CONFIG,
+                            "WARNING Failed to parse cache expiration expression: " + d + " defaulting to 20H",
+                            e);
+            duration = Duration.ofHours(20);
+        }
+        return duration;
+    }
+
+    @Restricted(NoExternalUse.class)
+    @Initializer(after = InitMilestone.JOB_CONFIG_ADAPTED)
+    public static void invalidatePrivateModeCache() {
+        if (privateModeCache != null) {
+            privateModeCache.invalidateAll();
+        }
     }
 
     private static boolean determinePrivateMode(String apiUri) {
