@@ -40,20 +40,19 @@ import jenkins.scm.api.SCMSourceOwner;
 @Extension
 public class GitHubSCMSourceRepositoryNameContributor extends GitHubRepositoryNameContributor {
 
-  @Override
-  public void parseAssociatedNames(Item item, Collection<GitHubRepositoryName> result) {
-    if (item instanceof SCMSourceOwner) {
-      SCMSourceOwner mp = (SCMSourceOwner) item;
-      for (Object o : mp.getSCMSources()) {
-        if (o instanceof GitHubSCMSource) {
-          GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) o;
-          result.add(
-              new GitHubRepositoryName(
-                  RepositoryUriResolver.hostnameFromApiUri(gitHubSCMSource.getApiUri()),
-                  gitHubSCMSource.getRepoOwner(),
-                  gitHubSCMSource.getRepository()));
+    @Override
+    public void parseAssociatedNames(Item item, Collection<GitHubRepositoryName> result) {
+        if (item instanceof SCMSourceOwner) {
+            SCMSourceOwner mp = (SCMSourceOwner) item;
+            for (Object o : mp.getSCMSources()) {
+                if (o instanceof GitHubSCMSource) {
+                    GitHubSCMSource gitHubSCMSource = (GitHubSCMSource) o;
+                    result.add(new GitHubRepositoryName(
+                            RepositoryUriResolver.hostnameFromApiUri(gitHubSCMSource.getApiUri()),
+                            gitHubSCMSource.getRepoOwner(),
+                            gitHubSCMSource.getRepository()));
+                }
+            }
         }
-      }
     }
-  }
 }

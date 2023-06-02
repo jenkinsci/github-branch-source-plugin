@@ -35,27 +35,26 @@ import java.util.List;
  */
 public final class DefaultGitHubNotificationStrategy extends AbstractGitHubNotificationStrategy {
 
-  /** {@inheritDoc} */
-  public List<GitHubNotificationRequest> notifications(
-      GitHubNotificationContext notificationContext, TaskListener listener) {
-    return Collections.singletonList(
-        GitHubNotificationRequest.build(
-            notificationContext.getDefaultContext(listener),
-            notificationContext.getDefaultUrl(listener),
-            notificationContext.getDefaultMessage(listener),
-            notificationContext.getDefaultState(listener),
-            notificationContext.getDefaultIgnoreError(listener)));
-  }
+    /** {@inheritDoc} */
+    public List<GitHubNotificationRequest> notifications(
+            GitHubNotificationContext notificationContext, TaskListener listener) {
+        return Collections.singletonList(GitHubNotificationRequest.build(
+                notificationContext.getDefaultContext(listener),
+                notificationContext.getDefaultUrl(listener),
+                notificationContext.getDefaultMessage(listener),
+                notificationContext.getDefaultState(listener),
+                notificationContext.getDefaultIgnoreError(listener)));
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public boolean equals(Object o) {
-    return this == o || (o != null && getClass() == o.getClass());
-  }
+    /** {@inheritDoc} */
+    @Override
+    public boolean equals(Object o) {
+        return this == o || (o != null && getClass() == o.getClass());
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public int hashCode() {
-    return 42;
-  }
+    /** {@inheritDoc} */
+    @Override
+    public int hashCode() {
+        return 42;
+    }
 }

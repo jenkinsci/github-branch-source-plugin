@@ -16,105 +16,105 @@ import net.jcip.annotations.GuardedBy;
  * @param <V>
  */
 class SinglePassIterable<V> implements Iterable<V> {
-  /** The delegate. */
-  @GuardedBy("items")
-  @CheckForNull
-  private Iterator<V> delegate;
-  /** The items we have seen so far. */
-  private final List<V> items;
+    /** The delegate. */
+    @GuardedBy("items")
+    @CheckForNull
+    private Iterator<V> delegate;
+    /** The items we have seen so far. */
+    private final List<V> items;
 
-  /**
-   * Constructor.
-   *
-   * @param delegate the {@link Iterable}.
-   */
-  public SinglePassIterable(@NonNull Iterable<V> delegate) {
-    this(delegate.iterator());
-  }
-
-  /**
-   * Constructor.
-   *
-   * @param delegate the {@link Iterator}.
-   */
-  public SinglePassIterable(@NonNull Iterator<V> delegate) {
-    this.delegate = delegate;
-    items = new ArrayList<>();
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public final Iterator<V> iterator() {
-    synchronized (items) {
-      if (delegate == null || !delegate.hasNext()) {
-        // we have walked the iterator once, so now items is complete
-        return Collections.unmodifiableList(items).iterator();
-      }
+    /**
+     * Constructor.
+     *
+     * @param delegate the {@link Iterable}.
+     */
+    public SinglePassIterable(@NonNull Iterable<V> delegate) {
+        this(delegate.iterator());
     }
-    return new Iterator<V>() {
-      int index = 0;
 
-      /** {@inheritDoc} */
-      @Override
-      public void remove() {
-        throw new UnsupportedOperationException();
-      }
+    /**
+     * Constructor.
+     *
+     * @param delegate the {@link Iterator}.
+     */
+    public SinglePassIterable(@NonNull Iterator<V> delegate) {
+        this.delegate = delegate;
+        items = new ArrayList<>();
+    }
 
-      /** {@inheritDoc} */
-      @Override
-      public boolean hasNext() {
+    /** {@inheritDoc} */
+    @Override
+    public final Iterator<V> iterator() {
         synchronized (items) {
-          if (index < items.size()) {
-            return true;
-          }
-          if (delegate != null) {
-            if (delegate.hasNext()) {
-              return true;
+            if (delegate == null || !delegate.hasNext()) {
+                // we have walked the iterator once, so now items is complete
+                return Collections.unmodifiableList(items).iterator();
             }
-            delegate = null;
-            completed();
-          }
-          return false;
         }
-      }
+        return new Iterator<V>() {
+            int index = 0;
 
-      /** {@inheritDoc} */
-      @Override
-      public V next() {
-        synchronized (items) {
-          if (index < items.size()) {
-            return items.get(index++);
-          }
-          try {
-            if (delegate != null && delegate.hasNext()) {
-              V element = delegate.next();
-              observe(element);
-              items.add(element);
-              // Index needs to be incremented
-              index++;
-              return element;
-            } else {
-              throw new NoSuchElementException();
+            /** {@inheritDoc} */
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
             }
-          } catch (NoSuchElementException e) {
-            if (delegate != null) {
-              delegate = null;
-              completed();
+
+            /** {@inheritDoc} */
+            @Override
+            public boolean hasNext() {
+                synchronized (items) {
+                    if (index < items.size()) {
+                        return true;
+                    }
+                    if (delegate != null) {
+                        if (delegate.hasNext()) {
+                            return true;
+                        }
+                        delegate = null;
+                        completed();
+                    }
+                    return false;
+                }
             }
-            throw e;
-          }
-        }
-      }
-    };
-  }
 
-  /**
-   * Callback for each element observed from the delegate.
-   *
-   * @param v the element.
-   */
-  protected void observe(V v) {}
+            /** {@inheritDoc} */
+            @Override
+            public V next() {
+                synchronized (items) {
+                    if (index < items.size()) {
+                        return items.get(index++);
+                    }
+                    try {
+                        if (delegate != null && delegate.hasNext()) {
+                            V element = delegate.next();
+                            observe(element);
+                            items.add(element);
+                            // Index needs to be incremented
+                            index++;
+                            return element;
+                        } else {
+                            throw new NoSuchElementException();
+                        }
+                    } catch (NoSuchElementException e) {
+                        if (delegate != null) {
+                            delegate = null;
+                            completed();
+                        }
+                        throw e;
+                    }
+                }
+            }
+        };
+    }
 
-  /** Callback for when the delegate has reached the end. */
-  protected void completed() {}
+    /**
+     * Callback for each element observed from the delegate.
+     *
+     * @param v the element.
+     */
+    protected void observe(V v) {}
+
+    /** Callback for when the delegate has reached the end. */
+    protected void completed() {}
 }

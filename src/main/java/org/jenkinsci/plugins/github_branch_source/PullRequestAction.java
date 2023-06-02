@@ -42,50 +42,50 @@ import org.kohsuke.github.GHPullRequest;
 @Restricted(NoExternalUse.class)
 final class PullRequestAction extends InvisibleAction {
 
-  private final int number;
-  private final URL url;
-  private final String title;
-  private final String userLogin;
-  private final String baseRef;
+    private final int number;
+    private final URL url;
+    private final String title;
+    private final String userLogin;
+    private final String baseRef;
 
-  PullRequestAction(GHPullRequest pr) throws IOException {
-    number = pr.getNumber();
-    url = pr.getHtmlUrl();
-    title = pr.getTitle();
-    userLogin = pr.getUser().getLogin();
-    baseRef = pr.getBase().getRef();
-  }
+    PullRequestAction(GHPullRequest pr) throws IOException {
+        number = pr.getNumber();
+        url = pr.getHtmlUrl();
+        title = pr.getTitle();
+        userLogin = pr.getUser().getLogin();
+        baseRef = pr.getBase().getRef();
+    }
 
-  PullRequestAction(int number, URL url, String title, String userLogin, String baseRef) {
-    this.number = number;
-    this.url = url;
-    this.title = title;
-    this.userLogin = userLogin;
-    this.baseRef = baseRef;
-  }
+    PullRequestAction(int number, URL url, String title, String userLogin, String baseRef) {
+        this.number = number;
+        this.url = url;
+        this.title = title;
+        this.userLogin = userLogin;
+        this.baseRef = baseRef;
+    }
 
-  @NonNull
-  public String getId() {
-    return Integer.toString(number);
-  }
+    @NonNull
+    public String getId() {
+        return Integer.toString(number);
+    }
 
-  @NonNull
-  public URL getURL() {
-    return url;
-  }
+    @NonNull
+    public URL getURL() {
+        return url;
+    }
 
-  @NonNull
-  public String getTitle() {
-    return title;
-  }
+    @NonNull
+    public String getTitle() {
+        return title;
+    }
 
-  @NonNull
-  public String getAuthor() {
-    return userLogin;
-  }
+    @NonNull
+    public String getAuthor() {
+        return userLogin;
+    }
 
-  @NonNull
-  public SCMHead getTarget() {
-    return new BranchSCMHead(baseRef);
-  }
+    @NonNull
+    public SCMHead getTarget() {
+        return new BranchSCMHead(baseRef);
+    }
 }

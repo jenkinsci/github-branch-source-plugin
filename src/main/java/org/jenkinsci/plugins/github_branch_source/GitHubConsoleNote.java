@@ -39,40 +39,37 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 @Restricted(NoExternalUse.class)
 public class GitHubConsoleNote extends ConsoleNote {
 
-  private static final Logger LOGGER = Logger.getLogger(GitHubConsoleNote.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(GitHubConsoleNote.class.getName());
 
-  private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-  private final long timestamp;
+    private final long timestamp;
 
-  public GitHubConsoleNote(long timestamp) {
-    this.timestamp = timestamp;
-  }
-
-  @Override
-  public ConsoleAnnotator annotate(Object context, MarkupText text, int charPos) {
-    text.addMarkup(
-        0,
-        text.length(),
-        String.format("<span class='greyed'><small>%tT</small> ", timestamp),
-        "</span>");
-    return null;
-  }
-
-  public static String create(long timestamp, String text) {
-    try {
-      return new GitHubConsoleNote(timestamp).encode() + text;
-    } catch (IOException e) {
-      // impossible, but don't make this a fatal problem
-      LOGGER.log(Level.WARNING, "Failed to serialize " + GitHubConsoleNote.class, e);
-      return text;
+    public GitHubConsoleNote(long timestamp) {
+        this.timestamp = timestamp;
     }
-  }
 
-  @Extension
-  public static final class DescriptorImpl extends ConsoleAnnotationDescriptor {
-    public String getDisplayName() {
-      return "GitHub API Usage";
+    @Override
+    public ConsoleAnnotator annotate(Object context, MarkupText text, int charPos) {
+        text.addMarkup(
+                0, text.length(), String.format("<span class='greyed'><small>%tT</small> ", timestamp), "</span>");
+        return null;
     }
-  }
+
+    public static String create(long timestamp, String text) {
+        try {
+            return new GitHubConsoleNote(timestamp).encode() + text;
+        } catch (IOException e) {
+            // impossible, but don't make this a fatal problem
+            LOGGER.log(Level.WARNING, "Failed to serialize " + GitHubConsoleNote.class, e);
+            return text;
+        }
+    }
+
+    @Extension
+    public static final class DescriptorImpl extends ConsoleAnnotationDescriptor {
+        public String getDisplayName() {
+            return "GitHub API Usage";
+        }
+    }
 }

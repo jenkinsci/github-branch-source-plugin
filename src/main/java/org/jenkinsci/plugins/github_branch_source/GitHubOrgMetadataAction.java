@@ -43,86 +43,87 @@ import org.kohsuke.stapler.Stapler;
  * @author Kohsuke Kawaguchi
  */
 public class GitHubOrgMetadataAction extends AvatarMetadataAction {
-  @CheckForNull private final String avatar;
+    @CheckForNull
+    private final String avatar;
 
-  public GitHubOrgMetadataAction(@NonNull GHUser org) throws IOException {
-    this(org.getAvatarUrl());
-  }
-
-  public GitHubOrgMetadataAction(@CheckForNull String avatar) {
-    this.avatar = Util.fixEmpty(avatar);
-  }
-
-  public GitHubOrgMetadataAction(@NonNull GitHubOrgMetadataAction that) {
-    this(that.getAvatar());
-  }
-
-  private Object readResolve() throws ObjectStreamException {
-    if (avatar != null && StringUtils.isBlank(avatar)) return new GitHubOrgMetadataAction(this);
-    return this;
-  }
-
-  @CheckForNull
-  public String getAvatar() {
-    return Util.fixEmpty(avatar);
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public String getAvatarImageOf(String size) {
-    if (avatar == null) {
-      // fall back to the generic github org icon
-      String image = avatarIconClassNameImageOf(getAvatarIconClassName(), size);
-      return image != null
-          ? image
-          : (Stapler.getCurrentRequest().getContextPath()
-              + Hudson.RESOURCE_PATH
-              + "/plugin/github-branch-source/images/"
-              + "/github-logo.svg");
-    } else {
-      String[] xy = size.split("x");
-      if (xy.length == 0) return avatar;
-      if (avatar.contains("?")) return avatar + "&s=" + xy[0];
-      else return avatar + "?s=" + xy[0];
-    }
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public String getAvatarIconClassName() {
-    return avatar == null ? "icon-github-logo" : null;
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public String getAvatarDescription() {
-    return Messages.GitHubOrgMetadataAction_IconDescription();
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
+    public GitHubOrgMetadataAction(@NonNull GHUser org) throws IOException {
+        this(org.getAvatarUrl());
     }
 
-    GitHubOrgMetadataAction that = (GitHubOrgMetadataAction) o;
+    public GitHubOrgMetadataAction(@CheckForNull String avatar) {
+        this.avatar = Util.fixEmpty(avatar);
+    }
 
-    return Objects.equals(avatar, that.avatar);
-  }
+    public GitHubOrgMetadataAction(@NonNull GitHubOrgMetadataAction that) {
+        this(that.getAvatar());
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public int hashCode() {
-    return (avatar != null ? avatar.hashCode() : 0);
-  }
+    private Object readResolve() throws ObjectStreamException {
+        if (avatar != null && StringUtils.isBlank(avatar)) return new GitHubOrgMetadataAction(this);
+        return this;
+    }
 
-  /** {@inheritDoc} */
-  @Override
-  public String toString() {
-    return "GitHubOrgMetadataAction{" + ", avatar='" + avatar + '\'' + "}";
-  }
+    @CheckForNull
+    public String getAvatar() {
+        return Util.fixEmpty(avatar);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public String getAvatarImageOf(String size) {
+        if (avatar == null) {
+            // fall back to the generic github org icon
+            String image = avatarIconClassNameImageOf(getAvatarIconClassName(), size);
+            return image != null
+                    ? image
+                    : (Stapler.getCurrentRequest().getContextPath()
+                            + Hudson.RESOURCE_PATH
+                            + "/plugin/github-branch-source/images/"
+                            + "/github-logo.svg");
+        } else {
+            String[] xy = size.split("x");
+            if (xy.length == 0) return avatar;
+            if (avatar.contains("?")) return avatar + "&s=" + xy[0];
+            else return avatar + "?s=" + xy[0];
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public String getAvatarIconClassName() {
+        return avatar == null ? "icon-github-logo" : null;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public String getAvatarDescription() {
+        return Messages.GitHubOrgMetadataAction_IconDescription();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+
+        GitHubOrgMetadataAction that = (GitHubOrgMetadataAction) o;
+
+        return Objects.equals(avatar, that.avatar);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public int hashCode() {
+        return (avatar != null ? avatar.hashCode() : 0);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public String toString() {
+        return "GitHubOrgMetadataAction{" + ", avatar='" + avatar + '\'' + "}";
+    }
 }

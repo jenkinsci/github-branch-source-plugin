@@ -57,330 +57,324 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * @since 2.2.0
  */
 public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
-  /** None strategy. */
-  public static final int NONE = 0;
-  /** Merging the pull request with the current target branch revision. */
-  public static final int MERGE = 1;
-  /** The current pull request revision. */
-  public static final int HEAD = 2;
-  /**
-   * Both the current pull request revision and the pull request merged with the current target
-   * branch revision.
-   */
-  public static final int HEAD_AND_MERGE = 3;
-  /** The strategy encoded as a bit-field. */
-  private final int strategyId;
-  /** The authority. */
-  @NonNull
-  private final SCMHeadAuthority<
-          ? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision>
-      trust;
-
-  /**
-   * Constructor for stapler.
-   *
-   * @param strategyId the strategy id.
-   * @param trust the authority to use.
-   */
-  @DataBoundConstructor
-  public ForkPullRequestDiscoveryTrait(
-      int strategyId,
-      @NonNull
-          SCMHeadAuthority<
-                  ? super GitHubSCMSourceRequest,
-                  ? extends ChangeRequestSCMHead2,
-                  ? extends SCMRevision>
-              trust) {
-    this.strategyId = strategyId;
-    this.trust = trust;
-  }
-
-  /**
-   * Constructor for programmatic instantiation.
-   *
-   * @param strategies the {@link ChangeRequestCheckoutStrategy} instances.
-   * @param trust the authority.
-   */
-  public ForkPullRequestDiscoveryTrait(
-      @NonNull Set<ChangeRequestCheckoutStrategy> strategies,
-      @NonNull
-          SCMHeadAuthority<
-                  ? super GitHubSCMSourceRequest,
-                  ? extends ChangeRequestSCMHead2,
-                  ? extends SCMRevision>
-              trust) {
-    this(
-        (strategies.contains(ChangeRequestCheckoutStrategy.MERGE) ? MERGE : NONE)
-            + (strategies.contains(ChangeRequestCheckoutStrategy.HEAD) ? HEAD : NONE),
-        trust);
-  }
-
-  /**
-   * Gets the strategy id.
-   *
-   * @return the strategy id.
-   */
-  public int getStrategyId() {
-    return strategyId;
-  }
-
-  /**
-   * Returns the strategies.
-   *
-   * @return the strategies.
-   */
-  @NonNull
-  public Set<ChangeRequestCheckoutStrategy> getStrategies() {
-    switch (strategyId) {
-      case ForkPullRequestDiscoveryTrait.MERGE:
-        return EnumSet.of(ChangeRequestCheckoutStrategy.MERGE);
-      case ForkPullRequestDiscoveryTrait.HEAD:
-        return EnumSet.of(ChangeRequestCheckoutStrategy.HEAD);
-      case ForkPullRequestDiscoveryTrait.HEAD_AND_MERGE:
-        return EnumSet.of(ChangeRequestCheckoutStrategy.HEAD, ChangeRequestCheckoutStrategy.MERGE);
-      default:
-        return EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
-    }
-  }
-
-  /**
-   * Gets the authority.
-   *
-   * @return the authority.
-   */
-  @NonNull
-  public SCMHeadAuthority<
-          ? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision>
-      getTrust() {
-    return trust;
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  protected void decorateContext(SCMSourceContext<?, ?> context) {
-    GitHubSCMSourceContext ctx = (GitHubSCMSourceContext) context;
-    ctx.wantForkPRs(true);
-    ctx.withAuthority(trust);
-    ctx.withForkPRStrategies(getStrategies());
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public boolean includeCategory(@NonNull SCMHeadCategory category) {
-    return category instanceof ChangeRequestSCMHeadCategory;
-  }
-
-  /** Our descriptor. */
-  @Symbol("gitHubForkDiscovery")
-  @Extension
-  @Discovery
-  public static class DescriptorImpl extends SCMSourceTraitDescriptor {
-
-    /** {@inheritDoc} */
-    @Override
-    public String getDisplayName() {
-      return Messages.ForkPullRequestDiscoveryTrait_displayName();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Class<? extends SCMSourceContext> getContextClass() {
-      return GitHubSCMSourceContext.class;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Class<? extends SCMSource> getSourceClass() {
-      return GitHubSCMSource.class;
-    }
+    /** None strategy. */
+    public static final int NONE = 0;
+    /** Merging the pull request with the current target branch revision. */
+    public static final int MERGE = 1;
+    /** The current pull request revision. */
+    public static final int HEAD = 2;
+    /**
+     * Both the current pull request revision and the pull request merged with the current target
+     * branch revision.
+     */
+    public static final int HEAD_AND_MERGE = 3;
+    /** The strategy encoded as a bit-field. */
+    private final int strategyId;
+    /** The authority. */
+    @NonNull
+    private final SCMHeadAuthority<
+                    ? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision>
+            trust;
 
     /**
-     * Populates the strategy options.
+     * Constructor for stapler.
      *
-     * @return the strategy options.
+     * @param strategyId the strategy id.
+     * @param trust the authority to use.
      */
-    @NonNull
-    @Restricted(NoExternalUse.class)
-    @SuppressWarnings("unused") // stapler
-    public ListBoxModel doFillStrategyIdItems() {
-      ListBoxModel result = new ListBoxModel();
-      result.add(Messages.ForkPullRequestDiscoveryTrait_mergeOnly(), String.valueOf(MERGE));
-      result.add(Messages.ForkPullRequestDiscoveryTrait_headOnly(), String.valueOf(HEAD));
-      result.add(
-          Messages.ForkPullRequestDiscoveryTrait_headAndMerge(), String.valueOf(HEAD_AND_MERGE));
-      return result;
-    }
-
-    /**
-     * Returns the list of appropriate {@link SCMHeadAuthorityDescriptor} instances.
-     *
-     * @return the list of appropriate {@link SCMHeadAuthorityDescriptor} instances.
-     */
-    @NonNull
-    @SuppressWarnings("unused") // stapler
-    public List<SCMHeadAuthorityDescriptor> getTrustDescriptors() {
-      return SCMHeadAuthority._for(
-          GitHubSCMSourceRequest.class,
-          PullRequestSCMHead.class,
-          PullRequestSCMRevision.class,
-          SCMHeadOrigin.Fork.class);
-    }
-
-    /**
-     * Returns the default trust for new instances of {@link ForkPullRequestDiscoveryTrait}.
-     *
-     * @return the default trust for new instances of {@link ForkPullRequestDiscoveryTrait}.
-     */
-    @NonNull
-    @SuppressWarnings("unused") // stapler
-    public SCMHeadAuthority<?, ?, ?> getDefaultTrust() {
-      return new TrustPermission();
-    }
-  }
-
-  /** An {@link SCMHeadAuthority} that trusts nothing. */
-  public static class TrustNobody
-      extends SCMHeadAuthority<SCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
-
-    /** Constructor. */
     @DataBoundConstructor
-    public TrustNobody() {}
+    public ForkPullRequestDiscoveryTrait(
+            int strategyId,
+            @NonNull
+                    SCMHeadAuthority<
+                                    ? super GitHubSCMSourceRequest,
+                                    ? extends ChangeRequestSCMHead2,
+                                    ? extends SCMRevision>
+                            trust) {
+        this.strategyId = strategyId;
+        this.trust = trust;
+    }
+
+    /**
+     * Constructor for programmatic instantiation.
+     *
+     * @param strategies the {@link ChangeRequestCheckoutStrategy} instances.
+     * @param trust the authority.
+     */
+    public ForkPullRequestDiscoveryTrait(
+            @NonNull Set<ChangeRequestCheckoutStrategy> strategies,
+            @NonNull
+                    SCMHeadAuthority<
+                                    ? super GitHubSCMSourceRequest,
+                                    ? extends ChangeRequestSCMHead2,
+                                    ? extends SCMRevision>
+                            trust) {
+        this(
+                (strategies.contains(ChangeRequestCheckoutStrategy.MERGE) ? MERGE : NONE)
+                        + (strategies.contains(ChangeRequestCheckoutStrategy.HEAD) ? HEAD : NONE),
+                trust);
+    }
+
+    /**
+     * Gets the strategy id.
+     *
+     * @return the strategy id.
+     */
+    public int getStrategyId() {
+        return strategyId;
+    }
+
+    /**
+     * Returns the strategies.
+     *
+     * @return the strategies.
+     */
+    @NonNull
+    public Set<ChangeRequestCheckoutStrategy> getStrategies() {
+        switch (strategyId) {
+            case ForkPullRequestDiscoveryTrait.MERGE:
+                return EnumSet.of(ChangeRequestCheckoutStrategy.MERGE);
+            case ForkPullRequestDiscoveryTrait.HEAD:
+                return EnumSet.of(ChangeRequestCheckoutStrategy.HEAD);
+            case ForkPullRequestDiscoveryTrait.HEAD_AND_MERGE:
+                return EnumSet.of(ChangeRequestCheckoutStrategy.HEAD, ChangeRequestCheckoutStrategy.MERGE);
+            default:
+                return EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
+        }
+    }
+
+    /**
+     * Gets the authority.
+     *
+     * @return the authority.
+     */
+    @NonNull
+    public SCMHeadAuthority<? super GitHubSCMSourceRequest, ? extends ChangeRequestSCMHead2, ? extends SCMRevision>
+            getTrust() {
+        return trust;
+    }
 
     /** {@inheritDoc} */
     @Override
-    public boolean checkTrusted(
-        @NonNull SCMSourceRequest request, @NonNull PullRequestSCMHead head) {
-      return false;
+    protected void decorateContext(SCMSourceContext<?, ?> context) {
+        GitHubSCMSourceContext ctx = (GitHubSCMSourceContext) context;
+        ctx.wantForkPRs(true);
+        ctx.withAuthority(trust);
+        ctx.withForkPRStrategies(getStrategies());
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean includeCategory(@NonNull SCMHeadCategory category) {
+        return category instanceof ChangeRequestSCMHeadCategory;
     }
 
     /** Our descriptor. */
-    @Symbol("gitHubTrustNobody")
+    @Symbol("gitHubForkDiscovery")
     @Extension
-    public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+    @Discovery
+    public static class DescriptorImpl extends SCMSourceTraitDescriptor {
 
-      /** {@inheritDoc} */
-      @Override
-      public String getDisplayName() {
-        return Messages.ForkPullRequestDiscoveryTrait_nobodyDisplayName();
-      }
+        /** {@inheritDoc} */
+        @Override
+        public String getDisplayName() {
+            return Messages.ForkPullRequestDiscoveryTrait_displayName();
+        }
 
-      /** {@inheritDoc} */
-      @Override
-      public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
-        return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
-      }
+        /** {@inheritDoc} */
+        @Override
+        public Class<? extends SCMSourceContext> getContextClass() {
+            return GitHubSCMSourceContext.class;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public Class<? extends SCMSource> getSourceClass() {
+            return GitHubSCMSource.class;
+        }
+
+        /**
+         * Populates the strategy options.
+         *
+         * @return the strategy options.
+         */
+        @NonNull
+        @Restricted(NoExternalUse.class)
+        @SuppressWarnings("unused") // stapler
+        public ListBoxModel doFillStrategyIdItems() {
+            ListBoxModel result = new ListBoxModel();
+            result.add(Messages.ForkPullRequestDiscoveryTrait_mergeOnly(), String.valueOf(MERGE));
+            result.add(Messages.ForkPullRequestDiscoveryTrait_headOnly(), String.valueOf(HEAD));
+            result.add(Messages.ForkPullRequestDiscoveryTrait_headAndMerge(), String.valueOf(HEAD_AND_MERGE));
+            return result;
+        }
+
+        /**
+         * Returns the list of appropriate {@link SCMHeadAuthorityDescriptor} instances.
+         *
+         * @return the list of appropriate {@link SCMHeadAuthorityDescriptor} instances.
+         */
+        @NonNull
+        @SuppressWarnings("unused") // stapler
+        public List<SCMHeadAuthorityDescriptor> getTrustDescriptors() {
+            return SCMHeadAuthority._for(
+                    GitHubSCMSourceRequest.class,
+                    PullRequestSCMHead.class,
+                    PullRequestSCMRevision.class,
+                    SCMHeadOrigin.Fork.class);
+        }
+
+        /**
+         * Returns the default trust for new instances of {@link ForkPullRequestDiscoveryTrait}.
+         *
+         * @return the default trust for new instances of {@link ForkPullRequestDiscoveryTrait}.
+         */
+        @NonNull
+        @SuppressWarnings("unused") // stapler
+        public SCMHeadAuthority<?, ?, ?> getDefaultTrust() {
+            return new TrustPermission();
+        }
     }
-  }
 
-  /** An {@link SCMHeadAuthority} that trusts contributors to the repository. */
-  public static class TrustContributors
-      extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
-    /** Constructor. */
-    @DataBoundConstructor
-    public TrustContributors() {}
+    /** An {@link SCMHeadAuthority} that trusts nothing. */
+    public static class TrustNobody
+            extends SCMHeadAuthority<SCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
 
-    /** {@inheritDoc} */
-    @Override
-    protected boolean checkTrusted(
-        @NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head) {
-      return !head.getOrigin().equals(SCMHeadOrigin.DEFAULT)
-          && request.getCollaboratorNames().contains(head.getSourceOwner());
-    }
+        /** Constructor. */
+        @DataBoundConstructor
+        public TrustNobody() {}
 
-    /** Our descriptor. */
-    @Symbol("gitHubTrustContributors")
-    @Extension
-    public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
-
-      /** {@inheritDoc} */
-      @Override
-      public String getDisplayName() {
-        return Messages.ForkPullRequestDiscoveryTrait_contributorsDisplayName();
-      }
-
-      /** {@inheritDoc} */
-      @Override
-      public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
-        return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
-      }
-    }
-  }
-
-  /** An {@link SCMHeadAuthority} that trusts those with write permission to the repository. */
-  public static class TrustPermission
-      extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
-
-    /** Constructor. */
-    @DataBoundConstructor
-    public TrustPermission() {}
-
-    /** {@inheritDoc} */
-    @Override
-    protected boolean checkTrusted(
-        @NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head)
-        throws IOException, InterruptedException {
-      if (!head.getOrigin().equals(SCMHeadOrigin.DEFAULT)) {
-        GHPermissionType permission = request.getPermissions(head.getSourceOwner());
-        switch (permission) {
-          case ADMIN:
-          case WRITE:
-            return true;
-          default:
+        /** {@inheritDoc} */
+        @Override
+        public boolean checkTrusted(@NonNull SCMSourceRequest request, @NonNull PullRequestSCMHead head) {
             return false;
         }
-      }
-      return false;
+
+        /** Our descriptor. */
+        @Symbol("gitHubTrustNobody")
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+
+            /** {@inheritDoc} */
+            @Override
+            public String getDisplayName() {
+                return Messages.ForkPullRequestDiscoveryTrait_nobodyDisplayName();
+            }
+
+            /** {@inheritDoc} */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+        }
     }
 
-    /** Our descriptor. */
-    @Symbol("gitHubTrustPermissions")
-    @Extension
-    public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+    /** An {@link SCMHeadAuthority} that trusts contributors to the repository. */
+    public static class TrustContributors
+            extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+        /** Constructor. */
+        @DataBoundConstructor
+        public TrustContributors() {}
 
-      /** {@inheritDoc} */
-      @Override
-      public String getDisplayName() {
-        return Messages.ForkPullRequestDiscoveryTrait_permissionsDisplayName();
-      }
+        /** {@inheritDoc} */
+        @Override
+        protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head) {
+            return !head.getOrigin().equals(SCMHeadOrigin.DEFAULT)
+                    && request.getCollaboratorNames().contains(head.getSourceOwner());
+        }
 
-      /** {@inheritDoc} */
-      @Override
-      public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
-        return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
-      }
+        /** Our descriptor. */
+        @Symbol("gitHubTrustContributors")
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+
+            /** {@inheritDoc} */
+            @Override
+            public String getDisplayName() {
+                return Messages.ForkPullRequestDiscoveryTrait_contributorsDisplayName();
+            }
+
+            /** {@inheritDoc} */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+        }
     }
-  }
 
-  /** An {@link SCMHeadAuthority} that trusts everyone. */
-  public static class TrustEveryone
-      extends SCMHeadAuthority<SCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
-    /** Constructor. */
-    @DataBoundConstructor
-    public TrustEveryone() {}
+    /** An {@link SCMHeadAuthority} that trusts those with write permission to the repository. */
+    public static class TrustPermission
+            extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
 
-    /** {@inheritDoc} */
-    @Override
-    protected boolean checkTrusted(
-        @NonNull SCMSourceRequest request, @NonNull PullRequestSCMHead head) {
-      return true;
+        /** Constructor. */
+        @DataBoundConstructor
+        public TrustPermission() {}
+
+        /** {@inheritDoc} */
+        @Override
+        protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head)
+                throws IOException, InterruptedException {
+            if (!head.getOrigin().equals(SCMHeadOrigin.DEFAULT)) {
+                GHPermissionType permission = request.getPermissions(head.getSourceOwner());
+                switch (permission) {
+                    case ADMIN:
+                    case WRITE:
+                        return true;
+                    default:
+                        return false;
+                }
+            }
+            return false;
+        }
+
+        /** Our descriptor. */
+        @Symbol("gitHubTrustPermissions")
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+
+            /** {@inheritDoc} */
+            @Override
+            public String getDisplayName() {
+                return Messages.ForkPullRequestDiscoveryTrait_permissionsDisplayName();
+            }
+
+            /** {@inheritDoc} */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+        }
     }
 
-    /** Our descriptor. */
-    @Symbol("gitHubTrustEveryone")
-    @Extension
-    public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+    /** An {@link SCMHeadAuthority} that trusts everyone. */
+    public static class TrustEveryone
+            extends SCMHeadAuthority<SCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+        /** Constructor. */
+        @DataBoundConstructor
+        public TrustEveryone() {}
 
-      /** {@inheritDoc} */
-      @Override
-      public String getDisplayName() {
-        return Messages.ForkPullRequestDiscoveryTrait_everyoneDisplayName();
-      }
+        /** {@inheritDoc} */
+        @Override
+        protected boolean checkTrusted(@NonNull SCMSourceRequest request, @NonNull PullRequestSCMHead head) {
+            return true;
+        }
 
-      /** {@inheritDoc} */
-      @Override
-      public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
-        return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
-      }
+        /** Our descriptor. */
+        @Symbol("gitHubTrustEveryone")
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+
+            /** {@inheritDoc} */
+            @Override
+            public String getDisplayName() {
+                return Messages.ForkPullRequestDiscoveryTrait_everyoneDisplayName();
+            }
+
+            /** {@inheritDoc} */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+        }
     }
-  }
 }
