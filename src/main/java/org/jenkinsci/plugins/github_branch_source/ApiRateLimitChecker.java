@@ -6,12 +6,14 @@ import hudson.Util;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHRateLimit;
@@ -29,7 +31,9 @@ public enum ApiRateLimitChecker {
         @Override
         long checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now)
             throws InterruptedException {
-          LOGGER.log(Level.FINE, "should not arrive here", new Throwable());
+          if (LOGGER.isLoggable(Level.FINE) && !EXPECTED_CHECKER.equals(name())) {
+            LOGGER.log(Level.FINE, "Unexpected checker", new Throwable());
+          }
           long expiration = now;
           // the buffer is how much we want to avoid using to cover unplanned over-use
           int buffer = calculateBuffer(rateLimit.getLimit());
@@ -83,6 +87,9 @@ public enum ApiRateLimitChecker {
         @Override
         long checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now)
             throws InterruptedException {
+          if (LOGGER.isLoggable(Level.FINE) && !EXPECTED_CHECKER.equals(name())) {
+            LOGGER.log(Level.FINE, "Unexpected checker", new Throwable());
+          }
           // the buffer is how much we want to avoid using to cover unplanned over-use
           int buffer = calculateBuffer(rateLimit.getLimit());
           // check that we have at least our minimum buffer of remaining calls
@@ -104,8 +111,10 @@ public enum ApiRateLimitChecker {
   NoThrottle(Messages.ApiRateLimitChecker_NoThrottle()) {
     @Override
     public LocalChecker getChecker(@NonNull TaskListener listener, String apiUrl) {
+      if (LOGGER.isLoggable(Level.FINE) && !EXPECTED_CHECKER.equalsIgnoreCase(name())) {
+        LOGGER.log(Level.FINE, "Unexpected checker", new Throwable());
+      }
       if (GitHubServerConfig.GITHUB_URL.equals(apiUrl)) {
-        LOGGER.log(Level.FINE, "should not arrive here", new Throwable());
         // If the GitHub public API is being used, this will fallback to ThrottleOnOver
         LocalChecker checker = ThrottleOnOver.getChecker(listener, apiUrl);
         checker.writeLog(
@@ -117,13 +126,14 @@ public enum ApiRateLimitChecker {
           @Override
           long checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now)
               throws InterruptedException {
-            LOGGER.log(Level.FINE, "should not arrive here", new Throwable());
             return now;
           }
         };
       }
     }
   };
+
+  private static String EXPECTED_CHECKER = "ThrottleOnOver";
 
   /** Logger for printing output even when task listener is not set */
   private static final Logger LOGGER = Logger.getLogger(ApiRateLimitChecker.class.getName());
@@ -155,6 +165,21 @@ public enum ApiRateLimitChecker {
 
   static void setNotificationWaitMillis(int notificationWaitMillis) {
     NOTIFICATION_WAIT_MILLIS = notificationWaitMillis;
+  }
+
+  public static void setExpectedChecker(String checkerName) {
+    try {
+      ApiRateLimitChecker.valueOf(checkerName);
+    } catch (IllegalArgumentException | NullPointerException e) {
+      throw new IllegalStateException(
+          "Unexpected value "
+              + checkerName
+              + ". Available values are "
+              + Arrays.stream(ApiRateLimitChecker.values())
+                  .map(Enum::name)
+                  .collect(Collectors.joining(",")));
+    }
+    EXPECTED_CHECKER = checkerName;
   }
 
   private String displayName;
