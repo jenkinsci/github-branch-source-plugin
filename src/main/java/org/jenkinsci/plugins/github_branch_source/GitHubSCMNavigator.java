@@ -1558,7 +1558,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
     private static LoadingCache<String, Boolean> createPrivateModeCache() {
         Duration duration = getPrivateModeCacheExpiration();
-        // TODO configurable duration Potentially using Duration.parse.abs?
         return Caffeine.newBuilder().expireAfterWrite(duration).build(key -> {
             if (key.equals(GitHubServerConfig.GITHUB_URL)) {
                 return false;
@@ -1600,7 +1599,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             e);
             duration = Duration.ofHours(20);
         }
-        return duration;
+        return duration.abs();
     }
 
     @Restricted(NoExternalUse.class)
