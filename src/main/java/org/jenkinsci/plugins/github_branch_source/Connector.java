@@ -479,7 +479,7 @@ public class Connector {
     OkHttpClient.Builder clientBuilder = JenkinsOkHttpClient.newClientBuilder(new OkHttpClient());
     if (JenkinsJVM.isJenkinsJVM() && Jenkins.get().proxy != null) {
       // Remove once https://github.com/jenkinsci/okhttp-api-plugin/pull/159 is merged
-      clientBuilder.proxySelector(new JenkinsProxySelector(Jenkins.get().proxy));
+      clientBuilder.proxySelector(new JenkinsProxySelector());
     }
     if (cache != null) {
       clientBuilder.cache(cache);
@@ -824,27 +824,24 @@ public class Connector {
 
   // Remove once https://github.com/jenkinsci/okhttp-api-plugin/pull/159 is merged
   private static class JenkinsProxySelector extends ProxySelector {
-    private static final Logger LOGGER = Logger.getLogger(JenkinsProxySelector.class.getName());
-    private final ProxyConfiguration configuration;
-    private final Proxy proxy;
-
-    public JenkinsProxySelector(final ProxyConfiguration configuration) {
-      this.configuration = configuration;
-      this.proxy =
-          new Proxy(
-              Proxy.Type.HTTP,
-              InetSocketAddress.createUnresolved(configuration.name, configuration.port));
-    }
 
     @Override
     public List<Proxy> select(URI uri) {
+
+      ProxyConfiguration configuration = Jenkins.get().proxy;
+      if (configuration == null) {
+        return Collections.singletonList(Proxy.NO_PROXY);
+      }
+
       final String host = uri.getHost();
       for (Pattern p : configuration.getNoProxyHostPatterns()) {
         if (p.matcher(host).matches()) {
           return Collections.singletonList(Proxy.NO_PROXY);
         }
       }
-      return Collections.singletonList(proxy);
+      return Collections.singletonList(
+          new Proxy(
+              Proxy.Type.HTTP, new InetSocketAddress(configuration.name, configuration.port)));
     }
 
     @Override
