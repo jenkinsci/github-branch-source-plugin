@@ -55,7 +55,6 @@ import io.jenkins.plugins.okhttp.api.JenkinsOkHttpClient;
 import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.ProxySelector;
 import java.net.SocketAddress;
@@ -77,7 +76,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.util.JenkinsJVM;
@@ -777,19 +775,11 @@ public class Connector {
         @Override
         public List<Proxy> select(URI uri) {
 
-            ProxyConfiguration configuration = Jenkins.get().proxy;
+            ProxyConfiguration configuration = Jenkins.get().getProxy();
             if (configuration == null) {
                 return Collections.singletonList(Proxy.NO_PROXY);
             }
-
-            final String host = uri.getHost();
-            for (Pattern p : configuration.getNoProxyHostPatterns()) {
-                if (p.matcher(host).matches()) {
-                    return Collections.singletonList(Proxy.NO_PROXY);
-                }
-            }
-            return Collections.singletonList(
-                    new Proxy(Proxy.Type.HTTP, new InetSocketAddress(configuration.name, configuration.port)));
+            return List.of(configuration.createProxy(uri.getHost()));
         }
 
         @Override
