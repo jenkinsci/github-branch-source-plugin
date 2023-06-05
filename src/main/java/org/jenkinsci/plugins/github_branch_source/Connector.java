@@ -79,6 +79,7 @@ import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.util.JenkinsJVM;
+import jenkins.util.SystemProperties;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
 import org.apache.commons.lang.StringUtils;
@@ -468,7 +469,10 @@ public class Connector {
         Cache cache = null;
         int cacheSize = GitHubSCMSource.getCacheSize();
         if (cacheSize > 0) {
-            File cacheBase = new File(jenkins.getRootDir(), GitHubSCMProbe.class.getName() + ".cache");
+            String cacheRootDir = SystemProperties.getString(GitHubSCMSource.class.getName() + ".cacheRootDir");
+            File cacheBase = cacheRootDir != null
+                    ? new File(cacheRootDir)
+                    : new File(jenkins.getRootDir(), GitHubSCMProbe.class.getName() + ".cache");
             File cacheDir = null;
             try {
                 MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
