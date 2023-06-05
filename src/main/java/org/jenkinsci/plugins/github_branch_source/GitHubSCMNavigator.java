@@ -1586,6 +1586,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      * @return the duration in the system property or the default Duration (20 Hours)
      * @see Duration#parse(CharSequence)
      */
+    @SuppressFBWarnings(value = "DCN_NULLPOINTER_EXCEPTION", justification = "Intentional")
     private static Duration getPrivateModeCacheExpiration() {
         String d = SystemProperties.getString(GitHubSCMNavigator.class.getName() + ".PRIVATE_MODE_CACHE_EXP", "PT20H");
         Duration duration;
