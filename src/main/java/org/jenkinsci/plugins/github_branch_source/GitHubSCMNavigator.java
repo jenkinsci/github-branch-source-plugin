@@ -91,7 +91,6 @@ import jenkins.util.SystemProperties;
 import net.jcip.annotations.GuardedBy;
 import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
-import org.jenkins.ui.icon.IconFormat;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
 import org.jenkinsci.Symbol;
@@ -1541,7 +1540,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             } else {
                 result.add(new GitHubOrgMetadataAction(u));
             }
-            result.add(new GitHubLink("icon-github-logo", u.getHtmlUrl()));
+            result.add(new GitHubLink(u.getHtmlUrl()));
             if (objectUrl == null) {
                 listener.getLogger().println("Organization URL: unspecified");
             } else {
@@ -1884,69 +1883,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     "icon-github-scm-navigator icon-xlg",
                     "plugin/github-branch-source/images/svgs/github-scmnavigator.svg",
                     Icon.ICON_XLARGE_STYLE));
-
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-logo icon-sm",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
-                    Icon.ICON_SMALL_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-logo icon-md",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
-                    Icon.ICON_MEDIUM_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-logo icon-lg",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
-                    Icon.ICON_LARGE_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-logo icon-xlg",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
-                    Icon.ICON_XLARGE_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-repo icon-sm",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
-                    Icon.ICON_SMALL_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-repo icon-md",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
-                    Icon.ICON_MEDIUM_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-repo icon-lg",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
-                    Icon.ICON_LARGE_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-repo icon-xlg",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
-                    Icon.ICON_XLARGE_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-branch icon-sm",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
-                    Icon.ICON_SMALL_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-branch icon-md",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
-                    Icon.ICON_MEDIUM_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-branch icon-lg",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
-                    Icon.ICON_LARGE_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-branch icon-xlg",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
-                    Icon.ICON_XLARGE_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
         }
     }
 

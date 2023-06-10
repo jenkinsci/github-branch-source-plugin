@@ -703,7 +703,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
                         Matchers.is(new ObjectMetadataAction(null, "You only live once", "http://yolo.example.com")),
                         Matchers.is(new GitHubDefaultBranch("cloudbeers", "yolo", "master")),
                         instanceOf(GitHubRepoMetadataAction.class),
-                        Matchers.is(new GitHubLink("icon-github-repo", "https://github.com/cloudbeers/yolo"))));
+                        Matchers.is(new GitHubLink("https://github.com/cloudbeers/yolo"))));
     }
 
     @Test
