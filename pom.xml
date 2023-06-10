@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.61</version>
+    <version>4.66</version>
     <relativePath />
   </parent>
 
@@ -33,7 +33,7 @@
     <changelist>999999-SNAPSHOT</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
-    <jenkins.version>2.361.4</jenkins.version>
+    <jenkins.version>2.387.3</jenkins.version>
     <useBeta>true</useBeta>
     <spotless.check.skip>false</spotless.check.skip>
   </properties>
@@ -42,8 +42,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.361.x</artifactId>
-        <version>1935.v530f4395930f</version>
+        <artifactId>bom-2.387.x</artifactId>
+        <version>2163.v2d916d90c305</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -54,7 +54,6 @@
     <dependency>
       <groupId>com.coravy.hudson.plugins.github</groupId>
       <artifactId>github</artifactId>
-      <version>1.37.0</version>
     </dependency>
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
