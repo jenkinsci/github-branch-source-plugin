@@ -67,6 +67,8 @@
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
       <artifactId>okhttp-api</artifactId>
+      <!--Remove once this version is in the bom-->
+      <version>4.10.0-136.v1d8ce1b_1db_72</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
