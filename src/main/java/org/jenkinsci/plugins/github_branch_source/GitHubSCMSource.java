@@ -1021,7 +1021,23 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     request.setPermissionsSource(new GitHubPermissionsSource() {
                         @Override
                         public GHPermissionType fetch(String username) throws IOException, InterruptedException {
-                            return ghRepository.getPermission(username);
+                            try {
+                                return ghRepository.getPermission(username);
+                            } catch (FileNotFoundException e) {
+                                listener.getLogger()
+                                        .println("    Not permitted to query list of permissions, assuming none");
+                                return GHPermissionType.NONE;
+                            } catch (HttpException e) {
+                                if (e.getResponseCode() == HttpServletResponse.SC_UNAUTHORIZED
+                                        || e.getResponseCode() == HttpServletResponse.SC_FORBIDDEN
+                                        || e.getResponseCode() == HttpServletResponse.SC_NOT_FOUND) {
+                                    listener.getLogger()
+                                            .println("    Not permitted to query list of permissions, assuming none");
+                                    return GHPermissionType.NONE;
+                                } else {
+                                    throw new WrappedException(e);
+                                }
+                            }
                         }
                     });
 
@@ -1580,6 +1596,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 return collaboratorNames = Collections.emptySet();
             } catch (HttpException e) {
                 if (e.getResponseCode() == HttpServletResponse.SC_UNAUTHORIZED
+                        || e.getResponseCode() == HttpServletResponse.SC_FORBIDDEN
                         || e.getResponseCode() == HttpServletResponse.SC_NOT_FOUND) {
                     listener.getLogger().println("Not permitted to query list of collaborators, assuming none");
                     return collaboratorNames = Collections.emptySet();
@@ -1866,8 +1883,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 try {
                     wrapped.unwrap();
                 } catch (HttpException e) {
-                    listener.getLogger()
-                            .format("It seems %s is unreachable, assuming no trusted collaborators%n", apiUri);
+                    listener.getLogger().format("It seems %s is unreachable, assuming not trusted%n", apiUri);
                     collaboratorNames = Collections.singleton(repoOwner);
                 }
             }
@@ -2928,7 +2944,21 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 String fullName = repoOwner + "/" + repository;
                 repo = github.getRepository(fullName);
             }
-            return repo.getPermission(username);
+            try {
+                return repo.getPermission(username);
+            } catch (FileNotFoundException e) {
+                listener.getLogger().println("Not permitted to query list of permissions, assuming none");
+                return GHPermissionType.NONE;
+            } catch (HttpException e) {
+                if (e.getResponseCode() == HttpServletResponse.SC_UNAUTHORIZED
+                        || e.getResponseCode() == HttpServletResponse.SC_FORBIDDEN
+                        || e.getResponseCode() == HttpServletResponse.SC_NOT_FOUND) {
+                    listener.getLogger().println("Not permitted to query list of permissions, assuming none");
+                    return GHPermissionType.NONE;
+                } else {
+                    throw new WrappedException(e);
+                }
+            }
         }
 
         @Override
