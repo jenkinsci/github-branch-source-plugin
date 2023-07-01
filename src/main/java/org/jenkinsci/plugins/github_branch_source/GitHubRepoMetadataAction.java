@@ -36,7 +36,7 @@ public class GitHubRepoMetadataAction extends AvatarMetadataAction {
     /** {@inheritDoc} */
     @Override
     public String getAvatarIconClassName() {
-        return "symbol-logo-github plugin-github-branch-source";
+        return "symbol-logo-github plugin-ionicons-api";
     }
 
     /** {@inheritDoc} */

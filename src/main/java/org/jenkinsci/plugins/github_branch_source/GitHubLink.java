@@ -54,7 +54,7 @@ public class GitHubLink implements Action, IconSpec {
 
     @Override
     public String getIconClassName() {
-        return "symbol-logo-github plugin-github-branch-source";
+        return "symbol-logo-github plugin-ionicons-api";
     }
 
     @Override
