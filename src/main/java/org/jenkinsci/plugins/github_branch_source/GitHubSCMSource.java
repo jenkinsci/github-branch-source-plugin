@@ -1901,8 +1901,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 try {
                     wrapped.unwrap();
                 } catch (HttpException e) {
-                    listener.getLogger().format("It seems %s is unreachable, assuming not trusted%n", apiUri);
-                    collaboratorNames = Collections.singleton(repoOwner);
+                    listener.getLogger().format("Cannot retrieve trusted revision: %s%n");
+                    throw e;
                 }
             }
             PullRequestSCMRevision rev = (PullRequestSCMRevision) revision;
