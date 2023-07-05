@@ -33,6 +33,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasProperty;
@@ -774,22 +775,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
                     null,
                     null);
 
-            Map<String, SCMHead> byName = new HashMap<>();
-            Map<String, SCMRevision> revByName = new HashMap<>();
-            for (Map.Entry<SCMHead, SCMRevision> h : collector.result().entrySet()) {
-                byName.put(h.getKey().getName(), h.getKey());
-                revByName.put(h.getKey().getName(), h.getValue());
-            }
-
-            assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "PR-4"));
-
-            // Cannot find collaborators, the trusted revision must be the base (target) revision, not the head
-            for (SCMRevision revision : revByName.values()) {
-                assertThat(
-                        source.getTrustedRevision(
-                                revision, new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO)),
-                        is(((PullRequestSCMRevision) revision).getTarget()));
-            }
+            assertThat(collector.result().entrySet(), is(empty()));
         }
     }
 
@@ -884,22 +870,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
                     null,
                     null);
 
-            Map<String, SCMHead> byName = new HashMap<>();
-            Map<String, SCMRevision> revByName = new HashMap<>();
-            for (Map.Entry<SCMHead, SCMRevision> h : collector.result().entrySet()) {
-                byName.put(h.getKey().getName(), h.getKey());
-                revByName.put(h.getKey().getName(), h.getValue());
-            }
-
-            assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "PR-4"));
-
-            // Cannot find collaborators, the trusted revision must be the base (target) revision, not the head
-            for (SCMRevision revision : revByName.values()) {
-                assertThat(
-                        source.getTrustedRevision(
-                                revision, new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO)),
-                        is(((PullRequestSCMRevision) revision).getTarget()));
-            }
+            assertThat(collector.result().entrySet(), is(empty()));
         }
     }
 

@@ -1021,23 +1021,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     request.setPermissionsSource(new GitHubPermissionsSource() {
                         @Override
                         public GHPermissionType fetch(String username) throws IOException, InterruptedException {
-                            try {
-                                return ghRepository.getPermission(username);
-                            } catch (FileNotFoundException e) {
-                                listener.getLogger()
-                                        .println("    Not permitted to query list of permissions, assuming none");
-                                return GHPermissionType.NONE;
-                            } catch (HttpException e) {
-                                if (e.getResponseCode() == HttpServletResponse.SC_UNAUTHORIZED
-                                        || e.getResponseCode() == HttpServletResponse.SC_FORBIDDEN
-                                        || e.getResponseCode() == HttpServletResponse.SC_NOT_FOUND) {
-                                    listener.getLogger()
-                                            .println("    Not permitted to query list of permissions, assuming none");
-                                    return GHPermissionType.NONE;
-                                } else {
-                                    throw new WrappedException(e);
-                                }
-                            }
+                            return getPermissions(ghRepository, username, listener);
                         }
                     });
 
@@ -1258,35 +1242,44 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 }
             }
 
-            if (request.process(
-                    new PullRequestSCMHead(pr, branchName, strategy == ChangeRequestCheckoutStrategy.MERGE),
-                    null,
-                    new SCMSourceRequest.ProbeLambda<PullRequestSCMHead, Void>() {
-                        @NonNull
-                        @Override
-                        public SCMSourceCriteria.Probe create(
-                                @NonNull PullRequestSCMHead head, @Nullable Void revisionInfo)
-                                throws IOException, InterruptedException {
-                            boolean trusted = request.isTrusted(head);
-                            if (!trusted) {
-                                listener.getLogger().format("    (not from a trusted source)%n");
+            try {
+                if (request.process(
+                        new PullRequestSCMHead(pr, branchName, strategy == ChangeRequestCheckoutStrategy.MERGE),
+                        null,
+                        new SCMSourceRequest.ProbeLambda<PullRequestSCMHead, Void>() {
+                            @NonNull
+                            @Override
+                            public SCMSourceCriteria.Probe create(
+                                    @NonNull PullRequestSCMHead head, @Nullable Void revisionInfo)
+                                    throws IOException, InterruptedException {
+                                boolean trusted = request.isTrusted(head);
+                                if (!trusted) {
+                                    listener.getLogger().format("    (not from a trusted source)%n");
+                                }
+                                return new GitHubSCMProbe(
+                                        apiUri, credentials, ghRepository, trusted ? head : head.getTarget(), null);
                             }
-                            return new GitHubSCMProbe(
-                                    apiUri, credentials, ghRepository, trusted ? head : head.getTarget(), null);
-                        }
-                    },
-                    new SCMSourceRequest.LazyRevisionLambda<PullRequestSCMHead, SCMRevision, Void>() {
-                        @NonNull
-                        @Override
-                        public SCMRevision create(@NonNull PullRequestSCMHead head, @Nullable Void ignored)
-                                throws IOException, InterruptedException {
+                        },
+                        new SCMSourceRequest.LazyRevisionLambda<PullRequestSCMHead, SCMRevision, Void>() {
+                            @NonNull
+                            @Override
+                            public SCMRevision create(@NonNull PullRequestSCMHead head, @Nullable Void ignored)
+                                    throws IOException, InterruptedException {
 
-                            return createPullRequestSCMRevision(pr, head, listener, ghRepository);
-                        }
-                    },
-                    new MergabilityWitness(pr, strategy, listener),
-                    new CriteriaWitness(listener))) {
-                listener.getLogger().format("%n  Pull request %d processed (query completed)%n", number);
+                                return createPullRequestSCMRevision(pr, head, listener, ghRepository);
+                            }
+                        },
+                        new MergabilityWitness(pr, strategy, listener),
+                        new CriteriaWitness(listener))) {
+                    listener.getLogger().format("%n    Pull request %d processed (query completed)%n", number);
+                }
+            } catch (WrappedException e) {
+                try {
+                    e.unwrap();
+                } catch (Exception ue) {
+                    LOGGER.log(Level.FINE, "Failed to process pull request", ue);
+                }
+                listener.getLogger().format("%n    Failed to process pull request %d, skipping%n%n", number);
             }
         }
     }
@@ -1583,27 +1576,52 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             @NonNull GHRepository ghRepository)
             throws IOException {
         if (credentials == null && (apiUri == null || GITHUB_URL.equals(apiUri))) {
-            // anonymous access to GitHub will never get list of collaborators and will
-            // burn an API call, so no point in even trying
-            listener.getLogger().println("Anonymous cannot query list of collaborators, assuming none");
-            return collaboratorNames = Collections.emptySet();
+            listener.getLogger().println("      Anonymous cannot query list of collaborators");
+            throw new IOException("Anonymous cannot query list of collaborators");
         } else {
             try {
                 return collaboratorNames = new HashSet<>(ghRepository.getCollaboratorNames());
             } catch (FileNotFoundException e) {
-                // not permitted
-                listener.getLogger().println("Not permitted to query list of collaborators, assuming none");
-                return collaboratorNames = Collections.emptySet();
+                //                listener.getLogger().println("      Not permitted to query list of collaborators");
+                listener.getLogger().format("      Not permitted to query list of collaborators: %s", e.getMessage());
+                throw e;
             } catch (HttpException e) {
                 if (e.getResponseCode() == HttpServletResponse.SC_UNAUTHORIZED
                         || e.getResponseCode() == HttpServletResponse.SC_FORBIDDEN
                         || e.getResponseCode() == HttpServletResponse.SC_NOT_FOUND) {
-                    listener.getLogger().println("Not permitted to query list of collaborators, assuming none");
-                    return collaboratorNames = Collections.emptySet();
+                    //                    listener.getLogger().println("      Not permitted to query list of
+                    // collaborators");
+                    listener.getLogger()
+                            .format("      Not permitted to query list of collaborators: %s", e.getMessage());
                 } else {
-                    throw e;
+                    //                  listener.getLogger().println("      Failed to query list of collaborators");
+                    listener.getLogger().format("      Failed to query list of collaborators: %s", e.getMessage());
                 }
+                throw e;
             }
+        }
+    }
+
+    private GHPermissionType getPermissions(
+            @NonNull GHRepository repo, @NonNull String username, @NonNull TaskListener listener) throws IOException {
+
+        try {
+            return repo.getPermission(username);
+        } catch (FileNotFoundException e) {
+            //          listener.getLogger().println("      Not permitted to query list of permissions");
+            listener.getLogger().format("      Not permitted to query list of permissions: %s", e.getMessage());
+            throw new WrappedException(e);
+        } catch (HttpException e) {
+            if (e.getResponseCode() == HttpServletResponse.SC_UNAUTHORIZED
+                    || e.getResponseCode() == HttpServletResponse.SC_FORBIDDEN
+                    || e.getResponseCode() == HttpServletResponse.SC_NOT_FOUND) {
+                //              listener.getLogger().println("      Not permitted to query list of permissions");
+                listener.getLogger().format("      Not permitted to query list of permissions: %s", e.getMessage());
+            } else {
+                //              listener.getLogger().println("      Failed to query list of permissions");
+                listener.getLogger().format("      Failed to query list of permissions: %s", e.getMessage());
+            }
+            throw new WrappedException(e);
         }
     }
 
@@ -2944,21 +2962,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 String fullName = repoOwner + "/" + repository;
                 repo = github.getRepository(fullName);
             }
-            try {
-                return repo.getPermission(username);
-            } catch (FileNotFoundException e) {
-                listener.getLogger().println("Not permitted to query list of permissions, assuming none");
-                return GHPermissionType.NONE;
-            } catch (HttpException e) {
-                if (e.getResponseCode() == HttpServletResponse.SC_UNAUTHORIZED
-                        || e.getResponseCode() == HttpServletResponse.SC_FORBIDDEN
-                        || e.getResponseCode() == HttpServletResponse.SC_NOT_FOUND) {
-                    listener.getLogger().println("Not permitted to query list of permissions, assuming none");
-                    return GHPermissionType.NONE;
-                } else {
-                    throw new WrappedException(e);
-                }
-            }
+            return getPermissions(repo, username, listener);
         }
 
         @Override

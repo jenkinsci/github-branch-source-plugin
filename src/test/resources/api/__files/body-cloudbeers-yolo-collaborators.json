@@ -25,7 +25,7 @@
       "triage": true,
       "pull": true
     },
-    "role_name": "read"
+    "role_name": "write"
   },
   {
     "login": "cloudbeers",
