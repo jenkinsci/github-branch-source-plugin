@@ -1216,6 +1216,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         if (!context.isExcludeForkedRepositories()) {
             ghRepositorySearchBuilder.q("fork:true");
         }
+        ghRepositorySearchBuilder.q("sort:name-asc");
         return ghRepositorySearchBuilder.list().withPageSize(100);
     }
 
