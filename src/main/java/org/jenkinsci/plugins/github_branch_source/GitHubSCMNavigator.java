@@ -65,6 +65,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+import javax.inject.Inject;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
 import jenkins.scm.api.SCMNavigator;
@@ -1127,8 +1130,25 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     } else {
                         repositories = org.listRepositories(100);
                     }
+
+                    List<String> repoList = StreamSupport.stream(repositories.spliterator(), false)
+                            .map(GHRepository::getName)
+                            .collect(Collectors.toList());
+
+                    String repoString = String.join(",", repoList);
+
+                    listener.getLogger()
+                            .println(GitHubConsoleNote.create(
+                                    System.currentTimeMillis(),
+                                    String.format("Found %d repositories: %s", repoList.size(), repoString)));
+
                     for (GHRepository repo : repositories) {
                         try {
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(
+                                            System.currentTimeMillis(),
+                                            String.format("Processing repository: %s", repo.getName())));
+
                             if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                                 // exclude archived repositories
                                 witness.record(repo.getName(), false);
@@ -1288,7 +1308,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             ghRepositorySearchBuilder.q("fork:true");
         }
         ghRepositorySearchBuilder.q("sort:name-asc");
-        return ghRepositorySearchBuilder.list().withPageSize(100);
+        return ghRepositorySearchBuilder.list().withPageSize(100).asList();
     }
 
     private GHOrganization getGhOrganization(final GitHub github) throws IOException {
