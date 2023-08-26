@@ -36,44 +36,38 @@ import org.kohsuke.github.GitHub;
 
 public class GitHubOrgWebHookTest {
 
-  @Rule public JenkinsRule r = new JenkinsRule();
-  @Rule public WireMockRule wireMockRule = new WireMockRule(wireMockConfig().dynamicPort());
+    @Rule
+    public JenkinsRule r = new JenkinsRule();
 
-  @Issue("JENKINS-58942")
-  @Test
-  public void registerCustom() throws Exception {
-    System.setProperty("jenkins.hook.url", "https://mycorp/hook-proxy/");
-    // Return 404 for /rate_limit
-    wireMockRule.stubFor(
-        get(urlEqualTo("/api/rate_limit")).willReturn(aResponse().withStatus(404)));
+    @Rule
+    public WireMockRule wireMockRule = new WireMockRule(wireMockConfig().dynamicPort());
 
-    // validate api url
-    wireMockRule.stubFor(
-        get(urlEqualTo("/api/"))
-            .willReturn(
-                aResponse().withBody("{\"rate_limit_url\": \"https://localhost/placeholder/\"}")));
+    @Issue("JENKINS-58942")
+    @Test
+    public void registerCustom() throws Exception {
+        System.setProperty("jenkins.hook.url", "https://mycorp/hook-proxy/");
+        // Return 404 for /rate_limit
+        wireMockRule.stubFor(
+                get(urlEqualTo("/api/rate_limit")).willReturn(aResponse().withStatus(404)));
 
-    wireMockRule.stubFor(
-        get(urlEqualTo("/api/users/myorg"))
-            .willReturn(aResponse().withBody("{\"login\":\"myorg\"}")));
-    wireMockRule.stubFor(
-        get(urlEqualTo("/api/orgs/myorg"))
-            .willReturn(
-                aResponse()
-                    .withBody("{\"login\":\"myorg\",\"html_url\":\"https://github.com/myorg\"}")));
-    wireMockRule.stubFor(
-        get(urlEqualTo("/api/orgs/myorg/hooks")).willReturn(aResponse().withBody("[]")));
-    wireMockRule.stubFor(
-        post(urlEqualTo("/api/orgs/myorg/hooks"))
-            .withRequestBody(
-                matchingJsonPath(
-                    "$.config.url", equalTo("https://mycorp/hook-proxy/github-webhook/")))
-            .willReturn(aResponse().withBody("{}")));
-    GitHub hub = Connector.connect("http://localhost:" + wireMockRule.port() + "/api/", null);
-    try {
-      GitHubOrgWebHook.register(hub, "myorg");
-    } finally {
-      Connector.release(hub);
+        // validate api url
+        wireMockRule.stubFor(get(urlEqualTo("/api/"))
+                .willReturn(aResponse().withBody("{\"rate_limit_url\": \"https://localhost/placeholder/\"}")));
+
+        wireMockRule.stubFor(
+                get(urlEqualTo("/api/users/myorg")).willReturn(aResponse().withBody("{\"login\":\"myorg\"}")));
+        wireMockRule.stubFor(get(urlEqualTo("/api/orgs/myorg"))
+                .willReturn(aResponse().withBody("{\"login\":\"myorg\",\"html_url\":\"https://github.com/myorg\"}")));
+        wireMockRule.stubFor(
+                get(urlEqualTo("/api/orgs/myorg/hooks")).willReturn(aResponse().withBody("[]")));
+        wireMockRule.stubFor(post(urlEqualTo("/api/orgs/myorg/hooks"))
+                .withRequestBody(matchingJsonPath("$.config.url", equalTo("https://mycorp/hook-proxy/github-webhook/")))
+                .willReturn(aResponse().withBody("{}")));
+        GitHub hub = Connector.connect("http://localhost:" + wireMockRule.port() + "/api/", null);
+        try {
+            GitHubOrgWebHook.register(hub, "myorg");
+        } finally {
+            Connector.release(hub);
+        }
     }
-  }
 }

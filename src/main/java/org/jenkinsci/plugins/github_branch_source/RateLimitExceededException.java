@@ -28,43 +28,43 @@ import java.io.IOException;
 
 public class RateLimitExceededException extends IOException {
 
-  private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 1L;
 
-  private long limit;
+    private long limit;
 
-  private long remaining;
+    private long remaining;
 
-  private long reset;
+    private long reset;
 
-  public RateLimitExceededException() {
-    super();
-  }
+    public RateLimitExceededException() {
+        super();
+    }
 
-  public RateLimitExceededException(String msg, long limit, long remaining, long reset) {
-    super(msg);
-    this.limit = limit;
-    this.remaining = remaining;
-    this.reset = reset;
-  }
+    public RateLimitExceededException(String msg, long limit, long remaining, long reset) {
+        super(msg);
+        this.limit = limit;
+        this.remaining = remaining;
+        this.reset = reset;
+    }
 
-  public RateLimitExceededException(Throwable cause) {
-    initCause(cause);
-  }
+    public RateLimitExceededException(Throwable cause) {
+        initCause(cause);
+    }
 
-  public RateLimitExceededException(String message, Throwable cause) {
-    super(message);
-    initCause(cause);
-  }
+    public RateLimitExceededException(String message, Throwable cause) {
+        super(message);
+        initCause(cause);
+    }
 
-  public long getReset() {
-    return reset;
-  }
+    public long getReset() {
+        return reset;
+    }
 
-  public long getRemaining() {
-    return remaining;
-  }
+    public long getRemaining() {
+        return remaining;
+    }
 
-  public long getLimit() {
-    return limit;
-  }
+    public long getLimit() {
+        return limit;
+    }
 }
