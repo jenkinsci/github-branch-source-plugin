@@ -233,13 +233,12 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
                         // Log that we ignore the branch and why.
                         // End the format with newline to avoid logging this
                         // result blocked together with a later indexed branch.
-                        request
-                            .listener()
-                            .getLogger()
-                            .format(
-                                "Ignoring %s because current strategy excludes branches "
-                                    + "that ARE also filed as a pull request%n",
-                                head.toString());
+                        request.listener()
+                                .getLogger()
+                                .format(
+                                        "Ignoring %s because current strategy excludes branches "
+                                                + "that ARE also filed as a pull request%n",
+                                        head.toString());
                         return true;
                     }
                 }
@@ -265,13 +264,12 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
                 // Log that we ignore the branch and why.
                 // End the format with newline to avoid logging this
                 // result blocked together with a later indexed branch.
-                request
-                    .listener()
-                    .getLogger()
-                    .format(
-                        "Ignoring %s because current strategy excludes branches "
-                            + "that ARE NOT also filed as a pull request%n",
-                        head.toString());
+                request.listener()
+                        .getLogger()
+                        .format(
+                                "Ignoring %s because current strategy excludes branches "
+                                        + "that ARE NOT also filed as a pull request%n",
+                                head.toString());
                 return true;
             }
             return false;
