@@ -4,6 +4,10 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.resetAllScenarios;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
@@ -21,6 +25,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.kohsuke.github.GHRateLimit;
@@ -90,6 +95,11 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
     ApiRateLimitChecker.setNotificationWaitMillis(60);
 
     ApiRateLimitChecker.resetLocalChecker();
+  }
+
+  @After
+  public void tearDown() throws Exception {
+    GitHubConfiguration.get().setEndpoints(new ArrayList<>());
   }
 
   private void setupStubs(List<RateLimit> scenarios) throws Exception {
@@ -187,6 +197,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
     assertEquals(
         3,
         countOfOutputLinesContaining("LocalChecker for rate limit was not set for this thread."));
+    assertEquals(3, countOfOutputLinesContaining("with API URL 'https://api.github.com'"));
     assertEquals(3, countOfOutputLines(m -> m.matches(".*[sS]leeping.*")));
     // github rate_limit endpoint should be contacted for ThrottleOnOver
     // rateLimit()
@@ -197,6 +208,38 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
     assertEquals(1, countOfOutputLinesContaining("ThrottleOnOver will be used instead"));
 
     assertEquals(initialRequestCount + 9, getRequestCount(githubApi));
+  }
+
+  @Test
+  public void NoCheckerConfiguredWithEndpoint() throws Exception {
+    // set up scenarios
+    List<RateLimit> scenarios = new ArrayList<>();
+    long now = System.currentTimeMillis();
+    int limit = 5000;
+    scenarios.add(new RateLimit(limit, 30, new Date(now - 10000)));
+    scenarios.add(new RateLimit(limit, limit, new Date(now - 8000)));
+    scenarios.add(new RateLimit(limit, 20, new Date(now - 6000)));
+    scenarios.add(new RateLimit(limit, limit, new Date(now - 4000)));
+    scenarios.add(new RateLimit(limit, 10, new Date(now - 2000)));
+    scenarios.add(new RateLimit(limit, limit, new Date(now)));
+    setupStubs(scenarios);
+
+    List<Endpoint> endpoints = new ArrayList<>();
+    endpoints.add(new Endpoint("https://git.company.com/api/v3", "Company GitHub"));
+    endpoints.add(new Endpoint("https://git2.company.com/api/v3", "Company GitHub 2"));
+    GitHubConfiguration.get().setEndpoints(endpoints);
+
+    GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.NoThrottle);
+    github.getMeta();
+
+    assertEquals(
+        1,
+        countOfOutputLinesContaining("LocalChecker for rate limit was not set for this thread."));
+    assertEquals(1, countOfOutputLinesContaining("with API URL 'https://git.company.com/api/v3'"));
+    // ThrottleOnOver should not be used for NoThrottle since it is not the public GitHub endpoint
+    assertEquals(0, countOfOutputLinesContaining("ThrottleOnOver will be used instead"));
+
+    assertEquals(initialRequestCount + 2, getRequestCount(githubApi));
   }
 
   /**
@@ -475,6 +518,9 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
     for (int i = 0; i < 6; i++) {
       assertTrue(currentChecker.checkRateLimit(github.getRateLimit().getCore(), i));
     }
+
+    assertEquals(initialRequestCount + 5, handler.getView().size());
+
     // This simulates the waiting until refreshed
     currentChecker.resetExpiration();
     assertFalse(currentChecker.checkRateLimit(github.getRateLimit().getCore(), 9));
@@ -493,7 +539,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
             "Jenkins is attempting to evenly distribute GitHub API requests"));
 
     // The last scenario will trigger back to under budget with a full limit but no new messages
-    assertEquals(initialRequestCount + 6, handler.getView().size());
+    assertEquals(initialRequestCount + 5, handler.getView().size());
   }
 
   /**

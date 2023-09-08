@@ -47,6 +47,7 @@ import hudson.util.ListBoxModel;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -84,6 +85,7 @@ import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
 import net.jcip.annotations.GuardedBy;
 import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
+import org.jenkins.ui.icon.IconFormat;
 import org.jenkins.ui.icon.IconSet;
 import org.jenkins.ui.icon.IconSpec;
 import org.jenkinsci.Symbol;
@@ -96,6 +98,7 @@ import org.kohsuke.github.GHEvent;
 import org.kohsuke.github.GHMyself;
 import org.kohsuke.github.GHOrganization;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHRepositorySearchBuilder;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.HttpException;
@@ -906,6 +909,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
   @NonNull
   @Override
   protected String id() {
+    final GitHubSCMNavigatorContext gitHubSCMNavigatorContext =
+        new GitHubSCMNavigatorContext().withTraits(traits);
+    if (!gitHubSCMNavigatorContext.getTopics().isEmpty()) {
+      return StringUtils.defaultIfBlank(apiUri, GitHubSCMSource.GITHUB_URL)
+          + "::"
+          + repoOwner
+          + "::"
+          + String.join("::", gitHubSCMNavigatorContext.getTopics());
+    }
     return StringUtils.defaultIfBlank(apiUri, GitHubSCMSource.GITHUB_URL) + "::" + repoOwner;
   }
 
@@ -926,7 +938,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     StandardCredentials credentials =
-        Connector.lookupScanCredentials((Item) observer.getContext(), apiUri, credentialsId);
+        Connector.lookupScanCredentials(
+            (Item) observer.getContext(), apiUri, credentialsId, repoOwner);
 
     // Github client and validation
     GitHub github = Connector.connect(apiUri, credentials);
@@ -945,7 +958,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
       }
 
       GitHubSCMNavigatorContext gitHubSCMNavigatorContext =
-          new GitHubSCMNavigatorContext().withTraits(traits);
+          new GitHubSCMNavigatorContext().withTraits(getTraits());
 
       try (GitHubSCMNavigatorRequest request =
           gitHubSCMNavigatorContext.newRequest(this, observer)) {
@@ -974,8 +987,23 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     GitHubConsoleNote.create(
                         System.currentTimeMillis(),
                         String.format("Looking up repositories of myself %s", repoOwner)));
-            for (GHRepository repo : myself.listRepositories(100)) {
-              if (!repo.getOwnerName().equals(repoOwner)) {
+            final Iterable<GHRepository> repositories;
+            if (!gitHubSCMNavigatorContext.getTopics().isEmpty()) {
+              listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                          System.currentTimeMillis(),
+                          String.format(
+                              "Looking up repositories for topics: '%s'",
+                              gitHubSCMNavigatorContext.getTopics())));
+              repositories = searchRepositories(github, gitHubSCMNavigatorContext);
+            } else {
+              repositories = myself.listRepositories(100);
+            }
+
+            for (GHRepository repo : repositories) {
+              if (!repoOwner.equals(repo.getOwnerName())) {
                 continue; // ignore repos in other orgs when using GHMyself
               }
 
@@ -1011,6 +1039,26 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             System.currentTimeMillis(),
                             String.format(
                                 "Skipping repository %s because it is public", repo.getName())));
+              } else if (repo.isPrivate()
+                  && gitHubSCMNavigatorContext.isExcludePrivateRepositories()) {
+                witness.record(repo.getName(), false);
+                listener
+                    .getLogger()
+                    .println(
+                        GitHubConsoleNote.create(
+                            System.currentTimeMillis(),
+                            String.format(
+                                "Skipping repository %s because it is private", repo.getName())));
+              } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories()
+                  && repo.getSource() != null) {
+                witness.record(repo.getName(), false);
+                listener
+                    .getLogger()
+                    .println(
+                        GitHubConsoleNote.create(
+                            System.currentTimeMillis(),
+                            String.format(
+                                "Skipping repository %s because it is a fork", repo.getName())));
               } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                 listener
                     .getLogger()
@@ -1031,7 +1079,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
             return;
           }
         }
-
         GHOrganization org = getGhOrganization(github);
         if (org != null && repoOwner.equalsIgnoreCase(org.getLogin())) {
           listener
@@ -1055,6 +1102,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 org.getTeamBySlug(gitHubSCMNavigatorContext.getTeamSlug())
                     .listRepositories()
                     .withPageSize(100);
+          } else if (!gitHubSCMNavigatorContext.getTopics().isEmpty()) {
+            listener
+                .getLogger()
+                .println(
+                    GitHubConsoleNote.create(
+                        System.currentTimeMillis(),
+                        String.format(
+                            "Looking up repositories for topics: '%s'",
+                            gitHubSCMNavigatorContext.getTopics())));
+            repositories = searchRepositories(github, gitHubSCMNavigatorContext);
           } else {
             repositories = org.listRepositories(100);
           }
@@ -1093,6 +1150,27 @@ public class GitHubSCMNavigator extends SCMNavigator {
                           String.format(
                               "Skipping repository %s because it is public", repo.getName())));
 
+            } else if (repo.isPrivate()
+                && gitHubSCMNavigatorContext.isExcludePrivateRepositories()) {
+              witness.record(repo.getName(), false);
+              listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                          System.currentTimeMillis(),
+                          String.format(
+                              "Skipping repository %s because it is private", repo.getName())));
+
+            } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories()
+                && repo.getSource() != null) {
+              witness.record(repo.getName(), false);
+              listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                          System.currentTimeMillis(),
+                          String.format(
+                              "Skipping repository %s because it is a fork", repo.getName())));
             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
               listener
                   .getLogger()
@@ -1146,6 +1224,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                           String.format(
                               "Skipping repository %s because it is missing one or more of the following topics: '%s'",
                               repo.getName(), gitHubSCMNavigatorContext.getTopics())));
+            } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories()
+                && repo.getSource() != null) {
+              witness.record(repo.getName(), false);
+              listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                          System.currentTimeMillis(),
+                          String.format(
+                              "Skipping repository %s because it is a fork", repo.getName())));
             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
               listener
                   .getLogger()
@@ -1174,6 +1262,17 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
   }
 
+  private Iterable<GHRepository> searchRepositories(
+      final GitHub github, final GitHubSCMNavigatorContext context) {
+    final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
+    context.getTopics().forEach(ghRepositorySearchBuilder::topic);
+    ghRepositorySearchBuilder.org(getRepoOwner());
+    if (!context.isExcludeForkedRepositories()) {
+      ghRepositorySearchBuilder.q("fork:true");
+    }
+    return ghRepositorySearchBuilder.list().withPageSize(100);
+  }
+
   private GHOrganization getGhOrganization(final GitHub github) throws IOException {
     try {
       return github.getOrganization(repoOwner);
@@ -1197,7 +1296,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     StandardCredentials credentials =
-        Connector.lookupScanCredentials((Item) observer.getContext(), apiUri, credentialsId);
+        Connector.lookupScanCredentials(
+            (Item) observer.getContext(), apiUri, credentialsId, repoOwner);
 
     // Github client and validation
     GitHub github;
@@ -1286,7 +1386,27 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             System.currentTimeMillis(),
                             String.format(
                                 "Skipping repository %s because it is public", repo.getName())));
+              } else if (repo.isPrivate()
+                  && gitHubSCMNavigatorContext.isExcludePrivateRepositories()) {
+                witness.record(repo.getName(), false);
+                listener
+                    .getLogger()
+                    .println(
+                        GitHubConsoleNote.create(
+                            System.currentTimeMillis(),
+                            String.format(
+                                "Skipping repository %s because it is private", repo.getName())));
 
+              } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories()
+                  && repo.getSource() != null) {
+                witness.record(repo.getName(), false);
+                listener
+                    .getLogger()
+                    .println(
+                        GitHubConsoleNote.create(
+                            System.currentTimeMillis(),
+                            String.format(
+                                "Skipping repository %s because it is a fork", repo.getName())));
               } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
                 listener
                     .getLogger()
@@ -1358,6 +1478,26 @@ public class GitHubSCMNavigator extends SCMNavigator {
                           System.currentTimeMillis(),
                           String.format(
                               "Skipping repository %s because it is public", repo.getName())));
+            } else if (repo.isPrivate()
+                && gitHubSCMNavigatorContext.isExcludePrivateRepositories()) {
+              witness.record(repo.getName(), false);
+              listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                          System.currentTimeMillis(),
+                          String.format(
+                              "Skipping repository %s because it is private", repo.getName())));
+            } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories()
+                && repo.getSource() != null) {
+              witness.record(repo.getName(), false);
+              listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                          System.currentTimeMillis(),
+                          String.format(
+                              "Skipping repository %s because it is a fork", repo.getName())));
 
             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
               listener
@@ -1426,6 +1566,27 @@ public class GitHubSCMNavigator extends SCMNavigator {
                           System.currentTimeMillis(),
                           String.format(
                               "Skipping repository %s because it is public", repo.getName())));
+            } else if (repo.isPrivate()
+                && gitHubSCMNavigatorContext.isExcludePrivateRepositories()) {
+              witness.record(repo.getName(), false);
+              listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                          System.currentTimeMillis(),
+                          String.format(
+                              "Skipping repository %s because it is private", repo.getName())));
+
+            } else if (gitHubSCMNavigatorContext.isExcludeForkedRepositories()
+                && repo.getSource() != null) {
+              witness.record(repo.getName(), false);
+              listener
+                  .getLogger()
+                  .println(
+                      GitHubConsoleNote.create(
+                          System.currentTimeMillis(),
+                          String.format(
+                              "Skipping repository %s because it is a fork", repo.getName())));
 
             } else if (request.process(repo.getName(), sourceFactory, null, witness)) {
               listener
@@ -1479,15 +1640,21 @@ public class GitHubSCMNavigator extends SCMNavigator {
     // trusted source
     listener.getLogger().printf("Looking up details of %s...%n", getRepoOwner());
     List<Action> result = new ArrayList<>();
+    String apiUri = Util.fixEmptyAndTrim(getApiUri());
     StandardCredentials credentials =
-        Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId);
+        Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId, repoOwner);
     GitHub hub = Connector.connect(getApiUri(), credentials);
+    boolean privateMode = determinePrivateMode(apiUri);
     try {
       Connector.configureLocalRateLimitChecker(listener, hub);
       GHUser u = hub.getUser(getRepoOwner());
       String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
       result.add(new ObjectMetadataAction(Util.fixEmpty(u.getName()), null, objectUrl));
-      result.add(new GitHubOrgMetadataAction(u));
+      if (privateMode) {
+        result.add(new GitHubOrgMetadataAction((String) null));
+      } else {
+        result.add(new GitHubOrgMetadataAction(u));
+      }
       result.add(new GitHubLink("icon-github-logo", u.getHtmlUrl()));
       if (objectUrl == null) {
         listener.getLogger().println("Organization URL: unspecified");
@@ -1505,6 +1672,23 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
   }
 
+  private static boolean determinePrivateMode(String apiUri) {
+    if (apiUri == null || apiUri.equals(GitHubServerConfig.GITHUB_URL)) {
+      return false;
+    }
+    try {
+      GitHub.connectToEnterpriseAnonymously(apiUri).checkApiUrlValidity();
+    } catch (MalformedURLException e) {
+      // URL is bogus so there is never going to be an avatar - or anything else come to think of it
+      return true;
+    } catch (IOException e) {
+      if (e.getMessage().contains("private mode enabled")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   /** {@inheritDoc} */
   @Override
   public void afterSave(@NonNull SCMNavigatorOwner owner) {
@@ -1512,7 +1696,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     try {
       // FIXME MINOR HACK ALERT
       StandardCredentials credentials =
-          Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId);
+          Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId, repoOwner);
       if (credentials instanceof GitHubAppCredentials) {
         try {
           List<GHEvent> handledEvents =
@@ -1625,7 +1809,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /** {@inheritDoc} */
     @Override
     public String getIconFilePathPattern() {
-      return "plugin/github-branch-source/images/:size/github-scmnavigator.png";
+      return "plugin/github-branch-source/images/github-scmnavigator.svg";
     }
 
     /** {@inheritDoc} */
@@ -1668,8 +1852,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
     public FormValidation doCheckCredentialsId(
         @CheckForNull @AncestorInPath Item context,
         @QueryParameter String apiUri,
-        @QueryParameter String credentialsId) {
-      return Connector.checkScanCredentials(context, apiUri, credentialsId);
+        @QueryParameter String credentialsId,
+        @QueryParameter String repoOwner) {
+      return Connector.checkScanCredentials(context, apiUri, credentialsId, repoOwner);
     }
 
     /**
@@ -1788,86 +1973,98 @@ public class GitHubSCMNavigator extends SCMNavigator {
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-scm-navigator icon-sm",
-              "plugin/github-branch-source/images/16x16/github-scmnavigator.png",
+              "plugin/github-branch-source/images/svgs/github-scmnavigator.svg",
               Icon.ICON_SMALL_STYLE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-scm-navigator icon-md",
-              "plugin/github-branch-source/images/24x24/github-scmnavigator.png",
+              "plugin/github-branch-source/images/svgs/github-scmnavigator.svg",
               Icon.ICON_MEDIUM_STYLE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-scm-navigator icon-lg",
-              "plugin/github-branch-source/images/32x32/github-scmnavigator.png",
+              "plugin/github-branch-source/images/svgs/github-scmnavigator.svg",
               Icon.ICON_LARGE_STYLE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-scm-navigator icon-xlg",
-              "plugin/github-branch-source/images/48x48/github-scmnavigator.png",
+              "plugin/github-branch-source/images/svgs/github-scmnavigator.svg",
               Icon.ICON_XLARGE_STYLE));
 
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-logo icon-sm",
-              "plugin/github-branch-source/images/16x16/github-logo.png",
-              Icon.ICON_SMALL_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
+              Icon.ICON_SMALL_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-logo icon-md",
-              "plugin/github-branch-source/images/24x24/github-logo.png",
-              Icon.ICON_MEDIUM_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
+              Icon.ICON_MEDIUM_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-logo icon-lg",
-              "plugin/github-branch-source/images/32x32/github-logo.png",
-              Icon.ICON_LARGE_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
+              Icon.ICON_LARGE_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-logo icon-xlg",
-              "plugin/github-branch-source/images/48x48/github-logo.png",
-              Icon.ICON_XLARGE_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
+              Icon.ICON_XLARGE_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
 
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-repo icon-sm",
-              "plugin/github-branch-source/images/16x16/github-repo.png",
-              Icon.ICON_SMALL_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
+              Icon.ICON_SMALL_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-repo icon-md",
-              "plugin/github-branch-source/images/24x24/github-repo.png",
-              Icon.ICON_MEDIUM_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
+              Icon.ICON_MEDIUM_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-repo icon-lg",
-              "plugin/github-branch-source/images/32x32/github-repo.png",
-              Icon.ICON_LARGE_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
+              Icon.ICON_LARGE_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-repo icon-xlg",
-              "plugin/github-branch-source/images/48x48/github-repo.png",
-              Icon.ICON_XLARGE_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
+              Icon.ICON_XLARGE_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
 
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-branch icon-sm",
-              "plugin/github-branch-source/images/16x16/github-branch.png",
-              Icon.ICON_SMALL_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
+              Icon.ICON_SMALL_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-branch icon-md",
-              "plugin/github-branch-source/images/24x24/github-branch.png",
-              Icon.ICON_MEDIUM_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
+              Icon.ICON_MEDIUM_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-branch icon-lg",
-              "plugin/github-branch-source/images/32x32/github-branch.png",
-              Icon.ICON_LARGE_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
+              Icon.ICON_LARGE_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
       IconSet.icons.addIcon(
           new Icon(
               "icon-github-branch icon-xlg",
-              "plugin/github-branch-source/images/48x48/github-branch.png",
-              Icon.ICON_XLARGE_STYLE));
+              "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
+              Icon.ICON_XLARGE_STYLE,
+              IconFormat.EXTERNAL_SVG_SPRITE));
     }
   }
 

@@ -3,7 +3,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import java.util.ArrayList;
-import javax.annotation.Nonnull;
+import java.util.List;
 import jenkins.scm.api.trait.SCMNavigatorContext;
 import jenkins.scm.api.trait.SCMNavigatorTrait;
 import jenkins.scm.api.trait.SCMNavigatorTraitDescriptor;
@@ -15,7 +15,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public class TopicsTrait extends SCMNavigatorTrait {
 
   /** The topics */
-  @NonNull private final ArrayList<String> topics;
+  @NonNull private transient List<String> topics;
 
   private final String topicList;
 
@@ -27,7 +27,7 @@ public class TopicsTrait extends SCMNavigatorTrait {
   @DataBoundConstructor
   public TopicsTrait(@NonNull String topicList) {
     this.topicList = topicList;
-    this.topics = new ArrayList<String>();
+    this.topics = new ArrayList<>();
 
     for (String topic : topicList.split(",")) {
       this.topics.add(topic.trim());
@@ -40,7 +40,7 @@ public class TopicsTrait extends SCMNavigatorTrait {
    * @return the topics
    */
   @NonNull
-  public ArrayList<String> getTopics() {
+  public List<String> getTopics() {
     return topics;
   }
 
@@ -55,6 +55,18 @@ public class TopicsTrait extends SCMNavigatorTrait {
     ((GitHubSCMNavigatorContext) context).setTopics(topics);
   }
 
+  private Object readResolve() {
+    if (this.topicList != null) {
+      List<String> tmpTopics = new ArrayList<>();
+      for (String topic : topicList.split(",")) {
+        tmpTopics.add(topic.trim());
+      }
+      topics = tmpTopics;
+    }
+
+    return this;
+  }
+
   /** Topics descriptor. */
   @Symbol("gitHubTopicsFilter")
   @Extension
@@ -66,7 +78,7 @@ public class TopicsTrait extends SCMNavigatorTrait {
       return GitHubSCMNavigatorContext.class;
     }
 
-    @Nonnull
+    @NonNull
     @Override
     public String getDisplayName() {
       return Messages.TopicsTrait_displayName();

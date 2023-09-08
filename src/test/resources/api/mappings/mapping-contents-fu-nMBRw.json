@@ -6,13 +6,13 @@
     "method" : "GET"
   },
   "response" : {
-    "status" : 301,
+    "status" : 200,
     "bodyFileName" : "body-contents-fu-nMBRw.json",
     "headers" : {
       "Date" : "Wed, 24 Apr 2019 07:12:07 GMT",
       "Content-Type" : "application/json; charset=utf-8",
       "Server" : "GitHub.com",
-      "Status" : "301 Moved Permanently",
+      "Status" : "200 OK",
       "X-RateLimit-Limit" : "60",
       "X-RateLimit-Remaining" : "59",
       "X-RateLimit-Reset" : "1556093527",

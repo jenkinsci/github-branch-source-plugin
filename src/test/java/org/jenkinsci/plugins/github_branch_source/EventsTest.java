@@ -25,6 +25,8 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
@@ -34,6 +36,7 @@ import jenkins.scm.api.SCMEvents;
 import jenkins.scm.api.SCMHeadEvent;
 import jenkins.scm.api.SCMSourceEvent;
 import org.apache.commons.io.IOUtils;
+import org.awaitility.Awaitility;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -55,7 +58,7 @@ public class EventsTest {
 
   @BeforeClass
   public static void setupDelay() {
-    GitHubSCMSource.setEventDelaySeconds(1);
+    GitHubSCMSource.setEventDelaySeconds(0); // fire immediately without delay
   }
 
   @Before
@@ -134,6 +137,25 @@ public class EventsTest {
   }
 
   @Test
+  public void given_ghPullRequestEventConvertedToDraft_then_updatedHeadEventFired()
+      throws Exception {
+    PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
+
+    firedEventType = SCMEvent.Type.UPDATED;
+    ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventUpdatedConvertedToDraft.json");
+    waitAndAssertReceived(true);
+  }
+
+  @Test
+  public void given_ghPullRequestEventReadyForReview_then_updatedHeadEventFired() throws Exception {
+    PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
+
+    firedEventType = SCMEvent.Type.UPDATED;
+    ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventUpdatedReadyForReview.json");
+    waitAndAssertReceived(true);
+  }
+
+  @Test
   public void given_ghRepositoryEventCreatedFromFork_then_createdSourceEventFired()
       throws Exception {
     GitHubRepositoryEventSubscriber subscriber = new GitHubRepositoryEventSubscriber();
@@ -188,7 +210,11 @@ public class EventsTest {
   private void waitAndAssertReceived(boolean received) throws InterruptedException {
     long watermark = SCMEvents.getWatermark();
     // event will be fired by subscriber at some point
-    SCMEvents.awaitOne(watermark, 1200, TimeUnit.MILLISECONDS);
+    SCMEvents.awaitOne(watermark, received ? 20 : 200, TimeUnit.MILLISECONDS);
+
+    if (received) {
+      TestSCMEventListener.awaitUntilReceived();
+    }
 
     assertEquals(
         "Event should have " + ((!received) ? "not " : "") + "been received",
@@ -222,6 +248,13 @@ public class EventsTest {
 
     public static void setReceived(boolean received) {
       eventReceived = received;
+    }
+
+    public static void awaitUntilReceived() {
+      Awaitility.await()
+          .pollInterval(10, MILLISECONDS)
+          .atMost(1, MINUTES)
+          .until(() -> eventReceived);
     }
   }
 }

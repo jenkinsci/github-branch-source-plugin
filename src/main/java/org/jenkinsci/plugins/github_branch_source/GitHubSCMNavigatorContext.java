@@ -42,13 +42,19 @@ public class GitHubSCMNavigatorContext
   private String teamSlug = "";
 
   /** The topic which the repositories must have. */
-  private ArrayList<String> topics = new ArrayList<String>();
+  private List<String> topics = new ArrayList<>();
 
   /** If true, archived repositories will be ignored. */
   private boolean excludeArchivedRepositories;
 
   /** If true, public repositories will be ignored. */
   private boolean excludePublicRepositories;
+
+  /** If true, private repositories will be ignored. */
+  private boolean excludePrivateRepositories;
+
+  /** If true, forked repositories will be ignored. */
+  private boolean excludeForkedRepositories;
 
   /** {@inheritDoc} */
   @NonNull
@@ -73,7 +79,7 @@ public class GitHubSCMNavigatorContext
   }
 
   /** Sets the topics which the repositories must have. */
-  public void setTopics(ArrayList<String> topics) {
+  public void setTopics(List<String> topics) {
     this.topics = topics;
   }
 
@@ -96,6 +102,16 @@ public class GitHubSCMNavigatorContext
     return excludePublicRepositories;
   }
 
+  /** @return True if private repositories should be ignored, false if they should be included. */
+  public boolean isExcludePrivateRepositories() {
+    return excludePrivateRepositories;
+  }
+
+  /** @return True if forked repositories should be ignored, false if they should be included. */
+  public boolean isExcludeForkedRepositories() {
+    return excludeForkedRepositories;
+  }
+
   /** @param excludeArchivedRepositories Set true to exclude archived repositories */
   public void setExcludeArchivedRepositories(boolean excludeArchivedRepositories) {
     this.excludeArchivedRepositories = excludeArchivedRepositories;
@@ -104,5 +120,15 @@ public class GitHubSCMNavigatorContext
   /** @param excludePublicRepositories Set true to exclude public repositories */
   public void setExcludePublicRepositories(boolean excludePublicRepositories) {
     this.excludePublicRepositories = excludePublicRepositories;
+  }
+
+  /** @param excludePrivateRepositories Set true to exclude private repositories */
+  public void setExcludePrivateRepositories(boolean excludePrivateRepositories) {
+    this.excludePrivateRepositories = excludePrivateRepositories;
+  }
+
+  /** @param excludeForkedRepositories Set true to exclude archived repositories */
+  public void setExcludeForkedRepositories(boolean excludeForkedRepositories) {
+    this.excludeForkedRepositories = excludeForkedRepositories;
   }
 }

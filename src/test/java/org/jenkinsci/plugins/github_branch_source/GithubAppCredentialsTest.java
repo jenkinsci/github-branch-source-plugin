@@ -1,8 +1,10 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.jenkinsci.plugins.github_branch_source.Connector.createGitHubBuilder;
+import static org.junit.Assert.assertThrows;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsScope;
@@ -12,6 +14,7 @@ import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import hudson.logging.LogRecorder;
 import hudson.logging.LogRecorderManager;
+import hudson.model.Label;
 import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Result;
 import hudson.model.Slave;
@@ -22,7 +25,7 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Formatter;
@@ -36,9 +39,11 @@ import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.BuildWatcher;
+import org.jvnet.hudson.test.LoggerRule;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.authorization.AuthorizationProvider;
 
@@ -46,8 +51,9 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
   private static Slave agent;
   private static final String myAppCredentialsId = "myAppCredentialsId";
+  private static final String myAppCredentialsNoOwnerId = "myAppCredentialsNoOwnerId";
   private static CredentialsStore store;
-  private static GitHubAppCredentials appCredentials;
+  private static GitHubAppCredentials appCredentials, appCredentialsNoOwner;
   private static LogRecorder logRecorder;
 
   // https://stackoverflow.com/a/22176759/4951015
@@ -87,6 +93,14 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
   @Rule public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
 
+  @Rule public BuildWatcher buildWatcher = new BuildWatcher();
+
+  // here to aid debugging - we can not use LoggerRule for the test assertion as it only captures
+  // logs from the controller
+  @ClassRule
+  public static LoggerRule loggerRule =
+      new LoggerRule().record(GitHubAppCredentials.class, Level.FINE);
+
   @BeforeClass
   public static void setUpJenkins() throws Exception {
     // Add credential (Must have valid private key for Jwt to work, but App doesn't have to actually
@@ -99,21 +113,30 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             "sample",
             "54321",
             Secret.fromString(PKCS8_PRIVATE_KEY));
-    appCredentials.setOwner("cloudbeers");
+    appCredentials.setOwner("cloudBeers");
     store.addCredentials(Domain.global(), appCredentials);
+    appCredentialsNoOwner =
+        new GitHubAppCredentials(
+            CredentialsScope.GLOBAL,
+            myAppCredentialsNoOwnerId,
+            "sample",
+            "54321",
+            Secret.fromString(PKCS8_PRIVATE_KEY));
+    store.addCredentials(Domain.global(), appCredentialsNoOwner);
 
     // Add agent
-    agent = r.createOnlineSlave();
-    agent.setLabelString("my-agent");
+    agent = r.createOnlineSlave(Label.get("my-agent"));
 
     // Would use LoggerRule, but need to get agent logs as well
     LogRecorderManager mgr = r.jenkins.getLog();
     logRecorder = new LogRecorder(GitHubAppCredentials.class.getName());
-    mgr.logRecorders.put(GitHubAppCredentials.class.getName(), logRecorder);
+    mgr.getRecorders().add(logRecorder);
     LogRecorder.Target t = new LogRecorder.Target(GitHubAppCredentials.class.getName(), Level.FINE);
-    logRecorder.targets.add(t);
+    logRecorder.getLoggers().add(t);
     logRecorder.save();
     t.enable();
+    // but even though we can not capture the logs we want to echo them
+    r.showAgentLogs(agent, loggerRule);
   }
 
   @Before
@@ -299,7 +322,8 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
   @Test
   public void testProviderRefresh() throws Exception {
-    long notStaleSeconds = GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
+    final long notStaleSeconds =
+        GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
     try {
       appCredentials.setApiUri(githubApi.baseUrl());
 
@@ -378,7 +402,8 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
   @Test
   public void testAgentRefresh() throws Exception {
-    long notStaleSeconds = GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
+    final long notStaleSeconds =
+        GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
     try {
       appCredentials.setApiUri(githubApi.baseUrl());
 
@@ -428,14 +453,13 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
       // Create a pipeline job that points the above repo
       WorkflowJob job = r.createProject(WorkflowJob.class, "test-creds");
-      job.setDefinition(new CpsFlowDefinition(jenkinsfile, false));
+      job.setDefinition(new CpsFlowDefinition(jenkinsfile, true));
       job.addProperty(
           new ParametersDefinitionProperty(
               new StringParameterDefinition("REPO", sampleRepo.toString())));
+
       WorkflowRun run = job.scheduleBuild2(0).waitForStart();
       r.waitUntilNoActivity();
-
-      System.out.println(JenkinsRule.getLog(run));
 
       List<String> credentialsLog = getOutputLines();
 
@@ -445,42 +469,51 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
           "Creds should cache on master, pass to agent, and refresh agent from master once",
           credentialsLog,
           contains(
-              // (agent log added out of order, see below)
-              "Generating App Installation Token for app ID 54321 on agent", // 1
-              "Failed to generate new GitHub App Installation Token for app ID 54321 on agent: cached token is stale but has not expired", // 2
-              "Generating App Installation Token for app ID 54321 on agent", // 3
               // node ('my-agent') {
-              // checkout scm
+              //   echo 'First Checkout on agent should use cached token passed via remoting'
+              //   git url: REPO, credentialsId: 'myAppCredentialsId'
               "Generating App Installation Token for app ID 54321",
-              // checkout scm
+              //   echo 'Multiple checkouts in quick succession should use cached token'
+              //   git ....
               // (No token generation)
-              // sleep
-              // checkout scm
+              //   sleep
+              //   echo 'Checkout after token is stale refreshes via remoting - fallback due to
+              // unexpired token'
+              //   git ....
               "Generating App Installation Token for app ID 54321",
               // (error forced by wiremock)
               "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired",
               // (error forced by wiremock - failed refresh on the agent)
-              // "Generating App Installation Token for app ID 54321 on agent", // 1
+              "Generating App Installation Token for app ID 54321 on agent",
               "Generating App Installation Token for app ID 54321 for agent",
-              // (agent log added out of order) "Keeping cached GitHub App Installation Token for
-              // app ID 54321 on agent: token is stale but has not expired", // 2
-              // checkout scm - refresh on controller
+              "Failed to generate new GitHub App Installation Token for app ID 54321 on agent: cached token is stale but has not expired",
+              //    echo 'Checkout after error will refresh again on controller - new token expired
+              // but not stale'
+              //    git ....
               "Generating App Installation Token for app ID 54321",
-              // sleep
-              // checkout scm
+              //    sleep
+              //    echo 'Checkout after token is stale refreshes via remoting - error on controller
+              // is not catastrophic'
+              //    git ....
               "Generating App Installation Token for app ID 54321",
               // (error forced by wiremock)
               "Failed to update stale GitHub App installation token for app ID 54321 before sending to agent",
-              // "Generating App Installation Token for app ID 54321 on agent", // 3
+              "Generating App Installation Token for app ID 54321 on agent",
               "Generating App Installation Token for app ID 54321 for agent",
-              // checkout scm - refresh on controller
+              //    echo 'Checkout after error will refresh again on controller - new token expired
+              // but not stale'
+              //    git ....
               "Generating App Installation Token for app ID 54321"
-              // checkout scm
+              //    echo 'Multiple checkouts in quick succession should use cached token'
+              //     git ....
               // (No token generation)
               ));
 
       // Check success after output.  Output will be more informative if something goes wrong.
-      assertThat(run.getResult(), equalTo(Result.SUCCESS));
+      assertThat(
+          "Run should be success, log: " + run.getLog() + System.lineSeparator() + " end of log",
+          run.getResult(),
+          equalTo(Result.SUCCESS));
 
       // Getting the token for via AuthorizationProvider on controller should not check rate_limit
       // Getting the token for agents via remoting to the controller should not check rate_limit
@@ -518,6 +551,15 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
           RequestPatternBuilder.newRequestPattern(
               RequestMethod.GET, urlPathEqualTo("/rate_limit")));
 
+      // Test credentials when owner is not set
+      appCredentialsNoOwner.setApiUri(githubApi.baseUrl());
+      IllegalArgumentException expected =
+          assertThrows(IllegalArgumentException.class, () -> appCredentialsNoOwner.getPassword());
+      assertThat(
+          expected.getMessage(),
+          is(
+              "Found multiple installations for GitHub app ID 54321 but none match credential owner \"\". "
+                  + "Set the right owner in the credential advanced options"));
     } finally {
       GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
       logRecorder.doClear();
@@ -531,8 +573,13 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
     if (agentLogs != null) {
       result.addAll(agentLogs);
     }
-    Collections.reverse(result);
-    return result.stream().map(formatter::formatMessage).collect(Collectors.toList());
+
+    // sort the logs into chronological order
+    // then just format the message.
+    return result.stream()
+        .sorted(Comparator.comparingLong(LogRecord::getMillis))
+        .map(formatter::formatMessage)
+        .collect(Collectors.toList());
   }
 
   static String printDate(Date dt) {

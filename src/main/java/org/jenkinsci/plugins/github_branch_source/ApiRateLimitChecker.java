@@ -1,20 +1,24 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.apache.commons.lang.StringUtils;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.RateLimitChecker;
 
+@SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
 public enum ApiRateLimitChecker {
 
   /** Attempt to evenly distribute GitHub API requests. */
@@ -171,6 +175,33 @@ public enum ApiRateLimitChecker {
     localRateLimitChecker.set(checker);
   }
 
+  /**
+   * Verify a GitHub connection
+   *
+   * <p>WARNING: this call is not protected by rate limit checking. It is possible to exceed the
+   * rate limit by calling this method.
+   *
+   * <p>This method should only be called from {@link Connector}. This works without any locking
+   * because the checker is local to this thread.
+   *
+   * @param gitHub the GitHub connection to check for validity
+   */
+  static void verifyConnection(GitHub gitHub) throws IOException {
+    Objects.requireNonNull(gitHub);
+    LocalChecker checker = getLocalChecker();
+    try {
+      TaskListener listener =
+          checker != null ? checker.listener : new LogTaskListener(LOGGER, Level.INFO);
+
+      // Pass empty apiUrl to force no rate limit checking
+      localRateLimitChecker.set(NoThrottle.getChecker(listener, ""));
+
+      gitHub.checkApiUrlValidity();
+    } finally {
+      localRateLimitChecker.set(checker);
+    }
+  }
+
   /** For test purposes only. */
   static LocalChecker getLocalChecker() {
     return localRateLimitChecker.get();
@@ -202,13 +233,22 @@ public enum ApiRateLimitChecker {
         throws InterruptedException {
       LocalChecker checker = getLocalChecker();
       if (checker == null) {
-        // If a checker was not configured for this thread, try our best and continue.
-        configureThreadLocalChecker(
-            new LogTaskListener(LOGGER, Level.INFO), GitHubServerConfig.GITHUB_URL);
+        // If a checker was not configured for this thread, try our best by attempting to get the
+        // URL from the first configured GitHub endpoint, else default to the public endpoint.
+        // NOTE: Defaulting to the public GitHub endpoint is insufficient for those using GitHub
+        // enterprise as it forces rate limit checking in those cases.
+        String apiUrl = GitHubServerConfig.GITHUB_URL;
+        List<Endpoint> endpoints = GitHubConfiguration.get().getEndpoints();
+        if (endpoints.size() > 0 && !StringUtils.isBlank(endpoints.get(0).getApiUri())) {
+          apiUrl = endpoints.get(0).getApiUri();
+        }
+        configureThreadLocalChecker(new LogTaskListener(LOGGER, Level.INFO), apiUrl);
         checker = getLocalChecker();
         checker.writeLog(
             "LocalChecker for rate limit was not set for this thread. "
-                + "Configured using system settings.");
+                + "Configured using system settings with API URL '"
+                + apiUrl
+                + "'.");
       }
       return checker.checkRateLimit(rateLimitRecord, count);
     }

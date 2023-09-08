@@ -115,7 +115,7 @@ credentials:
 
 == Configuring the github organization folder
 
-See the link:https://docs.cloudbees.com/docs/admin-resources/latest/plugins/github-branch-source[main documentation]
+See the link:https://docs.cloudbees.com/docs/cloudbees-ci/latest/cloud-admin-guide/github-branch-source-plugin[main documentation]
 for how to create a GitHub folder.
 
 - Load the folders configuration page
