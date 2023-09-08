@@ -12,33 +12,33 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /** A {@link Selection} trait that will restrict the discovery of repositories that are private. */
 public class ExcludePrivateRepositoriesTrait extends SCMNavigatorTrait {
 
-  /** Constructor for stapler. */
-  @DataBoundConstructor
-  public ExcludePrivateRepositoriesTrait() {}
+    /** Constructor for stapler. */
+    @DataBoundConstructor
+    public ExcludePrivateRepositoriesTrait() {}
 
-  /** {@inheritDoc} */
-  @Override
-  protected void decorateContext(SCMNavigatorContext<?, ?> context) {
-    super.decorateContext(context);
-    GitHubSCMNavigatorContext ctx = (GitHubSCMNavigatorContext) context;
-    ctx.setExcludePrivateRepositories(true);
-  }
-
-  /** Exclude private repositories filter */
-  @Symbol("gitHubExcludePrivateRepositories")
-  @Extension
-  @Selection
-  public static class DescriptorImpl extends SCMNavigatorTraitDescriptor {
-
+    /** {@inheritDoc} */
     @Override
-    public Class<? extends SCMNavigatorContext> getContextClass() {
-      return GitHubSCMNavigatorContext.class;
+    protected void decorateContext(SCMNavigatorContext<?, ?> context) {
+        super.decorateContext(context);
+        GitHubSCMNavigatorContext ctx = (GitHubSCMNavigatorContext) context;
+        ctx.setExcludePrivateRepositories(true);
     }
 
-    @NonNull
-    @Override
-    public String getDisplayName() {
-      return Messages.ExcludePrivateRepositoriesTrait_displayName();
+    /** Exclude private repositories filter */
+    @Symbol("gitHubExcludePrivateRepositories")
+    @Extension
+    @Selection
+    public static class DescriptorImpl extends SCMNavigatorTraitDescriptor {
+
+        @Override
+        public Class<? extends SCMNavigatorContext> getContextClass() {
+            return GitHubSCMNavigatorContext.class;
+        }
+
+        @NonNull
+        @Override
+        public String getDisplayName() {
+            return Messages.ExcludePrivateRepositoriesTrait_displayName();
+        }
     }
-  }
 }

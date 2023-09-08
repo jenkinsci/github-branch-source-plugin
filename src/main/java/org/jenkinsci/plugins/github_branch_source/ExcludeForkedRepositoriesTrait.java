@@ -14,33 +14,33 @@ import org.kohsuke.stapler.DataBoundConstructor;
  */
 public class ExcludeForkedRepositoriesTrait extends SCMNavigatorTrait {
 
-  /** Constructor for stapler. */
-  @DataBoundConstructor
-  public ExcludeForkedRepositoriesTrait() {}
+    /** Constructor for stapler. */
+    @DataBoundConstructor
+    public ExcludeForkedRepositoriesTrait() {}
 
-  /** {@inheritDoc} */
-  @Override
-  protected void decorateContext(SCMNavigatorContext<?, ?> context) {
-    super.decorateContext(context);
-    GitHubSCMNavigatorContext ctx = (GitHubSCMNavigatorContext) context;
-    ctx.setExcludeForkedRepositories(true);
-  }
-
-  /** Exclude forked repositories filter */
-  @Symbol("gitHubExcludeForkedRepositories")
-  @Extension
-  @Selection
-  public static class DescriptorImpl extends SCMNavigatorTraitDescriptor {
-
+    /** {@inheritDoc} */
     @Override
-    public Class<? extends SCMNavigatorContext> getContextClass() {
-      return GitHubSCMNavigatorContext.class;
+    protected void decorateContext(SCMNavigatorContext<?, ?> context) {
+        super.decorateContext(context);
+        GitHubSCMNavigatorContext ctx = (GitHubSCMNavigatorContext) context;
+        ctx.setExcludeForkedRepositories(true);
     }
 
-    @NonNull
-    @Override
-    public String getDisplayName() {
-      return Messages.ExcludeForkedRepositoriesTrait_displayName();
+    /** Exclude forked repositories filter */
+    @Symbol("gitHubExcludeForkedRepositories")
+    @Extension
+    @Selection
+    public static class DescriptorImpl extends SCMNavigatorTraitDescriptor {
+
+        @Override
+        public Class<? extends SCMNavigatorContext> getContextClass() {
+            return GitHubSCMNavigatorContext.class;
+        }
+
+        @NonNull
+        @Override
+        public String getDisplayName() {
+            return Messages.ExcludeForkedRepositoriesTrait_displayName();
+        }
     }
-  }
 }
