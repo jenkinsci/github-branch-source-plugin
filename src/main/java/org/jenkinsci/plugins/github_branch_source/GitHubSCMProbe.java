@@ -47,153 +47,148 @@ import org.kohsuke.github.GitHub;
 
 @SuppressFBWarnings("SE_TRANSIENT_FIELD_NOT_RESTORED")
 class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
-  private static final long serialVersionUID = 1L;
-  private static final Logger LOG = Logger.getLogger(GitHubSCMProbe.class.getName());
-  private final SCMRevision revision;
-  private final transient GitHub gitHub;
-  private final transient GHRepository repo;
-  private final String ref;
-  private final String name;
-  private transient boolean open = true;
+    private static final long serialVersionUID = 1L;
+    private static final Logger LOG = Logger.getLogger(GitHubSCMProbe.class.getName());
+    private final SCMRevision revision;
+    private final transient GitHub gitHub;
+    private final transient GHRepository repo;
+    private final String ref;
+    private final String name;
+    private transient boolean open = true;
 
-  public GitHubSCMProbe(
-      String apiUri,
-      StandardCredentials credentials,
-      GHRepository repo,
-      SCMHead head,
-      SCMRevision revision)
-      throws IOException {
-    this.gitHub = Connector.connect(apiUri, credentials);
-    this.revision = revision;
-    this.repo = repo;
-    this.name = head.getName();
-    if (head instanceof PullRequestSCMHead) {
-      PullRequestSCMHead pr = (PullRequestSCMHead) head;
-      this.ref = "pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
-    } else if (head instanceof GitHubTagSCMHead) {
-      this.ref = "tags/" + head.getName();
-    } else {
-      this.ref = "heads/" + head.getName();
-    }
-  }
-
-  @Override
-  public void close() throws IOException {
-    if (gitHub == null || repo == null) {
-      return;
-    }
-    synchronized (this) {
-      if (!open) {
-        return;
-      }
-      open = false;
-    }
-    Connector.release(gitHub);
-  }
-
-  private synchronized void checkOpen() throws IOException {
-    if (!open) {
-      throw new IOException("Closed");
-    }
-    if (repo == null) {
-      throw new IOException("No connection available");
-    }
-  }
-
-  @Override
-  public String name() {
-    return name;
-  }
-
-  @Override
-  public long lastModified() {
-    if (repo == null) {
-      return 0L;
-    }
-    synchronized (this) {
-      if (!open) {
-        return 0L;
-      }
-    }
-    if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl) {
-      try {
-        GHCommit commit =
-            repo.getCommit(((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash());
-        return commit.getCommitDate().getTime();
-      } catch (IOException e) {
-        // ignore
-      }
-    } else if (revision == null) {
-      try {
-        GHRef ref = repo.getRef(this.ref);
-        GHCommit commit = repo.getCommit(ref.getObject().getSha());
-        return commit.getCommitDate().getTime();
-      } catch (IOException e) {
-        // ignore
-      }
-    }
-    return 0;
-  }
-
-  @NonNull
-  @Override
-  public SCMProbeStat stat(@NonNull String path) throws IOException {
-    checkOpen();
-    try {
-      int index = path.lastIndexOf('/') + 1;
-      List<GHContent> directoryContent =
-          repo.getDirectoryContent(path.substring(0, index), Constants.R_REFS + ref);
-      for (GHContent content : directoryContent) {
-        if (content.getPath().equals(path)) {
-          if (content.isFile()) {
-            return SCMProbeStat.fromType(SCMFile.Type.REGULAR_FILE);
-          } else if (content.isDirectory()) {
-            return SCMProbeStat.fromType(SCMFile.Type.DIRECTORY);
-          } else if ("symlink".equals(content.getType())) {
-            return SCMProbeStat.fromType(SCMFile.Type.LINK);
-          } else {
-            return SCMProbeStat.fromType(SCMFile.Type.OTHER);
-          }
+    public GitHubSCMProbe(
+            String apiUri, StandardCredentials credentials, GHRepository repo, SCMHead head, SCMRevision revision)
+            throws IOException {
+        this.gitHub = Connector.connect(apiUri, credentials);
+        this.revision = revision;
+        this.repo = repo;
+        this.name = head.getName();
+        if (head instanceof PullRequestSCMHead) {
+            PullRequestSCMHead pr = (PullRequestSCMHead) head;
+            this.ref = "pull/" + pr.getNumber() + (pr.isMerge() ? "/merge" : "/head");
+        } else if (head instanceof GitHubTagSCMHead) {
+            this.ref = "tags/" + head.getName();
+        } else {
+            this.ref = "heads/" + head.getName();
         }
-      }
-      for (GHContent content : directoryContent) {
-        if (content.getPath().equalsIgnoreCase(path)) {
-          return SCMProbeStat.fromAlternativePath(content.getPath());
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (gitHub == null || repo == null) {
+            return;
         }
-      }
-    } catch (FileNotFoundException fnf) {
-      // means that does not exist and this is handled below this try/catch block.
+        synchronized (this) {
+            if (!open) {
+                return;
+            }
+            open = false;
+        }
+        Connector.release(gitHub);
     }
-    return SCMProbeStat.fromType(SCMFile.Type.NONEXISTENT);
-  }
 
-  @Override
-  public SCMFile getRoot() {
-    if (repo == null) {
-      return null;
+    private synchronized void checkOpen() throws IOException {
+        if (!open) {
+            throw new IOException("Closed");
+        }
+        if (repo == null) {
+            throw new IOException("No connection available");
+        }
     }
-    synchronized (this) {
-      if (!open) {
-        return null;
-      }
-    }
-    String ref;
-    if (revision != null) {
-      if (revision.getHead() instanceof PullRequestSCMHead) {
-        ref = this.ref;
-      } else if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl) {
-        ref = ((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash();
-      } else {
-        ref = this.ref;
-      }
-    } else {
-      ref = this.ref;
-    }
-    return new GitHubSCMFile(this, repo, ref);
-  }
 
-  @Override
-  public synchronized boolean isOpen() {
-    return open;
-  }
+    @Override
+    public String name() {
+        return name;
+    }
+
+    @Override
+    public long lastModified() {
+        if (repo == null) {
+            return 0L;
+        }
+        synchronized (this) {
+            if (!open) {
+                return 0L;
+            }
+        }
+        if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl) {
+            try {
+                GHCommit commit = repo.getCommit(((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash());
+                return commit.getCommitDate().getTime();
+            } catch (IOException e) {
+                // ignore
+            }
+        } else if (revision == null) {
+            try {
+                GHRef ref = repo.getRef(this.ref);
+                GHCommit commit = repo.getCommit(ref.getObject().getSha());
+                return commit.getCommitDate().getTime();
+            } catch (IOException e) {
+                // ignore
+            }
+        }
+        return 0;
+    }
+
+    @NonNull
+    @Override
+    public SCMProbeStat stat(@NonNull String path) throws IOException {
+        checkOpen();
+        try {
+            int index = path.lastIndexOf('/') + 1;
+            List<GHContent> directoryContent =
+                    repo.getDirectoryContent(path.substring(0, index), Constants.R_REFS + ref);
+            for (GHContent content : directoryContent) {
+                if (content.getPath().equals(path)) {
+                    if (content.isFile()) {
+                        return SCMProbeStat.fromType(SCMFile.Type.REGULAR_FILE);
+                    } else if (content.isDirectory()) {
+                        return SCMProbeStat.fromType(SCMFile.Type.DIRECTORY);
+                    } else if ("symlink".equals(content.getType())) {
+                        return SCMProbeStat.fromType(SCMFile.Type.LINK);
+                    } else {
+                        return SCMProbeStat.fromType(SCMFile.Type.OTHER);
+                    }
+                }
+            }
+            for (GHContent content : directoryContent) {
+                if (content.getPath().equalsIgnoreCase(path)) {
+                    return SCMProbeStat.fromAlternativePath(content.getPath());
+                }
+            }
+        } catch (FileNotFoundException fnf) {
+            // means that does not exist and this is handled below this try/catch block.
+        }
+        return SCMProbeStat.fromType(SCMFile.Type.NONEXISTENT);
+    }
+
+    @Override
+    public SCMFile getRoot() {
+        if (repo == null) {
+            return null;
+        }
+        synchronized (this) {
+            if (!open) {
+                return null;
+            }
+        }
+        String ref;
+        if (revision != null) {
+            if (revision.getHead() instanceof PullRequestSCMHead) {
+                ref = this.ref;
+            } else if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl) {
+                ref = ((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash();
+            } else {
+                ref = this.ref;
+            }
+        } else {
+            ref = this.ref;
+        }
+        return new GitHubSCMFile(this, repo, ref);
+    }
+
+    @Override
+    public synchronized boolean isOpen() {
+        return open;
+    }
 }

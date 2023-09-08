@@ -46,73 +46,72 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * @since 2.3.0
  */
 public class TagDiscoveryTrait extends SCMSourceTrait {
-  /** Constructor for stapler. */
-  @DataBoundConstructor
-  public TagDiscoveryTrait() {}
-
-  /** {@inheritDoc} */
-  @Override
-  protected void decorateContext(SCMSourceContext<?, ?> context) {
-    GitHubSCMSourceContext ctx = (GitHubSCMSourceContext) context;
-    ctx.wantTags(true);
-    ctx.withAuthority(new TagSCMHeadAuthority());
-  }
-
-  /** {@inheritDoc} */
-  @Override
-  public boolean includeCategory(@NonNull SCMHeadCategory category) {
-    return category instanceof TagSCMHeadCategory;
-  }
-
-  /** Our descriptor. */
-  @Symbol("gitHubTagDiscovery")
-  @Extension
-  @Discovery
-  public static class DescriptorImpl extends SCMSourceTraitDescriptor {
+    /** Constructor for stapler. */
+    @DataBoundConstructor
+    public TagDiscoveryTrait() {}
 
     /** {@inheritDoc} */
     @Override
-    public String getDisplayName() {
-      return Messages.TagDiscoveryTrait_displayName();
+    protected void decorateContext(SCMSourceContext<?, ?> context) {
+        GitHubSCMSourceContext ctx = (GitHubSCMSourceContext) context;
+        ctx.wantTags(true);
+        ctx.withAuthority(new TagSCMHeadAuthority());
     }
 
     /** {@inheritDoc} */
     @Override
-    public Class<? extends SCMSourceContext> getContextClass() {
-      return GitHubSCMSourceContext.class;
+    public boolean includeCategory(@NonNull SCMHeadCategory category) {
+        return category instanceof TagSCMHeadCategory;
     }
 
-    /** {@inheritDoc} */
-    @Override
-    public Class<? extends SCMSource> getSourceClass() {
-      return GitHubSCMSource.class;
-    }
-  }
-
-  /** Trusts tags from the origin repository. */
-  public static class TagSCMHeadAuthority
-      extends SCMHeadAuthority<SCMSourceRequest, GitHubTagSCMHead, GitTagSCMRevision> {
-    /** {@inheritDoc} */
-    @Override
-    protected boolean checkTrusted(
-        @NonNull SCMSourceRequest request, @NonNull GitHubTagSCMHead head) {
-      return true;
-    }
-
-    /** Out descriptor. */
+    /** Our descriptor. */
+    @Symbol("gitHubTagDiscovery")
     @Extension
-    public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
-      /** {@inheritDoc} */
-      @Override
-      public String getDisplayName() {
-        return Messages.TagDiscoveryTrait_authorityDisplayName();
-      }
+    @Discovery
+    public static class DescriptorImpl extends SCMSourceTraitDescriptor {
 
-      /** {@inheritDoc} */
-      @Override
-      public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
-        return SCMHeadOrigin.Default.class.isAssignableFrom(originClass);
-      }
+        /** {@inheritDoc} */
+        @Override
+        public String getDisplayName() {
+            return Messages.TagDiscoveryTrait_displayName();
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public Class<? extends SCMSourceContext> getContextClass() {
+            return GitHubSCMSourceContext.class;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public Class<? extends SCMSource> getSourceClass() {
+            return GitHubSCMSource.class;
+        }
     }
-  }
+
+    /** Trusts tags from the origin repository. */
+    public static class TagSCMHeadAuthority
+            extends SCMHeadAuthority<SCMSourceRequest, GitHubTagSCMHead, GitTagSCMRevision> {
+        /** {@inheritDoc} */
+        @Override
+        protected boolean checkTrusted(@NonNull SCMSourceRequest request, @NonNull GitHubTagSCMHead head) {
+            return true;
+        }
+
+        /** Out descriptor. */
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+            /** {@inheritDoc} */
+            @Override
+            public String getDisplayName() {
+                return Messages.TagDiscoveryTrait_authorityDisplayName();
+            }
+
+            /** {@inheritDoc} */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Default.class.isAssignableFrom(originClass);
+            }
+        }
+    }
 }

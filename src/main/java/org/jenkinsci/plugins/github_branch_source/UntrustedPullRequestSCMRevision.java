@@ -30,26 +30,26 @@ import jenkins.scm.api.SCMHead;
 @Deprecated
 class UntrustedPullRequestSCMRevision extends AbstractGitSCMSource.SCMRevisionImpl {
 
-  private static final long serialVersionUID = -6961458604178249880L;
+    private static final long serialVersionUID = -6961458604178249880L;
 
-  final String baseHash;
+    final String baseHash;
 
-  private UntrustedPullRequestSCMRevision(SCMHead head, String hash, String baseHash) {
-    super(head, hash);
-    this.baseHash = baseHash;
-  }
+    private UntrustedPullRequestSCMRevision(SCMHead head, String hash, String baseHash) {
+        super(head, hash);
+        this.baseHash = baseHash;
+    }
 
-  @Override
-  public boolean equals(Object o) {
-    return super.equals(o) && baseHash.equals(((UntrustedPullRequestSCMRevision) o).baseHash);
-  }
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o) && baseHash.equals(((UntrustedPullRequestSCMRevision) o).baseHash);
+    }
 
-  @Override
-  public int hashCode() {
-    return super.hashCode(); // good enough
-  }
+    @Override
+    public int hashCode() {
+        return super.hashCode(); // good enough
+    }
 
-  private Object readResolve() {
-    return new PullRequestSCMRevision((PullRequestSCMHead) getHead(), baseHash, getHash());
-  }
+    private Object readResolve() {
+        return new PullRequestSCMRevision((PullRequestSCMHead) getHead(), baseHash, getHash());
+    }
 }
