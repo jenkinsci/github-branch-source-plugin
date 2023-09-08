@@ -39,33 +39,32 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * @since 2.0.0
  */
 public class GitHubBranchFilter extends ViewJobFilter {
-  /** Our constructor. */
-  @DataBoundConstructor
-  public GitHubBranchFilter() {}
-
-  /** {@inheritDoc} */
-  @Override
-  public List<TopLevelItem> filter(
-      List<TopLevelItem> added, List<TopLevelItem> all, View filteringView) {
-    for (TopLevelItem item : all) {
-      if (added.contains(item)) {
-        continue;
-      }
-      if (SCMHead.HeadByItem.findHead(item) instanceof BranchSCMHead) {
-        added.add(item);
-      }
-    }
-    return added;
-  }
-
-  /** Our descriptor. */
-  @Extension(optional = true)
-  public static class DescriptorImpl extends Descriptor<ViewJobFilter> {
+    /** Our constructor. */
+    @DataBoundConstructor
+    public GitHubBranchFilter() {}
 
     /** {@inheritDoc} */
     @Override
-    public String getDisplayName() {
-      return Messages.GitHubBranchFilter_DisplayName();
+    public List<TopLevelItem> filter(List<TopLevelItem> added, List<TopLevelItem> all, View filteringView) {
+        for (TopLevelItem item : all) {
+            if (added.contains(item)) {
+                continue;
+            }
+            if (SCMHead.HeadByItem.findHead(item) instanceof BranchSCMHead) {
+                added.add(item);
+            }
+        }
+        return added;
     }
-  }
+
+    /** Our descriptor. */
+    @Extension(optional = true)
+    public static class DescriptorImpl extends Descriptor<ViewJobFilter> {
+
+        /** {@inheritDoc} */
+        @Override
+        public String getDisplayName() {
+            return Messages.GitHubBranchFilter_DisplayName();
+        }
+    }
 }

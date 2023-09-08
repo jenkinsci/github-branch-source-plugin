@@ -15,16 +15,15 @@ import hudson.Extension;
  * the status quo allowing the Credentials to be replaced using the existing mechanism.
  */
 @Extension
-public class GitHubAppCredentialsSnapshotTaker
-    extends CredentialsSnapshotTaker<GitHubAppCredentials> {
+public class GitHubAppCredentialsSnapshotTaker extends CredentialsSnapshotTaker<GitHubAppCredentials> {
 
-  @Override
-  public GitHubAppCredentials snapshot(GitHubAppCredentials credentials) {
-    return credentials;
-  }
+    @Override
+    public GitHubAppCredentials snapshot(GitHubAppCredentials credentials) {
+        return credentials;
+    }
 
-  @Override
-  public Class<GitHubAppCredentials> type() {
-    return GitHubAppCredentials.class;
-  }
+    @Override
+    public Class<GitHubAppCredentials> type() {
+        return GitHubAppCredentials.class;
+    }
 }
