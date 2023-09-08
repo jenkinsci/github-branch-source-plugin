@@ -31,6 +31,8 @@ import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.common.StandardListBoxModel;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -39,6 +41,8 @@ import hudson.Extension;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
+import hudson.init.InitMilestone;
+import hudson.init.Initializer;
 import hudson.model.Action;
 import hudson.model.Item;
 import hudson.model.TaskListener;
@@ -48,6 +52,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.net.MalformedURLException;
+import java.time.Duration;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -82,6 +88,7 @@ import jenkins.scm.impl.trait.Discovery;
 import jenkins.scm.impl.trait.RegexSCMSourceFilterTrait;
 import jenkins.scm.impl.trait.Selection;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
+import jenkins.util.SystemProperties;
 import net.jcip.annotations.GuardedBy;
 import org.apache.commons.lang.StringUtils;
 import org.jenkins.ui.icon.Icon;
@@ -204,6 +211,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @Deprecated
     private transient Boolean buildForkPRHead;
+
+    private static final LoadingCache<String, Boolean> privateModeCache = createPrivateModeCache();
 
     /**
      * Constructor.
@@ -1524,9 +1533,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         StandardCredentials credentials =
                 Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId, repoOwner);
         GitHub hub = Connector.connect(getApiUri(), credentials);
+        Connector.configureLocalRateLimitChecker(listener, hub);
         boolean privateMode = determinePrivateMode(apiUri);
         try {
-            Connector.configureLocalRateLimitChecker(listener, hub);
             GHUser u = hub.getUser(getRepoOwner());
             String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
             result.add(new ObjectMetadataAction(Util.fixEmpty(u.getName()), null, objectUrl));
@@ -1550,21 +1559,67 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
+    private static LoadingCache<String, Boolean> createPrivateModeCache() {
+        Duration duration = getPrivateModeCacheExpiration();
+        return Caffeine.newBuilder().expireAfterWrite(duration).build(key -> {
+            if (key.equals(GitHubServerConfig.GITHUB_URL)) {
+                return false;
+            }
+            try {
+                GitHub.connectToEnterpriseAnonymously(key).checkApiUrlValidity();
+            } catch (MalformedURLException e) {
+                // URL is bogus so there is never going to be an avatar - or anything else come to
+                // think of it
+                return true;
+            } catch (IOException e) {
+                if (e.getMessage().contains("private mode enabled")) {
+                    return true;
+                }
+            }
+            return false;
+        });
+    }
+
+    /**
+     * Checks the SystemProperty <code>org.jenkinsci.plugins.github_branch_source.GitHubSCMNavigator.PRIVATE_MODE_CACHE_EXP</code>
+     * for a configured duration expression.
+     * The expression should be in the format expected by {@link Duration#parse(CharSequence)}.
+     * If the expression fails to parse the default duration (20 Hours) will be used.
+     *
+     * @return the duration in the system property or the default Duration (20 Hours)
+     * @see Duration#parse(CharSequence)
+     */
+    @SuppressFBWarnings(value = "DCN_NULLPOINTER_EXCEPTION", justification = "Intentional")
+    private static Duration getPrivateModeCacheExpiration() {
+        String d = SystemProperties.getString(GitHubSCMNavigator.class.getName() + ".PRIVATE_MODE_CACHE_EXP", "PT20H");
+        Duration duration;
+        try {
+            duration = Duration.parse(d);
+        } catch (DateTimeParseException | NullPointerException e) {
+            Logger.getLogger(GitHubSCMNavigator.class.getName())
+                    .log(
+                            Level.CONFIG,
+                            "WARNING Failed to parse cache expiration expression: " + d + " defaulting to 20H",
+                            e);
+            duration = Duration.ofHours(20);
+        }
+        return duration.abs();
+    }
+
+    @Restricted(NoExternalUse.class)
+    @Initializer(after = InitMilestone.JOB_CONFIG_ADAPTED)
+    public static void invalidatePrivateModeCache() {
+        if (privateModeCache != null) {
+            privateModeCache.invalidateAll();
+        }
+    }
+
     private static boolean determinePrivateMode(String apiUri) {
         if (apiUri == null || apiUri.equals(GitHubServerConfig.GITHUB_URL)) {
             return false;
         }
-        try {
-            GitHub.connectToEnterpriseAnonymously(apiUri).checkApiUrlValidity();
-        } catch (MalformedURLException e) {
-            // URL is bogus so there is never going to be an avatar - or anything else come to think of it
-            return true;
-        } catch (IOException e) {
-            if (e.getMessage().contains("private mode enabled")) {
-                return true;
-            }
-        }
-        return false;
+        Boolean aBoolean = privateModeCache.get(apiUri);
+        return aBoolean != null && aBoolean;
     }
 
     /** {@inheritDoc} */

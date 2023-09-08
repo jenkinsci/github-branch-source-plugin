@@ -290,7 +290,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
             // We want to demonstrate successful caching without waiting for the default 1 minute
             // Must set this to a large enough number to avoid flaky test
-            GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = 5;
+            GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = 10;
 
             // Ensure we are working from sufficiently clean cache state
             Thread.sleep(Duration.ofSeconds(GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS + 2)
@@ -362,7 +362,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
             // We want to demonstrate successful caching without waiting for a the default 1 minute
             // Must set this to a large enough number to avoid flaky test
-            GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = 5;
+            GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = 10;
 
             // Ensure we are working from sufficiently clean cache state
             Thread.sleep(Duration.ofSeconds(GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS + 2)
@@ -479,7 +479,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
             // We want to demonstrate successful caching without waiting for the default 1 minute
             // Must set this to a large enough number to avoid flaky test
-            GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = 5;
+            GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = 10;
 
             // Ensure we are working from sufficiently clean cache state
             Thread.sleep(Duration.ofSeconds(GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS + 2)

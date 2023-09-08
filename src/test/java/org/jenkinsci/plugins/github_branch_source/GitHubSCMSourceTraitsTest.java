@@ -75,6 +75,15 @@ public class GitHubSCMSourceTraitsTest {
         } else {
             trust = "TrustPermission";
         }
+        String originTrait;
+        String forkTrait;
+        if (r.jenkins.getPlugin("cloudbees-bitbucket-branch-source") != null) {
+            originTrait = "org.jenkinsci.plugins.github_branch_source.OriginPullRequestDiscoveryTrait";
+            forkTrait = "org.jenkinsci.plugins.github_branch_source.ForkPullRequestDiscoveryTrait";
+        } else {
+            originTrait = "OriginPullRequestDiscoveryTrait";
+            forkTrait = "ForkPullRequestDiscoveryTrait";
+        }
         assertThat(
                 DescribableModel.uninstantiate2_(recreated).toString(),
                 is("@github("
@@ -84,8 +93,8 @@ public class GitHubSCMSourceTraitsTest {
                         + "repository=repo,"
                         + "traits=["
                         + "@gitHubBranchDiscovery$org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait(strategyId=1), "
-                        + "@gitHubPullRequestDiscovery$OriginPullRequestDiscoveryTrait(strategyId=1), "
-                        + "@gitHubForkDiscovery$ForkPullRequestDiscoveryTrait("
+                        + "@gitHubPullRequestDiscovery$" + originTrait + "(strategyId=1), "
+                        + "@gitHubForkDiscovery$" + forkTrait + "("
                         + "strategyId=2,"
                         + "trust=@gitHubTrustPermissions$"
                         + trust
