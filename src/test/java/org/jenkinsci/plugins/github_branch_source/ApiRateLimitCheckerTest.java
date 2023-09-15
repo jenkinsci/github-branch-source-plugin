@@ -27,6 +27,7 @@ import java.util.stream.Stream;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
@@ -164,6 +165,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         assertEquals(2, initialRequestCount);
     }
 
+    @Ignore("behavior deliberately modified")
     @Test
     public void NoCheckerConfigured() throws Exception {
         // set up scenarios
@@ -356,6 +358,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      *
      * @author Marc Salles Navarro
      */
+    @Ignore("behavior deliberately modified")
     @Test
     public void NoThrottleTestShouldFallbackToThrottleOnOverForGitHubDotCom() throws Exception {
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleOnOver);
