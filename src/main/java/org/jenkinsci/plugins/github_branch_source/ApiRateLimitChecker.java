@@ -100,22 +100,13 @@ public enum ApiRateLimitChecker {
     NoThrottle(Messages.ApiRateLimitChecker_NoThrottle()) {
         @Override
         public LocalChecker getChecker(@NonNull TaskListener listener, String apiUrl) {
-            if (GitHubServerConfig.GITHUB_URL.equals(apiUrl)) {
-                // If the GitHub public API is being used, this will fallback to ThrottleOnOver
-                LocalChecker checker = ThrottleOnOver.getChecker(listener, apiUrl);
-                checker.writeLog(
-                        "GitHub throttling is disabled, which is not allowed for public GitHub usage, "
-                                + "so ThrottleOnOver will be used instead. To configure a different rate limiting strategy, go to \"GitHub API usage\" under \"Configure System\" in the Jenkins settings.");
-                return checker;
-            } else {
-                return new LocalChecker(listener) {
-                    @Override
-                    long checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now)
-                            throws InterruptedException {
-                        return now;
-                    }
-                };
-            }
+            return new LocalChecker(listener) {
+                @Override
+                long checkRateLimitImpl(@NonNull GHRateLimit.Record rateLimit, long count, long now)
+                        throws InterruptedException {
+                    return now;
+                }
+            };
         }
     };
 
