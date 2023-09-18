@@ -128,6 +128,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @CheckForNull
     private String credentialsId;
     /** The behavioural traits to apply. */
+
+    /**
+     * Whether to enable the retrieval of the Organization avatar. If false, then the default GitHub logo will be used.
+     */
+    private boolean enableAvatar;
+
     @NonNull
     private List<SCMTrait<? extends SCMTrait<?>>> traits;
 
@@ -221,6 +227,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     public GitHubSCMNavigator(String repoOwner) {
         this.repoOwner = StringUtils.defaultString(repoOwner);
         this.traits = new ArrayList<>();
+        this.enableAvatar = false;
     }
 
     /**
@@ -300,6 +307,25 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @DataBoundSetter
     public void setCredentialsId(@CheckForNull String credentialsId) {
         this.credentialsId = Util.fixEmpty(credentialsId);
+    }
+
+    /**
+     * Return if the avatar retrieval is enabled.
+     *
+     * @return true is enabled, false otherwise
+     */
+    public boolean isEnableAvatar() {
+        return enableAvatar;
+    }
+
+    /**
+     * Enable retrieval of the organization avatar.
+     *
+     * @param enableAvatar true to enable, false to disable
+     */
+    @DataBoundSetter
+    public void setEnableAvatar(boolean enableAvatar) {
+        this.enableAvatar = enableAvatar;
     }
 
     /**
@@ -1531,7 +1557,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId, repoOwner);
         GitHub hub = Connector.connect(getApiUri(), credentials);
         Connector.configureLocalRateLimitChecker(listener, hub);
-        boolean privateMode = determinePrivateMode(apiUri);
+        boolean privateMode = !enableAvatar || determinePrivateMode(apiUri);
         try {
             GHUser u = hub.getUser(getRepoOwner());
             String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
