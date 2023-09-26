@@ -80,7 +80,6 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
         context.wantBranches(true);
         GitHubSCMSourceRequest request =
                 context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
-        Mockito.doThrow(e).when(repoSpy).getRef("branches/existent-branch");
         // Expected: This will throw an error when requesting a branch
         try {
             Iterator<GHBranch> branches = new GitHubSCMSource.LazyBranches(request, repoSpy).iterator();
