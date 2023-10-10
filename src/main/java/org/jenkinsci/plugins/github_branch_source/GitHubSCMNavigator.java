@@ -313,9 +313,10 @@ public class GitHubSCMNavigator extends SCMNavigator {
      *
      * @return true is enabled, false otherwise
      */
-    @CheckForNull
-    public Boolean getEnableAvatar() {
-        return enableAvatar;
+    @NonNull
+    @SuppressWarnings("unused") // stapler
+    public boolean getEnableAvatar() {
+        return Boolean.TRUE.equals(enableAvatar);
     }
 
     /**
@@ -324,7 +325,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      * @param enableAvatar true to enable, false to disable
      */
     @DataBoundSetter
-    public void setEnableAvatar(Boolean enableAvatar) {
+    public void setEnableAvatar(boolean enableAvatar) {
         this.enableAvatar = enableAvatar;
     }
 
