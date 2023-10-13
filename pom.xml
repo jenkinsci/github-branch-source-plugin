@@ -30,7 +30,7 @@
   </scm>
 
   <properties>
-    <changelist>1734.v8a_ed3a_653490-SmartRecruiters</changelist>
+    <changelist>1741.va_3028eb_9fd21-SmartRecruiters</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
     <jenkins.version>2.387.3</jenkins.version>
