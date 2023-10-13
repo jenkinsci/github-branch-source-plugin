@@ -437,8 +437,8 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchActionsWithoutAvatar() throws Exception {
-        navigator.setEnableAvatar(false);
+    public void fetchActionsWithAvatar() throws Exception {
+        navigator.setEnableAvatar(true);
         assertThat(
                 navigator.fetchActions(Mockito.mock(SCMNavigatorOwner.class), null, null),
                 Matchers.containsInAnyOrder(
