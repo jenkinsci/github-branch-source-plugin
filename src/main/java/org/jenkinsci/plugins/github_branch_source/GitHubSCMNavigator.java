@@ -315,7 +315,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
      */
     @NonNull
     @SuppressWarnings("unused") // stapler
-    public boolean getEnableAvatar() {
+    public boolean isEnableAvatar() {
         return Boolean.TRUE.equals(enableAvatar);
     }
 
@@ -1561,7 +1561,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId, repoOwner);
         GitHub hub = Connector.connect(getApiUri(), credentials);
         Connector.configureLocalRateLimitChecker(listener, hub);
-        boolean privateMode = !getEnableAvatar() || determinePrivateMode(apiUri);
+        boolean privateMode = !isEnableAvatar() || determinePrivateMode(apiUri);
         try {
             GHUser u = hub.getUser(getRepoOwner());
             String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
