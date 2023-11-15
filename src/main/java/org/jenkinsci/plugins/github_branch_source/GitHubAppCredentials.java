@@ -123,7 +123,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     }
 
     /**
-     * Owner of this installation, i.e. a user or organisation, used to differeniate app installations
+     * Owner of this installation, i.e. a user or organisation, used to differentiate app installations
      * when the app is installed to multiple organisations / users.
      *
      * <p>If this is null then call listInstallations and if there's only one in the list then use
@@ -692,6 +692,20 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             gitHubAppCredential.setOwner(owner);
 
             try {
+                // If no owner is specified, check if the app has multiple installations.
+                if (owner == null || owner.isEmpty()) {
+                    GitHub gitHubApp =
+                            TokenProvider.createTokenRefreshGitHub(appID, privateKey, gitHubAppCredential.actualApiUri());
+                    List<GHAppInstallation> appInstallations =
+                            gitHubApp.getApp().listInstallations().toList();
+                    if (appInstallations.size() > 1) {
+                        // Just pick the owner of the first installation, so we have a valid
+                        // owner to create an access token for testing the connection.
+                        String anyInstallationOwner = appInstallations.get(0).getAccount().getLogin();
+                        gitHubAppCredential.setOwner(anyInstallationOwner);
+                    }
+                }
+
                 GitHub connect = Connector.connect(apiUri, gitHubAppCredential);
                 try {
                     return FormValidation.ok("Success, Remaining rate limit: "
