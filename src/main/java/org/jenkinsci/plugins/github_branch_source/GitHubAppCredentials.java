@@ -694,14 +694,15 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             try {
                 // If no owner is specified, check if the app has multiple installations.
                 if (owner == null || owner.isEmpty()) {
-                    GitHub gitHubApp =
-                            TokenProvider.createTokenRefreshGitHub(appID, privateKey, gitHubAppCredential.actualApiUri());
+                    GitHub gitHubApp = TokenProvider.createTokenRefreshGitHub(
+                            appID, privateKey, gitHubAppCredential.actualApiUri());
                     List<GHAppInstallation> appInstallations =
                             gitHubApp.getApp().listInstallations().toList();
                     if (appInstallations.size() > 1) {
                         // Just pick the owner of the first installation, so we have a valid
                         // owner to create an access token for testing the connection.
-                        String anyInstallationOwner = appInstallations.get(0).getAccount().getLogin();
+                        String anyInstallationOwner =
+                                appInstallations.get(0).getAccount().getLogin();
                         gitHubAppCredential.setOwner(anyInstallationOwner);
                     }
                 }
