@@ -326,6 +326,9 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     @NonNull
     public synchronized GitHubAppCredentials withOwner(@NonNull String owner) {
         if (this.owner != null) {
+            if (!owner.equals(this.owner)) {
+                throw new IllegalArgumentException("Owner mismatch: " + this.owner + " vs. " + owner);
+            }
             return this;
         }
         if (byOwner == null) {
