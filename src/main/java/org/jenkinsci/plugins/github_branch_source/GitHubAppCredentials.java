@@ -323,6 +323,11 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         return appID;
     }
 
+    @Override
+    public boolean isUsernameSecret() {
+        return false;
+    }
+
     @NonNull
     public synchronized GitHubAppCredentials withOwner(@NonNull String owner) {
         if (this.owner != null) {
