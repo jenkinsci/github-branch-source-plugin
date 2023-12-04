@@ -39,7 +39,6 @@ import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
 import jenkins.scm.api.trait.SCMHeadAuthority;
 import jenkins.scm.api.trait.SCMHeadAuthorityDescriptor;
 import jenkins.scm.api.trait.SCMSourceContext;
-import jenkins.scm.api.trait.SCMSourceRequest;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import jenkins.scm.api.trait.SCMSourceTraitDescriptor;
 import jenkins.scm.impl.ChangeRequestSCMHeadCategory;
@@ -83,6 +82,12 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
      * @param trust the authority to use.
      */
     @DataBoundConstructor
+    public ForkPullRequestDiscoveryTrait(int strategyId, @NonNull GitHubForkTrustPolicy trust) {
+        this.strategyId = strategyId;
+        this.trust = trust;
+    }
+
+    @Deprecated
     public ForkPullRequestDiscoveryTrait(
             int strategyId,
             @NonNull
@@ -236,9 +241,15 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         }
     }
 
+    /** Trust policy for forked pull requests.
+     * <p>
+     * This reduces generics in the DataBoundConstructor signature as a workaround for JENKINS-26535.
+     */
+    public abstract static class GitHubForkTrustPolicy
+            extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {}
+
     /** An {@link SCMHeadAuthority} that trusts nothing. */
-    public static class TrustNobody
-            extends SCMHeadAuthority<SCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+    public static class TrustNobody extends GitHubForkTrustPolicy {
 
         /** Constructor. */
         @DataBoundConstructor
@@ -246,7 +257,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
 
         /** {@inheritDoc} */
         @Override
-        public boolean checkTrusted(@NonNull SCMSourceRequest request, @NonNull PullRequestSCMHead head) {
+        public boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head) {
             return false;
         }
 
@@ -270,8 +281,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     }
 
     /** An {@link SCMHeadAuthority} that trusts contributors to the repository. */
-    public static class TrustContributors
-            extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+    public static class TrustContributors extends GitHubForkTrustPolicy {
         /** Constructor. */
         @DataBoundConstructor
         public TrustContributors() {}
@@ -303,8 +313,7 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     }
 
     /** An {@link SCMHeadAuthority} that trusts those with write permission to the repository. */
-    public static class TrustPermission
-            extends SCMHeadAuthority<GitHubSCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+    public static class TrustPermission extends GitHubForkTrustPolicy {
 
         /** Constructor. */
         @DataBoundConstructor
@@ -347,15 +356,14 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     }
 
     /** An {@link SCMHeadAuthority} that trusts everyone. */
-    public static class TrustEveryone
-            extends SCMHeadAuthority<SCMSourceRequest, PullRequestSCMHead, PullRequestSCMRevision> {
+    public static class TrustEveryone extends GitHubForkTrustPolicy {
         /** Constructor. */
         @DataBoundConstructor
         public TrustEveryone() {}
 
         /** {@inheritDoc} */
         @Override
-        protected boolean checkTrusted(@NonNull SCMSourceRequest request, @NonNull PullRequestSCMHead head) {
+        protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head) {
             return true;
         }
 
