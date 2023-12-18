@@ -128,6 +128,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @CheckForNull
     private String credentialsId;
     /** The behavioural traits to apply. */
+
+    /**
+     * Whether to enable the retrieval of the Organization avatar. If false, then the default GitHub logo will be used.
+     */
+    private Boolean enableAvatar;
+
     @NonNull
     private List<SCMTrait<? extends SCMTrait<?>>> traits;
 
@@ -303,6 +309,27 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     /**
+     * Return if the avatar retrieval is enabled.
+     *
+     * @return true is enabled, false otherwise
+     */
+    @NonNull
+    @SuppressWarnings("unused") // stapler
+    public boolean isEnableAvatar() {
+        return Boolean.TRUE.equals(enableAvatar);
+    }
+
+    /**
+     * Enable retrieval of the organization avatar.
+     *
+     * @param enableAvatar true to enable, false to disable
+     */
+    @DataBoundSetter
+    public void setEnableAvatar(boolean enableAvatar) {
+        this.enableAvatar = enableAvatar;
+    }
+
+    /**
      * Gets the name of the owner who's repositories will be navigated.
      *
      * @return the name of the owner who's repositories will be navigated.
@@ -364,6 +391,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
     private Object readResolve() {
         if (scanCredentialsId != null) {
             credentialsId = scanCredentialsId;
+        }
+        if (enableAvatar == null) {
+            enableAvatar = Boolean.TRUE;
         }
         if (traits == null) {
             boolean buildOriginBranch = this.buildOriginBranch == null || this.buildOriginBranch;
@@ -1531,7 +1561,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId, repoOwner);
         GitHub hub = Connector.connect(getApiUri(), credentials);
         Connector.configureLocalRateLimitChecker(listener, hub);
-        boolean privateMode = determinePrivateMode(apiUri);
+        boolean privateMode = !isEnableAvatar() || determinePrivateMode(apiUri);
         try {
             GHUser u = hub.getUser(getRepoOwner());
             String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
