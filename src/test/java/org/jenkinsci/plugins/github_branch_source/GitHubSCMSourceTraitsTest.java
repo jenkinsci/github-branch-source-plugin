@@ -69,12 +69,6 @@ public class GitHubSCMSourceTraitsTest {
         recreated.setIncludes("i*");
         recreated.setExcludes("production");
         recreated.setScanCredentialsId("foo");
-        String trust;
-        if (r.jenkins.getPlugin("gitlab-branch-source") != null) {
-            trust = "org.jenkinsci.plugins.github_branch_source.ForkPullRequestDiscoveryTrait$TrustPermission";
-        } else {
-            trust = "TrustPermission";
-        }
         String originTrait;
         String forkTrait;
         if (r.jenkins.getPlugin("cloudbees-bitbucket-branch-source") != null) {
@@ -96,9 +90,7 @@ public class GitHubSCMSourceTraitsTest {
                         + "@gitHubPullRequestDiscovery$" + originTrait + "(strategyId=1), "
                         + "@gitHubForkDiscovery$" + forkTrait + "("
                         + "strategyId=2,"
-                        + "trust=@gitHubTrustPermissions$"
-                        + trust
-                        + "()), "
+                        + "trust=@gitHubTrustPermissions$TrustPermission()), "
                         + "@headWildcardFilter$WildcardSCMHeadFilterTrait(excludes=production,includes=i*)])"));
     }
 
