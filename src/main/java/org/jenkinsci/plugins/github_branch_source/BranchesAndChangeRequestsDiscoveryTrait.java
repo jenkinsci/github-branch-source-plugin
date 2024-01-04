@@ -25,6 +25,7 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import java.util.EnumSet;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
@@ -36,8 +37,6 @@ import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait.BranchSCMHeadAuthority;
 import org.jenkinsci.plugins.github_branch_source.OriginPullRequestDiscoveryTrait.OriginChangeRequestSCMHeadAuthority;
 import org.kohsuke.stapler.DataBoundConstructor;
-
-import java.util.EnumSet;
 
 /**
  * A {@link Discovery} trait for GitHub that will discover branches on the repository.
