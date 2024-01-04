@@ -2466,7 +2466,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return new SCMHeadCategory[] {
                 new UncategorizedSCMHeadCategory(Messages._GitHubSCMSource_UncategorizedCategory()),
                 new ChangeRequestSCMHeadCategory(Messages._GitHubSCMSource_ChangeRequestCategory()),
-                new TagSCMHeadCategory(Messages._GitHubSCMSource_TagCategory())
+                new TagSCMHeadCategory(Messages._GitHubSCMSource_TagCategory()),
+                new BranchesAndChangeRequestsCategory(Messages._GitHubSCMSource_BranchesAndChangeRequestsCategory())
             };
         }
     }
