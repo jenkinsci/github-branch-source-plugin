@@ -38,6 +38,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
@@ -48,7 +49,6 @@ import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
-import jakarta.inject.Inject;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -1716,9 +1716,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @RestrictedSince("2.2.0")
         public static final boolean defaultBuildForkPRHead = false;
 
-        @Inject
-        private GitHubSCMSource.DescriptorImpl delegate;
-
         /** {@inheritDoc} */
         @Override
         public String getPronoun() {
@@ -1894,7 +1891,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @SuppressWarnings("unused") // jelly
         @NonNull
         public List<SCMTrait<? extends SCMTrait<?>>> getTraitsDefaults() {
-            return new ArrayList<>(delegate.getTraitsDefaults());
+            return new ArrayList<>(ExtensionList.lookupSingleton(GitHubSCMSource.DescriptorImpl.class)
+                    .getTraitsDefaults());
         }
 
         static {
