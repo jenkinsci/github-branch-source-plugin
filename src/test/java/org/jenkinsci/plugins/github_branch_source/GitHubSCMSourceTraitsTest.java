@@ -69,11 +69,14 @@ public class GitHubSCMSourceTraitsTest {
         recreated.setIncludes("i*");
         recreated.setExcludes("production");
         recreated.setScanCredentialsId("foo");
-        String trust;
-        if (r.jenkins.getPlugin("gitlab-branch-source") != null) {
-            trust = "org.jenkinsci.plugins.github_branch_source.ForkPullRequestDiscoveryTrait$TrustPermission";
+        String originTrait;
+        String forkTrait;
+        if (r.jenkins.getPlugin("cloudbees-bitbucket-branch-source") != null) {
+            originTrait = "org.jenkinsci.plugins.github_branch_source.OriginPullRequestDiscoveryTrait";
+            forkTrait = "org.jenkinsci.plugins.github_branch_source.ForkPullRequestDiscoveryTrait";
         } else {
-            trust = "TrustPermission";
+            originTrait = "OriginPullRequestDiscoveryTrait";
+            forkTrait = "ForkPullRequestDiscoveryTrait";
         }
         assertThat(
                 DescribableModel.uninstantiate2_(recreated).toString(),
@@ -84,12 +87,10 @@ public class GitHubSCMSourceTraitsTest {
                         + "repository=repo,"
                         + "traits=["
                         + "@gitHubBranchDiscovery$org.jenkinsci.plugins.github_branch_source.BranchDiscoveryTrait(strategyId=1), "
-                        + "@gitHubPullRequestDiscovery$OriginPullRequestDiscoveryTrait(strategyId=1), "
-                        + "@gitHubForkDiscovery$ForkPullRequestDiscoveryTrait("
+                        + "@gitHubPullRequestDiscovery$" + originTrait + "(strategyId=1), "
+                        + "@gitHubForkDiscovery$" + forkTrait + "("
                         + "strategyId=2,"
-                        + "trust=@gitHubTrustPermissions$"
-                        + trust
-                        + "()), "
+                        + "trust=@gitHubTrustPermissions$TrustPermission()), "
                         + "@headWildcardFilter$WildcardSCMHeadFilterTrait(excludes=production,includes=i*)])"));
     }
 
