@@ -919,10 +919,6 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     @Issue("JENKINS-65071")
     public void testShouldRetrieveNullEvent() throws Exception {
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
-        Mockito.when(mockSCMHeadObserver.getIncludes())
-                .thenReturn(
-                        Collections.singleton(new GitHubTagSCMHead("non-existent-tag", System.currentTimeMillis())));
-
         assertTrue(this.source.shouldRetrieve(mockSCMHeadObserver, null, GitHubTagSCMHead.class));
         assertTrue(this.source.shouldRetrieve(mockSCMHeadObserver, null, PullRequestSCMHead.class));
         assertTrue(this.source.shouldRetrieve(mockSCMHeadObserver, null, BranchSCMHead.class));

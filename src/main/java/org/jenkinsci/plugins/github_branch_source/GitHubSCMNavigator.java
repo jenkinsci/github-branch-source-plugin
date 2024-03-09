@@ -38,6 +38,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
@@ -62,7 +63,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.inject.Inject;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
 import jenkins.scm.api.SCMNavigator;
@@ -127,6 +127,12 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @CheckForNull
     private String credentialsId;
     /** The behavioural traits to apply. */
+
+    /**
+     * Whether to enable the retrieval of the Organization avatar. If false, then the default GitHub logo will be used.
+     */
+    private Boolean enableAvatar;
+
     @NonNull
     private List<SCMTrait<? extends SCMTrait<?>>> traits;
 
@@ -302,6 +308,27 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     /**
+     * Return if the avatar retrieval is enabled.
+     *
+     * @return true is enabled, false otherwise
+     */
+    @NonNull
+    @SuppressWarnings("unused") // stapler
+    public boolean isEnableAvatar() {
+        return Boolean.TRUE.equals(enableAvatar);
+    }
+
+    /**
+     * Enable retrieval of the organization avatar.
+     *
+     * @param enableAvatar true to enable, false to disable
+     */
+    @DataBoundSetter
+    public void setEnableAvatar(boolean enableAvatar) {
+        this.enableAvatar = enableAvatar;
+    }
+
+    /**
      * Gets the name of the owner who's repositories will be navigated.
      *
      * @return the name of the owner who's repositories will be navigated.
@@ -363,6 +390,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
     private Object readResolve() {
         if (scanCredentialsId != null) {
             credentialsId = scanCredentialsId;
+        }
+        if (enableAvatar == null) {
+            enableAvatar = Boolean.TRUE;
         }
         if (traits == null) {
             boolean buildOriginBranch = this.buildOriginBranch == null || this.buildOriginBranch;
@@ -1530,7 +1560,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 Connector.lookupScanCredentials((Item) owner, getApiUri(), credentialsId, repoOwner);
         GitHub hub = Connector.connect(getApiUri(), credentials);
         Connector.configureLocalRateLimitChecker(listener, hub);
-        boolean privateMode = determinePrivateMode(apiUri);
+        boolean privateMode = !isEnableAvatar() || determinePrivateMode(apiUri);
         try {
             GHUser u = hub.getUser(getRepoOwner());
             String objectUrl = u.getHtmlUrl() == null ? null : u.getHtmlUrl().toExternalForm();
@@ -1684,9 +1714,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @Restricted(DoNotUse.class)
         @RestrictedSince("2.2.0")
         public static final boolean defaultBuildForkPRHead = false;
-
-        @Inject
-        private GitHubSCMSource.DescriptorImpl delegate;
 
         /** {@inheritDoc} */
         @Override
@@ -1863,7 +1890,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @SuppressWarnings("unused") // jelly
         @NonNull
         public List<SCMTrait<? extends SCMTrait<?>>> getTraitsDefaults() {
-            return new ArrayList<>(delegate.getTraitsDefaults());
+            return new ArrayList<>(ExtensionList.lookupSingleton(GitHubSCMSource.DescriptorImpl.class)
+                    .getTraitsDefaults());
         }
 
         static {

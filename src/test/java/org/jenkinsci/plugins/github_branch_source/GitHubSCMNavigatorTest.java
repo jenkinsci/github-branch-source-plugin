@@ -432,6 +432,18 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
                 Matchers.containsInAnyOrder(
                         Matchers.is(
                                 new ObjectMetadataAction("CloudBeers, Inc.", null, "https://github.com/cloudbeers")),
+                        Matchers.is(new GitHubOrgMetadataAction((String) null)),
+                        Matchers.is(new GitHubLink("icon-github-logo", "https://github.com/cloudbeers"))));
+    }
+
+    @Test
+    public void fetchActionsWithAvatar() throws Exception {
+        navigator.setEnableAvatar(true);
+        assertThat(
+                navigator.fetchActions(Mockito.mock(SCMNavigatorOwner.class), null, null),
+                Matchers.containsInAnyOrder(
+                        Matchers.is(
+                                new ObjectMetadataAction("CloudBeers, Inc.", null, "https://github.com/cloudbeers")),
                         Matchers.is(new GitHubOrgMetadataAction("https://avatars.githubusercontent.com/u/4181899?v=3")),
                         Matchers.is(new GitHubLink("https://github.com/cloudbeers"))));
     }
