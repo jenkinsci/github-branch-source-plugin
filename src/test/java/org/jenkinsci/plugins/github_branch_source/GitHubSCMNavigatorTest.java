@@ -433,7 +433,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
                         Matchers.is(
                                 new ObjectMetadataAction("CloudBeers, Inc.", null, "https://github.com/cloudbeers")),
                         Matchers.is(new GitHubOrgMetadataAction((String) null)),
-                        Matchers.is(new GitHubLink("icon-github-logo", "https://github.com/cloudbeers"))));
+                        Matchers.is(new GitHubLink("https://github.com/cloudbeers"))));
     }
 
     @Test
