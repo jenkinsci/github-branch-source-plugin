@@ -1924,7 +1924,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     url = repoLink.getUrl() + "/tree/" + head.getName();
                     metadataAction = new ObjectMetadataAction(head.getName(), null, url);
                 }
-                result.add(new GitHubLink("icon-github-branch", url));
+                result.add(new GitHubLink(url));
                 result.add(metadataAction);
             }
             if (head instanceof BranchSCMHead) {
@@ -1970,7 +1970,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             result.add(new ObjectMetadataAction(
                     null, ghRepository.getDescription(), Util.fixEmpty(ghRepository.getHomepage())));
-            result.add(new GitHubLink("icon-github-repo", ghRepository.getHtmlUrl()));
+            result.add(new GitHubLink(ghRepository.getHtmlUrl()));
             if (StringUtils.isNotBlank(ghRepository.getDefaultBranch())) {
                 result.add(new GitHubDefaultBranch(getRepoOwner(), repository, ghRepository.getDefaultBranch()));
             }

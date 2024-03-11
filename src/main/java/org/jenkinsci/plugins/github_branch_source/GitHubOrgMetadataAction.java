@@ -91,7 +91,7 @@ public class GitHubOrgMetadataAction extends AvatarMetadataAction {
     /** {@inheritDoc} */
     @Override
     public String getAvatarIconClassName() {
-        return avatar == null ? "icon-github-logo" : null;
+        return avatar == null ? "symbol-logo-github plugin-ionicons-api" : null;
     }
 
     /** {@inheritDoc} */
