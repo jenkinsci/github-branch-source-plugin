@@ -38,6 +38,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
 import hudson.Extension;
+import hudson.ExtensionList;
 import hudson.RestrictedSince;
 import hudson.Util;
 import hudson.console.HyperlinkNote;
@@ -62,7 +63,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.inject.Inject;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.traits.GitBrowserSCMSourceTrait;
 import jenkins.scm.api.SCMNavigator;
@@ -1571,7 +1571,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             } else {
                 result.add(new GitHubOrgMetadataAction(u));
             }
-            result.add(new GitHubLink("icon-github-logo", u.getHtmlUrl()));
+            result.add(new GitHubLink(u.getHtmlUrl()));
             if (objectUrl == null) {
                 listener.getLogger().println("Organization URL: unspecified");
             } else {
@@ -1715,9 +1715,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @Restricted(DoNotUse.class)
         @RestrictedSince("2.2.0")
         public static final boolean defaultBuildForkPRHead = false;
-
-        @Inject
-        private GitHubSCMSource.DescriptorImpl delegate;
 
         /** {@inheritDoc} */
         @Override
@@ -1894,7 +1891,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
         @SuppressWarnings("unused") // jelly
         @NonNull
         public List<SCMTrait<? extends SCMTrait<?>>> getTraitsDefaults() {
-            return new ArrayList<>(delegate.getTraitsDefaults());
+            return new ArrayList<>(ExtensionList.lookupSingleton(GitHubSCMSource.DescriptorImpl.class)
+                    .getTraitsDefaults());
         }
 
         static {
@@ -1916,27 +1914,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
                     Icon.ICON_XLARGE_STYLE));
 
             IconSet.icons.addIcon(new Icon(
-                    "icon-github-logo icon-sm",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
-                    Icon.ICON_SMALL_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-logo icon-md",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
-                    Icon.ICON_MEDIUM_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-logo icon-lg",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
-                    Icon.ICON_LARGE_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-logo icon-xlg",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#github-logo",
-                    Icon.ICON_XLARGE_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-
-            IconSet.icons.addIcon(new Icon(
                     "icon-github-repo icon-sm",
                     "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
                     Icon.ICON_SMALL_STYLE,
@@ -1954,27 +1931,6 @@ public class GitHubSCMNavigator extends SCMNavigator {
             IconSet.icons.addIcon(new Icon(
                     "icon-github-repo icon-xlg",
                     "plugin/github-branch-source/images/svgs/sprite-github.svg#github-repo",
-                    Icon.ICON_XLARGE_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-branch icon-sm",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
-                    Icon.ICON_SMALL_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-branch icon-md",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
-                    Icon.ICON_MEDIUM_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-branch icon-lg",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
-                    Icon.ICON_LARGE_STYLE,
-                    IconFormat.EXTERNAL_SVG_SPRITE));
-            IconSet.icons.addIcon(new Icon(
-                    "icon-github-branch icon-xlg",
-                    "plugin/github-branch-source/images/svgs/sprite-github.svg#git-branch",
                     Icon.ICON_XLARGE_STYLE,
                     IconFormat.EXTERNAL_SVG_SPRITE));
         }
