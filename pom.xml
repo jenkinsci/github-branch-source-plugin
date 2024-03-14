@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.77</version>
+    <version>4.79</version>
     <relativePath />
   </parent>
 
@@ -61,6 +61,10 @@
     </dependency>
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
+      <artifactId>ionicons-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.plugins</groupId>
       <artifactId>jjwt-api</artifactId>
     </dependency>
     <dependency>
@@ -82,7 +86,7 @@
     <dependency>
       <groupId>com.github.tomakehurst</groupId>
       <artifactId>wiremock-jre8-standalone</artifactId>
-      <version>2.35.1</version>
+      <version>2.35.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
