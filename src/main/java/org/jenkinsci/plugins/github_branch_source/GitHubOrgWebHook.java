@@ -97,6 +97,7 @@ public class GitHubOrgWebHook {
         return new File(Jenkins.get().getRootDir(), "github-webhooks/GitHubOrgHook." + orgName);
     }
 
+    // TODO never called?
     public static void deregister(GitHub hub, String orgName) throws IOException {
         String rootUrl = Jenkins.get().getRootUrl();
         if (rootUrl == null) {

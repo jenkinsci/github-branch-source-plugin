@@ -199,6 +199,44 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         }
     }
 
+    GHAppInstallation getAppInstallation() throws IOException {
+        return getAppInstallation(null, appID, privateKey.getPlainText(), apiUri, owner);
+    }
+
+    static GHAppInstallation getAppInstallation(
+            GitHub gitHubApp, String appId, String appPrivateKey, String apiUrl, String owner) throws IOException {
+        if (gitHubApp == null) {
+            gitHubApp = TokenProvider.createTokenRefreshGitHub(appId, appPrivateKey, apiUrl);
+        }
+
+        GHApp app;
+        try {
+            app = gitHubApp.getApp();
+        } catch (IOException e) {
+            throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId), e);
+        }
+
+        GHAppInstallation appInstallation;
+        List<GHAppInstallation> appInstallations = app.listInstallations().asList();
+        if (appInstallations.isEmpty()) {
+            throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId));
+        } else if (appInstallations.size() == 1) {
+            appInstallation = appInstallations.get(0);
+        } else {
+            final String ownerOrEmpty = owner != null ? owner : "";
+            appInstallation = appInstallations.stream()
+                    .filter(installation -> installation
+                            .getAccount()
+                            .getLogin()
+                            .toLowerCase(Locale.ROOT)
+                            .equals(ownerOrEmpty.toLowerCase(Locale.ROOT)))
+                    .findAny()
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(String.format(ERROR_NO_OWNER_MATCHING, appId, ownerOrEmpty)));
+        }
+        return appInstallation;
+    }
+
     @SuppressWarnings("deprecation") // preview features are required for GitHub app integration, GitHub api adds
     // deprecated to all preview methods
     static AppInstallationToken generateAppInstallationToken(
@@ -207,36 +245,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         // We expect this to be fast but if anything hangs in here we do not want to block indefinitely
 
         try (Timeout ignored = Timeout.limit(30, TimeUnit.SECONDS)) {
-            if (gitHubApp == null) {
-                gitHubApp = TokenProvider.createTokenRefreshGitHub(appId, appPrivateKey, apiUrl);
-            }
-
-            GHApp app;
-            try {
-                app = gitHubApp.getApp();
-            } catch (IOException e) {
-                throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId), e);
-            }
-
-            List<GHAppInstallation> appInstallations = app.listInstallations().asList();
-            if (appInstallations.isEmpty()) {
-                throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId));
-            }
-            GHAppInstallation appInstallation;
-            if (appInstallations.size() == 1) {
-                appInstallation = appInstallations.get(0);
-            } else {
-                final String ownerOrEmpty = owner != null ? owner : "";
-                appInstallation = appInstallations.stream()
-                        .filter(installation -> installation
-                                .getAccount()
-                                .getLogin()
-                                .toLowerCase(Locale.ROOT)
-                                .equals(ownerOrEmpty.toLowerCase(Locale.ROOT)))
-                        .findAny()
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                String.format(ERROR_NO_OWNER_MATCHING, appId, ownerOrEmpty)));
-            }
+            GHAppInstallation appInstallation = getAppInstallation(gitHubApp, appId, appPrivateKey, apiUrl, owner);
 
             GHAppInstallationToken appInstallationToken = appInstallation
                     .createToken(appInstallation.getPermissions())
