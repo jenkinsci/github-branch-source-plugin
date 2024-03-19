@@ -1019,7 +1019,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                             String.format(
                                                     "Looking up repositories for topics: '%s'",
                                                     gitHubSCMNavigatorContext.getTopics())));
-                            repositories = searchRepositories(github, gitHubSCMNavigatorContext);
+                            repositories = searchRepositories(github, gitHubSCMNavigatorContext, myself);
                         } else {
                             repositories = myself.listRepositories(100);
                         }
@@ -1114,7 +1114,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                         String.format(
                                                 "Looking up repositories for topics: '%s'",
                                                 gitHubSCMNavigatorContext.getTopics())));
-                        repositories = searchRepositories(github, gitHubSCMNavigatorContext);
+                        repositories = searchRepositories(github, gitHubSCMNavigatorContext, org);
                     } else {
                         repositories = org.listRepositories(100);
                     }
@@ -1239,13 +1239,35 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
-    private Iterable<GHRepository> searchRepositories(final GitHub github, final GitHubSCMNavigatorContext context) {
+    private Iterable<GHRepository> searchRepositories(final GitHub github, final GitHubSCMNavigatorContext context, final GHOrganization org) {
         final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
         context.getTopics().forEach(ghRepositorySearchBuilder::topic);
         ghRepositorySearchBuilder.org(getRepoOwner());
         if (!context.isExcludeForkedRepositories()) {
             ghRepositorySearchBuilder.q("fork:true");
         }
+
+        //Only the first 1000 search results are available
+        if (ghRepositorySearchBuilder.list().getTotalCount() > 1000) {
+            return org.listRepositories(100);
+        }
+
+        return ghRepositorySearchBuilder.list().withPageSize(100);
+    }
+
+    private Iterable<GHRepository> searchRepositories(final GitHub github, final GitHubSCMNavigatorContext context, final GHMyself myself) {
+        final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
+        context.getTopics().forEach(ghRepositorySearchBuilder::topic);
+        ghRepositorySearchBuilder.org(getRepoOwner());
+        if (!context.isExcludeForkedRepositories()) {
+            ghRepositorySearchBuilder.q("fork:true");
+        }
+
+        //Only the first 1000 search results are available
+        if (ghRepositorySearchBuilder.list().getTotalCount() > 1000) {
+            return myself.listRepositories(100);
+        }
+
         return ghRepositorySearchBuilder.list().withPageSize(100);
     }
 
