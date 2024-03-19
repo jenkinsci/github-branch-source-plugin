@@ -1247,7 +1247,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             ghRepositorySearchBuilder.q("fork:true");
         }
 
-        //Only the first 1000 search results are available
+        // Only the first 1000 search results are available
         if (ghRepositorySearchBuilder.list().getTotalCount() > 1000) {
             return org.listRepositories(100);
         }
@@ -1263,7 +1263,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             ghRepositorySearchBuilder.q("fork:true");
         }
 
-        //Only the first 1000 search results are available
+        // Only the first 1000 search results are available
         if (ghRepositorySearchBuilder.list().getTotalCount() > 1000) {
             return myself.listRepositories(100);
         }
