@@ -1239,7 +1239,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
-    private Iterable<GHRepository> searchRepositories(final GitHub github, final GitHubSCMNavigatorContext context, final GHOrganization org) {
+    private Iterable<GHRepository> searchRepositories(
+            final GitHub github, final GitHubSCMNavigatorContext context, final GHOrganization org) {
         final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
         context.getTopics().forEach(ghRepositorySearchBuilder::topic);
         ghRepositorySearchBuilder.org(getRepoOwner());
@@ -1255,7 +1256,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return ghRepositorySearchBuilder.list().withPageSize(100);
     }
 
-    private Iterable<GHRepository> searchRepositories(final GitHub github, final GitHubSCMNavigatorContext context, final GHMyself myself) {
+    private Iterable<GHRepository> searchRepositories(
+            final GitHub github, final GitHubSCMNavigatorContext context, final GHMyself myself) {
         final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
         context.getTopics().forEach(ghRepositorySearchBuilder::topic);
         ghRepositorySearchBuilder.org(getRepoOwner());
