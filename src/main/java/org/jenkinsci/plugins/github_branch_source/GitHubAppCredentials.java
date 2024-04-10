@@ -660,7 +660,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         /** {@inheritDoc} */
         @Override
         public String getIconClassName() {
-            return "icon-github-logo";
+            return "symbol-logo-github plugin-ionicons-api";
         }
 
         @SuppressWarnings("unused") // jelly
