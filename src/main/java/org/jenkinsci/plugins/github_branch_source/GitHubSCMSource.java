@@ -2069,7 +2069,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 @QueryParameter String apiUri,
                 @QueryParameter String credentialsId) {
             if (context == null
-                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+                    ? !Jenkins.get().hasPermission(Jenkins.MANAGE)
                     : !context.hasPermission(Item.EXTENDED_READ)) {
                 return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
@@ -2102,7 +2102,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 @QueryParameter String repositoryUrl,
                 @QueryParameter String credentialsId,
                 @QueryParameter String repoOwner) {
-            if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+            if (context == null && !Jenkins.get().hasPermission(Jenkins.MANAGE)
                     || context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                 return FormValidation.error(
                         "Unable to validate repository information"); // not supposed to be seeing this form
@@ -2249,7 +2249,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (credentialsId == null) {
                 return new ListBoxModel();
             }
-            if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+            if (context == null && !Jenkins.get().hasPermission(Jenkins.MANAGE)
                     || context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                 return new ListBoxModel(); // not supposed to be seeing this form
             }
@@ -2297,7 +2297,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (repoOwner == null) {
                 return new ListBoxModel();
             }
-            if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+            if (context == null && !Jenkins.get().hasPermission(Jenkins.MANAGE)
                     || context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                 return new ListBoxModel(); // not supposed to be seeing this form
             }

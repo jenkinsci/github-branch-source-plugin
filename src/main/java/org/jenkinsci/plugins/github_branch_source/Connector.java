@@ -182,7 +182,7 @@ public class Connector {
      */
     public static FormValidation checkScanCredentials(
             @CheckForNull Item context, String apiUri, String scanCredentialsId, @CheckForNull String repoOwner) {
-        if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+        if (context == null && !Jenkins.get().hasPermission(Jenkins.MANAGE)
                 || context != null && !context.hasPermission(Item.EXTENDED_READ)) {
             return FormValidation.ok();
         }

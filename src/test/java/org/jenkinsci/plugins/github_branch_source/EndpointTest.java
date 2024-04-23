@@ -45,7 +45,7 @@ public class EndpointTest {
     public void setUp() throws Exception {
         j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
         MockAuthorizationStrategy auth = new MockAuthorizationStrategy();
-        auth.grant(Jenkins.ADMINISTER).everywhere().to("alice");
+        auth.grant(Jenkins.MANAGE).everywhere().to("alice");
         auth.grant(Jenkins.READ).everywhere().toEveryone();
         j.jenkins.setAuthorizationStrategy(auth);
         testUrl = Util.rawEncode(j.getURL().toString() + "testroot/");
