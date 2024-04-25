@@ -22,6 +22,7 @@ import org.htmlunit.FailingHttpStatusCodeException;
 import org.htmlunit.HttpMethod;
 import org.htmlunit.Page;
 import org.htmlunit.WebRequest;
+import org.htmlunit.html.HtmlPage;
 import org.htmlunit.util.NameValuePair;
 import org.junit.Before;
 import org.junit.Rule;
@@ -88,6 +89,13 @@ public class EndpointTest {
                 "descriptorByName/org.jenkinsci.plugins.github_branch_source.Endpoint/checkApiUri?apiUri=" + testUrl,
                 "alice");
         assertTrue(TestRoot.get().visited);
+    }
+
+    @Test
+    @Issue("JENKINS-73053")
+    public void manageCanSetupEndpoints() throws Exception {
+        HtmlPage htmlPage = j.createWebClient().login("alice").goTo("manage/configure");
+        assertTrue(htmlPage.getVisibleText().contains("GitHub Enterprise Servers"));
     }
 
     private String appendCrumb(String url) {
