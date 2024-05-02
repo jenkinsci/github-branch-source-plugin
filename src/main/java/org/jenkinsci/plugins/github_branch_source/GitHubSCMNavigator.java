@@ -1800,7 +1800,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 @QueryParameter String apiUri,
                 @QueryParameter String credentialsId) {
             if (context == null
-                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+                    ? !Jenkins.get().hasPermission(Jenkins.MANAGE)
                     : !context.hasPermission(Item.EXTENDED_READ)) {
                 return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
