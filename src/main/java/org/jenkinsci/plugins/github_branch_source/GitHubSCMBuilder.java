@@ -25,19 +25,14 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
-import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Item;
-import hudson.model.Queue;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.browser.GithubWeb;
-import hudson.security.ACL;
 import java.net.URL;
 import java.util.HashSet;
 import java.util.Random;
@@ -214,19 +209,7 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         if (credentialsId == null) {
             return HTTPS;
         } else {
-            StandardCredentials credentials = CredentialsMatchers.firstOrNull(
-                    CredentialsProvider.lookupCredentials(
-                            StandardCredentials.class,
-                            context,
-                            context instanceof Queue.Task
-                                    ? ((Queue.Task) context).getDefaultAuthentication()
-                                    : ACL.SYSTEM,
-                            URIRequirementBuilder.create()
-                                    .withHostname(RepositoryUriResolver.hostnameFromApiUri(apiUri))
-                                    .build()),
-                    CredentialsMatchers.allOf(
-                            CredentialsMatchers.withId(credentialsId),
-                            CredentialsMatchers.instanceOf(StandardCredentials.class)));
+            StandardCredentials credentials = Connector.lookupScanCredentials(context, apiUri, credentialsId, null);
             if (credentials instanceof SSHUserPrivateKey) {
                 return SSH;
             } else {

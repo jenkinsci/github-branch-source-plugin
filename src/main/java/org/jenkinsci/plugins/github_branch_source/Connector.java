@@ -100,6 +100,7 @@ public class Connector {
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
     private static final OkHttpClient baseClient =
             JenkinsOkHttpClient.newClientBuilder(new OkHttpClient()).build();
+    private static final ThreadLocal<StandardCredentials> scanCredentials = new ThreadLocal<>();
 
     private Connector() {
         throw new IllegalAccessError("Utility class");
@@ -295,8 +296,12 @@ public class Connector {
             @CheckForNull String repoOwner) {
         if (Util.fixEmpty(scanCredentialsId) == null) {
             return null;
+        }
+        StandardCredentials c = null;
+        if (scanCredentials.get() != null) {
+            c = scanCredentials.get();
         } else {
-            StandardCredentials c = CredentialsMatchers.firstOrNull(
+            c = CredentialsMatchers.firstOrNull(
                     CredentialsProvider.lookupCredentials(
                             StandardUsernameCredentials.class,
                             context,
@@ -306,12 +311,14 @@ public class Connector {
                             githubDomainRequirements(apiUri)),
                     CredentialsMatchers.allOf(
                             CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher()));
-            if (c instanceof GitHubAppCredentials && repoOwner != null) {
-                return ((GitHubAppCredentials) c).withOwner(repoOwner);
-            } else {
-                return c;
-            }
         }
+        if (c instanceof GitHubAppCredentials && repoOwner != null) {
+            c = ((GitHubAppCredentials) c).withOwner(repoOwner);
+            scanCredentials.set(((GitHubAppCredentials) c).withOwner(repoOwner));
+        } else {
+            scanCredentials.set(c);
+        }
+        return c;
     }
 
     /**
