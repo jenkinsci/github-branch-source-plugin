@@ -98,7 +98,7 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
     /** {@inheritDoc} */
     @Override
     protected void decorateBuilder(SCMBuilder<?, ?> builder) {
-        ((GitHubSCMBuilder) builder).withCredentials(credentialsId, GitHubSCMBuilder.SSH);
+        ((GitHubSCMBuilder) builder).withCredentials(credentialsId).withResolver(GitHubSCMBuilder.SSH);
     }
 
     /** Our descriptor. */

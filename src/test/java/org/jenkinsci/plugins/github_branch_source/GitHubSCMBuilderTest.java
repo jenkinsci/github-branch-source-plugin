@@ -223,8 +223,8 @@ public class GitHubSCMBuilderTest {
         createGitHubSCMSourceForTest(false, null);
         BranchSCMHead head = new BranchSCMHead("test-branch");
         SCMRevisionImpl revision = new SCMRevisionImpl(head, "cafebabedeadbeefcafebabedeadbeefcafebabe");
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(revision));
@@ -406,8 +406,8 @@ public class GitHubSCMBuilderTest {
         createGitHubSCMSourceForTest(false, null);
         BranchSCMHead head = new BranchSCMHead("test-branch");
         SCMRevisionImpl revision = new SCMRevisionImpl(head, "cafebabedeadbeefcafebabedeadbeefcafebabe");
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(revision));
@@ -595,8 +595,8 @@ public class GitHubSCMBuilderTest {
         createGitHubSCMSourceForTest(false, null);
         BranchSCMHead head = new BranchSCMHead("test-branch");
         SCMRevisionImpl revision = new SCMRevisionImpl(head, "cafebabedeadbeefcafebabedeadbeefcafebabe");
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(revision));
@@ -741,8 +741,8 @@ public class GitHubSCMBuilderTest {
     public void given__cloud_branch_norev_userkey__when__build__then__scmBuilt() throws Exception {
         createGitHubSCMSourceForTest(false, null);
         BranchSCMHead head = new BranchSCMHead("test-branch");
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
@@ -903,8 +903,8 @@ public class GitHubSCMBuilderTest {
         BranchSCMHead head = new BranchSCMHead("test-branch");
         AbstractGitSCMSource.SCMRevisionImpl revision =
                 new AbstractGitSCMSource.SCMRevisionImpl(head, "cafebabedeadbeefcafebabedeadbeefcafebabe");
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(revision));
@@ -1044,8 +1044,8 @@ public class GitHubSCMBuilderTest {
     public void given__server_branch_norev_userkey__when__build__then__scmBuilt() throws Exception {
         createGitHubSCMSourceForTest(true, "https://github.test/tester/test-repo.git");
         BranchSCMHead head = new BranchSCMHead("test-branch");
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
@@ -1230,8 +1230,8 @@ public class GitHubSCMBuilderTest {
         PullRequestSCMRevision revision = new PullRequestSCMRevision(
                 head, "deadbeefcafebabedeadbeefcafebabedeadbeef", "cafebabedeadbeefcafebabedeadbeefcafebabe");
         createGitHubSCMSourceForTest(false, null);
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(revision));
@@ -1395,8 +1395,8 @@ public class GitHubSCMBuilderTest {
                 new BranchSCMHead("test-branch"),
                 new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.HEAD);
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
@@ -1581,8 +1581,8 @@ public class GitHubSCMBuilderTest {
                 ChangeRequestCheckoutStrategy.HEAD);
         PullRequestSCMRevision revision = new PullRequestSCMRevision(
                 head, "deadbeefcafebabedeadbeefcafebabedeadbeef", "cafebabedeadbeefcafebabedeadbeefcafebabe");
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(revision));
@@ -1746,8 +1746,8 @@ public class GitHubSCMBuilderTest {
                 new BranchSCMHead("test-branch"),
                 new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.HEAD);
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
@@ -1962,8 +1962,8 @@ public class GitHubSCMBuilderTest {
                 ChangeRequestCheckoutStrategy.MERGE);
         PullRequestSCMRevision revision = new PullRequestSCMRevision(
                 head, "deadbeefcafebabedeadbeefcafebabedeadbeef", "cafebabedeadbeefcafebabedeadbeefcafebabe");
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(revision));
@@ -2166,8 +2166,8 @@ public class GitHubSCMBuilderTest {
                 new BranchSCMHead("test-branch"),
                 new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.MERGE);
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));
@@ -2394,8 +2394,8 @@ public class GitHubSCMBuilderTest {
                 ChangeRequestCheckoutStrategy.MERGE);
         PullRequestSCMRevision revision = new PullRequestSCMRevision(
                 head, "deadbeefcafebabedeadbeefcafebabedeadbeef", "cafebabedeadbeefcafebabedeadbeefcafebabe");
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(revision));
@@ -2600,8 +2600,8 @@ public class GitHubSCMBuilderTest {
                 new BranchSCMHead("test-branch"),
                 new SCMHeadOrigin.Fork("qa/qa-repo"),
                 ChangeRequestCheckoutStrategy.MERGE);
-        source.setCredentialsId("user-key");
         GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
+        instance.withCredentials("user-key", GitHubSCMBuilder.SSH);
         assertThat(instance.credentialsId(), is("user-key"));
         assertThat(instance.head(), is(head));
         assertThat(instance.revision(), is(nullValue()));

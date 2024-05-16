@@ -30,6 +30,7 @@ import static org.apache.commons.lang.StringUtils.isBlank;
 import static org.apache.commons.lang.StringUtils.removeEnd;
 import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
 import static org.jenkinsci.plugins.github_branch_source.GitHubSCMBuilder.API_V3;
+import static org.jenkinsci.plugins.github_branch_source.GitHubSCMBuilder.HTTPS;
 
 import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
@@ -598,8 +599,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /** {@inheritDoc} */
     @Override
     public String getRemote() {
-        return GitHubSCMBuilder.uriResolver(getOwner(), apiUri, credentialsId)
-                .getRepositoryUri(apiUri, repoOwner, repository);
+        // Only HTTPS is applicable to the source remote with Username / Password credentials
+        return HTTPS.getRepositoryUri(apiUri, repoOwner, repository);
     }
 
     /** {@inheritDoc} */
@@ -619,7 +620,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
     public RepositoryUriResolver getUriResolver() {
-        return GitHubSCMBuilder.uriResolver(getOwner(), apiUri, credentialsId);
+        return HTTPS;
     }
 
     @Restricted(NoExternalUse.class)

@@ -297,7 +297,7 @@ public class Connector {
         if (Util.fixEmpty(scanCredentialsId) == null) {
             return null;
         }
-        StandardCredentials c = null;
+        StandardCredentials c;
         if (scanCredentials.get() != null) {
             c = scanCredentials.get();
         } else {
