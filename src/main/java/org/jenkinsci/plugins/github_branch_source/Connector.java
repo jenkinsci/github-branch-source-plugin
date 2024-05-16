@@ -297,21 +297,22 @@ public class Connector {
         if (Util.fixEmpty(scanCredentialsId) == null) {
             return null;
         }
-        StandardCredentials c;
-        if (scanCredentials.get() != null) {
-            c = scanCredentials.get();
-        } else {
-            c = CredentialsMatchers.firstOrNull(
-                    CredentialsProvider.lookupCredentialsInItem(
-                            StandardUsernameCredentials.class,
-                            context,
-                            context instanceof Queue.Task
-                                    ? ((Queue.Task) context).getDefaultAuthentication2()
-                                    : ACL.SYSTEM2,
-                            githubDomainRequirements(apiUri)),
-                    CredentialsMatchers.allOf(
-                            CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher()));
-        }
+
+        StandardCredentials c = CredentialsCache.getOrCreate(
+                context,
+                apiUri,
+                scanCredentialsId,
+                () -> CredentialsMatchers.firstOrNull(
+                        CredentialsProvider.lookupCredentialsInItem(
+                                StandardUsernameCredentials.class,
+                                context,
+                                context instanceof Queue.Task
+                                        ? ((Queue.Task) context).getDefaultAuthentication2()
+                                        : ACL.SYSTEM2,
+                                githubDomainRequirements(apiUri)),
+                        CredentialsMatchers.allOf(
+                                CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher())));
+
         if (c instanceof GitHubAppCredentials && repoOwner != null) {
             c = ((GitHubAppCredentials) c).withOwner(repoOwner);
             scanCredentials.set(((GitHubAppCredentials) c).withOwner(repoOwner));
