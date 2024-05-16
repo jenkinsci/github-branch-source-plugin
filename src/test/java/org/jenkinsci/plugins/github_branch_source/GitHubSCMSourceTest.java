@@ -739,7 +739,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         try {
             r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
             MockAuthorizationStrategy mockStrategy = new MockAuthorizationStrategy();
-            mockStrategy.grant(Jenkins.ADMINISTER).onRoot().to("admin");
+            mockStrategy.grant(Jenkins.MANAGE).onRoot().to("admin");
             mockStrategy.grant(Item.CONFIGURE).onItems(dummy).to("bob");
             mockStrategy.grant(Item.EXTENDED_READ).onItems(dummy).to("jim");
             r.jenkins.setAuthorizationStrategy(mockStrategy);

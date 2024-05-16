@@ -29,9 +29,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import jenkins.scm.api.SCMSource;
 import jenkins.security.SlaveToMasterCallable;
 import jenkins.util.JenkinsJVM;
@@ -61,7 +63,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     private static final String ERROR_NOT_INSTALLED = ERROR_AUTHENTICATING_GITHUB_APP + NOT_INSTALLED;
     private static final String ERROR_NO_OWNER_MATCHING =
             "Found multiple installations for GitHub app ID %s but none match credential owner \"%s\". "
-                    + "Set the right owner in the credential advanced options";
+                    + "Set the right owner in the credential advanced options to one of: %s";
 
     /**
      * When a new {@link AppInstallationToken} is generated, wait this many seconds before continuing.
@@ -227,15 +229,21 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 appInstallation = appInstallations.get(0);
             } else {
                 final String ownerOrEmpty = owner != null ? owner : "";
-                appInstallation = appInstallations.stream()
+                Optional<GHAppInstallation> appInstallationOptional = appInstallations.stream()
                         .filter(installation -> installation
                                 .getAccount()
                                 .getLogin()
                                 .toLowerCase(Locale.ROOT)
                                 .equals(ownerOrEmpty.toLowerCase(Locale.ROOT)))
-                        .findAny()
-                        .orElseThrow(() -> new IllegalArgumentException(
-                                String.format(ERROR_NO_OWNER_MATCHING, appId, ownerOrEmpty)));
+                        .findAny();
+                if (appInstallationOptional.isEmpty()) {
+                    String logins = appInstallations.stream()
+                            .map(installation -> installation.getAccount().getLogin())
+                            .collect(Collectors.joining(", "));
+                    throw new IllegalArgumentException(
+                            String.format(ERROR_NO_OWNER_MATCHING, appId, ownerOrEmpty, logins));
+                }
+                appInstallation = appInstallationOptional.get();
             }
 
             GHAppInstallationToken appInstallationToken = appInstallation
@@ -652,7 +660,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         /** {@inheritDoc} */
         @Override
         public String getIconClassName() {
-            return "icon-github-logo";
+            return "symbol-logo-github plugin-ionicons-api";
         }
 
         @SuppressWarnings("unused") // jelly
