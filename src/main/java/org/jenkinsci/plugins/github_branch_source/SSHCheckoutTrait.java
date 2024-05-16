@@ -190,24 +190,24 @@ public class SSHCheckoutTrait extends SCMSourceTrait {
                 return FormValidation.ok();
             }
             if (CredentialsMatchers.firstOrNull(
-                            CredentialsProvider.lookupCredentials(
+                            CredentialsProvider.lookupCredentialsInItem(
                                     SSHUserPrivateKey.class,
                                     context,
                                     context instanceof Queue.Task
-                                            ? ((Queue.Task) context).getDefaultAuthentication()
-                                            : ACL.SYSTEM,
+                                            ? ((Queue.Task) context).getDefaultAuthentication2()
+                                            : ACL.SYSTEM2,
                                     URIRequirementBuilder.fromUri(serverUrl).build()),
                             CredentialsMatchers.withId(value))
                     != null) {
                 return FormValidation.ok();
             }
             if (CredentialsMatchers.firstOrNull(
-                            CredentialsProvider.lookupCredentials(
+                            CredentialsProvider.lookupCredentialsInItem(
                                     StandardUsernameCredentials.class,
                                     context,
                                     context instanceof Queue.Task
-                                            ? ((Queue.Task) context).getDefaultAuthentication()
-                                            : ACL.SYSTEM,
+                                            ? ((Queue.Task) context).getDefaultAuthentication2()
+                                            : ACL.SYSTEM2,
                                     URIRequirementBuilder.fromUri(serverUrl).build()),
                             CredentialsMatchers.withId(value))
                     != null) {

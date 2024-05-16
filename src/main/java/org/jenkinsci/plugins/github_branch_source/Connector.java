@@ -302,12 +302,12 @@ public class Connector {
             c = scanCredentials.get();
         } else {
             c = CredentialsMatchers.firstOrNull(
-                    CredentialsProvider.lookupCredentials(
+                    CredentialsProvider.lookupCredentialsInItem(
                             StandardUsernameCredentials.class,
                             context,
                             context instanceof Queue.Task
-                                    ? ((Queue.Task) context).getDefaultAuthentication()
-                                    : ACL.SYSTEM,
+                                    ? ((Queue.Task) context).getDefaultAuthentication2()
+                                    : ACL.SYSTEM2,
                             githubDomainRequirements(apiUri)),
                     CredentialsMatchers.allOf(
                             CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher()));
