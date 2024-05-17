@@ -4,6 +4,7 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.Util;
 import hudson.model.Item;
+import hudson.model.ItemGroup;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -20,16 +21,22 @@ import jenkins.util.SystemProperties;
 public class CredentialsCache {
 
     /**
-     * The cache expiry in minutes. Default to 10 minutes to stay within the acceptable staleness behavior of
-     * {@link GitHubAppCredentials}.
+     * The cache expiry in minutes. Default to 15 minutes.
      */
     private static final long CACHE_DURATION_SECONDS = SystemProperties.getLong(
             CredentialsCache.class.getName() + ".CACHE_DURATION_SECONDS", TimeUnit.MINUTES.toSeconds(1L));
 
+    /**
+     * Whether the cache is disabled.
+     */
+    private static final boolean CACHE_DISABLED =
+            SystemProperties.getBoolean(CredentialsCache.class.getName() + ".CACHE_DISABLED", false);
+
     private static final ThreadLocal<Map<Integer, CacheValue>> scanCredentialsRequests = new ThreadLocal<>();
 
     /**
-     * Retrieve the cached credentials in the specified context for use against the specified API endpoint. Otherwise
+     * Retrieve the cached credentials in the specified context for use against the specified API endpoint.
+     * If not found,
      *
      *
      * @param context the context.
@@ -47,6 +54,10 @@ public class CredentialsCache {
             return null;
         }
 
+        if (CACHE_DISABLED) {
+            return lookup.get();
+        }
+
         if (scanCredentialsRequests.get() == null) {
             scanCredentialsRequests.set(new HashMap<>());
         }
@@ -54,9 +65,29 @@ public class CredentialsCache {
         int cacheKey = Objects.hash(apiUri, credentialsId, context == null ? null : context.getFullName());
         CacheValue result = scanCredentialsRequests.get().get(cacheKey);
         if (result == null || result.expired()) {
-            result = new CacheValue(lookup.get());
+            if (context != null) {
+                /*
+                 * Check if the credentials is cached for the parent context (SCMNavigator). If it is, it will be
+                 * stored in cache for the parent context and also the requested context for better cache hit
+                 * throughput.
+                 * That guarantees that the credentials cache is used throughout an entire Organization Scan process
+                 * that use the context of the OrganizationFolder and then a different child context for all repository
+                 * MultibranchProjects that it visits.
+                 */
+                ItemGroup<?> parent = context.getParent();
+                int parentCacheKey = Objects.hash(apiUri, credentialsId, parent == null ? null : parent.getFullName());
+                result = scanCredentialsRequests.get().get(parentCacheKey);
+
+                if (result == null || result.expired()) {
+                    result = new CacheValue(lookup.get());
+                    scanCredentialsRequests.get().put(parentCacheKey, result);
+                }
+            } else {
+                result = new CacheValue(lookup.get());
+            }
             scanCredentialsRequests.get().put(cacheKey, result);
         }
+
         return result.getCredentials();
     }
 
