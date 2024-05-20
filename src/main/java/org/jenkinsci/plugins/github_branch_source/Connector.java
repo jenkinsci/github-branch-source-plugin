@@ -100,7 +100,6 @@ public class Connector {
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
     private static final OkHttpClient baseClient =
             JenkinsOkHttpClient.newClientBuilder(new OkHttpClient()).build();
-    private static final ThreadLocal<StandardCredentials> scanCredentials = new ThreadLocal<>();
 
     private Connector() {
         throw new IllegalAccessError("Utility class");
@@ -310,9 +309,6 @@ public class Connector {
 
         if (c instanceof GitHubAppCredentials && repoOwner != null) {
             c = ((GitHubAppCredentials) c).withOwner(repoOwner);
-            scanCredentials.set(((GitHubAppCredentials) c).withOwner(repoOwner));
-        } else {
-            scanCredentials.set(c);
         }
         return c;
     }
