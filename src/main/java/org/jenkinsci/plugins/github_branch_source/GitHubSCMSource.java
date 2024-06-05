@@ -379,7 +379,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    @CheckForNull
+    @CheckForNull @Restricted(NoExternalUse.class)
     public StandardCredentials getCredentials(@CheckForNull Item context, boolean forceRefresh) {
         if (credentials == null || forceRefresh) {
             credentials = Connector.lookupScanCredentials(context, getApiUri(), getCredentialsId(), getRepoOwner());
