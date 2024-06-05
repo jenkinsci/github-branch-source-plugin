@@ -218,7 +218,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
     private static final LoadingCache<String, Boolean> privateModeCache = createPrivateModeCache();
     /** The cache of the credentials object */
     @CheckForNull
-    private transient StandardCredentials credentials;
+    private transient volatile StandardCredentials credentials;
 
     /**
      * Constructor.
