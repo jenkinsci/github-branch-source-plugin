@@ -1280,10 +1280,11 @@ public class GitHubSCMNavigator extends SCMNavigator {
             throw new AbortException("Must specify user or organization");
         }
 
+        StandardCredentials credentials = getCredentials(observer.getContext(), false);
         // Github client and validation
         GitHub github;
         try {
-            github = Connector.connect(apiUri, getCredentials(observer.getContext(), false));
+            github = Connector.connect(apiUri, credentials);
         } catch (HttpException e) {
             throw new AbortException(e.getMessage());
         }
