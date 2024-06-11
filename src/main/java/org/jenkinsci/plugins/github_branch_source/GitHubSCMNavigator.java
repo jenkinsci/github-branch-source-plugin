@@ -1212,9 +1212,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
     }
 
-    private boolean topicMatches(final GitHubSCMNavigatorContext context, final GHRepository repo, PrintStream logger) throws IOException {
-        if (context.getTopics().isEmpty())
-            return true;
+    private boolean topicMatches(final GitHubSCMNavigatorContext context, final GHRepository repo, PrintStream logger)
+            throws IOException {
+        if (context.getTopics().isEmpty()) return true;
 
         final List<String> topics = repo.listTopics();
         return context.getTopics().stream().allMatch(topic -> {
@@ -1247,12 +1247,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
     private Iterable<GHRepository> searchRepositories(final GitHub github, final GitHubSCMNavigatorContext context) {
         final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
         context.getTopics().forEach(topic -> {
-                    if (topic.startsWith("-"))
-                        ghRepositorySearchBuilder.q("-topic:" + topic.substring(1));
-                    else
-                        ghRepositorySearchBuilder.topic(topic);
-                }
-        );
+            if (topic.startsWith("-")) ghRepositorySearchBuilder.q("-topic:" + topic.substring(1));
+            else ghRepositorySearchBuilder.topic(topic);
+        });
         ghRepositorySearchBuilder.org(getRepoOwner());
         if (!context.isExcludeForkedRepositories()) {
             ghRepositorySearchBuilder.q("fork:true");
