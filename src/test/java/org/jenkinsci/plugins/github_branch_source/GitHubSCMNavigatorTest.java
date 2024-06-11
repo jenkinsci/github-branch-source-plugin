@@ -244,7 +244,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     public void fetchRepos_BelongingToAuthenticatedUser_ExcludeAndFilterByTopic() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
-        navigator.setTraits(Collections.singletonList(new TopicsTrait("-awesome", "octocat")));
+        navigator.setTraits(Collections.singletonList(new TopicsTrait("-awesome,octocat")));
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 

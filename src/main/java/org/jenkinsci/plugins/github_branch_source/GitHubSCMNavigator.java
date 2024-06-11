@@ -1213,35 +1213,35 @@ public class GitHubSCMNavigator extends SCMNavigator {
     }
 
     private boolean topicMatches(final GitHubSCMNavigatorContext context, final GHRepository repo, PrintStream logger) throws IOException {
-         if (context.getTopics().isEmpty())
-             return true;
+        if (context.getTopics().isEmpty())
+            return true;
 
-         final List<String> topics = repo.listTopics();
-         return context.getTopics().stream().allMatch(topic -> {
-             if (topic.startsWith("-")) {
-                 boolean contains = topics.contains(topic.substring(1));
-                 if (contains) {
-                     logger.println(GitHubConsoleNote.create(
-                             System.currentTimeMillis(),
-                             String.format(
-                                     "Skipping repository %s because it contains excluded topic: '%s'",
-                                     repo.getName(), topic)));
-                     return false;
-                 }
-                 return true;
-             } else {
-                 boolean contains = topics.contains(topic);
-                 if (!contains) {
-                     logger.println(GitHubConsoleNote.create(
-                             System.currentTimeMillis(),
-                             String.format(
-                                     "Skipping repository %s because it does not contain topic: '%s'",
-                                     repo.getName(), topic)));
-                     return false;
-                 }
-                 return true;
-             }
-         });
+        final List<String> topics = repo.listTopics();
+        return context.getTopics().stream().allMatch(topic -> {
+            if (topic.startsWith("-")) {
+                boolean contains = topics.contains(topic.substring(1));
+                if (contains) {
+                    logger.println(GitHubConsoleNote.create(
+                            System.currentTimeMillis(),
+                            String.format(
+                                    "Skipping repository %s because it contains excluded topic: '%s'",
+                                    repo.getName(), topic)));
+                    return false;
+                }
+                return true;
+            } else {
+                boolean contains = topics.contains(topic);
+                if (!contains) {
+                    logger.println(GitHubConsoleNote.create(
+                            System.currentTimeMillis(),
+                            String.format(
+                                    "Skipping repository %s because it does not contain topic: '%s'",
+                                    repo.getName(), topic)));
+                    return false;
+                }
+                return true;
+            }
+        });
     }
 
     private Iterable<GHRepository> searchRepositories(final GitHub github, final GitHubSCMNavigatorContext context) {
