@@ -57,7 +57,7 @@ Click 'Create GitHub app'
 
 You now need to generate a private key authenticating to the GitHub app
 
-Click the 'generate a private key' option.
+Click the 'generate a new client secret' option.
 
 After a couple of seconds the key will be downloaded to your downloads folder.
 
