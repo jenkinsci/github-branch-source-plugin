@@ -306,8 +306,8 @@ public class Connector {
                             githubDomainRequirements(apiUri)),
                     CredentialsMatchers.allOf(
                             CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher()));
-            if (c instanceof GitHubAppCredentials && repoOwner != null) {
-                return ((GitHubAppCredentials) c).withOwner(repoOwner);
+            if (c instanceof GitHubAppAuthentication && repoOwner != null) {
+                return ((GitHubAppAuthentication) c).getCredentials().withOwner(repoOwner);
             } else {
                 return c;
             }
@@ -365,9 +365,9 @@ public class Connector {
             hash = "anonymous";
             authHash = "anonymous";
             gitHubAppCredentials = null;
-        } else if (credentials instanceof GitHubAppCredentials) {
+        } else if (credentials instanceof GitHubAppAuthentication) {
             password = null;
-            gitHubAppCredentials = (GitHubAppCredentials) credentials;
+            gitHubAppCredentials = ((GitHubAppAuthentication) credentials).getCredentials();
             hash = Util.getDigestOf(gitHubAppCredentials.getAppID()
                     + gitHubAppCredentials.getOwner()
                     + gitHubAppCredentials.getPrivateKey().getPlainText()
@@ -411,7 +411,7 @@ public class Connector {
                     gb.withAuthorizationProvider(
                             ImmutableAuthorizationProvider.fromLoginAndPassword(username, password));
                 }
-                return new GitHubConnection(gb.build(), cache, credentials instanceof GitHubAppCredentials);
+                return new GitHubConnection(gb.build(), cache, credentials instanceof GitHubAppAuthentication);
             } catch (IOException e) {
                 throw new RuntimeException(e.getMessage(), e);
             }

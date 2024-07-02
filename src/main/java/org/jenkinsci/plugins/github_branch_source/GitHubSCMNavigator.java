@@ -992,7 +992,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 SourceFactory sourceFactory = new SourceFactory(request);
                 WitnessImpl witness = new WitnessImpl(listener);
 
-                boolean githubAppAuthentication = credentials instanceof GitHubAppCredentials;
+                boolean githubAppAuthentication = credentials instanceof GitHubAppAuthentication;
                 if (github.isAnonymous()) {
                     listener.getLogger()
                             .format(
@@ -1297,7 +1297,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 SourceFactory sourceFactory = new SourceFactory(request);
                 WitnessImpl witness = new WitnessImpl(listener);
 
-                boolean githubAppAuthentication = credentials instanceof GitHubAppCredentials;
+                boolean githubAppAuthentication = credentials instanceof GitHubAppAuthentication;
                 if (github.isAnonymous()) {
                     listener.getLogger()
                             .format(

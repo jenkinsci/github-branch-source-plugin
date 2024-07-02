@@ -149,6 +149,11 @@ public class GitHubAppCredentials extends BaseStandardCredentials
         return new CredentialsTokenProvider(this);
     }
 
+    @Override
+    public GitHubAppCredentials getCredentials() {
+        return this;
+    }
+
     private static AuthorizationProvider createJwtProvider(String appId, String appPrivateKey) {
         try {
             return new JWTTokenProvider(appId, appPrivateKey);

@@ -1,6 +1,9 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 /**
- * GitHub App authentication marker interface.
+ * GitHub App credentials supplier.
  */
-public interface GitHubAppAuthentication {}
+public interface GitHubAppAuthentication {
+
+    GitHubAppCredentials getCredentials();
+}
