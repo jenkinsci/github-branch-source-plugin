@@ -53,7 +53,8 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
 
 @SuppressFBWarnings(value = "SE_NO_SERIALVERSIONID", justification = "XStream")
-public class GitHubAppCredentials extends BaseStandardCredentials implements StandardUsernamePasswordCredentials {
+public class GitHubAppCredentials extends BaseStandardCredentials
+        implements StandardUsernamePasswordCredentials, GitHubAppAuthentication {
 
     private static final Logger LOGGER = Logger.getLogger(GitHubAppCredentials.class.getName());
 

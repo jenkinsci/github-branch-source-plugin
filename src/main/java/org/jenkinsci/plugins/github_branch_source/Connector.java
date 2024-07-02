@@ -213,7 +213,7 @@ public class Connector {
                     GitHub connector = Connector.connect(apiUri, credentials);
                     try {
                         try {
-                            boolean githubAppAuthentication = credentials instanceof GitHubAppCredentials;
+                            boolean githubAppAuthentication = credentials instanceof GitHubAppAuthentication;
                             if (githubAppAuthentication) {
                                 int remaining = connector.getRateLimit().getRemaining();
                                 return FormValidation.ok("GHApp verified, remaining rate limit: %d", remaining);
