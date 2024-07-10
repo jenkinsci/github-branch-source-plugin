@@ -359,7 +359,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     @NonNull
     @Override
     public Credentials forRun(Run<?, ?> context) {
-        if (owner != null) {
+        if (getOwner() != null) {
             return this;
         }
         Job<?, ?> job = context.getParent();
