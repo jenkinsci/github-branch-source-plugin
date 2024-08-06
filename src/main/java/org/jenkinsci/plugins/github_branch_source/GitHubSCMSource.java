@@ -151,7 +151,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
 
     public static final String VALID_GITHUB_REPO_NAME = "^[0-9A-Za-z._-]+$";
     public static final String VALID_GITHUB_USER_NAME =
-            "^(?=[A-Za-z0-9-_]{1,39}$)([A-Za-z0-9]((?:[A-Za-z0-9]+|-(?=[A-Za-z0-9]+))*)(_(?:[A-Za-z0-9]+))?)";
+            "^(?=[A-Za-z0-9-_.]{1,39}$)([A-Za-z0-9]((?:[A-Za-z0-9]+|[-.](?=[A-Za-z0-9]+))*)(_(?:[A-Za-z0-9]+))?)";
     public static final String VALID_GIT_SHA1 = "^[a-fA-F0-9]{40}$";
     public static final String GITHUB_URL = GitHubServerConfig.GITHUB_URL;
     public static final String GITHUB_COM = "github.com";
