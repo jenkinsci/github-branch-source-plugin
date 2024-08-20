@@ -351,7 +351,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             GitHubAppCredentials clone =
                     new GitHubAppCredentials(getScope(), getId(), getDescription(), getAppID(), getPrivateKey());
             clone.apiUri = getApiUri();
-            clone.owner = getOwner();
+            clone.owner = owner;
             return clone;
         });
     }
