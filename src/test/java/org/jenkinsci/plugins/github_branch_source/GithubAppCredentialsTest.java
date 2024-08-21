@@ -3,6 +3,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
 import static org.jenkinsci.plugins.github_branch_source.Connector.createGitHubBuilder;
 import static org.junit.Assert.assertThrows;
 
@@ -503,6 +504,13 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
             logRecorder.doClear();
         }
+    }
+
+    @Test
+    public void testWithOwner() {
+        final var appCredentialsWithOwner = appCredentialsNoOwner.withOwner("cloudBeers");
+        assertThat(appCredentialsNoOwner.getOwner(), is(nullValue()));
+        assertThat(appCredentialsWithOwner.getOwner(), equalTo("cloudBeers"));
     }
 
     private List<String> getOutputLines() {
