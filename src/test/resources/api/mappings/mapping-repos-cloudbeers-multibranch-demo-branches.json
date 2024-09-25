@@ -1,0 +1,37 @@
+{
+  "id" : "aa79da5c-1c10-38da-a5b8-107c9a033cea",
+  "request" : {
+    "url" : "/repos/cloudbeers/multibranch-demo/branches",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "bodyFileName" : "body-repos-cloudbeers-multibranch-demo-branches.json",
+    "headers" : {
+      "Date" : "Thu, 26 Sep 2024 12:20:51 GMT",
+      "Content-Type" : "application/json; charset=utf-8",
+      "Cache-Control" : "private, max-age=60, s-maxage=60",
+      "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
+      "ETag" : "W/\"ac7433490cc75b1fc28d5b95a7ed4fa3bfcd345fee52e1339d9cf83cd42b1608\"",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "x-accepted-github-permissions" : "contents=read",
+      "x-github-api-version-selected" : "2022-11-28",
+      "X-RateLimit-Limit" : "5000",
+      "X-RateLimit-Remaining" : "4987",
+      "X-RateLimit-Reset" : "1727355030",
+      "X-RateLimit-Used" : "13",
+      "X-RateLimit-Resource" : "core",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
+      "Access-Control-Allow-Origin" : "*",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "X-Frame-Options" : "deny",
+      "X-Content-Type-Options" : "nosniff",
+      "X-XSS-Protection" : "0",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "Content-Security-Policy" : "default-src 'none'",
+      "Server" : "github.com",
+      "X-GitHub-Request-Id" : "8758:D18C5:2AB2445:2B2ECA5:66F551A3"
+    }
+  },
+  "uuid" : "aa79da5c-1c10-38da-a5b8-107c9a033cea"
+}

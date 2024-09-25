@@ -1,0 +1,41 @@
+{
+  "id" : "a229ac51-4da6-4347-9020-0841161e284c",
+  "name" : "repos_cloudbeers_multibranch-demo_contents",
+  "request" : {
+    "url" : "/repos/cloudbeers/multibranch-demo/contents/?ref=refs%2Fheads%2Fmaster",
+    "method" : "GET"
+  },
+  "response" : {
+    "status" : 200,
+    "body" : "[{\"name\":\"Jenkinsfile\",\"path\":\"Jenkinsfile\",\"sha\":\"98c0f1dad6a7874ff6a7ccc4dd72a5519ec8fdba\",\"size\":351,\"url\":\"https://api.github.com/repos/cloudbeers/multibranch-demo/contents/Jenkinsfile?ref=refs/heads/master\",\"html_url\":\"https://github.com/cloudbeers/multibranch-demo/blob/refs/heads/master/Jenkinsfile\",\"git_url\":\"https://api.github.com/repos/cloudbeers/multibranch-demo/git/blobs/98c0f1dad6a7874ff6a7ccc4dd72a5519ec8fdba\",\"download_url\":\"https://raw.githubusercontent.com/cloudbeers/multibranch-demo/refs/heads/master/Jenkinsfile\",\"type\":\"file\",\"_links\":{\"self\":\"https://api.github.com/repos/cloudbeers/multibranch-demo/contents/Jenkinsfile?ref=refs/heads/master\",\"git\":\"https://api.github.com/repos/cloudbeers/multibranch-demo/git/blobs/98c0f1dad6a7874ff6a7ccc4dd72a5519ec8fdba\",\"html\":\"https://github.com/cloudbeers/multibranch-demo/blob/refs/heads/master/Jenkinsfile\"}},{\"name\":\"README.md\",\"path\":\"README.md\",\"sha\":\"59e16b0d408539ab4f23d64f2cafd33495eb21ad\",\"size\":131,\"url\":\"https://api.github.com/repos/cloudbeers/multibranch-demo/contents/README.md?ref=refs/heads/master\",\"html_url\":\"https://github.com/cloudbeers/multibranch-demo/blob/refs/heads/master/README.md\",\"git_url\":\"https://api.github.com/repos/cloudbeers/multibranch-demo/git/blobs/59e16b0d408539ab4f23d64f2cafd33495eb21ad\",\"download_url\":\"https://raw.githubusercontent.com/cloudbeers/multibranch-demo/refs/heads/master/README.md\",\"type\":\"file\",\"_links\":{\"self\":\"https://api.github.com/repos/cloudbeers/multibranch-demo/contents/README.md?ref=refs/heads/master\",\"git\":\"https://api.github.com/repos/cloudbeers/multibranch-demo/git/blobs/59e16b0d408539ab4f23d64f2cafd33495eb21ad\",\"html\":\"https://github.com/cloudbeers/multibranch-demo/blob/refs/heads/master/README.md\"}},{\"name\":\"hello-world.go\",\"path\":\"hello-world.go\",\"sha\":\"b64817ed596a1dae19dfa3f8a6e6bc26506cc645\",\"size\":75,\"url\":\"https://api.github.com/repos/cloudbeers/multibranch-demo/contents/hello-world.go?ref=refs/heads/master\",\"html_url\":\"https://github.com/cloudbeers/multibranch-demo/blob/refs/heads/master/hello-world.go\",\"git_url\":\"https://api.github.com/repos/cloudbeers/multibranch-demo/git/blobs/b64817ed596a1dae19dfa3f8a6e6bc26506cc645\",\"download_url\":\"https://raw.githubusercontent.com/cloudbeers/multibranch-demo/refs/heads/master/hello-world.go\",\"type\":\"file\",\"_links\":{\"self\":\"https://api.github.com/repos/cloudbeers/multibranch-demo/contents/hello-world.go?ref=refs/heads/master\",\"git\":\"https://api.github.com/repos/cloudbeers/multibranch-demo/git/blobs/b64817ed596a1dae19dfa3f8a6e6bc26506cc645\",\"html\":\"https://github.com/cloudbeers/multibranch-demo/blob/refs/heads/master/hello-world.go\"}}]",
+    "headers" : {
+      "Date" : "Thu, 26 Sep 2024 12:20:52 GMT",
+      "Content-Type" : "application/json; charset=utf-8",
+      "Cache-Control" : "private, max-age=60, s-maxage=60",
+      "Vary" : "Accept, Authorization, Cookie, X-GitHub-OTP,Accept-Encoding, Accept, X-Requested-With",
+      "ETag" : "W/\"f88e478beb5b1bf8ec0db3181a069d9a65b27c45\"",
+      "Last-Modified" : "Thu, 26 Sep 2024 08:09:07 GMT",
+      "X-GitHub-Media-Type" : "github.v3; format=json",
+      "x-accepted-github-permissions" : "contents=read",
+      "x-github-api-version-selected" : "2022-11-28",
+      "X-RateLimit-Limit" : "5000",
+      "X-RateLimit-Remaining" : "4985",
+      "X-RateLimit-Reset" : "1727355030",
+      "X-RateLimit-Used" : "15",
+      "X-RateLimit-Resource" : "core",
+      "Access-Control-Expose-Headers" : "ETag, Link, Location, Retry-After, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Used, X-RateLimit-Resource, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval, X-GitHub-Media-Type, X-GitHub-SSO, X-GitHub-Request-Id, Deprecation, Sunset",
+      "Access-Control-Allow-Origin" : "*",
+      "Strict-Transport-Security" : "max-age=31536000; includeSubdomains; preload",
+      "X-Frame-Options" : "deny",
+      "X-Content-Type-Options" : "nosniff",
+      "X-XSS-Protection" : "0",
+      "Referrer-Policy" : "origin-when-cross-origin, strict-origin-when-cross-origin",
+      "Content-Security-Policy" : "default-src 'none'",
+      "Server" : "github.com",
+      "X-GitHub-Request-Id" : "876A:1E055D:2328CC4:23A4BEC:66F551A4"
+    }
+  },
+  "uuid" : "a229ac51-4da6-4347-9020-0841161e284c",
+  "persistent" : true,
+  "insertionIndex" : 11
+}
