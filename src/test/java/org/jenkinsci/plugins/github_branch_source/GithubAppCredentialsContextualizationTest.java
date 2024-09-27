@@ -55,6 +55,24 @@ public class GithubAppCredentialsContextualizationTest extends AbstractGitHubWir
                                 + "\""
                                 + // 2019-08-10T05:54:58Z
                                 "}")));
+
+        // Add wiremock responses for Repository
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/multibranch-demo"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile("../contextualization/body-repos-cloudbeers-multibranch-demo.json")));
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/multibranch-demo/branches"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile("../contextualization/body-repos-cloudbeers-multibranch-demo-branches.json")));
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/multibranch-demo/contents/?ref=refs%2Fheads%2Fmaster"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile("../contextualization/body-repos-cloudbeers-multibranch-demo-contents.json")));
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/multibranch-demo/pulls?state=open"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile("../contextualization/body-repos-cloudbeers-multibranch-demo-pulls.json")));
     }
 
     @Test
