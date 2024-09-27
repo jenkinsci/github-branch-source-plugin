@@ -10,13 +10,11 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
-import hudson.model.Cause;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import jenkins.branch.BranchSource;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
@@ -73,10 +71,7 @@ public class GithubAppCredentialsContextualizationTest extends AbstractGitHubWir
         scmSource.setApiUri(githubApi.baseUrl());
 
         final var multiBranchProject = r.jenkins.createProject(WorkflowMultiBranchProject.class, "multibranch-demo");
-        multiBranchProject.setSourcesList(Collections.singletonList(new BranchSource(scmSource)));
-        multiBranchProject.scheduleBuild(new Cause.UserIdCause());
-
-        r.waitUntilNoActivity();
+        multiBranchProject.getSourcesList().add(new BranchSource(scmSource));
 
         final var branchProject =
                 WorkflowMultiBranchProjectTest.scheduleAndFindBranchProject(multiBranchProject, "master");
