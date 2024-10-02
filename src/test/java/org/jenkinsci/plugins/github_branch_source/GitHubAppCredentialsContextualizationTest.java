@@ -10,19 +10,17 @@ import static org.hamcrest.Matchers.notNullValue;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
-import hudson.model.Action;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.Date;
 import jenkins.branch.BranchSource;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.Before;
 import org.junit.Test;
 
-public class GithubAppCredentialsContextualizationTest extends AbstractGitHubWireMockTest {
+public class GitHubAppCredentialsContextualizationTest extends AbstractGitHubWireMockTest {
 
     @Before
     public void setUpWireMock() throws Exception {
@@ -67,7 +65,7 @@ public class GithubAppCredentialsContextualizationTest extends AbstractGitHubWir
     }
 
     @Test
-    public void ownerMustBeInferedFromRepository() throws Exception {
+    public void ownerMustBeInferredFromRepository() throws Exception {
         final var store = CredentialsProvider.lookupStores(r.jenkins).iterator().next();
 
         final var credentials = GitHubApp.createCredentials("myAppCredentialsWithoutOwner");
@@ -81,7 +79,7 @@ public class GithubAppCredentialsContextualizationTest extends AbstractGitHubWir
 
         final var multiBranchProject = r.jenkins.createProject(WorkflowMultiBranchProject.class, "multibranch-demo");
         multiBranchProject.getSourcesList().add(new BranchSource(scmSource));
-        multiBranchProject.scheduleBuild2(0, new Action[0]).getFuture().get();
+        multiBranchProject.scheduleBuild2(0).getFuture().get();
 
         final var branchProject = multiBranchProject.getItem("master");
         assertThat(branchProject, notNullValue());
@@ -91,9 +89,7 @@ public class GithubAppCredentialsContextualizationTest extends AbstractGitHubWir
         // This token will go stale at the soonest allowed time but will not
         // expire for the duration of the test
         // Format: 2019-08-10T05:54:58Z
-        return DateTimeFormatter.ISO_INSTANT.format(Instant.ofEpochMilli(new Date(System.currentTimeMillis()
-                                + Duration.ofMinutes(10).toMillis())
-                        .getTime())
-                .truncatedTo(ChronoUnit.SECONDS));
+        return DateTimeFormatter.ISO_INSTANT.format(
+                Instant.now().plus(Duration.ofMinutes(10)).truncatedTo(ChronoUnit.SECONDS));
     }
 }
