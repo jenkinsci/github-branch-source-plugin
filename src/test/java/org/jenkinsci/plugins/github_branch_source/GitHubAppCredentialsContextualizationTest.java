@@ -19,7 +19,9 @@ import jenkins.branch.BranchSource;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
 import org.junit.Before;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 
+@Issue("JENKINS-73474")
 public class GitHubAppCredentialsContextualizationTest extends AbstractGitHubWireMockTest {
 
     @Before
