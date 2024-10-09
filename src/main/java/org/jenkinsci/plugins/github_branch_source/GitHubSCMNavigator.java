@@ -1024,6 +1024,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                 continue; // ignore repos in other orgs when using GHMyself
                             }
 
+                            try {
+                                // We do getSource() in order to force a populate()
+                                // populate() can sometimes fail (eg. if the repository has a DMCA),
+                                // so if it does we skip it.
+                                repo.getSource();
+                            } catch (HttpException ignored) {
+                                continue;
+                            }
+
                             if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                                 witness.record(repo.getName(), false);
                                 listener.getLogger()
@@ -1107,6 +1116,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         repositories = org.listRepositories(100);
                     }
                     for (GHRepository repo : repositories) {
+                        try {
+                            // We do getSource() in order to force a populate()
+                            // populate() can sometimes fail (eg. if the repository has a DMCA),
+                            // so if it does we skip it.
+                            repo.getSource();
+                        } catch (HttpException ignored) {
+                            continue;
+                        }
+
                         if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                             // exclude archived repositories
                             witness.record(repo.getName(), false);
@@ -1169,6 +1187,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
                     listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
                     for (GHRepository repo : user.listRepositories(100)) {
+                        try {
+                            // We do getSource() in order to force a populate()
+                            // populate() can sometimes fail (eg. if the repository has a DMCA),
+                            // so if it does we skip it.
+                            repo.getSource();
+                        } catch (HttpException ignored) {
+                            continue;
+                        }
+
                         if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                             witness.record(repo.getName(), false);
                             listener.getLogger()
