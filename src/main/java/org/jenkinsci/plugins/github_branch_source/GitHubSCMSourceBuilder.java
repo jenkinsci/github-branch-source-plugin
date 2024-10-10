@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import jenkins.scm.api.trait.SCMSourceBuilder;
@@ -45,6 +46,9 @@ public class GitHubSCMSourceBuilder extends SCMSourceBuilder<GitHubSCMSourceBuil
     /** The repository owner. */
     @NonNull
     private final String repoOwner;
+    /** The credentials. */
+    @CheckForNull
+    private StandardCredentials credentials;
 
     /**
      * Constructor.
@@ -107,11 +111,22 @@ public class GitHubSCMSourceBuilder extends SCMSourceBuilder<GitHubSCMSourceBuil
         return repoOwner;
     }
 
+    /**
+     * Pass the credentials object to the {@link GitHubSCMSource}.
+     * @param credentials the {@link com.cloudbees.plugins.credentials.common.StandardCredentials}
+     * @return the current builder
+     */
+    @NonNull
+    SCMSourceBuilder<GitHubSCMSourceBuilder, GitHubSCMSource> withCredentials(StandardCredentials credentials) {
+        this.credentials = credentials;
+        return this;
+    }
+
     /** {@inheritDoc} */
     @NonNull
     @Override
     public GitHubSCMSource build() {
-        GitHubSCMSource result = new GitHubSCMSource(repoOwner, projectName());
+        GitHubSCMSource result = new GitHubSCMSource(repoOwner, projectName(), credentials);
         result.setId(id());
         result.setApiUri(apiUri());
         result.setCredentialsId(credentialsId());
