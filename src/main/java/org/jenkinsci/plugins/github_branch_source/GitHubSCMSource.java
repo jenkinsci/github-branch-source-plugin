@@ -1958,7 +1958,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     url = repoLink.getUrl() + "/tree/" + head.getName();
                     metadataAction = new ObjectMetadataAction(head.getName(), null, url);
                 }
-                result.add(new GitHubLink("icon-github-branch", url));
+                result.add(new GitHubLink(url));
                 result.add(metadataAction);
             }
             if (head instanceof BranchSCMHead) {
@@ -2004,7 +2004,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
             result.add(new ObjectMetadataAction(
                     null, ghRepository.getDescription(), Util.fixEmpty(ghRepository.getHomepage())));
-            result.add(new GitHubLink("icon-github-repo", ghRepository.getHtmlUrl()));
+            result.add(new GitHubLink(ghRepository.getHtmlUrl()));
             if (StringUtils.isNotBlank(ghRepository.getDefaultBranch())) {
                 result.add(new GitHubDefaultBranch(getRepoOwner(), repository, ghRepository.getDefaultBranch()));
             }
@@ -2103,7 +2103,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 @QueryParameter String apiUri,
                 @QueryParameter String credentialsId) {
             if (context == null
-                    ? !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+                    ? !Jenkins.get().hasPermission(Jenkins.MANAGE)
                     : !context.hasPermission(Item.EXTENDED_READ)) {
                 return new StandardListBoxModel().includeCurrentValue(credentialsId);
             }
@@ -2136,7 +2136,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 @QueryParameter String repositoryUrl,
                 @QueryParameter String credentialsId,
                 @QueryParameter String repoOwner) {
-            if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+            if (context == null && !Jenkins.get().hasPermission(Jenkins.MANAGE)
                     || context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                 return FormValidation.error(
                         "Unable to validate repository information"); // not supposed to be seeing this form
@@ -2283,7 +2283,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (credentialsId == null) {
                 return new ListBoxModel();
             }
-            if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+            if (context == null && !Jenkins.get().hasPermission(Jenkins.MANAGE)
                     || context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                 return new ListBoxModel(); // not supposed to be seeing this form
             }
@@ -2331,7 +2331,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if (repoOwner == null) {
                 return new ListBoxModel();
             }
-            if (context == null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER)
+            if (context == null && !Jenkins.get().hasPermission(Jenkins.MANAGE)
                     || context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                 return new ListBoxModel(); // not supposed to be seeing this form
             }

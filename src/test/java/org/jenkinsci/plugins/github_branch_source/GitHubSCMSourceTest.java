@@ -705,7 +705,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
                         Matchers.is(new ObjectMetadataAction(null, "You only live once", "http://yolo.example.com")),
                         Matchers.is(new GitHubDefaultBranch("cloudbeers", "yolo", "master")),
                         instanceOf(GitHubRepoMetadataAction.class),
-                        Matchers.is(new GitHubLink("icon-github-repo", "https://github.com/cloudbeers/yolo"))));
+                        Matchers.is(new GitHubLink("https://github.com/cloudbeers/yolo"))));
     }
 
     @Test
@@ -932,7 +932,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         try {
             r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
             MockAuthorizationStrategy mockStrategy = new MockAuthorizationStrategy();
-            mockStrategy.grant(Jenkins.ADMINISTER).onRoot().to("admin");
+            mockStrategy.grant(Jenkins.MANAGE).onRoot().to("admin");
             mockStrategy.grant(Item.CONFIGURE).onItems(dummy).to("bob");
             mockStrategy.grant(Item.EXTENDED_READ).onItems(dummy).to("jim");
             r.jenkins.setAuthorizationStrategy(mockStrategy);
@@ -1112,10 +1112,6 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     @Issue("JENKINS-65071")
     public void testShouldRetrieveNullEvent() throws Exception {
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
-        Mockito.when(mockSCMHeadObserver.getIncludes())
-                .thenReturn(
-                        Collections.singleton(new GitHubTagSCMHead("non-existent-tag", System.currentTimeMillis())));
-
         assertTrue(this.source.shouldRetrieve(mockSCMHeadObserver, null, GitHubTagSCMHead.class));
         assertTrue(this.source.shouldRetrieve(mockSCMHeadObserver, null, PullRequestSCMHead.class));
         assertTrue(this.source.shouldRetrieve(mockSCMHeadObserver, null, BranchSCMHead.class));

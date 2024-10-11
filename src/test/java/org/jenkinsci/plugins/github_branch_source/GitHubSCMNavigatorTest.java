@@ -228,6 +228,32 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
+    public void fetchRepos_BelongingToAuthenticatedUser_ExcludeByTopic() throws Exception {
+        setCredentials(Collections.singletonList(credentials));
+        navigator = navigatorForRepoOwner("stephenc", credentials.getId());
+        navigator.setTraits(Collections.singletonList(new TopicsTrait("-awesome")));
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(observer);
+
+        assertEquals(projectNames, Collections.singleton("yolo-archived"));
+    }
+
+    @Test
+    public void fetchRepos_BelongingToAuthenticatedUser_ExcludeAndFilterByTopic() throws Exception {
+        setCredentials(Collections.singletonList(credentials));
+        navigator = navigatorForRepoOwner("stephenc", credentials.getId());
+        navigator.setTraits(Collections.singletonList(new TopicsTrait("-awesome,octocat")));
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(observer);
+
+        assertEquals(projectNames, Collections.singleton("yolo-archived"));
+    }
+
+    @Test
     public void fetchOneRepo_BelongingToAuthenticatedUser_ExcludingArchived() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
@@ -432,8 +458,20 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
                 Matchers.containsInAnyOrder(
                         Matchers.is(
                                 new ObjectMetadataAction("CloudBeers, Inc.", null, "https://github.com/cloudbeers")),
+                        Matchers.is(new GitHubOrgMetadataAction((String) null)),
+                        Matchers.is(new GitHubLink("https://github.com/cloudbeers"))));
+    }
+
+    @Test
+    public void fetchActionsWithAvatar() throws Exception {
+        navigator.setEnableAvatar(true);
+        assertThat(
+                navigator.fetchActions(Mockito.mock(SCMNavigatorOwner.class), null, null),
+                Matchers.containsInAnyOrder(
+                        Matchers.is(
+                                new ObjectMetadataAction("CloudBeers, Inc.", null, "https://github.com/cloudbeers")),
                         Matchers.is(new GitHubOrgMetadataAction("https://avatars.githubusercontent.com/u/4181899?v=3")),
-                        Matchers.is(new GitHubLink("icon-github-logo", "https://github.com/cloudbeers"))));
+                        Matchers.is(new GitHubLink("https://github.com/cloudbeers"))));
     }
 
     @Test
@@ -446,7 +484,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
         try {
             r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
             MockAuthorizationStrategy mockStrategy = new MockAuthorizationStrategy();
-            mockStrategy.grant(Jenkins.ADMINISTER).onRoot().to("admin");
+            mockStrategy.grant(Jenkins.MANAGE).onRoot().to("admin");
             mockStrategy.grant(Item.CONFIGURE).onItems(dummy).to("bob");
             mockStrategy.grant(Item.EXTENDED_READ).onItems(dummy).to("jim");
             r.jenkins.setAuthorizationStrategy(mockStrategy);
