@@ -1,0 +1,50 @@
+[
+  {
+    "name": "Jenkinsfile",
+    "path": "Jenkinsfile",
+    "sha": "98c0f1dad6a7874ff6a7ccc4dd72a5519ec8fdba",
+    "size": 351,
+    "url": "https://api.github.com/repos/cloudbeers/multibranch-demo/contents/Jenkinsfile?ref=refs/heads/master",
+    "html_url": "https://github.com/cloudbeers/multibranch-demo/blob/refs/heads/master/Jenkinsfile",
+    "git_url": "https://api.github.com/repos/cloudbeers/multibranch-demo/git/blobs/98c0f1dad6a7874ff6a7ccc4dd72a5519ec8fdba",
+    "download_url": "https://raw.githubusercontent.com/cloudbeers/multibranch-demo/refs/heads/master/Jenkinsfile",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/cloudbeers/multibranch-demo/contents/Jenkinsfile?ref=refs/heads/master",
+      "git": "https://api.github.com/repos/cloudbeers/multibranch-demo/git/blobs/98c0f1dad6a7874ff6a7ccc4dd72a5519ec8fdba",
+      "html": "https://github.com/cloudbeers/multibranch-demo/blob/refs/heads/master/Jenkinsfile"
+    }
+  },
+  {
+    "name": "README.md",
+    "path": "README.md",
+    "sha": "59e16b0d408539ab4f23d64f2cafd33495eb21ad",
+    "size": 131,
+    "url": "https://api.github.com/repos/cloudbeers/multibranch-demo/contents/README.md?ref=refs/heads/master",
+    "html_url": "https://github.com/cloudbeers/multibranch-demo/blob/refs/heads/master/README.md",
+    "git_url": "https://api.github.com/repos/cloudbeers/multibranch-demo/git/blobs/59e16b0d408539ab4f23d64f2cafd33495eb21ad",
+    "download_url": "https://raw.githubusercontent.com/cloudbeers/multibranch-demo/refs/heads/master/README.md",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/cloudbeers/multibranch-demo/contents/README.md?ref=refs/heads/master",
+      "git": "https://api.github.com/repos/cloudbeers/multibranch-demo/git/blobs/59e16b0d408539ab4f23d64f2cafd33495eb21ad",
+      "html": "https://github.com/cloudbeers/multibranch-demo/blob/refs/heads/master/README.md"
+    }
+  },
+  {
+    "name": "hello-world.go",
+    "path": "hello-world.go",
+    "sha": "b64817ed596a1dae19dfa3f8a6e6bc26506cc645",
+    "size": 75,
+    "url": "https://api.github.com/repos/cloudbeers/multibranch-demo/contents/hello-world.go?ref=refs/heads/master",
+    "html_url": "https://github.com/cloudbeers/multibranch-demo/blob/refs/heads/master/hello-world.go",
+    "git_url": "https://api.github.com/repos/cloudbeers/multibranch-demo/git/blobs/b64817ed596a1dae19dfa3f8a6e6bc26506cc645",
+    "download_url": "https://raw.githubusercontent.com/cloudbeers/multibranch-demo/refs/heads/master/hello-world.go",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/cloudbeers/multibranch-demo/contents/hello-world.go?ref=refs/heads/master",
+      "git": "https://api.github.com/repos/cloudbeers/multibranch-demo/git/blobs/b64817ed596a1dae19dfa3f8a6e6bc26506cc645",
+      "html": "https://github.com/cloudbeers/multibranch-demo/blob/refs/heads/master/hello-world.go"
+    }
+  }
+]
