@@ -98,7 +98,7 @@ public class GitHubSCMSourceBuilder extends SCMSourceBuilder<GitHubSCMSourceBuil
      */
     @CheckForNull
     public final String credentialsId() {
-        return credentialsId;
+        return credentials == null ? credentialsId : credentials.getId();
     }
 
     /**
