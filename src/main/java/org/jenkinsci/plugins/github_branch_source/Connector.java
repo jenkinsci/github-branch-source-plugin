@@ -295,23 +295,22 @@ public class Connector {
             @CheckForNull String repoOwner) {
         if (Util.fixEmpty(scanCredentialsId) == null) {
             return null;
-        } else {
-            StandardCredentials c = CredentialsMatchers.firstOrNull(
-                    CredentialsProvider.lookupCredentials(
-                            StandardUsernameCredentials.class,
-                            context,
-                            context instanceof Queue.Task
-                                    ? ((Queue.Task) context).getDefaultAuthentication()
-                                    : ACL.SYSTEM,
-                            githubDomainRequirements(apiUri)),
-                    CredentialsMatchers.allOf(
-                            CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher()));
-            if (c instanceof GitHubAppCredentials && repoOwner != null) {
-                return ((GitHubAppCredentials) c).withOwner(repoOwner);
-            } else {
-                return c;
-            }
         }
+        StandardCredentials c = CredentialsMatchers.firstOrNull(
+                CredentialsProvider.lookupCredentialsInItem(
+                        StandardUsernameCredentials.class,
+                        context,
+                        context instanceof Queue.Task
+                                ? ((Queue.Task) context).getDefaultAuthentication2()
+                                : ACL.SYSTEM2,
+                        githubDomainRequirements(apiUri)),
+                CredentialsMatchers.allOf(
+                        CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher()));
+
+        if (c instanceof GitHubAppCredentials && repoOwner != null) {
+            c = ((GitHubAppCredentials) c).withOwner(repoOwner);
+        }
+        return c;
     }
 
     /**

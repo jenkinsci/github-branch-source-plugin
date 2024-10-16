@@ -124,7 +124,6 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         if (repoUrl != null) {
             withBrowser(new GithubWeb(repoUrl));
         }
-        withCredentials(credentialsId(), null);
     }
 
     /**
@@ -189,7 +188,9 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
      *     {@code null} to detect the the protocol based on the credentialsId. Defaults to HTTP if
      *     credentials are {@code null}. Enables support for blank SSH credentials.
      * @return {@code this} for method chaining.
+     * @deprecated Use {@link #withCredentials(String)} and {@link #withResolver(RepositoryUriResolver)}
      */
+    @Deprecated
     @NonNull
     public GitHubSCMBuilder withCredentials(String credentialsId, RepositoryUriResolver uriResolver) {
         if (uriResolver == null) {
@@ -198,6 +199,12 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
 
         this.uriResolver = uriResolver;
         return withCredentials(credentialsId);
+    }
+
+    @NonNull
+    public GitHubSCMBuilder withResolver(RepositoryUriResolver uriResolver) {
+        this.uriResolver = uriResolver;
+        return this;
     }
 
     /**
@@ -215,12 +222,12 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
             return HTTPS;
         } else {
             StandardCredentials credentials = CredentialsMatchers.firstOrNull(
-                    CredentialsProvider.lookupCredentials(
+                    CredentialsProvider.lookupCredentialsInItem(
                             StandardCredentials.class,
                             context,
                             context instanceof Queue.Task
-                                    ? ((Queue.Task) context).getDefaultAuthentication()
-                                    : ACL.SYSTEM,
+                                    ? ((Queue.Task) context).getDefaultAuthentication2()
+                                    : ACL.SYSTEM2,
                             URIRequirementBuilder.create()
                                     .withHostname(RepositoryUriResolver.hostnameFromApiUri(apiUri))
                                     .build()),
