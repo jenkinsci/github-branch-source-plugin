@@ -2155,7 +2155,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 } finally {
                     Connector.release(github);
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 return FormValidation.error(e, "Error validating repository information. " + sb.toString());
             }
             return FormValidation.ok(sb.toString());
