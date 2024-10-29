@@ -30,7 +30,7 @@
   </scm>
 
   <properties>
-    <changelist>1789.v5b_0c0cea_18c3-SmartRecruiters</changelist>
+    <changelist>1807.v50351eb_7dd13-SmartRecruiters</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
