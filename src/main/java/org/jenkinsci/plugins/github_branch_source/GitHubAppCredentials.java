@@ -498,7 +498,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
      *   <li>The agent need not be able to contact GitHub.
      * </ul>
      */
-    private Object writeReplace() {
+    protected Object writeReplace() {
         if (
         /* XStream */ Channel.current() == null) {
             return this;
