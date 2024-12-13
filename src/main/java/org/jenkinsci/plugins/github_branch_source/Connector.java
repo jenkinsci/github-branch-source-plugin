@@ -227,7 +227,7 @@ public class Connector {
                     } finally {
                         Connector.release(connector);
                     }
-                } catch (IllegalArgumentException | InvalidPrivateKeyException e) {
+                } catch (IllegalArgumentException | IllegalStateException | InvalidPrivateKeyException e) {
                     String msg = "Exception validating credentials " + CredentialsNameProvider.name(credentials);
                     LOGGER.log(Level.WARNING, msg, e);
                     return FormValidation.error(e, msg);
@@ -261,8 +261,7 @@ public class Connector {
     }
 
     /**
-     * Resolves the specified scan credentials in the specified context for use against the specified
-     * API endpoint.
+     * Retained for binary compatibility only.
      *
      * @param context the context.
      * @param apiUri the API endpoint.
@@ -280,6 +279,9 @@ public class Connector {
     /**
      * Resolves the specified scan credentials in the specified context for use against the specified
      * API endpoint.
+     *
+     * <p>Callers of this method must not expose the credentials to unprivileged users for
+     * uncontrolled usage.
      *
      * @param context the context.
      * @param apiUri the API endpoint.
@@ -306,9 +308,20 @@ public class Connector {
                         githubDomainRequirements(apiUri)),
                 CredentialsMatchers.allOf(
                         CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher()));
-
         if (c instanceof GitHubAppCredentials && repoOwner != null) {
-            c = ((GitHubAppCredentials) c).withOwner(repoOwner);
+            // Note: We considered adding an overload so that all existing callers in this plugin could
+            // specify an exact repository and granular permission, but decided against it. This method
+            // should only be called in contexts where the credential could not be exposed to users
+            // other than those who were able to create/configure whatever is using the credential in
+            // the first place. Those users would be able to steal the GitHub App refresh JWT, which
+            // they can then use to generate their own credentials, so dynamic limitations in this
+            // context have no benefits, and would unnecessarily increase the size of the connection
+            // cache because the cache keys are distinct for every context.
+            final var usageContext = GitHubAppUsageContext.builder()
+                    .inferredOwner(repoOwner)
+                    .trust()
+                    .build();
+            return ((GitHubAppCredentials) c).contextualize(usageContext);
         }
         return c;
     }
@@ -368,12 +381,15 @@ public class Connector {
             password = null;
             gitHubAppCredentials = (GitHubAppCredentials) credentials;
             hash = Util.getDigestOf(gitHubAppCredentials.getAppID()
-                    + gitHubAppCredentials.getOwner()
+                    + gitHubAppCredentials.getAccessibleRepositories()
+                    + gitHubAppCredentials.getPermissions()
                     + gitHubAppCredentials.getPrivateKey().getPlainText()
                     + SALT); // want to ensure pooling by credential
             authHash = Util.getDigestOf(gitHubAppCredentials.getAppID()
                     + "::"
-                    + gitHubAppCredentials.getOwner()
+                    + gitHubAppCredentials.getAccessibleRepositories()
+                    + "::"
+                    + gitHubAppCredentials.getPermissions()
                     + "::"
                     + gitHubAppCredentials.getPrivateKey().getPlainText()
                     + "::"
