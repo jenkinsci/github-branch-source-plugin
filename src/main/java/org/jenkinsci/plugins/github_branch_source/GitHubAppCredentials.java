@@ -86,7 +86,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             Long.getLong(GitHubAppCredentials.class.getName() + ".AFTER_TOKEN_GENERATION_DELAY_SECONDS", 0);
 
     /**
-     * Controls whether {@link GitHubProjectProperty} is considered by {@link #forRun} for Pipeline builds.
+     * Controls whether {@link GithubProjectProperty} is considered by {@link #forRun} for Pipeline builds.
      * <p>{@link RepositoryAccessStrategy} is intended to prevent users with the ability to edit a Jenkinsfile in a
      * single repository from being able to use GitHub app credentials available to that Pipeline to access other
      * repositories. The existence of the {@code properties} step means that job properties may not be trusted for

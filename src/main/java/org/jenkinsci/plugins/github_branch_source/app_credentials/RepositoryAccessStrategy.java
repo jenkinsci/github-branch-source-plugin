@@ -4,6 +4,7 @@ import edu.umd.cs.findbugs.annotations.CheckForNull;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.Descriptor;
 import java.io.Serializable;
+import org.jenkinsci.plugins.github_branch_source.GitHubAppCredentials;
 import org.jenkinsci.plugins.github_branch_source.GitHubAppUsageContext;
 
 /**

@@ -13,14 +13,14 @@ import org.kohsuke.github.GHPermissionType;
  * Holds the inferred owner, repository, and required permissions for whatever operation is going
  * to be performed by the code that looked up these credentials.
  *
- * <p>Context is inferred either in {@link Connector#lookupScanCredentials} or {@link #forRun}.
- * Each call to {@link #contextualize} for a distinct context returns a different instance of
+ * <p>Context is inferred either in {@link Connector#lookupScanCredentials} or {@link GitHubAppCredentials#forRun}.
+ * Each call to {@link GitHubAppCredentials#contextualize} for a distinct context returns a different instance of
  * these {@link GitHubAppCredentials}.
  *
- * @see #contextualize
- * @see #cachedCredentials
- * @see #getAccessibleRepositories
- * @see #getPermissions
+ * @see GitHubAppCredentials#contextualize
+ * @see GitHubAppCredentials#cachedCredentials
+ * @see GitHubAppCredentials#getAccessibleRepositories
+ * @see GitHubAppCredentials#getPermissions
  * @see RepositoryAccessStrategy#forContext
  */
 @Restricted(NoExternalUse.class)
