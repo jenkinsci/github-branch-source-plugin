@@ -18,7 +18,7 @@ public class GitHubBranchDetail extends Detail {
     @Nullable
     @Override
     public String getIconClassName() {
-        return "symbol-git-pull-request-outline plugin-ionicons-api";
+        return "symbol-git-branch-outline plugin-ionicons-api";
     }
 
     @Nullable
