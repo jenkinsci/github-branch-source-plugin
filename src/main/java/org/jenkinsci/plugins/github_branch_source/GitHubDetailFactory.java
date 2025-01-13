@@ -10,7 +10,7 @@ import java.util.Collection;
 import java.util.List;
 
 @Extension
-public final class DetailThingyFactory extends DetailFactory<Run> {
+public final class GitHubDetailFactory extends DetailFactory<Run> {
 
     @Override
     public Class<Run> type() {
