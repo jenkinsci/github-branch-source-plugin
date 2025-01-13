@@ -35,7 +35,7 @@
     <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.479</jenkins.baseline>
-    <jenkins.version>2.493-rc35841.3647925fcb_b_c</jenkins.version>
+    <jenkins.version>2.493-rc35843.0085d2c2d7d7</jenkins.version>
     <useBeta>true</useBeta>
     <spotless.check.skip>false</spotless.check.skip>
   </properties>
