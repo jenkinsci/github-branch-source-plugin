@@ -23,18 +23,17 @@ public class GitHubBranchDetail extends Detail {
     public String getDisplayName() {
         SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
         SCMRevision revision = scmRevisionAction.getRevision();
+        var head = revision.getHead();
 
-        if (revision instanceof PullRequestSCMRevision pullRequestSCMRevision) {
-            PullRequestSCMHead head = (PullRequestSCMHead) pullRequestSCMRevision.getHead();
-            return head.getSourceBranch();
-        }
+        System.out.println(head.getOrigin().getClass().getName());
+        System.out.println(head.getOrigin());
+        System.out.println(head.getClass().getName());
 
-        return null;
+        return head.getName();
     }
 
     @Override
     public String getUrl() {
-        // https://github.com/janfaracik/pipelines/tree/feat/pi-812-Add-Pie
         SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
         SCMRevision revision = scmRevisionAction.getRevision();
 
@@ -43,18 +42,17 @@ public class GitHubBranchDetail extends Detail {
             String sourceOwner = head.getSourceOwner();
             String sourceRepo = head.getSourceRepo();
 
-            return "https://github.com/" + sourceOwner + "/" + sourceRepo + "/tree/" + head.getSourceBranch();
+            return "https://github.com/" + sourceOwner + "/" + sourceRepo + "/tree/" + getDisplayName());
         }
 
+        // How to construct this from a branch?
         return null;
     }
 
     @Override
     public boolean isApplicable() {
         SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
-        // TODO
-        SCMRevision revision = scmRevisionAction.getRevision();
-        return revision instanceof PullRequestSCMRevision;
+        return scmRevisionAction != null;
     }
 
     @Override
