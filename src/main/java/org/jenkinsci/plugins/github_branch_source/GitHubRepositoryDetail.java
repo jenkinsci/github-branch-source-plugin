@@ -6,6 +6,7 @@ import hudson.model.Run;
 import jenkins.model.Detail;
 import jenkins.model.DetailGroup;
 import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.metadata.ObjectMetadataAction;
 
 public class GitHubRepositoryDetail extends Detail {
     public GitHubRepositoryDetail(Actionable object) {
@@ -21,8 +22,8 @@ public class GitHubRepositoryDetail extends Detail {
     @Nullable
     @Override
     public String getDisplayName() {
-        GitHubSCMSource src = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run)getObject()).getParent());
-        return src.getRepoOwner() + "/" + src.getRepository();
+        GitHubSCMSource source = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run)getObject()).getParent());
+        return source.getRepoOwner() + "/" + source.getRepository();
     }
 
     @Override
