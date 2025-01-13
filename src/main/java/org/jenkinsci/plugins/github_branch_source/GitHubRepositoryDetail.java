@@ -21,7 +21,7 @@ public class GitHubRepositoryDetail extends Detail {
     @Nullable
     @Override
     public String getDisplayName() {
-        GitHubSCMSource source = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run)getObject()).getParent());
+        GitHubSCMSource source = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run) getObject()).getParent());
 
         if (source == null) {
             return null;
@@ -32,7 +32,7 @@ public class GitHubRepositoryDetail extends Detail {
 
     @Override
     public String getUrl() {
-        GitHubSCMSource source = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run)getObject()).getParent());
+        GitHubSCMSource source = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run) getObject()).getParent());
 
         if (source == null) {
             return null;
@@ -44,7 +44,7 @@ public class GitHubRepositoryDetail extends Detail {
 
     @Override
     public boolean isApplicable() {
-        var source = SCMSource.SourceByItem.findSource(((Run)getObject()).getParent());
+        var source = SCMSource.SourceByItem.findSource(((Run) getObject()).getParent());
         return source instanceof GitHubSCMSource;
     }
 

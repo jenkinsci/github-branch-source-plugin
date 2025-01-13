@@ -1,13 +1,9 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.model.Run;
-
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import jenkins.model.Detail;
 import jenkins.model.DetailFactory;
@@ -29,13 +25,13 @@ public final class GitHubDetailFactory extends DetailFactory<Run> {
     @Override
     public Collection<? extends Detail> createFor(@NonNull Run target) {
 
-//        SCMRevisionAction scmRevisionAction = target.getAction(SCMRevisionAction.class);
-//        if (scmRevisionAction == null) {
-//            return Collections.emptyList();
-//        }
-//
-//        List<Detail> details = new ArrayList<>();
-//        return details;
+        //        SCMRevisionAction scmRevisionAction = target.getAction(SCMRevisionAction.class);
+        //        if (scmRevisionAction == null) {
+        //            return Collections.emptyList();
+        //        }
+        //
+        //        List<Detail> details = new ArrayList<>();
+        //        return details;
 
         return List.of(
                 new Detail(target) {
@@ -64,7 +60,8 @@ public final class GitHubDetailFactory extends DetailFactory<Run> {
                         SCMRevision revision = scmRevisionAction.getRevision();
 
                         if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl abstractRevision) {
-                            GitHubSCMSource src = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run)getObject()).getParent());
+                            GitHubSCMSource src = (GitHubSCMSource)
+                                    SCMSource.SourceByItem.findSource(((Run) getObject()).getParent());
 
                             if (src == null) {
                                 return null;
@@ -86,7 +83,7 @@ public final class GitHubDetailFactory extends DetailFactory<Run> {
                         return DetailGroup.SCM;
                     }
                 },
-        new GitHubPullRequestDetail(target),
+                new GitHubPullRequestDetail(target),
                 new GitHubBranchDetail(target),
                 new GitHubRepositoryDetail(target));
     }
