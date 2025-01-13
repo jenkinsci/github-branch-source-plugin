@@ -65,6 +65,11 @@ public final class GitHubDetailFactory extends DetailFactory<Run> {
 
                         if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl abstractRevision) {
                             GitHubSCMSource src = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run)getObject()).getParent());
+
+                            if (src == null) {
+                                return null;
+                            }
+
                             // TODO - ends with .git
                             return src.getRepositoryUrl() + "/commit/" + abstractRevision.getHash();
                         } else if (revision instanceof PullRequestSCMRevision pullRequestSCMRevision) {

@@ -22,14 +22,24 @@ public class GitHubRepositoryDetail extends Detail {
     @Override
     public String getDisplayName() {
         GitHubSCMSource source = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run)getObject()).getParent());
+
+        if (source == null) {
+            return null;
+        }
+
         return source.getRepoOwner() + "/" + source.getRepository();
     }
 
     @Override
     public String getUrl() {
-        GitHubSCMSource src = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run)getObject()).getParent());
+        GitHubSCMSource source = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run)getObject()).getParent());
+
+        if (source == null) {
+            return null;
+        }
+
         // TODO - Has .git on the end
-        return src.getRepositoryUrl();
+        return source.getRepositoryUrl();
     }
 
     @Override
