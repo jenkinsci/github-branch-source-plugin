@@ -38,6 +38,11 @@ public class GitHubPullRequestDetail extends Detail {
     @Override
     public boolean isApplicable() {
         SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
+
+        if (scmRevisionAction == null) {
+            return false;
+        }
+
         // TODO
         SCMRevision revision = scmRevisionAction.getRevision();
         return revision instanceof PullRequestSCMRevision;
