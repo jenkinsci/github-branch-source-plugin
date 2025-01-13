@@ -2,7 +2,6 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.Actionable;
-import hudson.model.Run;
 import jenkins.model.Detail;
 import jenkins.model.DetailGroup;
 import jenkins.scm.api.SCMRevision;
@@ -11,6 +10,12 @@ import jenkins.scm.api.SCMRevisionAction;
 public class GitHubBranchDetail extends Detail {
     public GitHubBranchDetail(Actionable object) {
         super(object);
+    }
+
+    @Nullable
+    @Override
+    public String getIconClassName() {
+        return "symbol-git-pull-request-outline plugin-ionicons-api";
     }
 
     @Nullable
@@ -27,6 +32,7 @@ public class GitHubBranchDetail extends Detail {
         return null;
     }
 
+    @Override
     public String getUrl() {
         // https://github.com/janfaracik/pipelines/tree/feat/pi-812-Add-Pie
         SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
@@ -41,6 +47,14 @@ public class GitHubBranchDetail extends Detail {
         }
 
         return null;
+    }
+
+    @Override
+    public boolean isApplicable() {
+        SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
+        // TODO
+        SCMRevision revision = scmRevisionAction.getRevision();
+        return revision instanceof PullRequestSCMRevision;
     }
 
     @Override

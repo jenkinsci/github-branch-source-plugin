@@ -14,6 +14,12 @@ public class GitHubRepositoryDetail extends Detail {
 
     @Nullable
     @Override
+    public String getIconClassName() {
+        return "symbol-logo-github plugin-ionicons-api";
+    }
+
+    @Nullable
+    @Override
     public String getDisplayName() {
         SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
         SCMRevision revision = scmRevisionAction.getRevision();
@@ -29,6 +35,7 @@ public class GitHubRepositoryDetail extends Detail {
         return null;
     }
 
+    @Override
     public String getUrl() {
         SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
         SCMRevision revision = scmRevisionAction.getRevision();
@@ -42,6 +49,14 @@ public class GitHubRepositoryDetail extends Detail {
         }
 
         return null;
+    }
+
+    @Override
+    public boolean isApplicable() {
+        SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
+        SCMRevision revision = scmRevisionAction.getRevision();
+        // TODO
+        return revision instanceof PullRequestSCMRevision;
     }
 
     @Override

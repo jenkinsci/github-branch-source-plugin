@@ -16,23 +16,31 @@ public class GitHubPullRequestDetail extends Detail {
 
     @Nullable
     @Override
+    public String getIconClassName() {
+        return "symbol-git-branch-outline plugin-ionicons-api";
+    }
+
+    @Nullable
+    @Override
     public String getDisplayName() {
-        var run = (Run<?, ?>)getObject();
+        var run = (Run<?, ?>) getObject();
         ObjectMetadataAction action = run.getParent().getAction(ObjectMetadataAction.class);
         return action.getObjectDisplayName();
     }
 
     @Override
-    public boolean isApplicable() {
-        SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
-        SCMRevision revision = scmRevisionAction.getRevision();
-        return revision instanceof PullRequestSCMRevision;
-    }
-
     public String getUrl() {
-        var run = (Run<?, ?>)getObject();
+        var run = (Run<?, ?>) getObject();
         GitHubLink repoLink = run.getParent().getAction(GitHubLink.class);
         return repoLink.getUrl();
+    }
+
+    @Override
+    public boolean isApplicable() {
+        SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
+        // TODO
+        SCMRevision revision = scmRevisionAction.getRevision();
+        return revision instanceof PullRequestSCMRevision;
     }
 
     @Override
