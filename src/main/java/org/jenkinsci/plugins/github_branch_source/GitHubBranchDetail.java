@@ -4,6 +4,7 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.Actionable;
 import jenkins.model.Detail;
 import jenkins.model.DetailGroup;
+import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 
@@ -23,17 +24,19 @@ public class GitHubBranchDetail extends Detail {
     public String getDisplayName() {
         SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
         SCMRevision revision = scmRevisionAction.getRevision();
-        var head = revision.getHead();
 
-        System.out.println(head.getOrigin().getClass().getName());
-        System.out.println(head.getOrigin());
-        System.out.println(head.getClass().getName());
+        if (revision instanceof PullRequestSCMRevision pullRequestSCMRevision) {
+            PullRequestSCMHead head = (PullRequestSCMHead) pullRequestSCMRevision.getHead();
+            return head.getSourceBranch();
+        }
 
+        SCMHead head = revision.getHead();
         return head.getName();
     }
 
     @Override
     public String getUrl() {
+        // https://github.com/janfaracik/pipelines/tree/feat/pi-812-Add-Pie
         SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
         SCMRevision revision = scmRevisionAction.getRevision();
 
@@ -42,10 +45,9 @@ public class GitHubBranchDetail extends Detail {
             String sourceOwner = head.getSourceOwner();
             String sourceRepo = head.getSourceRepo();
 
-            return "https://github.com/" + sourceOwner + "/" + sourceRepo + "/tree/" + getDisplayName());
+            return "https://github.com/" + sourceOwner + "/" + sourceRepo + "/tree/" + head.getSourceBranch();
         }
 
-        // How to construct this from a branch?
         return null;
     }
 
