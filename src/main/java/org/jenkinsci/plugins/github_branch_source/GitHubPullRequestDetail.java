@@ -5,8 +5,6 @@ import hudson.model.Actionable;
 import hudson.model.Run;
 import jenkins.model.Detail;
 import jenkins.model.DetailGroup;
-import jenkins.scm.api.SCMRevision;
-import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 
 public class GitHubPullRequestDetail extends Detail {
@@ -33,19 +31,6 @@ public class GitHubPullRequestDetail extends Detail {
         var run = (Run<?, ?>) getObject();
         GitHubLink repoLink = run.getParent().getAction(GitHubLink.class);
         return repoLink.getUrl();
-    }
-
-    @Override
-    public boolean isApplicable() {
-        SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
-
-        if (scmRevisionAction == null) {
-            return false;
-        }
-
-        // TODO
-        SCMRevision revision = scmRevisionAction.getRevision();
-        return revision instanceof PullRequestSCMRevision;
     }
 
     @Override

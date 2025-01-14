@@ -43,12 +43,6 @@ public class GitHubRepositoryDetail extends Detail {
     }
 
     @Override
-    public boolean isApplicable() {
-        var source = SCMSource.SourceByItem.findSource(((Run) getObject()).getParent());
-        return source instanceof GitHubSCMSource;
-    }
-
-    @Override
     public DetailGroup getGroup() {
         return DetailGroup.SCM;
     }

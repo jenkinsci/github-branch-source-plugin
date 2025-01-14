@@ -3,11 +3,14 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Run;
+
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import jenkins.model.Detail;
 import jenkins.model.DetailFactory;
+import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 
 @Extension
@@ -26,10 +29,19 @@ public final class GitHubDetailFactory extends DetailFactory<Run> {
             return Collections.emptyList();
         }
 
-        return List.of(
-                new GitHubPullRequestDetail(target),
-                new GitHubBranchDetail(target),
-                new GitHubCommitDetail(target),
-                new GitHubRepositoryDetail(target));
+        List<Detail> details = new ArrayList<>();
+
+        SCMRevision revision = scmRevisionAction.getRevision();
+
+        if (revision instanceof PullRequestSCMRevision) {
+            details.add(new GitHubPullRequestDetail(target));
+        } else {
+            details.add(new GitHubCommitDetail(target));
+        }
+
+        details.add(new GitHubCommitDetail(target));
+        details.add(new GitHubRepositoryDetail(target));
+
+        return details;
     }
 }
