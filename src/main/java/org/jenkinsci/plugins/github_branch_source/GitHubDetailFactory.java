@@ -35,7 +35,7 @@ public final class GitHubDetailFactory extends DetailFactory<Run> {
         if (revision instanceof PullRequestSCMRevision) {
             details.add(new GitHubPullRequestDetail(target));
         } else {
-            details.add(new GitHubCommitDetail(target));
+            details.add(new GitHubBranchDetail(target));
         }
 
         details.add(new GitHubCommitDetail(target));
