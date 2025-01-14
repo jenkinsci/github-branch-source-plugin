@@ -3,7 +3,6 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Run;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
