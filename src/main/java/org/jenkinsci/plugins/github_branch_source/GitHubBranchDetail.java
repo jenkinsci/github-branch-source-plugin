@@ -46,7 +46,9 @@ public class GitHubBranchDetail extends Detail {
     @Override
     public boolean isApplicable() {
         SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
-        return scmRevisionAction != null;
+        SCMRevision revision = scmRevisionAction.getRevision();
+        // Don't show for Pull Requests
+        return !(revision instanceof PullRequestSCMRevision);
     }
 
     @Override

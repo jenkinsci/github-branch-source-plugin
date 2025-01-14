@@ -27,9 +27,9 @@ public final class GitHubDetailFactory extends DetailFactory<Run> {
         }
 
         return List.of(
-                new GitHubCommitDetail(target),
                 new GitHubPullRequestDetail(target),
                 new GitHubBranchDetail(target),
+                new GitHubCommitDetail(target),
                 new GitHubRepositoryDetail(target));
     }
 }
