@@ -61,6 +61,7 @@ public class GitHubConfiguration extends GlobalConfiguration {
 
     @Override
     public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+        setEndpoints(null);
         req.bindJSON(this, json);
         return true;
     }
