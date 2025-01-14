@@ -140,7 +140,7 @@ Finished: SUCCESS
 
 GitHub App Credentials offer advanced configuration options that can provide additional security in some scenarios.
 In particular, when GitHub App Credentials are used by an Organization Folder or Multibranch Pipeline, these strategies may dynamically restrict the accessible repositories and permissions available to the credentials when they are accessed in untrusted contexts, such as when they are accessed by a `withCredentials` step in one of the individual Pipeline jobs.
-See TODO for additional information on why it may be beneficial to limit credentials in this way.
+See link:https://www.jenkins.io/doc/book/security/securing-org-folders-and-multibranch-pipelines/[this documentation] for additional information on why it may be beneficial to limit credentials in this way.
 These strategies do not apply when using the credentials in trusted contexts, such as during organization folder scans and branch indexing.
 Note also that Jenkins users who have Job/Configure permission in a context where the credentials are available are considered trusted and can bypass these strategies by configuring jobs as desired.
 In trusted contexts, the generated access tokens will have the same access as configured for the app installation in GitHub.

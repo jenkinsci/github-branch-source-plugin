@@ -5,13 +5,14 @@
             <f:submit name="clear" value="${%Dismiss}"/>
         </form>
         ${%blurb}
-        <p><a href="TODO">See here for more information.</a></p>
-        <p>${%affectedCredentials}
+        <p><a href="https://www.jenkins.io/doc/book/security/securing-org-folders-and-multibranch-pipelines/">See here for more information.</a></p>
+        <details>
+            <summary>${%affectedCredentials}</summary>
             <ul>
                 <j:forEach var="c" items="${it.migratedCredentialIds}">
                     <li>${c}</li>
                 </j:forEach>
             </ul>
-        </p>
+        </details>
     </div>
 </j:jelly>
