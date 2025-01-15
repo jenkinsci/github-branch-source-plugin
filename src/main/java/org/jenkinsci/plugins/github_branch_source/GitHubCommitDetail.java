@@ -2,8 +2,8 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import hudson.model.Actionable;
 import hudson.model.Run;
-import jenkins.model.Detail;
-import jenkins.model.DetailGroup;
+import jenkins.model.details.Detail;
+import jenkins.model.details.DetailGroup;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
@@ -33,7 +33,7 @@ public class GitHubCommitDetail extends Detail {
     }
 
     @Override
-    public String getUrl() {
+    public String getLink() {
         SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
         SCMRevision revision = scmRevisionAction.getRevision();
 
@@ -57,6 +57,6 @@ public class GitHubCommitDetail extends Detail {
 
     @Override
     public DetailGroup getGroup() {
-        return DetailGroup.SCM;
+        return ScmDetailGroup.get();
     }
 }

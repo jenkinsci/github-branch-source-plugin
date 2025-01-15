@@ -4,11 +4,10 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import hudson.model.Run;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import jenkins.model.Detail;
-import jenkins.model.DetailFactory;
+import jenkins.model.details.Detail;
+import jenkins.model.details.DetailFactory;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 
@@ -22,7 +21,7 @@ public final class GitHubDetailFactory extends DetailFactory<Run> {
 
     @NonNull
     @Override
-    public Collection<? extends Detail> createFor(@NonNull Run target) {
+    public List<? extends Detail> createFor(@NonNull Run target) {
         SCMRevisionAction scmRevisionAction = target.getAction(SCMRevisionAction.class);
         if (scmRevisionAction == null) {
             return Collections.emptyList();

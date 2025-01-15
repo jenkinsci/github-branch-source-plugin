@@ -3,8 +3,8 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.Actionable;
 import hudson.model.Run;
-import jenkins.model.Detail;
-import jenkins.model.DetailGroup;
+import jenkins.model.details.Detail;
+import jenkins.model.details.DetailGroup;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 
 public class GitHubPullRequestDetail extends Detail {
@@ -27,7 +27,7 @@ public class GitHubPullRequestDetail extends Detail {
     }
 
     @Override
-    public String getUrl() {
+    public String getLink() {
         var run = (Run<?, ?>) getObject();
         GitHubLink repoLink = run.getParent().getAction(GitHubLink.class);
         return repoLink.getUrl();
@@ -35,6 +35,6 @@ public class GitHubPullRequestDetail extends Detail {
 
     @Override
     public DetailGroup getGroup() {
-        return DetailGroup.SCM;
+        return ScmDetailGroup.get();
     }
 }
