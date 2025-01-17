@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>4.88</version>
+    <version>5.5</version>
     <relativePath />
   </parent>
 
@@ -33,7 +33,9 @@
     <changelist>1807.v50351eb_7dd13-SmartRecruiters</changelist>
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
-    <jenkins.version>2.440.3</jenkins.version>
+    <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
+    <jenkins.baseline>2.479</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     <useBeta>true</useBeta>
     <spotless.check.skip>false</spotless.check.skip>
   </properties>
@@ -42,8 +44,8 @@
     <dependencies>
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
-        <artifactId>bom-2.440.x</artifactId>
-        <version>3234.v5ca_5154341ef</version>
+        <artifactId>bom-${jenkins.baseline}.x</artifactId>
+        <version>3893.v213a_42768d35</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
