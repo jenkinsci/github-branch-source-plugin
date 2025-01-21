@@ -1,0 +1,9 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler">
+  <f:entry title="${%Owner}" field="owner">
+    <f:textbox />
+  </f:entry>
+  <f:entry title="${%Repositories}" field="repositories">
+    <f:textarea value="${instance == null ? '' : instance.repositoriesForJelly}" />
+  </f:entry>
+</j:jelly>

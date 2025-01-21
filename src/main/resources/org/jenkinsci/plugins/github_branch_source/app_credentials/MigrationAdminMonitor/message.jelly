@@ -1,0 +1,18 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+    <div class="alert alert-warning">
+        <form id="${it.id}" method="post" action="${rootURL}/${it.url}/act" name="${it.id}">
+            <f:submit name="clear" value="${%Dismiss}"/>
+        </form>
+        ${%blurb}
+        <p><a href="https://www.jenkins.io/doc/book/security/securing-org-folders-and-multibranch-pipelines/">See here for more information.</a></p>
+        <details>
+            <summary>${%affectedCredentials}</summary>
+            <ul>
+                <j:forEach var="c" items="${it.migratedCredentialIds}">
+                    <li>${c}</li>
+                </j:forEach>
+            </ul>
+        </details>
+    </div>
+</j:jelly>
