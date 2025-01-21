@@ -25,7 +25,6 @@ import java.io.Serializable;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -135,8 +134,6 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         super(scope, id, description);
         this.appID = appID;
         this.privateKey = privateKey;
-        this.repositoryAccessStrategy = new AccessInferredOwner();
-        this.defaultPermissionsStrategy = DefaultPermissionsStrategy.INHERIT_ALL;
     }
 
     public String getApiUri() {
@@ -170,9 +167,9 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     public void setOwner(String owner) {
         owner = Util.fixEmptyAndTrim(owner);
         if (owner != null) {
-            this.repositoryAccessStrategy = new AccessSpecifiedRepositories(owner, List.of());
+            setRepositoryAccessStrategy(new AccessSpecifiedRepositories(owner, List.of()));
         } else {
-            this.repositoryAccessStrategy = new AccessInferredOwner();
+            setRepositoryAccessStrategy(new AccessInferredOwner());
         }
         // We only expect this to be called by CasC and by a few plugins which implement variants of this class based on
         // external credential providers, so we still count it as a migration.
@@ -181,7 +178,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     @NonNull
     public RepositoryAccessStrategy getRepositoryAccessStrategy() {
-        return repositoryAccessStrategy;
+        return repositoryAccessStrategy == null ? new AccessInferredOwner() : repositoryAccessStrategy;
     }
 
     @DataBoundSetter
@@ -191,7 +188,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     @NonNull
     public DefaultPermissionsStrategy getDefaultPermissionsStrategy() {
-        return defaultPermissionsStrategy;
+        return defaultPermissionsStrategy == null ? DefaultPermissionsStrategy.INHERIT_ALL : defaultPermissionsStrategy;
     }
 
     @DataBoundSetter
@@ -200,14 +197,14 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     }
 
     AccessibleRepositories getAccessibleRepositories() {
-        return repositoryAccessStrategy.forContext(context);
+        return getRepositoryAccessStrategy().forContext(context);
     }
 
     Map<String, GHPermissionType> getPermissions() {
         if (context.getPermissions() != null) {
             return context.getPermissions();
         }
-        return defaultPermissionsStrategy.getPermissions();
+        return getDefaultPermissionsStrategy().getPermissions();
     }
 
     @SuppressWarnings("deprecation")
@@ -446,8 +443,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     private GitHubAppCredentials clone(final GitHubAppUsageContext context) {
         final var clone = new GitHubAppCredentials(getScope(), getId(), getDescription(), getAppID(), getPrivateKey());
         clone.apiUri = getApiUri();
-        clone.repositoryAccessStrategy = getRepositoryAccessStrategy();
-        clone.defaultPermissionsStrategy = getDefaultPermissionsStrategy();
+        clone.setRepositoryAccessStrategy(getRepositoryAccessStrategy());
+        clone.setDefaultPermissionsStrategy(getDefaultPermissionsStrategy());
         clone.context = context;
         return clone;
     }
@@ -462,7 +459,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             final var usageContext = GitHubAppUsageContext.builder()
                     .inferredOwner(source.getRepoOwner())
                     .inferredRepository(source.getRepository())
-                    .permissions(defaultPermissionsStrategy.getPermissions())
+                    .permissions(getDefaultPermissionsStrategy().getPermissions())
                     .build();
             return contextualize(usageContext);
         }
@@ -473,7 +470,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 final var usageContext = GitHubAppUsageContext.builder()
                         .inferredOwner(ghrn.userName)
                         .inferredRepository(ghrn.repositoryName)
-                        .permissions(defaultPermissionsStrategy.getPermissions())
+                        .permissions(getDefaultPermissionsStrategy().getPermissions())
                         .build();
                 return contextualize(usageContext);
             }
@@ -598,7 +595,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         if (repositoryAccessStrategy == null || defaultPermissionsStrategy == null) {
             if (owner != null) {
                 // In this case, the migration should result in identical behavior.
-                repositoryAccessStrategy = new AccessSpecifiedRepositories(owner, Collections.emptyList());
+                setRepositoryAccessStrategy(new AccessSpecifiedRepositories(owner, List.of()));
             } else {
                 // There is a choice here: We can either preserve compatibility for users who have
                 // the app installed in multiple orgs and only use the credentials in contexts
@@ -607,9 +604,9 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 // use it in contexts where inference is not supported by using
                 // AccessSpecifiedRepositories with a null owner.
                 // None of the new strategies support these two use cases simultaneously.
-                repositoryAccessStrategy = new AccessInferredOwner();
+                setRepositoryAccessStrategy(new AccessInferredOwner());
             }
-            defaultPermissionsStrategy = DefaultPermissionsStrategy.INHERIT_ALL;
+            setDefaultPermissionsStrategy(DefaultPermissionsStrategy.INHERIT_ALL);
             MigrationAdminMonitor.addMigratedCredentialId(getId());
         }
         owner = null;
