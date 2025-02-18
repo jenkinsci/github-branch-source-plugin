@@ -18,10 +18,20 @@ public class GitHubRepositoryDetail extends Detail {
         return "symbol-logo-github plugin-ionicons-api";
     }
 
+    private GitHubSCMSource getSCMSource() {
+        var source = SCMSource.SourceByItem.findSource(((Run) getObject()).getParent());
+
+        if (!(source instanceof GitHubSCMSource)) {
+            return null;
+        }
+
+        return (GitHubSCMSource) source;
+    }
+
     @Nullable
     @Override
     public String getDisplayName() {
-        GitHubSCMSource source = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run) getObject()).getParent());
+        GitHubSCMSource source = getSCMSource();
 
         if (source == null) {
             return null;
@@ -32,7 +42,7 @@ public class GitHubRepositoryDetail extends Detail {
 
     @Override
     public String getLink() {
-        GitHubSCMSource source = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run) getObject()).getParent());
+        GitHubSCMSource source = getSCMSource();
 
         if (source == null) {
             return null;
