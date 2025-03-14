@@ -58,7 +58,7 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
         this.mergeHash = mergeHash;
     }
 
-    @SuppressFBWarnings({"SE_PRIVATE_READ_RESOLVE_NOT_INHERITED", "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"})
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     private Object readResolve() {
         if (getTarget() == null) {
             // fix an instance prior to the type migration, thankfully we have all the required info

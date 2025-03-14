@@ -82,7 +82,6 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     private String apiUri;
 
-    @SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "#withOwner locking only for #byOwner")
     private String owner;
 
     private transient AppInstallationToken cachedToken;
