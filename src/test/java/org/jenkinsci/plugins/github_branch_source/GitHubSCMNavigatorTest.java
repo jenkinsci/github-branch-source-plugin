@@ -37,6 +37,7 @@ import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.model.User;
@@ -75,8 +76,16 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     @Mock
     private SCMSourceOwner scmSourceOwner;
 
-    private BaseStandardCredentials credentials = new UsernamePasswordCredentialsImpl(
-            CredentialsScope.GLOBAL, "authenticated-user", null, "git-user", "git-secret");
+    private BaseStandardCredentials credentials;
+
+    {
+        try {
+            credentials = new UsernamePasswordCredentialsImpl(
+                    CredentialsScope.GLOBAL, "authenticated-user", null, "git-user", "git-secret");
+        } catch (Descriptor.FormException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private GitHubSCMNavigator navigator;
 

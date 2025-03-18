@@ -76,7 +76,7 @@ public class GitHubOrgMetadataAction extends AvatarMetadataAction {
             String image = avatarIconClassNameImageOf(getAvatarIconClassName(), size);
             return image != null
                     ? image
-                    : (Stapler.getCurrentRequest().getContextPath()
+                    : (Stapler.getCurrentRequest2().getContextPath()
                             + Hudson.RESOURCE_PATH
                             + "/plugin/github-branch-source/images/"
                             + "/github-logo.svg");

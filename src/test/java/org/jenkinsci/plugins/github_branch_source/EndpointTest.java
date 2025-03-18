@@ -10,13 +10,13 @@ import hudson.Functions;
 import hudson.Util;
 import hudson.model.UnprotectedRootAction;
 import hudson.security.csrf.CrumbExclusion;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Arrays;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import org.htmlunit.FailingHttpStatusCodeException;
 import org.htmlunit.HttpMethod;
@@ -31,8 +31,8 @@ import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.TestExtension;
-import org.kohsuke.stapler.StaplerRequest;
-import org.kohsuke.stapler.StaplerResponse;
+import org.kohsuke.stapler.StaplerRequest2;
+import org.kohsuke.stapler.StaplerResponse2;
 import org.xml.sax.SAXException;
 
 public class EndpointTest {
@@ -103,7 +103,7 @@ public class EndpointTest {
     }
 
     private String getCrumb() {
-        return Functions.getCrumbRequestField() + "=" + Functions.getCrumb(null);
+        return Functions.getCrumbRequestField() + "=" + Functions.getCrumb((StaplerRequest2) null);
     }
 
     private Page post(String relative, String userName) throws Exception {
@@ -116,8 +116,8 @@ public class EndpointTest {
 
         final WebRequest request = new WebRequest(new URL(client.getContextPath() + relative), HttpMethod.POST);
         request.setAdditionalHeader("Accept", client.getBrowserVersion().getHtmlAcceptHeader());
-        request.setRequestParameters(
-                Arrays.asList(new NameValuePair(Functions.getCrumbRequestField(), Functions.getCrumb(null))));
+        request.setRequestParameters(Arrays.asList(
+                new NameValuePair(Functions.getCrumbRequestField(), Functions.getCrumb((StaplerRequest2) null))));
         return client.getPage(request);
     }
 
@@ -141,7 +141,7 @@ public class EndpointTest {
             return "testroot";
         }
 
-        public void doIndex(StaplerRequest request, StaplerResponse response) throws IOException {
+        public void doIndex(StaplerRequest2 request, StaplerResponse2 response) throws IOException {
             visited = true;
             response.getWriter().println("OK");
         }

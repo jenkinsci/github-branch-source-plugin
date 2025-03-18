@@ -20,6 +20,7 @@ import com.cloudbees.plugins.credentials.CredentialsScope;
 import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
+import hudson.model.Descriptor;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.Revision;
 import hudson.plugins.git.UserRemoteConfig;
@@ -82,7 +83,7 @@ public class GitHubSCMBuilderTest {
     }
 
     @Before
-    public void setUp() throws IOException {
+    public void setUp() throws IOException, Descriptor.FormException {
         owner = j.createProject(WorkflowMultiBranchProject.class);
         Credentials userPasswordCredential = new UsernamePasswordCredentialsImpl(
                 CredentialsScope.GLOBAL, "user-pass", null, "git-user", "git-secret");
