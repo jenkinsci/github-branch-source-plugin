@@ -32,7 +32,6 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Item;
 import hudson.model.Queue;
 import hudson.plugins.git.GitSCM;
@@ -59,7 +58,6 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
  *
  * @since 2.2.0
  */
-@SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
 public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
 
     private static final Random ENTROPY = new Random();
@@ -124,7 +122,6 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         if (repoUrl != null) {
             withBrowser(new GithubWeb(repoUrl));
         }
-        withCredentials(credentialsId(), null);
     }
 
     /**
@@ -189,7 +186,9 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
      *     {@code null} to detect the the protocol based on the credentialsId. Defaults to HTTP if
      *     credentials are {@code null}. Enables support for blank SSH credentials.
      * @return {@code this} for method chaining.
+     * @deprecated Use {@link #withCredentials(String)} and {@link #withResolver(RepositoryUriResolver)}
      */
+    @Deprecated
     @NonNull
     public GitHubSCMBuilder withCredentials(String credentialsId, RepositoryUriResolver uriResolver) {
         if (uriResolver == null) {
@@ -198,6 +197,12 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
 
         this.uriResolver = uriResolver;
         return withCredentials(credentialsId);
+    }
+
+    @NonNull
+    public GitHubSCMBuilder withResolver(RepositoryUriResolver uriResolver) {
+        this.uriResolver = uriResolver;
+        return this;
     }
 
     /**
@@ -215,12 +220,12 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
             return HTTPS;
         } else {
             StandardCredentials credentials = CredentialsMatchers.firstOrNull(
-                    CredentialsProvider.lookupCredentials(
+                    CredentialsProvider.lookupCredentialsInItem(
                             StandardCredentials.class,
                             context,
                             context instanceof Queue.Task
-                                    ? ((Queue.Task) context).getDefaultAuthentication()
-                                    : ACL.SYSTEM,
+                                    ? ((Queue.Task) context).getDefaultAuthentication2()
+                                    : ACL.SYSTEM2,
                             URIRequirementBuilder.create()
                                     .withHostname(RepositoryUriResolver.hostnameFromApiUri(apiUri))
                                     .build()),

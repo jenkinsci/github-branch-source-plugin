@@ -27,6 +27,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.security.Permission;
 import hudson.util.ListBoxModel;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -38,9 +39,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import jenkins.model.GlobalConfiguration;
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.StaplerRequest;
+import org.kohsuke.stapler.StaplerRequest2;
 
 @Extension
 public class GitHubConfiguration extends GlobalConfiguration {
@@ -58,7 +60,7 @@ public class GitHubConfiguration extends GlobalConfiguration {
     }
 
     @Override
-    public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+    public boolean configure(StaplerRequest2 req, JSONObject json) throws FormException {
         req.bindJSON(this, json);
         return true;
     }
@@ -231,5 +233,11 @@ public class GitHubConfiguration extends GlobalConfiguration {
             items.add(mode.getDisplayName(), mode.name());
         }
         return items;
+    }
+
+    @NonNull
+    @Override
+    public Permission getRequiredGlobalConfigPagePermission() {
+        return Jenkins.MANAGE;
     }
 }
