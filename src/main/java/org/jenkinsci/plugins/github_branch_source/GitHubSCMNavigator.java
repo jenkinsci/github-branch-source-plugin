@@ -1083,7 +1083,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                                             "%d repositories were processed (query completed)",
                                                             witness.getCount())));
                                 }
-                            } catch (Exception e) {
+                            } catch (IOException e) {
                                 listener.getLogger()
                                         .println(GitHubConsoleNote.create(
                                                 System.currentTimeMillis(),
@@ -1176,7 +1176,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                                         "%d repositories were processed (query completed)",
                                                         witness.getCount())));
                             }
-                        } catch (Exception e) {
+                        } catch (IOException e) {
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(
                                             System.currentTimeMillis(),
