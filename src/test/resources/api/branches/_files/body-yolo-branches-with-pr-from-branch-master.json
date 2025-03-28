@@ -1,0 +1,102 @@
+{
+  "name": "master",
+  "commit": {
+    "sha": "2fdf0705e724faa5cca9fa08e0de8b0d4c7d1556",
+    "node_id": "MDY6Q29tbWl0NzY0OTczNDA6MmZkZjA3MDVlNzI0ZmFhNWNjYTlmYTA4ZTBkZThiMGQ0YzdkMTU1Ng==",
+    "commit": {
+      "author": {
+        "name": "stephenc",
+        "email": "stephenc@users.noreply.github.com",
+        "date": "2020-02-21T14:10:56Z"
+      },
+      "committer": {
+        "name": "GitHub",
+        "email": "noreply@github.com",
+        "date": "2020-02-21T14:10:56Z"
+      },
+      "message": "Merge pull request #217 from cloudbeers/bugfix/breakCircularDependency\n\nReshuffle libraries to fix impending circular dependency",
+      "tree": {
+        "sha": "07f2f350aba490e79cd63b39e13bdc113b325513",
+        "url": "https://api.github.com/repos/cloudbeers/yolo/git/trees/07f2f350aba490e79cd63b39e13bdc113b325513"
+      },
+      "url": "https://api.github.com/repos/cloudbeers/yolo/git/commits/2fdf0705e724faa5cca9fa08e0de8b0d4c7d1556",
+      "comment_count": 0,
+      "verification": {
+        "verified": true,
+        "reason": "valid",
+        "signature": "-----BEGIN PGP SIGNATURE-----\n\nPGP=HASH==\n-----END PGP SIGNATURE-----\n",
+        "payload": "tree 07f2f350aba490e79cd63b39e13bdc113b325513\nparent c741bdaf2db87c6109e384e4a871e426366c10d5\nparent 5f2352571e6f48a49ced9caf25fff8953a781ef6\nauthor stephenc <stephenc@users.noreply.github.com> 1582294256 +0100\ncommitter GitHub <noreply@github.com> 1582294256 +0100\n\nMerge pull request #217 from cloudbeers/bugfix/breakCircularDependency\n\nReshuffle libraries to fix impending circular dependency"
+      }
+    },
+    "url": "https://api.github.com/repos/cloudbeers/yolo/commits/2fdf0705e724faa5cca9fa08e0de8b0d4c7d1556",
+    "html_url": "https://github.com/cloudbeers/yolo/commit/2fdf0705e724faa5cca9fa08e0de8b0d4c7d1556",
+    "comments_url": "https://api.github.com/repos/cloudbeers/yolo/commits/2fdf0705e724faa5cca9fa08e0de8b0d4c7d1556/comments",
+    "author": {
+      "login": "stephenc",
+      "id": 209336,
+      "node_id": "MDQ6VXNlcjk4NzI5Njk=",
+      "avatar_url": "https://avatars1.githubusercontent.com/u/209336?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/stephenc",
+      "html_url": "https://github.com/stephenc",
+      "followers_url": "https://api.github.com/users/stephenc/followers",
+      "following_url": "https://api.github.com/users/stephenc/following{/other_user}",
+      "gists_url": "https://api.github.com/users/stephenc/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/stephenc/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/stephenc/subscriptions",
+      "organizations_url": "https://api.github.com/users/stephenc/orgs",
+      "repos_url": "https://api.github.com/users/stephenc/repos",
+      "events_url": "https://api.github.com/users/stephenc/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/stephenc/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "committer": {
+      "login": "web-flow",
+      "id": 19864447,
+      "node_id": "MDQ6VXNlcjE5ODY0NDQ3",
+      "avatar_url": "https://avatars3.githubusercontent.com/u/19864447?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/web-flow",
+      "html_url": "https://github.com/web-flow",
+      "followers_url": "https://api.github.com/users/web-flow/followers",
+      "following_url": "https://api.github.com/users/web-flow/following{/other_user}",
+      "gists_url": "https://api.github.com/users/web-flow/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/web-flow/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/web-flow/subscriptions",
+      "organizations_url": "https://api.github.com/users/web-flow/orgs",
+      "repos_url": "https://api.github.com/users/web-flow/repos",
+      "events_url": "https://api.github.com/users/web-flow/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/web-flow/received_events",
+      "type": "User",
+      "site_admin": false
+    },
+    "parents": [
+      {
+        "sha": "c741bdaf2db87c6109e384e4a871e426366c10d5",
+        "url": "https://api.github.com/repos/cloudbeers/yolo/commits/c741bdaf2db87c6109e384e4a871e426366c10d5",
+        "html_url": "https://github.com/cloudbeers/yolo/commit/c741bdaf2db87c6109e384e4a871e426366c10d5"
+      },
+      {
+        "sha": "5f2352571e6f48a49ced9caf25fff8953a781ef6",
+        "url": "https://api.github.com/repos/cloudbeers/yolo/commits/5f2352571e6f48a49ced9caf25fff8953a781ef6",
+        "html_url": "https://github.com/cloudbeers/yolo/commit/5f2352571e6f48a49ced9caf25fff8953a781ef6"
+      }
+    ]
+  },
+  "_links": {
+    "self": "https://api.github.com/repos/cloudbeers/yolo/branches/master",
+    "html": "https://github.com/cloudbeers/yolo/tree/master"
+  },
+  "protected": false,
+  "protection": {
+    "enabled": false,
+    "required_status_checks": {
+      "enforcement_level": "off",
+      "contexts": [
+
+      ]
+    }
+  },
+  "protection_url": "https://api.github.com/repos/cloudbeers/yolo/branches/master/protection"
+}
