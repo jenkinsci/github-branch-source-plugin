@@ -1,7 +1,6 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Util;
 import hudson.model.TaskListener;
 import hudson.util.LogTaskListener;
@@ -18,7 +17,6 @@ import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.RateLimitChecker;
 
-@SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
 public enum ApiRateLimitChecker {
 
     /** Attempt to evenly distribute GitHub API requests. */
