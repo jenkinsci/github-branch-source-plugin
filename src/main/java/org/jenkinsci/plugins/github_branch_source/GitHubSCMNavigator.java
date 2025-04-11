@@ -1321,6 +1321,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         }
 
         try {
+            Connector.configureLocalRateLimitChecker(listener, github);
             // Input data validation
             if (credentials != null && !isCredentialValid(github)) {
                 String message = String.format(
