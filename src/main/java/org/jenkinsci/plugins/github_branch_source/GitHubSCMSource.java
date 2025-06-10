@@ -2572,17 +2572,30 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 GHUser user = null;
                 try {
                     user = pr.getUser();
-                    if (users.containsKey(user.getLogin())) {
-                        // looked up this user already
-                        user = users.get(user.getLogin());
+                    String login = user.getLogin();
+                    String name;
+                    String email;
+                    try {
+                        name = user.getName();
+                        if (name == null || name.isEmpty()) {
+                            name = login;
+                        }
+                    } catch (Exception e) {
+                        name = login;
                     }
-                    ContributorMetadataAction contributor =
-                            new ContributorMetadataAction(user.getLogin(), user.getName(), user.getEmail());
+                    try {
+                        email = user.getEmail();
+                        if (email == null || email.isEmpty()) {
+                            email = login + "@unknown.user";
+                        }
+                    } catch (Exception e) {
+                        email = login + "@unknown.user";
+                    }
+                    ContributorMetadataAction contributor = new ContributorMetadataAction(login, name, email);
                     pullRequestContributorCache.put(number, contributor);
                     // store the populated user record now that we have it
-                    users.put(user.getLogin(), user);
+                    users.put(login, user);
                 } catch (FileNotFoundException e) {
-                    // If file not found for user, warn but keep going
                     request.listener()
                             .getLogger()
                             .format(
