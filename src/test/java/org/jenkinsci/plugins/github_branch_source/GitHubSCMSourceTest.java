@@ -493,8 +493,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
             byName.put(h.getKey().getName(), h.getKey());
             revByName.put(h.getKey().getName(), h.getValue());
         }
-        assertThat(byName.keySet(), containsInAnyOrder("PR-3", "PR-4", "master", "stephenc-patch-1"));
-
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "PR-4", "master", "stephenc-patch-1"));
         // PR-2 fails to find master and throws file not found for master.
         // Caught and handled by removing PR-2 but scan continues.
 
