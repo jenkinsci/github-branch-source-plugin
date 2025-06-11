@@ -81,8 +81,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
-import org.mockito.Mockito;
 import org.kohsuke.github.GHUser;
+import org.mockito.Mockito;
 
 @RunWith(Parameterized.class)
 public class GitHubSCMSourceTest extends GitSCMSourceBase {

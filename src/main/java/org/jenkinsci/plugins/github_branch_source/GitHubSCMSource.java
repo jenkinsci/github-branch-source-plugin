@@ -3008,7 +3008,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 if ("copilot".equalsIgnoreCase(login)) {
                     return login;
                 } else {
-                    listener.getLogger().format("%n  Could not find user name for %s in pull request %d.%n", login, number);
+                    listener.getLogger()
+                            .format("%n  Could not find user name for %s in pull request %d.%n", login, number);
                     return "unknown";
                 }
             }
@@ -3030,7 +3031,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 if ("copilot".equalsIgnoreCase(login)) {
                     return login + "@unknown.user";
                 } else {
-                    listener.getLogger().format("%n  Could not find user email for %s in pull request %d.%n", login, number);
+                    listener.getLogger()
+                            .format("%n  Could not find user email for %s in pull request %d.%n", login, number);
                     return "unknown@unknown.user";
                 }
             }
@@ -3039,10 +3041,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             if ("copilot".equalsIgnoreCase(login)) {
                 return login + "@unknown.user";
             } else {
-                listener.getLogger().format("%n  Could not find user email for %s in pull request %d.%n", login, number);
+                listener.getLogger()
+                        .format("%n  Could not find user email for %s in pull request %d.%n", login, number);
                 return "unknown@unknown.user";
             }
         }
     }
-
 }
