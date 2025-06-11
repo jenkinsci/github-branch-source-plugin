@@ -2575,7 +2575,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     String login = user.getLogin();
                     if ("copilot".equalsIgnoreCase(login)) {
                         ContributorMetadataAction contributor =
-                            new ContributorMetadataAction("copilot", "copilot", "copilot@unknown.user");
+                                new ContributorMetadataAction("copilot", "copilot", "copilot@unknown.user");
                         pullRequestContributorCache.put(number, contributor);
                         users.put("copilot", user);
                     } else {
@@ -2584,23 +2584,25 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             user = users.get(login);
                         }
                         ContributorMetadataAction contributor =
-                            new ContributorMetadataAction(login, user.getName(), user.getEmail());
+                                new ContributorMetadataAction(login, user.getName(), user.getEmail());
                         pullRequestContributorCache.put(number, contributor);
                         users.put(login, user);
                     }
                 } catch (FileNotFoundException e) {
                     request.listener()
-                        .getLogger()
-                        .format("%n  Could not find user %s for pull request %d.%n", user == null ? "null" : user.getLogin(), number);
+                            .getLogger()
+                            .format(
+                                    "%n  Could not find user %s for pull request %d.%n",
+                                    user == null ? "null" : user.getLogin(), number);
                     throw new WrappedException(e);
                 } catch (IOException e) {
                     throw new WrappedException(e);
                 }
 
                 pullRequestMetadataCache.put(
-                    number,
-                    new ObjectMetadataAction(
-                        pr.getTitle(), pr.getBody(), pr.getHtmlUrl().toExternalForm()));
+                        number,
+                        new ObjectMetadataAction(
+                                pr.getTitle(), pr.getBody(), pr.getHtmlUrl().toExternalForm()));
                 pullRequestMetadataKeys.add(number);
             }
 
