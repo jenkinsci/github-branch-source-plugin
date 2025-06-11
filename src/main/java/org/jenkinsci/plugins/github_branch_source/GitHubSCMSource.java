@@ -2578,18 +2578,46 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     try {
                         name = user.getName();
                         if (name == null || name.isEmpty()) {
-                            name = login;
+                            if ("copilot".equalsIgnoreCase(login)) {
+                                name = login;
+                            } else {
+                                request.listener()
+                                    .getLogger()
+                                    .format("%n  Could not find user name for %s in pull request %d.%n", login, number);
+                                name = "unknown";
+                            }
                         }
                     } catch (Exception e) {
-                        name = login;
+                        if ("copilot".equalsIgnoreCase(login)) {
+                            name = login;
+                        } else {
+                            request.listener()
+                                .getLogger()
+                                .format("%n  Could not find user name for %s in pull request %d.%n", login, number);
+                            name = "unknown";
+                        }
                     }
                     try {
                         email = user.getEmail();
                         if (email == null || email.isEmpty()) {
-                            email = login + "@unknown.user";
+                            if ("copilot".equalsIgnoreCase(login)) {
+                                email = login + "@unknown.user";
+                            } else {
+                                request.listener()
+                                    .getLogger()
+                                    .format("%n  Could not find user email for %s in pull request %d.%n", login, number);
+                                email = "unknown@unknown.user";
+                            }
                         }
                     } catch (Exception e) {
-                        email = login + "@unknown.user";
+                        if ("copilot".equalsIgnoreCase(login)) {
+                            email = login + "@unknown.user";
+                        } else {
+                            request.listener()
+                                .getLogger()
+                                .format("%n  Could not find user email for %s in pull request %d.%n", login, number);
+                            email = "unknown@unknown.user";
+                        }
                     }
                     ContributorMetadataAction contributor = new ContributorMetadataAction(login, name, email);
                     pullRequestContributorCache.put(number, contributor);
