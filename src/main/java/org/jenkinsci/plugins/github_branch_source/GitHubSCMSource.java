@@ -2958,5 +2958,4 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
         }
     }
-
 }
