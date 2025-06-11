@@ -82,6 +82,7 @@ import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.mockito.Mockito;
+import org.kohsuke.github.GHUser;
 
 @RunWith(Parameterized.class)
 public class GitHubSCMSourceTest extends GitSCMSourceBase {
@@ -964,7 +965,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-75704")
-    public void testCopilotUserIsAccepted() {
+    public void testCopilotUserIsAccepted() throws IOException {
         assertTrue("copilot".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
         assertTrue("CoPiLoT".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
 
@@ -978,12 +979,12 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         TaskListener mockListener = Mockito.mock(TaskListener.class);
         Mockito.when(mockListener.getLogger()).thenReturn(System.out);
 
-        // Usa los métodos auxiliares (ajusta el acceso si es necesario)
+        // Usa los métodos auxiliares
         GitHubSCMSource src = new GitHubSCMSource("cloudbeers", "yolo", null, false);
         String name = src.resolveUserName(mockUser, "copilot", 1, mockListener);
         String email = src.resolveUserEmail(mockUser, "copilot", 1, mockListener);
 
         assertEquals("copilot", name);
         assertEquals("copilot@unknown.user", email);
-}
+    }
 }

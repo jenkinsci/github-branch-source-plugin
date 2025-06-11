@@ -2582,8 +2582,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                 name = login;
                             } else {
                                 request.listener()
-                                    .getLogger()
-                                    .format("%n  Could not find user name for %s in pull request %d.%n", login, number);
+                                        .getLogger()
+                                        .format(
+                                                "%n  Could not find user name for %s in pull request %d.%n",
+                                                login, number);
                                 name = "unknown";
                             }
                         }
@@ -2592,8 +2594,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             name = login;
                         } else {
                             request.listener()
-                                .getLogger()
-                                .format("%n  Could not find user name for %s in pull request %d.%n", login, number);
+                                    .getLogger()
+                                    .format("%n  Could not find user name for %s in pull request %d.%n", login, number);
                             name = "unknown";
                         }
                     }
@@ -2604,8 +2606,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                 email = login + "@unknown.user";
                             } else {
                                 request.listener()
-                                    .getLogger()
-                                    .format("%n  Could not find user email for %s in pull request %d.%n", login, number);
+                                        .getLogger()
+                                        .format(
+                                                "%n  Could not find user email for %s in pull request %d.%n",
+                                                login, number);
                                 email = "unknown@unknown.user";
                             }
                         }
@@ -2614,8 +2618,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             email = login + "@unknown.user";
                         } else {
                             request.listener()
-                                .getLogger()
-                                .format("%n  Could not find user email for %s in pull request %d.%n", login, number);
+                                    .getLogger()
+                                    .format(
+                                            "%n  Could not find user email for %s in pull request %d.%n",
+                                            login, number);
                             email = "unknown@unknown.user";
                         }
                     }
@@ -2994,4 +3000,49 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
         }
     }
+
+    public String resolveUserName(GHUser user, String login, int number, TaskListener listener) {
+        try {
+            String name = user.getName();
+            if (name == null || name.isEmpty()) {
+                if ("copilot".equalsIgnoreCase(login)) {
+                    return login;
+                } else {
+                    listener.getLogger().format("%n  Could not find user name for %s in pull request %d.%n", login, number);
+                    return "unknown";
+                }
+            }
+            return name;
+        } catch (Exception e) {
+            if ("copilot".equalsIgnoreCase(login)) {
+                return login;
+            } else {
+                listener.getLogger().format("%n  Could not find user name for %s in pull request %d.%n", login, number);
+                return "unknown";
+            }
+        }
+    }
+
+    public String resolveUserEmail(GHUser user, String login, int number, TaskListener listener) {
+        try {
+            String email = user.getEmail();
+            if (email == null || email.isEmpty()) {
+                if ("copilot".equalsIgnoreCase(login)) {
+                    return login + "@unknown.user";
+                } else {
+                    listener.getLogger().format("%n  Could not find user email for %s in pull request %d.%n", login, number);
+                    return "unknown@unknown.user";
+                }
+            }
+            return email;
+        } catch (Exception e) {
+            if ("copilot".equalsIgnoreCase(login)) {
+                return login + "@unknown.user";
+            } else {
+                listener.getLogger().format("%n  Could not find user email for %s in pull request %d.%n", login, number);
+                return "unknown@unknown.user";
+            }
+        }
+    }
+
 }
