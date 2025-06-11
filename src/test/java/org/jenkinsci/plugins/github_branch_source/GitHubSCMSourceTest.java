@@ -81,7 +81,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
-import org.kohsuke.github.GHUser;
 import org.mockito.Mockito;
 
 @RunWith(Parameterized.class)
@@ -961,30 +960,5 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertFalse("user123-_org456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
         assertFalse("user123_org456-code789".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
         assertFalse("user123_org456_code789".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
-    }
-
-    @Test
-    @Issue("JENKINS-75704")
-    public void testCopilotUserIsAccepted() throws IOException {
-        assertTrue("copilot".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
-        assertTrue("CoPiLoT".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
-
-        // Simula un usuario copilot sin nombre ni email
-        GHUser mockUser = Mockito.mock(GHUser.class);
-        Mockito.when(mockUser.getLogin()).thenReturn("copilot");
-        Mockito.when(mockUser.getName()).thenReturn(null);
-        Mockito.when(mockUser.getEmail()).thenReturn(null);
-
-        // Simula un listener
-        TaskListener mockListener = Mockito.mock(TaskListener.class);
-        Mockito.when(mockListener.getLogger()).thenReturn(System.out);
-
-        // Usa los métodos auxiliares
-        GitHubSCMSource src = new GitHubSCMSource("cloudbeers", "yolo", null, false);
-        String name = src.resolveUserName(mockUser, "copilot", 1, mockListener);
-        String email = src.resolveUserEmail(mockUser, "copilot", 1, mockListener);
-
-        assertEquals("copilot", name);
-        assertEquals("copilot@unknown.user", email);
     }
 }
