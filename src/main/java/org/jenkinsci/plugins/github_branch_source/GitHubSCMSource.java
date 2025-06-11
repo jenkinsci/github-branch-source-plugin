@@ -2579,7 +2579,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         pullRequestContributorCache.put(number, contributor);
                         users.put("copilot", user);
                     } else {
-                        // Comportamiento normal
                         if (users.containsKey(login)) {
                             user = users.get(login);
                         }
@@ -2960,50 +2959,4 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         }
     }
 
-    public String resolveUserName(GHUser user, String login, int number, TaskListener listener) {
-        try {
-            String name = user.getName();
-            if (name == null || name.isEmpty()) {
-                if ("copilot".equalsIgnoreCase(login)) {
-                    return login;
-                } else {
-                    listener.getLogger()
-                            .format("%n  Could not find user name for %s in pull request %d.%n", login, number);
-                    return "unknown";
-                }
-            }
-            return name;
-        } catch (Exception e) {
-            if ("copilot".equalsIgnoreCase(login)) {
-                return login;
-            } else {
-                listener.getLogger().format("%n  Could not find user name for %s in pull request %d.%n", login, number);
-                return "unknown";
-            }
-        }
-    }
-
-    public String resolveUserEmail(GHUser user, String login, int number, TaskListener listener) {
-        try {
-            String email = user.getEmail();
-            if (email == null || email.isEmpty()) {
-                if ("copilot".equalsIgnoreCase(login)) {
-                    return login + "@unknown.user";
-                } else {
-                    listener.getLogger()
-                            .format("%n  Could not find user email for %s in pull request %d.%n", login, number);
-                    return "unknown@unknown.user";
-                }
-            }
-            return email;
-        } catch (Exception e) {
-            if ("copilot".equalsIgnoreCase(login)) {
-                return login + "@unknown.user";
-            } else {
-                listener.getLogger()
-                        .format("%n  Could not find user email for %s in pull request %d.%n", login, number);
-                return "unknown@unknown.user";
-            }
-        }
-    }
 }
