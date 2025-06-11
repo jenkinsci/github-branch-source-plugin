@@ -2573,77 +2573,34 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 try {
                     user = pr.getUser();
                     String login = user.getLogin();
-                    String name;
-                    String email;
-                    try {
-                        name = user.getName();
-                        if (name == null || name.isEmpty()) {
-                            if ("copilot".equalsIgnoreCase(login)) {
-                                name = login;
-                            } else {
-                                request.listener()
-                                        .getLogger()
-                                        .format(
-                                                "%n  Could not find user name for %s in pull request %d.%n",
-                                                login, number);
-                                name = "unknown";
-                            }
+                    if ("copilot".equalsIgnoreCase(login)) {
+                        ContributorMetadataAction contributor =
+                            new ContributorMetadataAction("copilot", "copilot", "copilot@unknown.user");
+                        pullRequestContributorCache.put(number, contributor);
+                        users.put("copilot", user);
+                    } else {
+                        // Comportamiento normal
+                        if (users.containsKey(login)) {
+                            user = users.get(login);
                         }
-                    } catch (Exception e) {
-                        if ("copilot".equalsIgnoreCase(login)) {
-                            name = login;
-                        } else {
-                            request.listener()
-                                    .getLogger()
-                                    .format("%n  Could not find user name for %s in pull request %d.%n", login, number);
-                            name = "unknown";
-                        }
+                        ContributorMetadataAction contributor =
+                            new ContributorMetadataAction(login, user.getName(), user.getEmail());
+                        pullRequestContributorCache.put(number, contributor);
+                        users.put(login, user);
                     }
-                    try {
-                        email = user.getEmail();
-                        if (email == null || email.isEmpty()) {
-                            if ("copilot".equalsIgnoreCase(login)) {
-                                email = login + "@unknown.user";
-                            } else {
-                                request.listener()
-                                        .getLogger()
-                                        .format(
-                                                "%n  Could not find user email for %s in pull request %d.%n",
-                                                login, number);
-                                email = "unknown@unknown.user";
-                            }
-                        }
-                    } catch (Exception e) {
-                        if ("copilot".equalsIgnoreCase(login)) {
-                            email = login + "@unknown.user";
-                        } else {
-                            request.listener()
-                                    .getLogger()
-                                    .format(
-                                            "%n  Could not find user email for %s in pull request %d.%n",
-                                            login, number);
-                            email = "unknown@unknown.user";
-                        }
-                    }
-                    ContributorMetadataAction contributor = new ContributorMetadataAction(login, name, email);
-                    pullRequestContributorCache.put(number, contributor);
-                    // store the populated user record now that we have it
-                    users.put(login, user);
                 } catch (FileNotFoundException e) {
                     request.listener()
-                            .getLogger()
-                            .format(
-                                    "%n  Could not find user %s for pull request %d.%n",
-                                    user == null ? "null" : user.getLogin(), number);
+                        .getLogger()
+                        .format("%n  Could not find user %s for pull request %d.%n", user == null ? "null" : user.getLogin(), number);
                     throw new WrappedException(e);
                 } catch (IOException e) {
                     throw new WrappedException(e);
                 }
 
                 pullRequestMetadataCache.put(
-                        number,
-                        new ObjectMetadataAction(
-                                pr.getTitle(), pr.getBody(), pr.getHtmlUrl().toExternalForm()));
+                    number,
+                    new ObjectMetadataAction(
+                        pr.getTitle(), pr.getBody(), pr.getHtmlUrl().toExternalForm()));
                 pullRequestMetadataKeys.add(number);
             }
 
