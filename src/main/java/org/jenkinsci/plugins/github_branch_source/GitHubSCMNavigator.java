@@ -1757,7 +1757,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
         /** {@inheritDoc} */
         @Override
         public String getIconClassName() {
-            return "icon-github-scm-navigator";
+            return "symbol-logo-github plugin-ionicons-api";
         }
 
         /** {@inheritDoc} */
