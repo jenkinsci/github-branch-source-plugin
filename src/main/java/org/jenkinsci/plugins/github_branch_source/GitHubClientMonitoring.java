@@ -5,7 +5,7 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import com.google.common.base.Preconditions;
+import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredentials;
 import hudson.Extension;
 import io.jenkins.plugins.opentelemetry.api.OpenTelemetryLifecycleListener;
 import io.opentelemetry.api.GlobalOpenTelemetry;
@@ -15,18 +15,11 @@ import io.opentelemetry.api.common.AttributesBuilder;
 import io.opentelemetry.api.metrics.Meter;
 import io.opentelemetry.semconv.incubating.EnduserIncubatingAttributes;
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
-import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.annotation.PostConstruct;
 import jenkins.YesNoMaybe;
-import org.kohsuke.github.GHApp;
 import org.kohsuke.github.GHRateLimit;
-import org.kohsuke.github.GitHub;
-import org.kohsuke.github.authorization.AuthorizationProvider;
-import org.kohsuke.github.authorization.UserAuthorizationProvider;
 
 @Extension(dynamicLoadable = YesNoMaybe.YES, optional = true)
 public class GitHubClientMonitoring implements OpenTelemetryLifecycleListener {
@@ -40,60 +33,6 @@ public class GitHubClientMonitoring implements OpenTelemetryLifecycleListener {
 
     private static final Logger logger = Logger.getLogger(GitHubClientMonitoring.class.getName());
 
-    private final Field gitHub_clientField;
-    private final Class<?> gitHubClientClass;
-    private final Field gitHubClient_authorizationProviderField;
-    private final Class<?> credentialsTokenProviderClass;
-    private final Field credentialsTokenProvider_credentialsField;
-
-    private final Field dependentAuthorizationProvider_gitHubField;
-
-    private final Class<?> authorizationRefreshGitHubWrapperClass;
-
-    private final Map<GitHub, ?> reverseLookup;
-
-    public GitHubClientMonitoring() {
-        try {
-            Field connector_reverseLookupField = Connector.class.getDeclaredField("reverseLookup");
-            connector_reverseLookupField.setAccessible(true);
-            Preconditions.checkState(
-                    Modifier.isStatic(connector_reverseLookupField.getModifiers()),
-                    "Connector#reverseLookup is NOT a static field: %s",
-                    connector_reverseLookupField);
-
-            gitHub_clientField = GitHub.class.getDeclaredField("client");
-            gitHub_clientField.setAccessible(true);
-
-            gitHubClientClass = Class.forName("org.kohsuke.github.GitHubClient");
-            gitHubClient_authorizationProviderField = gitHubClientClass.getDeclaredField("authorizationProvider");
-            gitHubClient_authorizationProviderField.setAccessible(true);
-
-            credentialsTokenProviderClass = Class.forName(
-                    "org.jenkinsci.plugins.github_branch_source.GitHubAppCredentials$CredentialsTokenProvider");
-            credentialsTokenProvider_credentialsField = credentialsTokenProviderClass.getDeclaredField("credentials");
-            credentialsTokenProvider_credentialsField.setAccessible(true);
-            Preconditions.checkState(
-                    GitHubAppCredentials.class.isAssignableFrom(credentialsTokenProvider_credentialsField.getType()),
-                    "Unsupported type for credentialsTokenProvider.credentials. Expected GitHubAppCredentials, current %s",
-                    credentialsTokenProvider_credentialsField);
-
-            dependentAuthorizationProvider_gitHubField =
-                    GitHub.DependentAuthorizationProvider.class.getDeclaredField("gitHub");
-            dependentAuthorizationProvider_gitHubField.setAccessible(true);
-
-            authorizationRefreshGitHubWrapperClass =
-                    Class.forName("org.kohsuke.github.GitHub$AuthorizationRefreshGitHubWrapper");
-
-            reverseLookup = (Map<GitHub, ?>) connector_reverseLookupField.get(null);
-        } catch (IllegalAccessException | NoSuchFieldException | ClassNotFoundException e) {
-            throw new RuntimeException("Unsupported version of the Github Branch Source Plugin", e);
-        } catch (SecurityException e) {
-            throw new RuntimeException(
-                    "SecurityManager is activated, cannot monitor the GitHub Client as it requires Java reflection permissions",
-                    e);
-        }
-    }
-
     @PostConstruct
     public void postConstruct() {
         logger.log(Level.FINE, () -> "Start monitoring Jenkins controller GitHub client...");
@@ -105,54 +44,37 @@ public class GitHubClientMonitoring implements OpenTelemetryLifecycleListener {
                 .setUnit("{requests}")
                 .buildWithCallback(gauge -> {
                     logger.log(Level.FINE, () -> "Collect GitHub client API rate limit metrics");
-                    reverseLookup.keySet().forEach(gitHub -> {
+                    Connector.getGitHubCredentialsMap().forEach((gitHub, credentials) -> {
                         GHRateLimit ghRateLimit = gitHub.lastRateLimit();
                         try {
                             AttributesBuilder attributesBuilder =
                                     Attributes.of(GITHUB_API_URL, gitHub.getApiUrl()).toBuilder();
-                            final String authentication;
+                            String authentication =
+                                    credentials.getClass().getSimpleName() + ":" + System.identityHashCode(credentials);
                             if (gitHub.isAnonymous()) {
                                 authentication = "anonymous";
-                            } else {
-                                Object gitHubClient = gitHub_clientField.get(gitHub);
-                                Preconditions.checkState(gitHubClientClass.isAssignableFrom(gitHubClient.getClass()));
-                                AuthorizationProvider authorizationProvider = (AuthorizationProvider)
-                                        gitHubClient_authorizationProviderField.get(gitHubClient);
-                                if (authorizationProvider instanceof UserAuthorizationProvider) {
-                                    String gitHubLogin = ((UserAuthorizationProvider) authorizationProvider).getLogin();
-                                    if (gitHubLogin == null) {
-                                        gitHubLogin = gitHub.getMyself().getLogin();
+                            } else if (credentials instanceof GitHubAppCredentials) {
+                                GitHubAppCredentials appCreds = (GitHubAppCredentials) credentials;
+                                if (gitHub.getApp() != null) {
+                                    Long appId = gitHub.getApp().getId();
+                                    String appName = gitHub.getApp().getName();
+                                    String appOwner = appCreds.getOwner();
+                                    if (appName != null) {
+                                        attributesBuilder.put(GITHUB_APP_NAME, appName);
+                                        if (appId != null && appOwner != null) {
+                                            attributesBuilder.put(GITHUB_APP_ID, appId);
+                                            attributesBuilder.put(GITHUB_APP_OWNER, appOwner);
+                                            authentication = "app:id=" + appId + "app:id=" + appId + ",name=\""
+                                                    + appName + "\",owner=" + appOwner;
+                                        } else {
+                                            authentication = "app:id=" + appId;
+                                        }
                                     }
-                                    attributesBuilder.put(EnduserIncubatingAttributes.ENDUSER_ID, gitHubLogin);
-                                    authentication = "login:" + gitHubLogin;
-                                } else if (credentialsTokenProviderClass.isAssignableFrom(
-                                        authorizationProvider.getClass())) {
-                                    GitHub jwtTokenBasedGitHub = (GitHub)
-                                            dependentAuthorizationProvider_gitHubField.get(authorizationProvider);
-                                    if (authorizationRefreshGitHubWrapperClass.isAssignableFrom(
-                                            jwtTokenBasedGitHub.getClass())) {
-                                        // The GitHub client lib uses a caching mechanism specified in
-                                        // org.jenkinsci.plugins.github_branch_source.Connector.connect()
-                                        GHApp gitHubApp = jwtTokenBasedGitHub.getApp();
-                                        attributesBuilder.put(GITHUB_APP_NAME, gitHubApp.getName());
-                                        attributesBuilder.put(GITHUB_APP_ID, gitHubApp.getId());
-                                        attributesBuilder.put(GITHUB_APP_OWNER, gitHubApp.getName());
-                                        authentication = "app:id=" + gitHubApp.getId() + ",name=\""
-                                                + gitHubApp.getName() + "\",owner=" + gitHubApp.getName();
-                                    } else {
-                                        GitHubAppCredentials credentials = (GitHubAppCredentials)
-                                                credentialsTokenProvider_credentialsField.get(authorizationProvider);
-                                        attributesBuilder.put(GITHUB_APP_ID, Long.valueOf(credentials.getAppID()));
-                                        authentication = "app:id=" + credentials.getAppID();
-                                        logger.log(
-                                                Level.INFO,
-                                                "Unexpected credentialsTokenProvider with internal GitHub of type "
-                                                        + jwtTokenBasedGitHub);
-                                    }
-                                } else {
-                                    authentication = authorizationProvider.getClass() + ":"
-                                            + System.identityHashCode(authorizationProvider);
                                 }
+                            } else if (credentials instanceof StandardUsernamePasswordCredentials) {
+                                String gitHubLogin = ((StandardUsernamePasswordCredentials) credentials).getUsername();
+                                attributesBuilder.put(EnduserIncubatingAttributes.ENDUSER_ID, gitHubLogin);
+                                authentication = "login:" + gitHubLogin;
                             }
                             Attributes attributes = attributesBuilder
                                     .put(GITHUB_AUTHENTICATION, authentication)
@@ -162,7 +84,7 @@ public class GitHubClientMonitoring implements OpenTelemetryLifecycleListener {
                                     () -> "Collect GitHub API " + attributes + ": rateLimit.remaining:"
                                             + ghRateLimit.getRemaining());
                             gauge.record(ghRateLimit.getRemaining(), attributes);
-                        } catch (IllegalAccessException | IOException e) {
+                        } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
                     });

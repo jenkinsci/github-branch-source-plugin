@@ -101,6 +101,12 @@ public class Connector {
     private static final OkHttpClient baseClient =
             JenkinsOkHttpClient.newClientBuilder(new OkHttpClient()).build();
 
+    private static final Map<GitHub, StandardCredentials> gitHubCredentialsMap = new ConcurrentHashMap<>();
+
+    public static Map<GitHub, StandardCredentials> getGitHubCredentialsMap() {
+        return gitHubCredentialsMap;
+    }
+
     private Connector() {
         throw new IllegalAccessError("Utility class");
     }
@@ -417,7 +423,9 @@ public class Connector {
         });
 
         record.verifyConnection();
-        return record.getGitHub();
+        GitHub gitHub = record.getGitHub();
+        gitHubCredentialsMap.put(gitHub, credentials);
+        return gitHub;
     }
 
     /**
