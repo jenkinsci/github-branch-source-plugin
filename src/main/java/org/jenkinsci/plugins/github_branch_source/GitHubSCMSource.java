@@ -2135,9 +2135,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             } catch (IllegalArgumentException e) {
                 return FormValidation.error(e, e.getMessage());
             }
-
+            final String repoOwnerOrDefault = StringUtils.isBlank(repoOwner) ? info.getRepoOwner() : repoOwner;
             StandardCredentials credentials =
-                    Connector.lookupScanCredentials(context, info.getApiUri(), credentialsId, repoOwner);
+                    Connector.lookupScanCredentials(context, info.getApiUri(), credentialsId, repoOwnerOrDefault);
             StringBuilder sb = new StringBuilder();
             try {
                 GitHub github = Connector.connect(info.getApiUri(), credentials);
