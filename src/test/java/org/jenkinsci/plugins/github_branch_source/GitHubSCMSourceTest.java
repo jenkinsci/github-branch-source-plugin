@@ -375,6 +375,11 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     public void fetchSmokes_badUser() throws Exception {
+        source.setTraits(Arrays.asList(
+                new BranchDiscoveryTrait(true, false),
+                new ForkPullRequestDiscoveryTrait(
+                        EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
+                        new ForkPullRequestDiscoveryTrait.TrustContributors())));
         // make it so PR-2 returns a file not found for user
         githubApi.stubFor(get(urlMatching("(/api/v3)?/repos/cloudbeers/yolo/pulls/2"))
                 .inScenario("Pull Request Merge Hash")
