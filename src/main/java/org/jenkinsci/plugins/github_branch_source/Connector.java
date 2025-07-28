@@ -101,9 +101,9 @@ public class Connector {
     private static final OkHttpClient baseClient =
             JenkinsOkHttpClient.newClientBuilder(new OkHttpClient()).build();
 
-    private static final Map<GitHub, StandardCredentials> gitHubCredentialsMap = new ConcurrentHashMap<>();
+    private static final Map<GitHub, StandardCredentials> gitHubCredentialsMap = new WeakHashMap<>();
 
-    public static Map<GitHub, StandardCredentials> getGitHubCredentialsMap() {
+    protected static Map<GitHub, StandardCredentials> getGitHubCredentialsMap() {
         return gitHubCredentialsMap;
     }
 
