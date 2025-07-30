@@ -48,7 +48,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.mixin.TagSCMHead;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.transport.RefSpec;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;

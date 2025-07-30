@@ -26,8 +26,8 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import static hudson.Functions.isWindows;
 import static hudson.model.Items.XSTREAM2;
-import static org.apache.commons.lang.StringUtils.isBlank;
-import static org.apache.commons.lang.StringUtils.removeEnd;
+import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.removeEnd;
 import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
 import static org.jenkinsci.plugins.github_branch_source.GitHubSCMBuilder.API_V3;
 import static org.jenkinsci.plugins.github_branch_source.GitHubSCMBuilder.HTTPS;
@@ -117,7 +117,7 @@ import jenkins.scm.impl.trait.Discovery;
 import jenkins.scm.impl.trait.Selection;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
 import jenkins.util.SystemProperties;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
@@ -1053,6 +1053,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         }
                     });
 
+                    if (request.isFetchPRs()) {
+                        // JENKINS-56996 / JENKINS-73791
+                        // PRs are one the most error prone areas for scans
+                        // Branches and tags are contained only the current repo, PRs go across forks
+                        // FileNotFoundException can occur in a number of situations
+                        // When this happens, it is not ideal behavior but it is better to let the PR be
+                        // orphaned
+                        // and the orphan strategy control the result than for this error to stop scanning
+                        // (For Org scanning this is particularly important.)
+                        // If some more general IO exception is thrown, we will still fail.
+                        validatePullRequests(request);
+                    }
+
                     if (request.isFetchBranches()
                             && !request.isComplete()
                             && this.shouldRetrieve(observer, event, BranchSCMHead.class)) {
@@ -1067,6 +1080,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                             HyperlinkNote.encodeTo(
                                                     resolvedRepositoryUrl + "/tree/" + branchName, branchName));
                             BranchSCMHead head = new BranchSCMHead(branchName);
+
                             if (request.process(
                                     head,
                                     new SCMRevisionImpl(head, branch.getSHA1()),
@@ -1081,8 +1095,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                         }
                                     },
                                     new CriteriaWitness(listener))) {
-                                listener.getLogger()
-                                        .format("%n  %d branches were processed (query completed)%n", count);
                                 break;
                             }
                         }
@@ -1095,18 +1107,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         int count = 0;
                         int errorCount = 0;
                         Map<Boolean, Set<ChangeRequestCheckoutStrategy>> strategies = request.getPRStrategies();
-
-                        // JENKINS-56996
-                        // PRs are one the most error prone areas for scans
-                        // Branches and tags are contained only the current repo, PRs go across forks
-                        // FileNotFoundException can occur in a number of situations
-                        // When this happens, it is not ideal behavior but it is better to let the PR be
-                        // orphaned
-                        // and the orphan strategy control the result than for this error to stop scanning
-                        // (For Org scanning this is particularly important.)
-                        // If some more general IO exception is thrown, we will still fail.
-
-                        validatePullRequests(request);
                         for (final GHPullRequest pr : request.getPullRequests()) {
                             int number = pr.getNumber();
                             try {
