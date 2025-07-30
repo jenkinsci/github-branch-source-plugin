@@ -2580,10 +2580,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         users.put("copilot", user);
                     } else {
                         if (users.containsKey(login)) {
+                            // looked up this user already
                             user = users.get(login);
                         }
                         ContributorMetadataAction contributor =
                                 new ContributorMetadataAction(login, user.getName(), user.getEmail());
+                        // store the populated user record now that we have it
                         pullRequestContributorCache.put(number, contributor);
                         users.put(login, user);
                     }
