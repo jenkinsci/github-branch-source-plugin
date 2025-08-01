@@ -62,19 +62,14 @@ import org.kohsuke.stapler.verb.POST;
  * }
  * }</pre>
  *
- * <p>Available environment variables:</p>
- * <ul>
- *   <li><strong>Automatic mode (no parameters):</strong></li>
- *   <ul>
- *     <li>{@code $GITHUB_ORGS} - Comma-separated list of available organizations</li>
- *     <li>{@code $GITHUB_TOKEN_<orgname>} - Token for each organization</li>
- *   </ul>
- *   <li><strong>Manual mode (with parameters):</strong></li>
- *   <ul>
- *     <li>{@code $<tokenVariable>} - Token for the specified organization</li>
- *     <li>{@code $GITHUB_ORGS} - Comma-separated list of available organizations</li>
- *   </ul>
- * </ul>
+ * <p>Available environment variables:
+ * <br><strong>Automatic mode (no parameters):</strong>
+ * <br>- {@code $GITHUB_ORGS} - Comma-separated list of available organizations
+ * <br>- {@code $GITHUB_TOKEN_<orgname>} - Token for each organization
+ * <br><strong>Manual mode (with parameters):</strong>
+ * <br>- {@code $<tokenVariable>} - Token for the specified organization
+ * <br>- {@code $GITHUB_ORGS} - Comma-separated list of available organizations
+ * </p>
  *
  * @since 2.15.0
  */

@@ -43,13 +43,12 @@ import org.kohsuke.stapler.verb.POST;
  * the capability to dynamically select from available organizations where
  * the app is installed, without requiring duplicate credentials.</p>
  *
- * <p>Key features:</p>
- * <ul>
- *   <li>Automatic discovery of organizations where the GitHub App is installed</li>
- *   <li>Organization-specific token generation on demand</li>
- *   <li>Token caching to minimize API calls</li>
- *   <li>Seamless integration with existing GitHub SCM Sources</li>
- * </ul>
+ * <p>Key features:
+ * <br>- Automatic discovery of organizations where the GitHub App is installed
+ * <br>- Organization-specific token generation on demand
+ * <br>- Token caching to minimize API calls
+ * <br>- Seamless integration with existing GitHub SCM Sources
+ * </p>
  *
  * @since 2.15.0
  */
