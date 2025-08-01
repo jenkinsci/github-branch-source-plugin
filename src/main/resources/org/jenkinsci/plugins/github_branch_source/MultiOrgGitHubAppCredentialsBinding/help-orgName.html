@@ -1,0 +1,19 @@
+<div>
+    Specific organization name to get the GitHub token for.
+    <p>
+        When specified along with a variable name, the binding will provide a token 
+        for this specific organization only.
+    </p>
+    <p>
+        <strong>Example:</strong> If you set this to <code>myorg</code> and variable to <code>GITHUB_TOKEN</code>, 
+        the binding will provide:
+    </p>
+    <ul>
+        <li><code>GITHUB_TOKEN</code> - Token for the "myorg" organization</li>
+        <li><code>GITHUB_ORGS</code> - List of all available organizations</li>
+    </ul>
+    <p>
+        <strong>Note:</strong> If left empty (along with variable), the binding operates in automatic mode 
+        and provides tokens for all available organizations using standard variable names.
+    </p>
+</div>

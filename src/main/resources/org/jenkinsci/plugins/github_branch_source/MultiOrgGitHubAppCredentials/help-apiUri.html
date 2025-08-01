@@ -1,0 +1,25 @@
+<div>
+  The GitHub API endpoint to use for authentication and repository access.
+  
+  <h3>Standard Options:</h3>
+  <ul>
+    <li><strong>GitHub.com:</strong> Use this for repositories hosted on github.com</li>
+    <li><strong>GitHub Enterprise Server:</strong> Select this if you're using GitHub Enterprise Server on your own infrastructure</li>
+  </ul>
+  
+  <h3>GitHub Enterprise Server Setup:</h3>
+  <p>
+    If you're using GitHub Enterprise Server, make sure to:
+  </p>
+  <ol>
+    <li>Configure the endpoint URL in Jenkins → Manage Jenkins → Configure System → GitHub Enterprise Servers</li>
+    <li>Ensure your GitHub App is created on the GitHub Enterprise Server instance</li>
+    <li>Verify network connectivity between Jenkins and your GitHub Enterprise Server</li>
+  </ol>
+  
+  <h3>Multi-Organization Considerations:</h3>
+  <p>
+    All organizations where your GitHub App is installed must be on the same GitHub instance 
+    (either all on github.com or all on the same GitHub Enterprise Server instance).
+  </p>
+</div>
