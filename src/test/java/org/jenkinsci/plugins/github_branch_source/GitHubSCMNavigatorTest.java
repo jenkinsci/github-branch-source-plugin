@@ -47,6 +47,7 @@ import hudson.security.AuthorizationStrategy;
 import hudson.security.SecurityRealm;
 import hudson.util.ListBoxModel;
 import hudson.util.LogTaskListener;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -458,6 +459,42 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
         navigator.visitSources(SCMSourceObserver.filter(observer, "yolo", "rando-unknown"));
 
         assertEquals(projectNames, Collections.singleton("yolo"));
+    }
+
+    @Test
+    public void fetchBadRepo() throws Exception {
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = new SCMSourceObserver() {
+            @NonNull
+            @Override
+            public SCMSourceOwner getContext() {
+                return scmSourceOwner;
+            }
+
+            @NonNull
+            @Override
+            public TaskListener getListener() {
+                return new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO);
+            }
+
+            @NonNull
+            @Override
+            public ProjectObserver observe(@NonNull String projectName) throws IllegalArgumentException, IOException {
+                if ("basic".equalsIgnoreCase(projectName)) {
+                    throw new IOException("Failed to get repo basic");
+                }
+                projectNames.add(projectName);
+                return new NoOpProjectObserver();
+            }
+
+            @Override
+            public void addAttribute(@NonNull String key, @Nullable Object value)
+                    throws IllegalArgumentException, ClassCastException {}
+        };
+
+        navigator.visitSources(SCMSourceObserver.filter(observer, "basic", "yolo"));
+
+        assertThat(projectNames, containsInAnyOrder("yolo"));
     }
 
     @Test
