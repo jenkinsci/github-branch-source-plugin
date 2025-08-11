@@ -14,6 +14,7 @@ GitHub users or organizations. Complete documentation is
 ### Guides
 
 * [GitHub App authentication](docs/github-app.adoc)
+* [Multi-Organization GitHub App Credentials](docs/multi-org-github-app-credentials.adoc)
 * [Extension points provided by this plugin](docs/implementation.adoc)
 
 ## Extension plugins

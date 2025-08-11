@@ -1,0 +1,39 @@
+<div>
+  <h2>Multi-Organization GitHub App Credentials</h2>
+  
+  <p>
+    This credential type allows you to use a single GitHub App across multiple organizations 
+    without creating separate credentials for each organization. It automatically discovers 
+    all organizations where your GitHub App is installed and can generate organization-specific 
+    tokens as needed.
+  </p>
+  
+  <h3>Key Benefits:</h3>
+  <ul>
+    <li><strong>No Credential Duplication:</strong> One credential works across all organizations</li>
+    <li><strong>Automatic Discovery:</strong> Automatically finds organizations where your app is installed</li>
+    <li><strong>Dynamic Token Generation:</strong> Creates organization-specific tokens on demand</li>
+    <li><strong>Easy Management:</strong> Add/remove organizations by installing/uninstalling the app</li>
+  </ul>
+  
+  <h3>Prerequisites:</h3>
+  <ol>
+    <li>Create a GitHub App in your GitHub organization or user account</li>
+    <li>Install the GitHub App in all organizations you want to access</li>
+    <li>Grant necessary permissions (typically: Contents, Metadata, Pull requests)</li>
+    <li>Generate a private key for the GitHub App</li>
+  </ol>
+  
+  <h3>Usage:</h3>
+  <p>
+    After creating this credential, you can use it in any GitHub SCM Source or Navigator 
+    configuration. The system will automatically select the appropriate organization-specific 
+    token based on the repository being accessed.
+  </p>
+  
+  <h3>Testing:</h3>
+  <p>
+    Use the "Test Connection" button to verify your configuration. It will show all 
+    organizations where your GitHub App is installed and confirm connectivity.
+  </p>
+</div>
