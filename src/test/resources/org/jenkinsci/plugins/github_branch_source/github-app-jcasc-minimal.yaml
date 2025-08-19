@@ -1,9 +1,55 @@
 credentials:
   system:
     domainCredentials:
-      - credentials:
-        - gitHubApp:
-            appID: "1111"
-            description: "GitHub app 1111"
-            id: "github-app"
-            privateKey: "${GITHUB_APP_KEY}"
+    - credentials:
+      - gitHubApp:
+          appID: "1111"
+          description: "GitHub app 1111"
+          id: "github-app"
+          privateKey: "${GITHUB_APP_KEY}"
+      - gitHubApp:
+          appID: "1111"
+          id: "old-owner"
+          privateKey: "${GITHUB_APP_KEY}"
+          owner: test
+      - gitHubApp:
+          appID: "1111"
+          id: "new-specific-empty"
+          privateKey: "${GITHUB_APP_KEY}"
+          defaultPermissionsStrategy: INHERIT_ALL
+          # ConfigurationAsCode.toYaml exports this incorrectly: It fully removes specificRepositories because it has no non-default values.
+          repositoryAccessStrategy:
+            specificRepositories:
+              repositories: []
+      - gitHubApp:
+          appID: "1111"
+          id: "new-specific-owner"
+          privateKey: "${GITHUB_APP_KEY}"
+          defaultPermissionsStrategy: INHERIT_ALL
+          repositoryAccessStrategy:
+            specificRepositories:
+              owner: "test"
+              repositories: []
+      - gitHubApp:
+          appID: "1111"
+          id: "new-specific-repos"
+          privateKey: "${GITHUB_APP_KEY}"
+          defaultPermissionsStrategy: INHERIT_ALL
+          repositoryAccessStrategy:
+            specificRepositories:
+              owner: "test"
+              repositories:
+              - "repo1"
+              - "repo2"
+      - gitHubApp:
+          appID: "1111"
+          id: "new-infer-owner"
+          privateKey: "${GITHUB_APP_KEY}"
+          defaultPermissionsStrategy: CONTENTS_READ
+          repositoryAccessStrategy: "inferOwner"
+      - gitHubApp:
+          appID: "1111"
+          id: "new-infer-repo"
+          privateKey: "${GITHUB_APP_KEY}"
+          defaultPermissionsStrategy: CONTENTS_WRITE
+          repositoryAccessStrategy: "inferRepository"

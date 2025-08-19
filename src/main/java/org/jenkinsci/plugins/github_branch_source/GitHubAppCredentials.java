@@ -25,11 +25,11 @@ import java.io.Serializable;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -38,12 +38,22 @@ import jenkins.scm.api.SCMSource;
 import jenkins.security.SlaveToMasterCallable;
 import jenkins.util.JenkinsJVM;
 import net.sf.json.JSONObject;
+import org.apache.commons.lang3.StringUtils;
+import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessInferredOwner;
+import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessSpecifiedRepositories;
+import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessibleRepositories;
+import org.jenkinsci.plugins.github_branch_source.app_credentials.DefaultPermissionsStrategy;
+import org.jenkinsci.plugins.github_branch_source.app_credentials.MigrationAdminMonitor;
+import org.jenkinsci.plugins.github_branch_source.app_credentials.RepositoryAccessStrategy;
+import org.jenkinsci.plugins.workflow.flow.FlowExecutionOwner;
 import org.jenkinsci.plugins.workflow.support.concurrent.Timeout;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHApp;
+import org.kohsuke.github.GHAppCreateTokenBuilder;
 import org.kohsuke.github.GHAppInstallation;
 import org.kohsuke.github.GHAppInstallationToken;
+import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.authorization.AuthorizationProvider;
 import org.kohsuke.github.extras.authorization.JWTTokenProvider;
@@ -63,7 +73,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     private static final String ERROR_NOT_INSTALLED = ERROR_AUTHENTICATING_GITHUB_APP + NOT_INSTALLED;
     private static final String ERROR_NO_OWNER_MATCHING =
             "Found multiple installations for GitHub app ID %s but none match credential owner \"%s\". "
-                    + "Set the right owner in the credential advanced options to one of: %s";
+                    + "Configure the repository access strategy for the credential to use one of these owners: %s";
 
     /**
      * When a new {@link AppInstallationToken} is generated, wait this many seconds before continuing.
@@ -74,6 +84,17 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     private static long AFTER_TOKEN_GENERATION_DELAY_SECONDS =
             Long.getLong(GitHubAppCredentials.class.getName() + ".AFTER_TOKEN_GENERATION_DELAY_SECONDS", 0);
 
+    /**
+     * Controls whether {@link GithubProjectProperty} is considered by {@link #forRun} for Pipeline builds.
+     * <p>{@link RepositoryAccessStrategy} is intended to prevent users with the ability to edit a Jenkinsfile in a
+     * single repository from being able to use GitHub app credentials available to that Pipeline to access other
+     * repositories. The existence of the {@code properties} step means that job properties may not be trusted for
+     * Pipeline repository inference.
+     */
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Non-final for modification from script console")
+    public static boolean ALLOW_UNSAFE_REPOSITORY_INFERENCE =
+            Boolean.getBoolean(GitHubAppCredentials.class.getName() + ".ALLOW_UNSAFE_REPOSITORY_INFERENCE");
+
     @NonNull
     private final String appID;
 
@@ -82,14 +103,25 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     private String apiUri;
 
+    @SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "#withOwner locking only for #byOwner")
+    @Deprecated
     private String owner;
+
+    private RepositoryAccessStrategy repositoryAccessStrategy;
+    private DefaultPermissionsStrategy defaultPermissionsStrategy;
+
+    @NonNull
+    private transient GitHubAppUsageContext context = new GitHubAppUsageContext();
 
     private transient AppInstallationToken cachedToken;
 
     /**
-     * Cache of credentials specialized by {@link #owner}, so that {@link #cachedToken} is preserved.
+     * Caches temporary instances of these credentials created for use in distinct contexts.
+     *
+     * @see #contextualize
+     * @see GitHubAppUsageContext
      */
-    private transient Map<String, GitHubAppCredentials> byOwner;
+    private transient Map<GitHubAppUsageContext, GitHubAppCredentials> cachedCredentials = new ConcurrentHashMap<>();
 
     @DataBoundConstructor
     @SuppressWarnings("unused") // by stapler
@@ -123,23 +155,56 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         return privateKey;
     }
 
-    /**
-     * Owner of this installation, i.e. a user or organisation, used to differentiate app installations
-     * when the app is installed to multiple organisations / users.
-     *
-     * <p>If this is null then call listInstallations and if there's only one in the list then use
-     * that installation.
-     *
-     * @return the owner of the organisation or null.
-     */
+    /** @deprecated Use {@link #getRepositoryAccessStrategy}. */
+    @Deprecated
     @CheckForNull
     public String getOwner() {
-        return owner;
+        return null;
+    }
+
+    // This method is not deprecated or restricted only to preserve compatibility with existing CasC YAML files.
+    /** Do not call this method, use {@link #setRepositoryAccessStrategy} instead. */
+    public void setOwner(String owner) {
+        owner = Util.fixEmptyAndTrim(owner);
+        if (owner != null) {
+            setRepositoryAccessStrategy(new AccessSpecifiedRepositories(owner, List.of()));
+        } else {
+            setRepositoryAccessStrategy(new AccessInferredOwner());
+        }
+        // We only expect this to be called by CasC and by a few plugins which implement variants of this class based on
+        // external credential providers, so we still count it as a migration.
+        MigrationAdminMonitor.addMigratedCredentialId(getId());
+    }
+
+    @NonNull
+    public RepositoryAccessStrategy getRepositoryAccessStrategy() {
+        return repositoryAccessStrategy == null ? new AccessInferredOwner() : repositoryAccessStrategy;
     }
 
     @DataBoundSetter
-    public void setOwner(String owner) {
-        this.owner = Util.fixEmpty(owner);
+    public void setRepositoryAccessStrategy(@NonNull RepositoryAccessStrategy strategy) {
+        this.repositoryAccessStrategy = strategy;
+    }
+
+    @NonNull
+    public DefaultPermissionsStrategy getDefaultPermissionsStrategy() {
+        return defaultPermissionsStrategy == null ? DefaultPermissionsStrategy.INHERIT_ALL : defaultPermissionsStrategy;
+    }
+
+    @DataBoundSetter
+    public void setDefaultPermissionsStrategy(@NonNull DefaultPermissionsStrategy strategy) {
+        this.defaultPermissionsStrategy = strategy;
+    }
+
+    AccessibleRepositories getAccessibleRepositories() {
+        return getRepositoryAccessStrategy().forContext(context);
+    }
+
+    Map<String, GHPermissionType> getPermissions() {
+        if (context.getPermissions() != null) {
+            return context.getPermissions();
+        }
+        return getDefaultPermissionsStrategy().getPermissions();
     }
 
     @SuppressWarnings("deprecation")
@@ -203,7 +268,13 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     @SuppressWarnings("deprecation") // preview features are required for GitHub app integration, GitHub api adds
     // deprecated to all preview methods
     static AppInstallationToken generateAppInstallationToken(
-            GitHub gitHubApp, String appId, String appPrivateKey, String apiUrl, String owner) {
+            GitHub gitHubApp,
+            String appId,
+            String appPrivateKey,
+            String apiUrl,
+            String owner,
+            List<String> repositories,
+            Map<String, GHPermissionType> permissions) {
         JenkinsJVM.checkJenkinsJVM();
         // We expect this to be fast but if anything hangs in here we do not want to block indefinitely
 
@@ -224,7 +295,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId));
             }
             GHAppInstallation appInstallation;
-            if (appInstallations.size() == 1) {
+            if (StringUtils.isEmpty(owner) && appInstallations.size() == 1) {
+                // This case is only used when AccessSpecifiedRepositories.getOwner is empty.
                 appInstallation = appInstallations.get(0);
             } else {
                 final String ownerOrEmpty = owner != null ? owner : "";
@@ -245,17 +317,24 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 appInstallation = appInstallationOptional.get();
             }
 
-            GHAppInstallationToken appInstallationToken = appInstallation
-                    .createToken(appInstallation.getPermissions())
-                    .create();
+            GHAppCreateTokenBuilder builder = appInstallation.createToken();
+            if (!repositories.isEmpty()) {
+                builder.repositories(repositories);
+            }
+            if (!permissions.isEmpty()) {
+                builder.permissions(permissions);
+            } else {
+                builder.permissions(appInstallation.getPermissions());
+            }
+            GHAppInstallationToken appInstallationToken = builder.create();
 
             long expiration = getExpirationSeconds(appInstallationToken);
             AppInstallationToken token =
                     new AppInstallationToken(Secret.fromString(appInstallationToken.getToken()), expiration);
-            LOGGER.log(Level.FINER, "Generated App Installation Token for app ID {0}", appId);
             LOGGER.log(
                     Level.FINEST,
-                    () -> "Generated App Installation Token at " + Instant.now().toEpochMilli());
+                    "Generated App Installation Token for app ID {0} limited to {1}/{2} with permissions {3} at {4}",
+                    new Object[] {appId, owner, repositories, permissions, Instant.now()});
 
             if (AFTER_TOKEN_GENERATION_DELAY_SECONDS > 0) {
                 // Delay can be up to 10 seconds.
@@ -286,13 +365,33 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         return Util.fixEmpty(getApiUri()) == null ? "https://api.github.com" : getApiUri();
     }
 
+    private static class InferredAccessibleRepositoriesException extends IllegalStateException {
+
+        public InferredAccessibleRepositoriesException(final GitHubAppCredentials credentials) {
+            super("Cannot generate App Installation Token for app ID "
+                    + credentials.getAppID()
+                    + " because the accessible repositories could not be inferred. This is due to the repository access configuration for the credentials with ID: "
+                    + credentials.getId());
+        }
+    }
+
     private AppInstallationToken getToken(GitHub gitHub) {
         synchronized (this) {
             try {
                 if (cachedToken == null || cachedToken.isStale()) {
                     LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0}", getAppID());
+                    final var accessibleRepositories = getAccessibleRepositories();
+                    if (accessibleRepositories == null) {
+                        throw new InferredAccessibleRepositoriesException(this);
+                    }
                     cachedToken = generateAppInstallationToken(
-                            gitHub, getAppID(), getPrivateKey().getPlainText(), actualApiUri(), getOwner());
+                            gitHub,
+                            getAppID(),
+                            getPrivateKey().getPlainText(),
+                            actualApiUri(),
+                            accessibleRepositories.getOwner(),
+                            accessibleRepositories.getRepositories(),
+                            getPermissions());
                     LOGGER.log(Level.FINER, "Retrieved GitHub App Installation Token for app ID {0}", getAppID());
                 }
             } catch (Exception e) {
@@ -336,39 +435,45 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     }
 
     @NonNull
-    public synchronized GitHubAppCredentials withOwner(@NonNull String owner) {
-        if (this.getOwner() != null) {
-            if (!owner.equals(this.getOwner())) {
-                throw new IllegalArgumentException("Owner mismatch: " + this.getOwner() + " vs. " + owner);
-            }
-            return this;
-        }
-        if (byOwner == null) {
-            byOwner = new HashMap<>();
-        }
-        return byOwner.computeIfAbsent(owner, k -> {
-            GitHubAppCredentials clone =
-                    new GitHubAppCredentials(getScope(), getId(), getDescription(), getAppID(), getPrivateKey());
-            clone.apiUri = getApiUri();
-            clone.owner = owner;
-            return clone;
-        });
+    public GitHubAppCredentials contextualize(final GitHubAppUsageContext context) {
+        return cachedCredentials.computeIfAbsent(context, this::clone);
+    }
+
+    @NonNull
+    private GitHubAppCredentials clone(final GitHubAppUsageContext context) {
+        final var clone = new GitHubAppCredentials(getScope(), getId(), getDescription(), getAppID(), getPrivateKey());
+        clone.apiUri = getApiUri();
+        clone.setRepositoryAccessStrategy(getRepositoryAccessStrategy());
+        clone.setDefaultPermissionsStrategy(getDefaultPermissionsStrategy());
+        clone.context = context;
+        return clone;
     }
 
     @NonNull
     @Override
     public Credentials forRun(Run<?, ?> context) {
-        if (getOwner() != null) {
-            return this;
-        }
         Job<?, ?> job = context.getParent();
         SCMSource src = SCMSource.SourceByItem.findSource(job);
         if (src instanceof GitHubSCMSource) {
-            return withOwner(((GitHubSCMSource) src).getRepoOwner());
+            GitHubSCMSource source = (GitHubSCMSource) src;
+            final var usageContext = GitHubAppUsageContext.builder()
+                    .inferredOwner(source.getRepoOwner())
+                    .inferredRepository(source.getRepository())
+                    .permissions(getDefaultPermissionsStrategy().getPermissions())
+                    .build();
+            return contextualize(usageContext);
         }
+
         GitHubRepositoryName ghrn = GitHubRepositoryName.create(job.getProperty(GithubProjectProperty.class));
         if (ghrn != null) {
-            return withOwner(ghrn.userName);
+            if (ALLOW_UNSAFE_REPOSITORY_INFERENCE || !(context instanceof FlowExecutionOwner.Executable)) {
+                final var usageContext = GitHubAppUsageContext.builder()
+                        .inferredOwner(ghrn.userName)
+                        .inferredRepository(ghrn.repositoryName)
+                        .permissions(getDefaultPermissionsStrategy().getPermissions())
+                        .build();
+                return contextualize(usageContext);
+            }
         }
         return this;
     }
@@ -485,6 +590,30 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         }
     }
 
+    private Object readResolve() {
+        cachedCredentials = new ConcurrentHashMap<>();
+        if (repositoryAccessStrategy == null || defaultPermissionsStrategy == null) {
+            if (owner != null) {
+                // In this case, the migration should result in identical behavior.
+                setRepositoryAccessStrategy(new AccessSpecifiedRepositories(owner, List.of()));
+            } else {
+                // There is a choice here: We can either preserve compatibility for users who have
+                // the app installed in multiple orgs and only use the credentials in contexts
+                // where owner inference is supported by using AccessInferredOwner, _or_ we can
+                // preserve compatibility for users who have the app installed in a single org and
+                // use it in contexts where inference is not supported by using
+                // AccessSpecifiedRepositories with a null owner.
+                // None of the new strategies support these two use cases simultaneously.
+                setRepositoryAccessStrategy(new AccessInferredOwner());
+            }
+            setDefaultPermissionsStrategy(DefaultPermissionsStrategy.INHERIT_ALL);
+            MigrationAdminMonitor.addMigratedCredentialId(getId());
+        }
+        owner = null;
+        context = new GitHubAppUsageContext();
+        return this;
+    }
+
     /**
      * Ensures that the credentials state as serialized via Remoting to an agent calls back to the
      * controller. Benefits:
@@ -527,7 +656,13 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             j.put("appID", appID);
             j.put("privateKey", onMaster.getPrivateKey().getPlainText());
             j.put("apiUri", onMaster.actualApiUri());
-            j.put("owner", onMaster.getOwner());
+            final var accessibleRepositories = onMaster.getAccessibleRepositories();
+            if (accessibleRepositories == null) {
+                throw new InferredAccessibleRepositoriesException(onMaster);
+            }
+            j.put("owner", accessibleRepositories.getOwner());
+            j.put("repositories", accessibleRepositories.getRepositories());
+            j.put("permissions", onMaster.getPermissions());
             tokenRefreshData = Secret.fromString(j.toString()).getEncryptedValue();
 
             // Check token is valid before sending it to the agent.
@@ -636,7 +771,9 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                         (String) fields.get("appID"),
                         (String) fields.get("privateKey"),
                         (String) fields.get("apiUri"),
-                        (String) fields.get("owner"));
+                        (String) fields.get("owner"),
+                        (List<String>) fields.get("repositories"),
+                        (Map<String, GHPermissionType>) fields.get("permissions"));
                 LOGGER.log(
                         Level.FINER,
                         "Retrieved GitHub App Installation Token for app ID {0} for agent",
@@ -696,14 +833,13 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 @QueryParameter("appID") final String appID,
                 @QueryParameter("privateKey") final String privateKey,
                 @QueryParameter("apiUri") final String apiUri,
-                @QueryParameter("owner") final String owner) {
+                @QueryParameter("testConnectionOwner") final String owner) {
 
             GitHubAppCredentials gitHubAppCredential = new GitHubAppCredentials(
                     CredentialsScope.GLOBAL, "test-id-not-being-saved", null, appID, Secret.fromString(privateKey));
             gitHubAppCredential.setApiUri(apiUri);
-            gitHubAppCredential.setOwner(owner);
-
             try {
+                final String inferredOwner;
                 // If no owner is specified, check if the app has multiple installations.
                 if (owner == null || owner.isEmpty()) {
                     GitHub gitHubApp = TokenProvider.createTokenRefreshGitHub(
@@ -713,13 +849,20 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                     if (appInstallations.size() > 1) {
                         // Just pick the owner of the first installation, so we have a valid
                         // owner to create an access token for testing the connection.
-                        String anyInstallationOwner =
-                                appInstallations.get(0).getAccount().getLogin();
-                        gitHubAppCredential.setOwner(anyInstallationOwner);
+                        inferredOwner = appInstallations.get(0).getAccount().getLogin();
+                    } else {
+                        inferredOwner = StringUtils.EMPTY;
                     }
+                } else {
+                    inferredOwner = owner;
                 }
 
-                GitHub connect = Connector.connect(apiUri, gitHubAppCredential);
+                final var usageContext = GitHubAppUsageContext.builder()
+                        .inferredOwner(inferredOwner)
+                        .trust()
+                        .build();
+                final var contextualized = gitHubAppCredential.contextualize(usageContext);
+                GitHub connect = Connector.connect(apiUri, contextualized);
                 try {
                     return FormValidation.ok("Success, Remaining rate limit: "
                             + connect.getRateLimit().getRemaining());
