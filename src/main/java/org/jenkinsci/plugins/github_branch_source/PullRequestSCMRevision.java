@@ -32,7 +32,7 @@ import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.mixin.ChangeRequestSCMHead2;
 import jenkins.scm.api.mixin.ChangeRequestSCMRevision;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.stapler.export.Exported;
 
 /** Revision of a pull request. */
@@ -58,7 +58,7 @@ public class PullRequestSCMRevision extends ChangeRequestSCMRevision<PullRequest
         this.mergeHash = mergeHash;
     }
 
-    @SuppressFBWarnings({"SE_PRIVATE_READ_RESOLVE_NOT_INHERITED", "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE"})
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE")
     private Object readResolve() {
         if (getTarget() == null) {
             // fix an instance prior to the type migration, thankfully we have all the required info

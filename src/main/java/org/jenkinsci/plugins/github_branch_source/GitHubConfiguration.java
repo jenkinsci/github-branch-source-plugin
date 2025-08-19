@@ -41,8 +41,8 @@ import java.util.Set;
 import jenkins.model.GlobalConfiguration;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
-import org.apache.commons.lang.StringUtils;
-import org.kohsuke.stapler.StaplerRequest;
+import org.apache.commons.lang3.StringUtils;
+import org.kohsuke.stapler.StaplerRequest2;
 
 @Extension
 public class GitHubConfiguration extends GlobalConfiguration {
@@ -60,7 +60,7 @@ public class GitHubConfiguration extends GlobalConfiguration {
     }
 
     @Override
-    public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+    public boolean configure(StaplerRequest2 req, JSONObject json) throws FormException {
         req.bindJSON(this, json);
         return true;
     }

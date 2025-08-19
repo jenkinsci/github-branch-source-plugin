@@ -32,7 +32,6 @@ import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import com.cloudbees.plugins.credentials.domains.URIRequirementBuilder;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.model.Item;
 import hudson.model.Queue;
 import hudson.plugins.git.GitSCM;
@@ -49,7 +48,7 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSourceOwner;
 import jenkins.scm.api.mixin.TagSCMHead;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.transport.RefSpec;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
@@ -59,7 +58,6 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
  *
  * @since 2.2.0
  */
-@SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
 public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
 
     private static final Random ENTROPY = new Random();

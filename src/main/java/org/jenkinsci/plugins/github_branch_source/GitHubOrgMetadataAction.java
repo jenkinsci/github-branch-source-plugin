@@ -32,7 +32,7 @@ import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.util.Objects;
 import jenkins.scm.api.metadata.AvatarMetadataAction;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.stapler.Stapler;
 
@@ -76,7 +76,7 @@ public class GitHubOrgMetadataAction extends AvatarMetadataAction {
             String image = avatarIconClassNameImageOf(getAvatarIconClassName(), size);
             return image != null
                     ? image
-                    : (Stapler.getCurrentRequest().getContextPath()
+                    : (Stapler.getCurrentRequest2().getContextPath()
                             + Hudson.RESOURCE_PATH
                             + "/plugin/github-branch-source/images/"
                             + "/github-logo.svg");

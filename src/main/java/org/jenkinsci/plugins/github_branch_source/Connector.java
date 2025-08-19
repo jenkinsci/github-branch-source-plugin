@@ -75,7 +75,7 @@ import jenkins.scm.api.SCMSourceOwner;
 import jenkins.util.SystemProperties;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHAppInstallationToken;

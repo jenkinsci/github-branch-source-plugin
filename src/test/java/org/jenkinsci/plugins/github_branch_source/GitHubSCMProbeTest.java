@@ -4,7 +4,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.junit.Assert.*;
 
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
-import com.github.tomakehurst.wiremock.extension.responsetemplating.ResponseTemplateTransformer;
 import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
@@ -32,10 +31,8 @@ public class GitHubSCMProbeTest {
     public WireMockRule githubApi = factory.getRule(WireMockConfiguration.options()
             .dynamicPort()
             .usingFilesUnderClasspath("cache_failure")
-            .extensions(ResponseTemplateTransformer.builder()
-                    .global(true)
-                    .maxCacheEntries(0L)
-                    .build()));
+            .globalTemplating(true)
+            .withMaxTemplateCacheEntries(0L));
 
     private GitHubSCMProbe probe;
 
