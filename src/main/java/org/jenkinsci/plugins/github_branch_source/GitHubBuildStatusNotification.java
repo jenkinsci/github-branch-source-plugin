@@ -74,7 +74,11 @@ public class GitHubBuildStatusNotification {
         if (revision != null) { // only notify if we have a revision to notify
             try {
                 GitHub gitHub = lookUpGitHub(build.getParent());
+                if (gitHub == null) {
+                    return;
+                }
                 try {
+                    Connector.configureLocalRateLimitChecker(listener, gitHub);
                     GHRepository repo = lookUpRepo(gitHub, build.getParent());
                     if (repo != null) {
                         Result result = build.getResult();
@@ -127,7 +131,7 @@ public class GitHubBuildStatusNotification {
                 } finally {
                     Connector.release(gitHub);
                 }
-            } catch (IOException ioe) {
+            } catch (IOException | InterruptedException ioe) {
                 listener.getLogger()
                         .format("%n" + "Could not update commit status. Message: %s%n" + "%n", ioe.getMessage());
                 if (LOGGER.isLoggable(Level.FINE)) {
@@ -147,9 +151,6 @@ public class GitHubBuildStatusNotification {
      */
     @CheckForNull
     private static GHRepository lookUpRepo(GitHub github, @NonNull Job<?, ?> job) throws IOException {
-        if (github == null) {
-            return null;
-        }
         SCMSource src = SCMSource.SourceByItem.findSource(job);
         if (src instanceof GitHubSCMSource) {
             GitHubSCMSource source = (GitHubSCMSource) src;
@@ -161,7 +162,8 @@ public class GitHubBuildStatusNotification {
     }
 
     /**
-     * Returns the GitHub Repository associated to a Job.
+     * Returns a GitHub client that can be used to modify the commit status for the repository
+     * associated with a job.
      *
      * @param job A {@link Job}
      * @return A {@link GHRepository} or {@code null}, if any of: a credentials was not provided;
@@ -182,7 +184,10 @@ public class GitHubBuildStatusNotification {
                 return Connector.connect(
                         source.getApiUri(),
                         Connector.lookupScanCredentials(
-                                job, source.getApiUri(), source.getScanCredentialsId(), source.getRepoOwner()));
+                                source.getOwner(),
+                                source.getApiUri(),
+                                source.getScanCredentialsId(),
+                                source.getRepoOwner()));
             }
         }
         return null;

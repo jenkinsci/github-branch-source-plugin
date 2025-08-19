@@ -42,10 +42,4 @@ public class GitHubApp {
     public static GitHubAppCredentials createCredentials(final String id) {
         return new GitHubAppCredentials(CredentialsScope.GLOBAL, id, "sample", "54321", Secret.fromString(PRIVATE_KEY));
     }
-
-    public static GitHubAppCredentials createCredentials(final String id, final String owner) {
-        final var credentials = createCredentials(id);
-        credentials.setOwner(owner);
-        return credentials;
-    }
 }

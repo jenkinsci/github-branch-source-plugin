@@ -1,4 +1,49 @@
-appID: "1111"
-description: "GitHub app 1111"
-id: "github-app"
-privateKey: "some-secret-value"
+system:
+  domainCredentials:
+  - credentials:
+    - gitHubApp:
+        appID: "1111"
+        description: "GitHub app 1111"
+        id: "github-app"
+        privateKey: "some-secret-value"
+        repositoryAccessStrategy: "inferOwner"
+    - gitHubApp:
+        appID: "1111"
+        id: "old-owner"
+        privateKey: "some-secret-value"
+        repositoryAccessStrategy:
+          specificRepositories:
+            owner: "test"
+    - gitHubApp:
+        appID: "1111"
+        id: "new-specific-empty"
+        privateKey: "some-secret-value"
+    - gitHubApp:
+        appID: "1111"
+        id: "new-specific-owner"
+        privateKey: "some-secret-value"
+        repositoryAccessStrategy:
+          specificRepositories:
+            owner: "test"
+    - gitHubApp:
+        appID: "1111"
+        id: "new-specific-repos"
+        privateKey: "some-secret-value"
+        repositoryAccessStrategy:
+          specificRepositories:
+            owner: "test"
+            repositories:
+            - "repo1"
+            - "repo2"
+    - gitHubApp:
+        appID: "1111"
+        defaultPermissionsStrategy: CONTENTS_READ
+        id: "new-infer-owner"
+        privateKey: "some-secret-value"
+        repositoryAccessStrategy: "inferOwner"
+    - gitHubApp:
+        appID: "1111"
+        defaultPermissionsStrategy: CONTENTS_WRITE
+        id: "new-infer-repo"
+        privateKey: "some-secret-value"
+        repositoryAccessStrategy: "inferRepository"
