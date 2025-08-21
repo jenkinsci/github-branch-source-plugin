@@ -48,4 +48,8 @@ public class GitHubApp {
         credentials.setOwner(owner);
         return credentials;
     }
+
+    public static String getPrivateKey() {
+        return PRIVATE_KEY;
+    }
 }

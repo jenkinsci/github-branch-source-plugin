@@ -307,7 +307,27 @@ public class Connector {
                 CredentialsMatchers.allOf(
                         CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher()));
 
-        if (c instanceof GitHubAppCredentials && repoOwner != null) {
+        if (c instanceof MultiOrgGitHubAppCredentials && repoOwner != null) {
+            MultiOrgGitHubAppCredentials multiOrgCreds = (MultiOrgGitHubAppCredentials) c;
+
+            // Check if this organization is available in the list of organizations
+            List<String> availableOrgs = multiOrgCreds.getAvailableOrganizations();
+
+            if (availableOrgs.contains(repoOwner)) {
+                // Create organization-specific credentials
+                c = multiOrgCreds.forOrganization(repoOwner);
+            } else {
+                LOGGER.log(
+                        Level.FINE,
+                        "Organization {0} not found in available organizations for "
+                                + "GitHub App ID {1}. Available organizations: {2}. Will attempt to use anyway.",
+                        new Object[] {repoOwner, multiOrgCreds.getAppID(), String.join(", ", availableOrgs)});
+                // Still try to create credentials for this org, in case it's a new installation
+                c = multiOrgCreds.forOrganization(repoOwner);
+            }
+        } else if (c instanceof GitHubAppCredentials
+                && !(c instanceof MultiOrgGitHubAppCredentials)
+                && repoOwner != null) {
             c = ((GitHubAppCredentials) c).withOwner(repoOwner);
         }
         return c;
@@ -364,6 +384,24 @@ public class Connector {
             hash = "anonymous";
             authHash = "anonymous";
             gitHubAppCredentials = null;
+        } else if (credentials instanceof MultiOrgGitHubAppCredentials) {
+            password = null;
+            gitHubAppCredentials = (MultiOrgGitHubAppCredentials) credentials;
+            // For MultiOrgGitHubAppCredentials, we need to include both app ID and owner
+            String owner = gitHubAppCredentials.getOwner();
+            String ownerForHash = owner != null ? owner : "";
+            hash = Util.getDigestOf(gitHubAppCredentials.getAppID()
+                    + "::" + ownerForHash
+                    + "::" + gitHubAppCredentials.getPrivateKey().getPlainText()
+                    + "::" + SALT); // want to ensure pooling by credential
+            authHash = Util.getDigestOf(gitHubAppCredentials.getAppID()
+                    + "::"
+                    + ownerForHash
+                    + "::"
+                    + gitHubAppCredentials.getPrivateKey().getPlainText()
+                    + "::"
+                    + jenkins.getLegacyInstanceId());
+            username = gitHubAppCredentials.getUsername();
         } else if (credentials instanceof GitHubAppCredentials) {
             password = null;
             gitHubAppCredentials = (GitHubAppCredentials) credentials;

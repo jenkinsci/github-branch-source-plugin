@@ -1,0 +1,28 @@
+<div>
+  The private key associated with your GitHub App. This key is used to authenticate 
+  your Jenkins instance with GitHub.
+  
+  <h3>How to get your GitHub App private key:</h3>
+  <ol>
+    <li>Go to your GitHub organization or user settings</li>
+    <li>Navigate to "Developer settings" → "GitHub Apps"</li>
+    <li>Click on your GitHub App</li>
+    <li>Scroll down to the "Private keys" section</li>
+    <li>Click "Generate a private key" if you haven't already</li>
+    <li>Download the .pem file and copy its contents here</li>
+  </ol>
+  
+  <h3>Security considerations:</h3>
+  <ul>
+    <li>Keep your private key secure and never share it publicly</li>
+    <li>The private key is stored encrypted in Jenkins</li>
+    <li>You can regenerate the key in GitHub if it gets compromised</li>
+    <li>The key should be in PKCS#8 format (the default GitHub format)</li>
+  </ul>
+  
+  <h3>Format example:</h3>
+  <pre>-----BEGIN RSA PRIVATE KEY-----
+MIIEpAIBAAKCAQEA...
+...your key content...
+-----END RSA PRIVATE KEY-----</pre>
+</div>

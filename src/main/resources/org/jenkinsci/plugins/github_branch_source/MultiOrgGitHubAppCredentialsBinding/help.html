@@ -1,0 +1,61 @@
+<div>
+    <p>
+        Binds Multi-Organization GitHub App credentials to environment variables for use in pipeline scripts.
+        Supports both automatic mode (tokens for all organizations) and manual mode (token for specific organization).
+    </p>
+    
+    <p>
+        <strong>Automatic Mode</strong> (no parameters):
+    </p>
+    <ul>
+        <li><strong>GITHUB_TOKEN_&lt;ORGNAME&gt;</strong> - GitHub token for each organization (organization name is sanitized for environment variable use)</li>
+        <li><strong>GITHUB_ORGS</strong> - Comma-separated list of all available organizations</li>
+    </ul>
+    
+    <p>
+        <strong>Manual Mode</strong> (both tokenVariable and orgName required):
+    </p>
+    <ul>
+        <li><strong>tokenVariable</strong> - Contains the GitHub token for the specified organization</li>
+        <li><strong>GITHUB_ORGS</strong> - Comma-separated list of all available organizations</li>
+    </ul>
+    
+    <p>
+        <strong>Example usage - Automatic Mode:</strong>
+    </p>
+    <pre><code>withCredentials([
+    multiOrgGitHubApp(credentialsId: 'my-multi-org-app')
+]) {
+    // Use organization-specific tokens
+    sh 'git clone https://$GITHUB_TOKEN_MYORG@github.com/myorg/repo.git'
+    sh 'git clone https://$GITHUB_TOKEN_ANOTHERCORP@github.com/anothercorp/repo.git'
+    
+    // List available organizations
+    echo "Available orgs: $GITHUB_ORGS"
+}</code></pre>
+
+    <p>
+        <strong>Example usage - Manual Mode:</strong>
+    </p>
+    <pre><code>withCredentials([
+    multiOrgGitHubApp(credentialsId: 'my-multi-org-app',
+                      tokenVariable: 'GITHUB_TOKEN',
+                      orgName: 'myorg')
+]) {
+    // Use specific organization token
+    sh 'curl -H "Authorization: token $GITHUB_TOKEN" https://api.github.com/orgs/myorg/repos'
+    
+    // List available organizations
+    echo "Available orgs: $GITHUB_ORGS"
+}</code></pre>
+
+    <p>
+        <strong>Use cases:</strong>
+    </p>
+    <ul>
+        <li>Cloning repositories from different organizations</li>
+        <li>Making API calls to different GitHub organizations</li>
+        <li>Dynamically determining available organizations</li>
+        <li>Custom Git operations with organization-specific authentication</li>
+    </ul>
+</div>
