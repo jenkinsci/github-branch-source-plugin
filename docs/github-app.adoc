@@ -146,24 +146,26 @@ Note also that Jenkins users who have Job/Configure permission in a context wher
 In trusted contexts, the generated access tokens will have the same access as configured for the app installation in GitHub.
 
 The following repository access strategies are available:
-* **Infer owner and allow access to all owned repositories** (Default)
-    * The credentials may only be used in contexts where a GitHub organization can be inferred, such as Organization Folders and Multibranch Pipelines
-    * The access tokens generated in untrusted contexts will be able to access all repositories in the inferred GitHub organization that are accessible to the GitHub App installation.
+
+* **Infer owner and allow access to all owned repositories** (default)
+    ** The credentials may only be used in contexts where a GitHub organization can be inferred, such as Organization Folders and Multibranch Pipelines
+    ** The access tokens generated in untrusted contexts will be able to access all repositories in the inferred GitHub organization that are accessible to the GitHub App installation.
 * **Infer accessible repository**
-    * The credentials may only be used in contexts where a GitHub organization and repository can be inferred, such as Organization Folders and Multibranch Pipelines
-    * The access tokens generated in untrusted contexts will only be able to access the inferred repository
+    ** The credentials may only be used in contexts where a GitHub organization and repository can be inferred, such as Organization Folders and Multibranch Pipelines
+    ** The access tokens generated in untrusted contexts will only be able to access the inferred repository
 * **Specify accessible repositories**
-    * The access tokens generated in untrusted contexts will be able to access the repositories specified statically in the credential configuration
-    * If the GitHub app is installed in a single organization, the owner field may be left blank empty, in which case that organization will be accessed automatically
-    * Leaving the repositories field empty will result in all repositories accessible to the configured owner being accessible
+    ** The access tokens generated in untrusted contexts will be able to access the repositories specified statically in the credential configuration
+    ** If the GitHub app is installed in a single organization, the owner field may be left blank empty, in which case that organization will be accessed automatically
+    ** Leaving the repositories field empty will result in all repositories accessible to the configured owner being accessible
 
 The following default permissions strategies are available:
-* Read-only access to repository contents
-    * The access tokens generated in untrusted contexts will only be able to read the repository contents
-* Read and write access to repository contents
-    * The access tokens generated in untrusted contexts will only be able to read and write the repository contents
-* All permissions available to the app installation (default)
-    * The access tokens generated in untrusted contexts will have the same permissions as the app installation in GitHub
+
+* **Read-only access to repository contents**
+    ** The access tokens generated in untrusted contexts will only be able to read the repository contents
+* **Read and write access to repository contents**
+    ** The access tokens generated in untrusted contexts will only be able to read and write the repository contents
+* **All permissions available to the app installation** (default)
+    ** The access tokens generated in untrusted contexts will have the same permissions as the app installation in GitHub
 
 ==== Repository access strategies and Pipeline libraries
 
