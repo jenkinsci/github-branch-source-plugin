@@ -2116,8 +2116,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         public FormValidation doValidateRepositoryUrlAndCredentials(
                 @CheckForNull @AncestorInPath Item context,
                 @QueryParameter String repositoryUrl,
-                @QueryParameter String credentialsId,
-                @QueryParameter String repoOwner) {
+                @QueryParameter String credentialsId) {
             if (context == null && !Jenkins.get().hasPermission(Jenkins.MANAGE)
                     || context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                 return FormValidation.error(
@@ -2135,9 +2134,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             } catch (IllegalArgumentException e) {
                 return FormValidation.error(e, e.getMessage());
             }
-            final String repoOwnerOrDefault = StringUtils.isBlank(repoOwner) ? info.getRepoOwner() : repoOwner;
             StandardCredentials credentials =
-                    Connector.lookupScanCredentials(context, info.getApiUri(), credentialsId, repoOwnerOrDefault);
+                    Connector.lookupScanCredentials(context, info.getApiUri(), credentialsId, info.getRepoOwner());
             StringBuilder sb = new StringBuilder();
             try {
                 GitHub github = Connector.connect(info.getApiUri(), credentials);
