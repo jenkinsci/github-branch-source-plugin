@@ -103,7 +103,14 @@ import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.DoNotUse;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
-import org.kohsuke.github.*;
+import org.kohsuke.github.GHMyself;
+import org.kohsuke.github.GHOrganization;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHRepositorySearchBuilder;
+import org.kohsuke.github.GHUser;
+import org.kohsuke.github.GitHub;
+import org.kohsuke.github.HttpException;
+import org.kohsuke.github.PagedIterable;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
@@ -1220,7 +1227,19 @@ public class GitHubSCMNavigator extends SCMNavigator {
                 }
                 if (user != null && repoOwner.equalsIgnoreCase(user.getLogin())) {
                     listener.getLogger().format("Looking up repositories of user %s%n%n", repoOwner);
-                    for (GHRepository repo : user.listRepositories(100)) {
+                    PagedIterable<GHRepository> repositories;
+                    if (githubAppAuthentication) {
+                        // If we get here, then the app is installed in a user's "organization", because
+                        // GET /org/:org returned null. GET /users/:user/repos will only include public
+                        // repositories, so we use an alternate API to list repositories available to the
+                        // installation instead.
+                        // https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
+                        repositories =
+                                github.getInstallation().listRepositories().withPageSize(100);
+                    } else {
+                        repositories = user.listRepositories(100);
+                    }
+                    for (GHRepository repo : repositories) {
                         if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                             witness.record(repo.getName(), false);
                             listener.getLogger()

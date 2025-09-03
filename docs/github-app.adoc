@@ -87,8 +87,9 @@ Fill out the form:
 - App ID: the github app ID, it can be found in the 'About' section of your GitHub app in the general tab.
 - API endpoint (optional, only required for GitHub enterprise this will only show up if a GitHub enterprise server is configured).
 - Key: click add, paste the contents of the converted private key
-- Advanced: (optional) If you've installed your same GitHub app on multiple organizations you need the next step
-  * Owner: the name of the organisation or user, i.e. jenkinsci for https://github.com/jenkinsci
+- Advanced: (optional):
+  * Repository access strategy: Controls what GitHub repositories will be accessible to these credentials in untrusted contexts (see below for details)
+  * Default permissions strategy: Controls what GitHub permissions will be accessible to these credentials in untrusted contexts (see below for details)
 - Click OK
 
 === link:https://github.com/jenkinsci/configuration-as-code-plugin[Configuration as Code Plugin]
@@ -134,6 +135,44 @@ Verify at the bottom of the scan log it says:
 ----
 Finished: SUCCESS
 ----
+
+=== Enhancing security using repository access strategies and default permissions strategies
+
+GitHub App Credentials offer advanced configuration options that can provide additional security in some scenarios.
+In particular, when GitHub App Credentials are used by an Organization Folder or Multibranch Pipeline, these strategies may dynamically restrict the accessible repositories and permissions available to the credentials when they are accessed in untrusted contexts, such as when they are accessed by a `withCredentials` step in one of the individual Pipeline jobs.
+See link:https://www.jenkins.io/doc/book/security/securing-org-folders-and-multibranch-pipelines/[this documentation] for additional information on why it may be beneficial to limit credentials in this way.
+These strategies do not apply when using the credentials in trusted contexts, such as during organization folder scans and branch indexing.
+Note also that Jenkins users who have Job/Configure permission in a context where the credentials are available are considered trusted and can bypass these strategies by configuring jobs as desired.
+In trusted contexts, the generated access tokens will have the same access as configured for the app installation in GitHub.
+
+The following repository access strategies are available:
+
+* **Infer owner and allow access to all owned repositories** (default)
+    ** The credentials may only be used in contexts where a GitHub organization can be inferred, such as Organization Folders and Multibranch Pipelines
+    ** The access tokens generated in untrusted contexts will be able to access all repositories in the inferred GitHub organization that are accessible to the GitHub App installation.
+* **Infer accessible repository**
+    ** The credentials may only be used in contexts where a GitHub organization and repository can be inferred, such as Organization Folders and Multibranch Pipelines
+    ** The access tokens generated in untrusted contexts will only be able to access the inferred repository
+* **Specify accessible repositories**
+    ** The access tokens generated in untrusted contexts will be able to access the repositories specified statically in the credential configuration
+    ** If the GitHub app is installed in a single organization, the owner field may be left blank empty, in which case that organization will be accessed automatically
+    ** Leaving the repositories field empty will result in all repositories accessible to the configured owner being accessible
+
+The following default permissions strategies are available:
+
+* **Read-only access to repository contents**
+    ** The access tokens generated in untrusted contexts will only be able to read the repository contents
+* **Read and write access to repository contents**
+    ** The access tokens generated in untrusted contexts will only be able to read and write the repository contents
+* **All permissions available to the app installation** (default)
+    ** The access tokens generated in untrusted contexts will have the same permissions as the app installation in GitHub
+
+==== Repository access strategies and Pipeline libraries
+
+Repository inference for GitHub App Credentials does not work when checking out Pipeline libraries.
+If you have a GitHub App Credential for an Organization Folder or Multibranch Pipeline whose individual Pipeline jobs access a Pipeline library, the contextually inferred repository for the library checkout will be the repository for the Pipeline job rather than the library.
+This means that the library will be inaccessible if you use an inference-based repository access strategy which only provides access to a single contextually-inferred repository, or if the Pipeline library is in a different GitHub organization than the repository being built.
+For now, in this case, you either need to use a less restrictive strategy for the GitHub App credential, such as "Infer owner and allow access to all owned repositories", or you can define a second credential specifically for the Pipeline library which uses "Specify accessible repositories" and only allows access to the repository for the Pipeline library.
 
 === Help?
 
