@@ -183,7 +183,7 @@ If the library's SCM is in a different GitHub organization than the SCM for the 
 
 This means that the library will be inaccessible if you use an inference-based repository access strategy which only provides access to a single contextually-inferred repository, or if the Pipeline library is in a different GitHub organization than the repository being built.
 
-For now, in this case, you either need to use a less restrictive strategy for the GitHub App credential, such as "Infer owner and allow access to all owned repositories", or you can define a second credential specifically for the Pipeline library which uses "Specify accessible repositories" and only allows access to the repository for the Pipeline library.
+For now, in this case, you either need to use a less restrictive strategy for the GitHub App credential, such as "Infer owner and allow access to all owned repositories" (only works if the library is only used from jobs inside of Organization Folders and Multibranch Pipelines), or "Specify accessible repositories", which works in all cases. If desired, you can also create a second credential specifically for the library, which uses "Specify accessible repositories" to restrict access to only the library's repository and configures the "Default permissions strategy" to only allow read access.
 
 ==== Backwards compatibility
 
