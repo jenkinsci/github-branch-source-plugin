@@ -172,8 +172,7 @@ The following default permissions strategies are available:
 ===== Jobs using plain Git
 
 The inference-based modes for GitHub App Credentials are supported for Organization Folders and Multibranch Pipelines only. There are not supported in other contexts using plain Git such as:
-* Pipeline script from SCM
-* Standalone Pipeline
+* Standalone Pipeline jobs using "Pipeline script from SCM"
 * Freestyle jobs
 
 ===== Pipeline libraries
