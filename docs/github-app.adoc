@@ -167,12 +167,32 @@ The following default permissions strategies are available:
 * **All permissions available to the app installation** (default)
     ** The access tokens generated in untrusted contexts will have the same permissions as the app installation in GitHub
 
-==== Repository access strategies and Pipeline libraries
+==== Repository access strategies limitations
 
-Repository inference for GitHub App Credentials does not work when checking out Pipeline libraries.
-If you have a GitHub App Credential for an Organization Folder or Multibranch Pipeline whose individual Pipeline jobs access a Pipeline library, the contextually inferred repository for the library checkout will be the repository for the Pipeline job rather than the library.
+===== Jobs using plain Git
+
+The inference-based modes for GitHub App Credentials are supported for Organization Folders and Multibranch Pipelines only. There are not supported in other contexts using plain Git such as:
+* Standalone Pipeline jobs using "Pipeline script from SCM"
+* Non-Pipeline jobs (unless you configure the project property named "GitHub project page")
+
+===== Pipeline libraries
+
+Note that Pipeline libraries do not support inference, and will instead be inferred to have the same owner as the main SCM for the build itself. If the library's SCM is in a different repository than the build, you will not be able to use "Infer accessible repository" for the credentials used by the library.
+
+If the library's SCM is in a different GitHub organization than the SCM for the build, you will also not be able to use "Infer owner and allow access to all owned repositories". To avoid these issues, you can configure the Pipeline library to use a credential with the "Specify accessible repositories" mode that allows access to the repository that contains the library itself.
+
 This means that the library will be inaccessible if you use an inference-based repository access strategy which only provides access to a single contextually-inferred repository, or if the Pipeline library is in a different GitHub organization than the repository being built.
-For now, in this case, you either need to use a less restrictive strategy for the GitHub App credential, such as "Infer owner and allow access to all owned repositories", or you can define a second credential specifically for the Pipeline library which uses "Specify accessible repositories" and only allows access to the repository for the Pipeline library.
+
+For now, in this case, you either need to use a less restrictive strategy for the GitHub App credential, such as "Infer owner and allow access to all owned repositories" (only works if the library is only used from jobs inside of Organization Folders and Multibranch Pipelines), or "Specify accessible repositories", which works in all cases. If desired, you can also create a second credential specifically for the library, which uses "Specify accessible repositories" to restrict access to only the library's repository and configures the "Default permissions strategy" to only allow read access.
+
+==== Backwards compatibility
+
+[IMPORTANT]
+The new configuration options are not fully backwards compatible.
+
+For existing GitHub App credentials which do not have the owner field set, the migration to the new format is not fully compatible. These credentials migrate to the “Infer owner and allow access to all owned repositories” mode described in the documentation, which means that they will only work in contexts where the owner can be inferred, such as Organization Folders and Multibranch Pipelines.
+
+If you are using the credentials in a context where inference is not supported, you will need to reconfigure these credentials to use the “Specify accessible repositories” mode instead, specifying the appropriate owner (or leaving it blank if the app is installed in a single GitHub organization).
 
 === Help?
 
