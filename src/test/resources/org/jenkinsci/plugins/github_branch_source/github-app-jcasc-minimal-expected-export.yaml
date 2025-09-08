@@ -6,7 +6,6 @@ system:
         description: "GitHub app 1111"
         id: "github-app"
         privateKey: "some-secret-value"
-        repositoryAccessStrategy: "inferOwner"
     - gitHubApp:
         appID: "1111"
         id: "old-owner"
