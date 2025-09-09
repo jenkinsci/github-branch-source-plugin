@@ -164,6 +164,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     /** Do not call this method, use {@link #setRepositoryAccessStrategy} instead. */
     public void setOwner(String owner) {
         owner = Util.fixEmptyAndTrim(owner);
+        LOGGER.log(Level.FINE,  null, new Exception("setOwner method called with owner: " + owner));
         setRepositoryAccessStrategy(new AccessSpecifiedRepositories(owner, List.of()));
         // We only expect this to be called by CasC and by a few plugins which implement variants of this class based on
         // external credential providers, so we still count it as a migration.
