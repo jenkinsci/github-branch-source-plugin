@@ -36,7 +36,7 @@ public class GitHubAppCredentialsContextualizationTest extends AbstractGitHubWir
         githubApi.stubFor(get(urlEqualTo("/app/installations"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json; charset=utf-8")
-                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations.json")));
+                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations-multiple.json")));
         githubApi.stubFor(post(urlEqualTo("/app/installations/654321/access_tokens"))
                 .withRequestBody(equalToJson(
                         "{\"permissions\":{\"pull_requests\":\"write\",\"metadata\":\"read\",\"checks\":\"write\",\"contents\":\"read\"}}",

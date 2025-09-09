@@ -196,19 +196,15 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         return getRepositoryAccessStrategy().forContext(context);
     }
 
-    private String actualOwner() {
-        if (getAccessibleRepositories().getOwner() == null) {
-            // Use the possibly inferred owner from the context
-            return context.getInferredOwner();
-        }
-        return getAccessibleRepositories().getOwner();
-    }
-
     Map<String, GHPermissionType> getPermissions() {
         if (context.getPermissions() != null) {
             return context.getPermissions();
         }
         return getDefaultPermissionsStrategy().getPermissions();
+    }
+
+    private GitHubAppUsageContext getContext() {
+        return context;
     }
 
     @SuppressWarnings("deprecation")
@@ -278,7 +274,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             String apiUrl,
             String owner,
             List<String> repositories,
-            Map<String, GHPermissionType> permissions) {
+            Map<String, GHPermissionType> permissions,
+            String inferredOwner) {
         JenkinsJVM.checkJenkinsJVM();
         // We expect this to be fast but if anything hangs in here we do not want to block indefinitely
 
@@ -298,12 +295,15 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             if (appInstallations.isEmpty()) {
                 throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId));
             }
-            GHAppInstallation appInstallation;
-            if (StringUtils.isEmpty(owner) && appInstallations.size() == 1) {
+            final String ownerOrNull = Util.fixEmpty(owner);
+            final GHAppInstallation appInstallation;
+            if (ownerOrNull == null && appInstallations.size() == 1) {
                 // This case is only used when AccessSpecifiedRepositories.getOwner is empty.
                 appInstallation = appInstallations.get(0);
             } else {
-                final String ownerOrEmpty = owner != null ? owner : "";
+                // Use the possibly inferred owner from the context
+                final String ownerOrEmpty =
+                        Util.fixNull(Optional.ofNullable(ownerOrNull).orElse(inferredOwner));
                 Optional<GHAppInstallation> appInstallationOptional = appInstallations.stream()
                         .filter(installation -> installation
                                 .getAccount()
@@ -393,9 +393,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                             getAppID(),
                             getPrivateKey().getPlainText(),
                             actualApiUri(),
-                            actualOwner(),
+                            accessibleRepositories.getOwner(),
                             accessibleRepositories.getRepositories(),
-                            getPermissions());
+                            getPermissions(),
+                            getContext().getInferredOwner());
                     LOGGER.log(Level.FINER, "Retrieved GitHub App Installation Token for app ID {0}", getAppID());
                 }
             } catch (Exception e) {
@@ -765,7 +766,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                         (String) fields.get("apiUri"),
                         (String) fields.get("owner"),
                         (List<String>) fields.get("repositories"),
-                        (Map<String, GHPermissionType>) fields.get("permissions"));
+                        (Map<String, GHPermissionType>) fields.get("permissions"),
+                        null);
                 LOGGER.log(
                         Level.FINER,
                         "Retrieved GitHub App Installation Token for app ID {0} for agent",
