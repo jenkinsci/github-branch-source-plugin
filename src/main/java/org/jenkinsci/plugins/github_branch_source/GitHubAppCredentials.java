@@ -657,6 +657,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             j.put("owner", accessibleRepositories.getOwner());
             j.put("repositories", accessibleRepositories.getRepositories());
             j.put("permissions", onMaster.getPermissions());
+            j.put("inferredOwner", onMaster.getContext().getInferredOwner());
             tokenRefreshData = Secret.fromString(j.toString()).getEncryptedValue();
 
             // Check token is valid before sending it to the agent.
@@ -768,7 +769,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                         (String) fields.get("owner"),
                         (List<String>) fields.get("repositories"),
                         (Map<String, GHPermissionType>) fields.get("permissions"),
-                        null);
+                        (String) fields.get("inferredOwner"));
                 LOGGER.log(
                         Level.FINER,
                         "Retrieved GitHub App Installation Token for app ID {0} for agent",
