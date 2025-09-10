@@ -187,12 +187,15 @@ For now, in this case, you either need to use a less restrictive strategy for th
 
 ==== Backwards compatibility
 
+The existing credentials is migrated to the “Specify accessible repositories” mode described in the documentation:
+
+* the owner is set with the original credentials owner
+* the list of repository is set with empty list
+
+In case of empty owner and when the credentials are used in a context where inference is supported, such as Organization Folders and Multibranch Pipelines, the inferred owner is used to compute permissions.
+
 [IMPORTANT]
-The new configuration options are not fully backwards compatible.
-
-For existing GitHub App credentials which do not have the owner field set, the migration to the new format is not fully compatible. These credentials migrate to the “Infer owner and allow access to all owned repositories” mode described in the documentation, which means that they will only work in contexts where the owner can be inferred, such as Organization Folders and Multibranch Pipelines.
-
-If you are using the credentials in a context where inference is not supported, you will need to reconfigure these credentials to use the “Specify accessible repositories” mode instead, specifying the appropriate owner (or leaving it blank if the app is installed in a single GitHub organization).
+If you are using the credentials in a context where inference is not supported, you will need to reconfigure these credentials to specify the appropriate owner (or leaving it blank if the app is installed in a single GitHub organization).
 
 === Help?
 
