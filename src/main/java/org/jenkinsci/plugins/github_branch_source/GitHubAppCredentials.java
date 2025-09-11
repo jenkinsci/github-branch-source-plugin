@@ -39,7 +39,6 @@ import jenkins.security.SlaveToMasterCallable;
 import jenkins.util.JenkinsJVM;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
-import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessInferredOwner;
 import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessSpecifiedRepositories;
 import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessibleRepositories;
 import org.jenkinsci.plugins.github_branch_source.app_credentials.DefaultPermissionsStrategy;
@@ -165,11 +164,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     /** Do not call this method, use {@link #setRepositoryAccessStrategy} instead. */
     public void setOwner(String owner) {
         owner = Util.fixEmptyAndTrim(owner);
-        if (owner != null) {
-            setRepositoryAccessStrategy(new AccessSpecifiedRepositories(owner, List.of()));
-        } else {
-            setRepositoryAccessStrategy(new AccessInferredOwner());
-        }
+        LOGGER.log(Level.FINE, null, new Exception("setOwner method called with owner: " + owner));
+        setRepositoryAccessStrategy(new AccessSpecifiedRepositories(owner, List.of()));
         // We only expect this to be called by CasC and by a few plugins which implement variants of this class based on
         // external credential providers, so we still count it as a migration.
         MigrationAdminMonitor.addMigratedCredentialId(getId());
@@ -177,7 +173,9 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
 
     @NonNull
     public RepositoryAccessStrategy getRepositoryAccessStrategy() {
-        return repositoryAccessStrategy == null ? new AccessInferredOwner() : repositoryAccessStrategy;
+        return repositoryAccessStrategy == null
+                ? new AccessSpecifiedRepositories(owner, List.of())
+                : repositoryAccessStrategy;
     }
 
     @DataBoundSetter
@@ -204,6 +202,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             return context.getPermissions();
         }
         return getDefaultPermissionsStrategy().getPermissions();
+    }
+
+    private GitHubAppUsageContext getContext() {
+        return context;
     }
 
     @SuppressWarnings("deprecation")
@@ -273,7 +275,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             String apiUrl,
             String owner,
             List<String> repositories,
-            Map<String, GHPermissionType> permissions) {
+            Map<String, GHPermissionType> permissions,
+            String inferredOwner) {
         JenkinsJVM.checkJenkinsJVM();
         // We expect this to be fast but if anything hangs in here we do not want to block indefinitely
 
@@ -293,12 +296,15 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             if (appInstallations.isEmpty()) {
                 throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId));
             }
-            GHAppInstallation appInstallation;
-            if (StringUtils.isEmpty(owner) && appInstallations.size() == 1) {
+            final String ownerOrNull = Util.fixEmpty(owner);
+            final GHAppInstallation appInstallation;
+            if (ownerOrNull == null && appInstallations.size() == 1) {
                 // This case is only used when AccessSpecifiedRepositories.getOwner is empty.
                 appInstallation = appInstallations.get(0);
             } else {
-                final String ownerOrEmpty = owner != null ? owner : "";
+                // Use the possibly inferred owner from the context
+                final String ownerOrEmpty =
+                        Util.fixNull(Optional.ofNullable(ownerOrNull).orElse(inferredOwner));
                 Optional<GHAppInstallation> appInstallationOptional = appInstallations.stream()
                         .filter(installation -> installation
                                 .getAccount()
@@ -390,7 +396,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                             actualApiUri(),
                             accessibleRepositories.getOwner(),
                             accessibleRepositories.getRepositories(),
-                            getPermissions());
+                            getPermissions(),
+                            getContext().getInferredOwner());
                     LOGGER.log(Level.FINER, "Retrieved GitHub App Installation Token for app ID {0}", getAppID());
                 }
             } catch (Exception e) {
@@ -592,19 +599,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     private Object readResolve() {
         cachedCredentials = new ConcurrentHashMap<>();
         if (repositoryAccessStrategy == null || defaultPermissionsStrategy == null) {
-            if (owner != null) {
-                // In this case, the migration should result in identical behavior.
-                setRepositoryAccessStrategy(new AccessSpecifiedRepositories(owner, List.of()));
-            } else {
-                // There is a choice here: We can either preserve compatibility for users who have
-                // the app installed in multiple orgs and only use the credentials in contexts
-                // where owner inference is supported by using AccessInferredOwner, _or_ we can
-                // preserve compatibility for users who have the app installed in a single org and
-                // use it in contexts where inference is not supported by using
-                // AccessSpecifiedRepositories with a null owner.
-                // None of the new strategies support these two use cases simultaneously.
-                setRepositoryAccessStrategy(new AccessInferredOwner());
-            }
+            setRepositoryAccessStrategy(new AccessSpecifiedRepositories(owner, List.of()));
             setDefaultPermissionsStrategy(DefaultPermissionsStrategy.INHERIT_ALL);
             MigrationAdminMonitor.addMigratedCredentialId(getId());
         }
@@ -662,6 +657,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             j.put("owner", accessibleRepositories.getOwner());
             j.put("repositories", accessibleRepositories.getRepositories());
             j.put("permissions", onMaster.getPermissions());
+            j.put("inferredOwner", onMaster.getContext().getInferredOwner());
             tokenRefreshData = Secret.fromString(j.toString()).getEncryptedValue();
 
             // Check token is valid before sending it to the agent.
@@ -772,7 +768,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                         (String) fields.get("apiUri"),
                         (String) fields.get("owner"),
                         (List<String>) fields.get("repositories"),
-                        (Map<String, GHPermissionType>) fields.get("permissions"));
+                        (Map<String, GHPermissionType>) fields.get("permissions"),
+                        (String) fields.get("inferredOwner"));
                 LOGGER.log(
                         Level.FINER,
                         "Retrieved GitHub App Installation Token for app ID {0} for agent",
@@ -812,6 +809,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         @Restricted(NoExternalUse.class) // stapler
         public ListBoxModel doFillApiUriItems() {
             return getPossibleApiUriItems();
+        }
+
+        public static RepositoryAccessStrategy getDefaultRepositoryAccessStrategy() {
+            return new AccessSpecifiedRepositories(null, List.of());
         }
 
         public FormValidation doCheckAppID(@QueryParameter String appID) {

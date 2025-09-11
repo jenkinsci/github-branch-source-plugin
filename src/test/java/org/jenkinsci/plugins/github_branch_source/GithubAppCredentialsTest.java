@@ -113,7 +113,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
         githubApi.stubFor(get(urlEqualTo("/app/installations"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json; charset=utf-8")
-                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations.json")));
+                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations-multiple.json")));
 
         final String scenarioName = "credentials-accesstoken";
 
