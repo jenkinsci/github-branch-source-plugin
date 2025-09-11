@@ -22,7 +22,7 @@
   </f:entry>
 
   <f:advanced>
-    <f:dropdownDescriptorSelector title="${%Repository access strategy}" field="repositoryAccessStrategy" />
+    <f:dropdownDescriptorSelector title="${%Repository access strategy}" field="repositoryAccessStrategy" default="${descriptor.defaultRepositoryAccessStrategy}" />
     <f:entry title="${%Default permissions strategy}" field="defaultPermissionsStrategy">
       <f:enum default="INHERIT_ALL">
         ${it.displayName}

@@ -811,6 +811,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             return getPossibleApiUriItems();
         }
 
+        public static RepositoryAccessStrategy getDefaultRepositoryAccessStrategy() {
+            return new AccessSpecifiedRepositories(null, List.of());
+        }
+
         public FormValidation doCheckAppID(@QueryParameter String appID) {
             if (!appID.isEmpty()) {
                 try {
