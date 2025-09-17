@@ -21,6 +21,7 @@ import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.Secret;
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
@@ -596,12 +597,15 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         }
     }
 
-    private Object readResolve() {
+    @Serial
+    Object readResolve() {
         cachedCredentials = new ConcurrentHashMap<>();
-        if (repositoryAccessStrategy == null || defaultPermissionsStrategy == null) {
+        if (repositoryAccessStrategy == null) {
             setRepositoryAccessStrategy(new AccessSpecifiedRepositories(owner, List.of()));
-            setDefaultPermissionsStrategy(DefaultPermissionsStrategy.INHERIT_ALL);
             MigrationAdminMonitor.addMigratedCredentialId(getId());
+        }
+        if (defaultPermissionsStrategy == null) {
+            setDefaultPermissionsStrategy(DefaultPermissionsStrategy.INHERIT_ALL);
         }
         owner = null;
         context = new GitHubAppUsageContext();
