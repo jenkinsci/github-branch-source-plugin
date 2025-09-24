@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
@@ -33,6 +34,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
 import jenkins.plugins.git.GitSampleRepoRule;
+import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessSpecifiedRepositories;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
@@ -71,9 +73,14 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
         // Add credential (Must have valid private key for Jwt to work, but App doesn't have to actually
         // exist)
         store = CredentialsProvider.lookupStores(r.jenkins).iterator().next();
-        appCredentials = GitHubApp.createCredentials(myAppCredentialsId, "cloudBeers");
+        appCredentials = GitHubApp.createCredentials(myAppCredentialsId);
+        appCredentials.setRepositoryAccessStrategy(
+                new AccessSpecifiedRepositories("cloudBeers", Collections.emptyList()));
+
         store.addCredentials(Domain.global(), appCredentials);
         appCredentialsNoOwner = GitHubApp.createCredentials(myAppCredentialsNoOwnerId);
+        appCredentialsNoOwner.setRepositoryAccessStrategy(
+                new AccessSpecifiedRepositories(null, Collections.emptyList()));
         store.addCredentials(Domain.global(), appCredentialsNoOwner);
 
         // Add agent
@@ -106,7 +113,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
         githubApi.stubFor(get(urlEqualTo("/app/installations"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json; charset=utf-8")
-                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations.json")));
+                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations-multiple.json")));
 
         final String scenarioName = "credentials-accesstoken";
 
@@ -455,8 +462,8 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                     assertThrows(IllegalArgumentException.class, () -> appCredentialsNoOwner.getPassword());
             assertThat(
                     expected.getMessage(),
-                    is("Found multiple installations for GitHub app ID 54321 but none match credential owner \"\". "
-                            + "Set the right owner in the credential advanced options to one of: cloudbeers, bogus"));
+                    is(
+                            "Found multiple installations for GitHub app ID 54321 but none match credential owner \"\". Configure the repository access strategy for the credential to use one of these owners: cloudbeers, bogus"));
         } finally {
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
             logRecorder.doClear();

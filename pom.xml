@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>5.5</version>
+    <version>5.19</version>
     <relativePath />
   </parent>
 
@@ -34,9 +34,8 @@
     <gitHubRepo>jenkinsci/${project.artifactId}-plugin</gitHubRepo>
     <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
-    <jenkins.baseline>2.479</jenkins.baseline>
-    <jenkins.version>2.498</jenkins.version>
-    <useBeta>true</useBeta>
+    <jenkins.baseline>2.504</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
     <spotless.check.skip>false</spotless.check.skip>
   </properties>
 
@@ -45,7 +44,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>3893.v213a_42768d35</version>
+        <version>4948.vcf1d17350668</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -60,6 +59,10 @@
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
       <artifactId>caffeine-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.jenkins.plugins</groupId>
+      <artifactId>commons-lang3-api</artifactId>
     </dependency>
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
@@ -86,12 +89,6 @@
       <artifactId>workflow-support</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.github.tomakehurst</groupId>
-      <artifactId>wiremock-jre8-standalone</artifactId>
-      <version>2.35.2</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>io.jenkins</groupId>
       <artifactId>configuration-as-code</artifactId>
       <scope>test</scope>
@@ -109,7 +106,7 @@
     <dependency>
       <groupId>org.awaitility</groupId>
       <artifactId>awaitility</artifactId>
-      <version>4.2.2</version>
+      <version>4.3.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -137,6 +134,12 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.wiremock</groupId>
+      <artifactId>wiremock-standalone</artifactId>
+      <version>3.13.1</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
