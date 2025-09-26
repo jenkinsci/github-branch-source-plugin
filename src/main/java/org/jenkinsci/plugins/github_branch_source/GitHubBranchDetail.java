@@ -5,10 +5,10 @@ import hudson.model.Actionable;
 import hudson.model.Run;
 import jenkins.model.details.Detail;
 import jenkins.model.details.DetailGroup;
+import jenkins.scm.api.SCMDetailGroup;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
-import jenkins.scm.api.ScmDetailGroup;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 
 public class GitHubBranchDetail extends Detail {
@@ -46,6 +46,6 @@ public class GitHubBranchDetail extends Detail {
 
     @Override
     public DetailGroup getGroup() {
-        return ScmDetailGroup.get();
+        return SCMDetailGroup.get();
     }
 }

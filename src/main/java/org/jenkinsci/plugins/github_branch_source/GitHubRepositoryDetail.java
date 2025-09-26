@@ -5,8 +5,8 @@ import hudson.model.Actionable;
 import hudson.model.Run;
 import jenkins.model.details.Detail;
 import jenkins.model.details.DetailGroup;
+import jenkins.scm.api.SCMDetailGroup;
 import jenkins.scm.api.SCMSource;
-import jenkins.scm.api.ScmDetailGroup;
 
 public class GitHubRepositoryDetail extends Detail {
     public GitHubRepositoryDetail(Actionable object) {
@@ -54,6 +54,6 @@ public class GitHubRepositoryDetail extends Detail {
 
     @Override
     public DetailGroup getGroup() {
-        return ScmDetailGroup.get();
+        return SCMDetailGroup.get();
     }
 }

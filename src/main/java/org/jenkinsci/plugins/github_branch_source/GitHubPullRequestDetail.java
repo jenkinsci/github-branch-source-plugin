@@ -5,7 +5,7 @@ import hudson.model.Actionable;
 import hudson.model.Run;
 import jenkins.model.details.Detail;
 import jenkins.model.details.DetailGroup;
-import jenkins.scm.api.ScmDetailGroup;
+import jenkins.scm.api.SCMDetailGroup;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 
 public class GitHubPullRequestDetail extends Detail {
@@ -36,6 +36,6 @@ public class GitHubPullRequestDetail extends Detail {
 
     @Override
     public DetailGroup getGroup() {
-        return ScmDetailGroup.get();
+        return SCMDetailGroup.get();
     }
 }
