@@ -45,7 +45,6 @@ public class GitHubCommitDetail extends Detail {
                 return null;
             }
 
-            // TODO - ends with .git
             return src.getRepositoryUrl() + "/commit/" + abstractRevision.getHash();
         } else if (revision instanceof PullRequestSCMRevision pullRequestSCMRevision) {
             var run = (Run<?, ?>) getObject();

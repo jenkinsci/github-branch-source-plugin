@@ -49,7 +49,6 @@ public class GitHubRepositoryDetail extends Detail {
             return null;
         }
 
-        // TODO - Has .git on the end
         return source.getRepositoryUrl();
     }
 
