@@ -1868,6 +1868,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
          * @return {@code true} if there is more than one GitHub endpoint configured.
          */
         @SuppressWarnings("unused") // jelly
+        @Deprecated
         public boolean isApiUriSelectable() {
             return !GitHubConfiguration.get().getEndpoints().isEmpty();
         }
