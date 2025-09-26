@@ -8,6 +8,7 @@ import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.ScmDetailGroup;
 
 public class GitHubCommitDetail extends Detail {
     public GitHubCommitDetail(Actionable object) {

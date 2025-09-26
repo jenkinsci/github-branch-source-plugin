@@ -6,6 +6,7 @@ import hudson.model.Run;
 import jenkins.model.details.Detail;
 import jenkins.model.details.DetailGroup;
 import jenkins.scm.api.SCMSource;
+import jenkins.scm.api.ScmDetailGroup;
 
 public class GitHubRepositoryDetail extends Detail {
     public GitHubRepositoryDetail(Actionable object) {
