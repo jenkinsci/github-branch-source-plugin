@@ -87,7 +87,8 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>scm-api</artifactId>
-      <version>999999-SNAPSHOT</version>
+      <!-- TODO https://github.com/jenkinsci/scm-api-plugin/pull/346 -->
+      <version>710.v822a_7a_107b_30</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
