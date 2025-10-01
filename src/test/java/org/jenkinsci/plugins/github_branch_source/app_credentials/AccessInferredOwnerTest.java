@@ -5,14 +5,14 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
 import org.jenkinsci.plugins.github_branch_source.GitHubAppUsageContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class AccessInferredOwnerTest {
+class AccessInferredOwnerTest {
 
     private final RepositoryAccessStrategy strategy = new AccessInferredOwner();
 
     @Test
-    public void smokes() {
+    void smokes() {
         assertThat(
                 strategy.forContext(GitHubAppUsageContext.builder()
                         .inferredOwner("inferred-owner")
@@ -22,7 +22,7 @@ public class AccessInferredOwnerTest {
     }
 
     @Test
-    public void requiresInferredOwner() {
+    void requiresInferredOwner() {
         assertThat(strategy.forContext(GitHubAppUsageContext.builder().build()), nullValue());
         assertThat(
                 strategy.forContext(GitHubAppUsageContext.builder()

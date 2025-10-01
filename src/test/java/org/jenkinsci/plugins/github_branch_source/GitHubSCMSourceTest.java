@@ -29,6 +29,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -41,18 +42,17 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.cloudbees.jenkins.GitHubRepositoryName;
 import com.cloudbees.jenkins.GitHubRepositoryNameContributor;
-import com.github.tomakehurst.wiremock.common.SingleRootFileSource;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.AbortException;
 import hudson.ExtensionList;
 import hudson.model.FreeStyleProject;
 import hudson.model.Item;
-import hudson.model.TaskListener;
 import hudson.model.User;
 import hudson.scm.SCM;
 import hudson.security.ACL;
@@ -62,8 +62,6 @@ import hudson.security.SecurityRealm;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.LogTaskListener;
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -75,37 +73,33 @@ import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import org.hamcrest.Matchers;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.mockito.Mockito;
 
-@RunWith(Parameterized.class)
-public class GitHubSCMSourceTest extends GitSCMSourceBase {
+@ParameterizedClass(name = "{index}: source={0}")
+@MethodSource("sources")
+class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     public GitHubSCMSourceTest(GitHubSCMSource source) {
         this.source = source;
     }
 
-    @Parameterized.Parameters(name = "{index}: revision={0}")
-    public static GitHubSCMSource[] revisions() {
+    static GitHubSCMSource[] sources() {
         return new GitHubSCMSource[] {
             new GitHubSCMSource("cloudbeers", "yolo", null, false),
             new GitHubSCMSource("", "", "https://github.com/cloudbeers/yolo", true)
         };
     }
 
-    @Before
-    public void prepareMockGitHubStubs() throws Exception {
-        new File("src/test/resources/api/mappings").mkdirs();
-        new File("src/test/resources/api/__files").mkdirs();
-        githubApi.enableRecordMappings(
-                new SingleRootFileSource("src/test/resources/api/mappings"),
-                new SingleRootFileSource("src/test/resources/api/__files"));
-
+    @Override
+    @BeforeEach
+    void beforeEach() throws Exception {
+        super.beforeEach();
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
                 .inScenario("Pull Request Merge Hash")
                 .whenScenarioStateIs(Scenario.STARTED)
@@ -131,8 +125,8 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
                 .willSetStateTo("Pull Request Merge Hash - retry 2"));
     }
 
-    SCMHeadEvent<PushGHEventSubscriber> pushEvent =
-            new SCMHeadEvent<PushGHEventSubscriber>(SCMEvent.Type.CREATED, System.currentTimeMillis(), null, null) {
+    final SCMHeadEvent<PushGHEventSubscriber> pushEvent =
+            new SCMHeadEvent<>(SCMEvent.Type.CREATED, System.currentTimeMillis(), null, null) {
                 @Override
                 public boolean isMatch(@NonNull SCMNavigator scmNavigator) {
                     return false;
@@ -156,9 +150,8 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
                 }
             };
 
-    SCMHeadEvent<PullRequestGHEventSubscriber> pullRequestEvent =
-            new SCMHeadEvent<PullRequestGHEventSubscriber>(
-                    SCMEvent.Type.CREATED, System.currentTimeMillis(), null, null) {
+    final SCMHeadEvent<PullRequestGHEventSubscriber> pullRequestEvent =
+            new SCMHeadEvent<>(SCMEvent.Type.CREATED, System.currentTimeMillis(), null, null) {
                 @Override
                 public boolean isMatch(@NonNull SCMNavigator scmNavigator) {
                     return false;
@@ -184,7 +177,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-48035")
-    public void testGitHubRepositoryNameContributor() throws IOException {
+    void testGitHubRepositoryNameContributor() throws Exception {
         WorkflowMultiBranchProject job = r.createProject(WorkflowMultiBranchProject.class);
         job.setSourcesList(Arrays.asList(new BranchSource(source)));
         Collection<GitHubRepositoryName> names = GitHubRepositoryNameContributor.parseAssociatedNames(job);
@@ -207,7 +200,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-48035")
-    public void testGitHubRepositoryNameContributor_When_not_GitHub() throws IOException {
+    void testGitHubRepositoryNameContributor_When_not_GitHub() throws Exception {
         WorkflowMultiBranchProject job = r.createProject(WorkflowMultiBranchProject.class);
         job.setSourcesList(Arrays.asList(new BranchSource(new GitSCMSource("file://tmp/something"))));
         Collection<GitHubRepositoryName> names = GitHubRepositoryNameContributor.parseAssociatedNames(job);
@@ -222,7 +215,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-48035")
-    public void testGitHubRepositoryNameContributor_When_not_MultiBranch() throws IOException {
+    void testGitHubRepositoryNameContributor_When_not_MultiBranch() throws Exception {
         FreeStyleProject job = r.createProject(FreeStyleProject.class);
         Collection<GitHubRepositoryName> names = GitHubRepositoryNameContributor.parseAssociatedNames((Item) job);
         assertThat(names, Matchers.empty());
@@ -235,15 +228,10 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void fetchSmokes() throws Exception {
+    void fetchSmokes() throws Exception {
         SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
         source.fetch(
-                new SCMSourceCriteria() {
-                    @Override
-                    public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
-                        return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
-                    }
-                },
+                (SCMSourceCriteria) (probe, listener) -> probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE,
                 collector,
                 null,
                 null);
@@ -298,7 +286,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void fetchSmokes_badMergeCommit() throws Exception {
+    void fetchSmokes_badMergeCommit() throws Exception {
         // make it so the merge commit is not found returns 404
         // Causes PR 2 to fall back to null merge_commit_sha
 
@@ -313,12 +301,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
         SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
         source.fetch(
-                new SCMSourceCriteria() {
-                    @Override
-                    public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
-                        return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
-                    }
-                },
+                (SCMSourceCriteria) (probe, listener) -> probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE,
                 collector,
                 null,
                 null);
@@ -374,7 +357,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void fetchSmokes_badUser() throws Exception {
+    void fetchSmokes_badUser() throws Exception {
         source.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
                 new ForkPullRequestDiscoveryTrait(
@@ -396,12 +379,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
         SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
         source.fetch(
-                new SCMSourceCriteria() {
-                    @Override
-                    public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
-                        return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
-                    }
-                },
+                (SCMSourceCriteria) (probe, listener) -> probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE,
                 collector,
                 null,
                 null);
@@ -448,7 +426,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void fetchSmokes_badTarget() throws Exception {
+    void fetchSmokes_badTarget() throws Exception {
         // make it so the merge commit is not found returns 404
         // Causes PR 2 to fall back to null merge_commit_sha
         // Then make it so refs/heads/master returns 404 for first call
@@ -483,12 +461,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
         SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
         source.fetch(
-                new SCMSourceCriteria() {
-                    @Override
-                    public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
-                        return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
-                    }
-                },
+                (SCMSourceCriteria) (probe, listener) -> probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE,
                 collector,
                 null,
                 null);
@@ -535,7 +508,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void fetchSmokesUnknownMergeable() throws Exception {
+    void fetchSmokesUnknownMergeable() throws Exception {
         // make it so PR-2 always returns mergeable = null
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
                 .inScenario("Pull Request Merge Hash")
@@ -546,12 +519,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
         SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
         source.fetch(
-                new SCMSourceCriteria() {
-                    @Override
-                    public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
-                        return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
-                    }
-                },
+                (SCMSourceCriteria) (probe, listener) -> probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE,
                 collector,
                 null,
                 null);
@@ -607,7 +575,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void fetchSmokesUnknownFork() throws Exception {
+    void fetchSmokesUnknownFork() throws Exception {
         // make it so PR-2 always returns mergeable = null
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/pulls/4"))
                 .inScenario("Pull Request from Deleted Fork")
@@ -624,12 +592,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
         SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
         source.fetch(
-                new SCMSourceCriteria() {
-                    @Override
-                    public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
-                        return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
-                    }
-                },
+                (SCMSourceCriteria) (probe, listener) -> probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE,
                 collector,
                 null,
                 null);
@@ -647,19 +610,14 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void fetchAltConfig() throws Exception {
+    void fetchAltConfig() throws Exception {
         source.setBuildForkPRMerge(false);
         source.setBuildForkPRHead(true);
         source.setBuildOriginPRMerge(false);
         source.setBuildOriginPRHead(false);
         SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
         source.fetch(
-                new SCMSourceCriteria() {
-                    @Override
-                    public boolean isHead(@NonNull Probe probe, @NonNull TaskListener listener) throws IOException {
-                        return probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE;
-                    }
-                },
+                (SCMSourceCriteria) (probe, listener) -> probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE,
                 collector,
                 null,
                 null);
@@ -701,7 +659,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void fetchActions() throws Exception {
+    void fetchActions() throws Exception {
         assertThat(
                 source.fetchActions(null, null),
                 Matchers.containsInAnyOrder(
@@ -712,7 +670,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void getTrustedRevisionReturnsRevisionIfRepoOwnerAndPullRequestBranchOwnerAreSameWithDifferentCase()
+    void getTrustedRevisionReturnsRevisionIfRepoOwnerAndPullRequestBranchOwnerAreSameWithDifferentCase()
             throws Exception {
         source.setBuildOriginPRHead(true);
         PullRequestSCMRevision revision = createRevision("CloudBeers");
@@ -735,7 +693,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void doFillCredentials() throws Exception {
+    void doFillCredentials() throws Exception {
         final GitHubSCMSource.DescriptorImpl d = r.jenkins.getDescriptorByType(GitHubSCMSource.DescriptorImpl.class);
         final WorkflowMultiBranchProject dummy =
                 r.jenkins.add(new WorkflowMultiBranchProject(r.jenkins, "dummy"), "dummy");
@@ -792,7 +750,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-68633")
-    public void doCheckCredentialsId() {
+    void doCheckCredentialsId() {
         GitHubSCMSource.DescriptorImpl descriptor = (GitHubSCMSource.DescriptorImpl) source.getDescriptor();
 
         // If no credentials are supplied, display the warning
@@ -810,7 +768,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-65071")
-    public void testCheckIncludesBranchSCMHeadType() throws Exception {
+    void testCheckIncludesBranchSCMHeadType() {
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Mockito.when(mockSCMHeadObserver.getIncludes())
                 .thenReturn(Collections.singleton(new BranchSCMHead("existent-branch")));
@@ -822,13 +780,13 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-65071")
-    public void testCheckIncludesPullRequestSCMHeadType() throws Exception {
+    void testCheckIncludesPullRequestSCMHeadType() {
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Mockito.when(mockSCMHeadObserver.getIncludes())
                 .thenReturn(Collections.singleton(new PullRequestSCMHead(
                         "PR-1",
                         "rfvm",
-                        "http://localhost:" + githubApi.port(),
+                        "http://localhost:" + githubApi.getPort(),
                         "master",
                         1,
                         new BranchSCMHead("master"),
@@ -842,7 +800,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-65071")
-    public void testCheckIncludesGitHubTagSCMHeadType() throws Exception {
+    void testCheckIncludesGitHubTagSCMHeadType() {
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Mockito.when(mockSCMHeadObserver.getIncludes())
                 .thenReturn(
@@ -855,7 +813,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-65071")
-    public void testCheckIncludesEmpty() throws Exception {
+    void testCheckIncludesEmpty() {
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(Collections.emptySet());
 
@@ -866,7 +824,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-65071")
-    public void testCheckIncludesNull() throws Exception {
+    void testCheckIncludesNull() {
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(null);
 
@@ -877,7 +835,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-65071")
-    public void testShouldRetrieveBranchSCMHeadType() throws Exception {
+    void testShouldRetrieveBranchSCMHeadType() {
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Mockito.when(mockSCMHeadObserver.getIncludes())
                 .thenReturn(Collections.singleton(new BranchSCMHead("existent-branch")));
@@ -889,13 +847,13 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-65071")
-    public void testShouldRetrievePullRequestSCMHeadType() throws Exception {
+    void testShouldRetrievePullRequestSCMHeadType() {
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Mockito.when(mockSCMHeadObserver.getIncludes())
                 .thenReturn(Collections.singleton(new PullRequestSCMHead(
                         "PR-1",
                         "rfvm",
-                        "http://localhost:" + githubApi.port(),
+                        "http://localhost:" + githubApi.getPort(),
                         "master",
                         1,
                         new BranchSCMHead("master"),
@@ -909,7 +867,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-65071")
-    public void testShouldRetrieveTagSCMHeadType() throws Exception {
+    void testShouldRetrieveTagSCMHeadType() {
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         Mockito.when(mockSCMHeadObserver.getIncludes())
                 .thenReturn(
@@ -922,7 +880,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-65071")
-    public void testShouldRetrieveNullEvent() throws Exception {
+    void testShouldRetrieveNullEvent() {
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         assertTrue(this.source.shouldRetrieve(mockSCMHeadObserver, null, GitHubTagSCMHead.class));
         assertTrue(this.source.shouldRetrieve(mockSCMHeadObserver, null, PullRequestSCMHead.class));
@@ -931,7 +889,7 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
 
     @Test
     @Issue("JENKINS-67946")
-    public void testUserNamesWithAndWithoutUnderscores() {
+    void testUserNamesWithAndWithoutUnderscores() {
         // https://docs.github.com/en/enterprise-cloud@latest/admin/identity-and-access-management/managing-iam-for-your-enterprise/username-considerations-for-external-authentication#about-usernames-for-managed-user-accounts
         // https://github.com/github/docs/blob/bfe96c289aee3113724495a2e498c21e2ec404e4/content/admin/identity-and-access-management/using-enterprise-managed-users-for-iam/about-enterprise-managed-users.md#about--data-variablesproductprodname_emus-
         assertTrue("user_organization".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
