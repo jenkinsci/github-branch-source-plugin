@@ -1,42 +1,40 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 
 import com.github.tomakehurst.wiremock.common.FileSource;
-import com.github.tomakehurst.wiremock.common.SingleRootFileSource;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.extension.Parameters;
 import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import java.io.File;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 /** @author Liam Newman */
+@WithJenkins
 public abstract class AbstractGitHubWireMockTest {
 
     // By default the wiremock tests will run without proxy
     // The tests will use only the stubbed data and will fail if requests are made for missing data.
     // You can use the proxy while writing and debugging tests.
-    private static final boolean useProxy =
+    private static final boolean USE_PROXY =
             !System.getProperty("test.github.useProxy", "false").equals("false");
 
-    @ClassRule
-    public static JenkinsRule r = new JenkinsRule();
+    protected static JenkinsRule r;
 
-    public static WireMockRuleFactory factory = new WireMockRuleFactory();
+    private static final WireMockExtensionFactory FACTORY = new WireMockExtensionFactory();
 
-    @Rule
-    public WireMockRule githubRaw =
-            factory.getRule(WireMockConfiguration.options().dynamicPort().usingFilesUnderClasspath("raw"));
+    @RegisterExtension
+    protected final WireMockExtension githubRaw =
+            FACTORY.getExtension(WireMockConfiguration.options().dynamicPort().usingFilesUnderClasspath("raw"));
 
-    @Rule
-    public WireMockRule githubApi = factory.getRule(WireMockConfiguration.options()
+    @RegisterExtension
+    protected final WireMockExtension githubApi = FACTORY.getExtension(WireMockConfiguration.options()
             .dynamicPort()
             .usingFilesUnderClasspath("api")
             .extensions(new ResponseTransformer() {
@@ -48,10 +46,11 @@ public abstract class AbstractGitHubWireMockTest {
                                 .but()
                                 .body(response.getBodyAsString()
                                         .replace(
-                                                "https://api.github.com/", "http://localhost:" + githubApi.port() + "/")
+                                                "https://api.github.com/",
+                                                "http://localhost:" + githubApi.getPort() + "/")
                                         .replace(
                                                 "https://raw.githubusercontent.com/",
-                                                "http://localhost:" + githubRaw.port() + "/"))
+                                                "http://localhost:" + githubRaw.getPort() + "/"))
                                 .build();
                     }
                     return response;
@@ -63,11 +62,14 @@ public abstract class AbstractGitHubWireMockTest {
                 }
             }));
 
-    @Before
-    public void prepareMockGitHub() {
-        prepareMockGitHubFileMappings();
+    @BeforeAll
+    static void beforeAll(JenkinsRule rule) {
+        r = rule;
+    }
 
-        if (useProxy) {
+    @BeforeEach
+    void beforeEach() throws Exception {
+        if (USE_PROXY) {
             githubApi.stubFor(get(urlMatching(".*"))
                     .atPriority(10)
                     .willReturn(aResponse().proxiedFrom("https://api.github.com/")));
@@ -75,18 +77,5 @@ public abstract class AbstractGitHubWireMockTest {
                     .atPriority(10)
                     .willReturn(aResponse().proxiedFrom("https://raw.githubusercontent.com/")));
         }
-    }
-
-    void prepareMockGitHubFileMappings() {
-        new File("src/test/resources/api/mappings").mkdirs();
-        new File("src/test/resources/api/__files").mkdirs();
-        new File("src/test/resources/raw/mappings").mkdirs();
-        new File("src/test/resources/raw/__files").mkdirs();
-        githubApi.enableRecordMappings(
-                new SingleRootFileSource("src/test/resources/api/mappings"),
-                new SingleRootFileSource("src/test/resources/api/__files"));
-        githubRaw.enableRecordMappings(
-                new SingleRootFileSource("src/test/resources/raw/mappings"),
-                new SingleRootFileSource("src/test/resources/raw/__files"));
     }
 }

@@ -6,15 +6,14 @@ import static org.hamcrest.Matchers.nullValue;
 
 import java.util.List;
 import org.jenkinsci.plugins.github_branch_source.GitHubAppUsageContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class AccessInferredRepositoryTest {
+class AccessInferredRepositoryTest {
 
     private final RepositoryAccessStrategy strategy = new AccessInferredRepository();
 
     @Test
-    public void smokes() {
-        final var strategy = new AccessInferredRepository();
+    void smokes() {
         assertThat(
                 strategy.forContext(GitHubAppUsageContext.builder()
                         .inferredOwner("inferred-owner")
@@ -24,9 +23,7 @@ public class AccessInferredRepositoryTest {
     }
 
     @Test
-    public void constrainedUsageAllowsMultiRepositoryAccess() {
-        final var strategy = new AccessInferredRepository();
-
+    void constrainedUsageAllowsMultiRepositoryAccess() {
         assertThat(
                 strategy.forContext(GitHubAppUsageContext.builder()
                         .inferredOwner("inferred-owner")
@@ -43,7 +40,7 @@ public class AccessInferredRepositoryTest {
     }
 
     @Test
-    public void requiresInferredOwner() {
+    void requiresInferredOwner() {
         assertThat(strategy.forContext(GitHubAppUsageContext.builder().build()), nullValue());
         assertThat(
                 strategy.forContext(GitHubAppUsageContext.builder()
@@ -59,7 +56,7 @@ public class AccessInferredRepositoryTest {
     }
 
     @Test
-    public void requiresInferredRepository() {
+    void requiresInferredRepository() {
         assertThat(
                 strategy.forContext(GitHubAppUsageContext.builder()
                         .inferredOwner("inferred-owner")

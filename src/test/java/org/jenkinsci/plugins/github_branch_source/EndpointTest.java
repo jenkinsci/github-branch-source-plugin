@@ -1,9 +1,6 @@
 package org.jenkinsci.plugins.github_branch_source;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import hudson.ExtensionList;
 import hudson.Functions;
@@ -24,26 +21,26 @@ import org.htmlunit.Page;
 import org.htmlunit.WebRequest;
 import org.htmlunit.html.HtmlPage;
 import org.htmlunit.util.NameValuePair;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.StaplerResponse2;
-import org.xml.sax.SAXException;
 
-public class EndpointTest {
-
-    @Rule
-    public final JenkinsRule j = new JenkinsRule();
+@WithJenkins
+class EndpointTest {
 
     private String testUrl;
 
-    @Before
-    public void setUp() throws Exception {
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) throws Exception {
+        j = rule;
         j.jenkins.setSecurityRealm(j.createDummySecurityRealm());
         MockAuthorizationStrategy auth = new MockAuthorizationStrategy();
         auth.grant(Jenkins.MANAGE).everywhere().to("alice");
@@ -54,37 +51,34 @@ public class EndpointTest {
 
     @Test
     @Issue("SECURITY-806")
-    public void cantGet_doCheckApiUri() throws IOException, SAXException {
-        try {
-            j.createWebClient()
-                    .goTo(appendCrumb(
-                            "descriptorByName/org.jenkinsci.plugins.github_branch_source.Endpoint/checkApiUri?apiUri="
-                                    + testUrl));
-            fail("Should not be able to do that");
-        } catch (FailingHttpStatusCodeException e) {
-            assertEquals(405, e.getStatusCode());
-        }
+    void cantGet_doCheckApiUri() {
+        FailingHttpStatusCodeException e = assertThrows(FailingHttpStatusCodeException.class, () -> j.createWebClient()
+                .goTo(
+                        appendCrumb(
+                                "descriptorByName/org.jenkinsci.plugins.github_branch_source.Endpoint/checkApiUri?apiUri="
+                                        + testUrl),
+                        "Should not be able to do that"));
+        assertEquals(405, e.getStatusCode());
         assertFalse(TestRoot.get().visited);
     }
 
     @Test
     @Issue("SECURITY-806")
-    public void cantPostAsAnonymous_doCheckApiUri() throws Exception {
-        try {
-            post(
-                    "descriptorByName/org.jenkinsci.plugins.github_branch_source.Endpoint/checkApiUri?apiUri="
-                            + testUrl,
-                    null);
-            fail("Should not be able to do that");
-        } catch (FailingHttpStatusCodeException e) {
-            assertEquals(403, e.getStatusCode());
-        }
+    void cantPostAsAnonymous_doCheckApiUri() {
+        FailingHttpStatusCodeException e = assertThrows(
+                FailingHttpStatusCodeException.class,
+                () -> post(
+                        "descriptorByName/org.jenkinsci.plugins.github_branch_source.Endpoint/checkApiUri?apiUri="
+                                + testUrl,
+                        null),
+                "Should not be able to do that");
+        assertEquals(403, e.getStatusCode());
         assertFalse(TestRoot.get().visited);
     }
 
     @Test
     @Issue("SECURITY-806")
-    public void canPostAsAdmin_doCheckApiUri() throws Exception {
+    void canPostAsAdmin_doCheckApiUri() throws Exception {
         post(
                 "descriptorByName/org.jenkinsci.plugins.github_branch_source.Endpoint/checkApiUri?apiUri=" + testUrl,
                 "alice");
@@ -93,7 +87,7 @@ public class EndpointTest {
 
     @Test
     @Issue("JENKINS-73053")
-    public void manageCanSetupEndpoints() throws Exception {
+    void manageCanSetupEndpoints() throws Exception {
         HtmlPage htmlPage = j.createWebClient().login("alice").goTo("manage/configure");
         assertTrue(htmlPage.getVisibleText().contains("GitHub Enterprise Servers"));
     }

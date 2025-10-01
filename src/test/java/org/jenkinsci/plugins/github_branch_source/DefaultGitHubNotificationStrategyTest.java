@@ -24,8 +24,9 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import hudson.model.FreeStyleBuild;
 import hudson.model.FreeStyleProject;
@@ -36,16 +37,23 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class DefaultGitHubNotificationStrategyTest {
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+@WithJenkins
+class DefaultGitHubNotificationStrategyTest {
+
+    private JenkinsRule j;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        j = rule;
+    }
 
     @Test
-    public void given_basicJob_then_singleNotification() throws Exception {
+    void given_basicJob_then_singleNotification() throws Exception {
         List<GitHubSCMSource> srcs = Arrays.asList(
                 new GitHubSCMSource("example", "test", null, false),
                 new GitHubSCMSource("", "", "http://github.com/example/test", true));
@@ -61,7 +69,7 @@ public class DefaultGitHubNotificationStrategyTest {
     }
 
     @Test
-    public void given_differentSCMheads_then_distinctNotifications() throws Exception {
+    void given_differentSCMheads_then_distinctNotifications() throws Exception {
         List<GitHubSCMSource> srcs = Arrays.asList(
                 new GitHubSCMSource("example", "test", "http://github.com/ignored/ignored", false),
                 new GitHubSCMSource("", "", "http://github.com/example/test", true));
@@ -110,7 +118,7 @@ public class DefaultGitHubNotificationStrategyTest {
     }
 
     @Test
-    public void given_jobOrRun_then_differentURLs() throws Exception {
+    void given_jobOrRun_then_differentURLs() throws Exception {
         List<GitHubSCMSource> srcs = Arrays.asList(
                 new GitHubSCMSource("example", "test", null, false),
                 new GitHubSCMSource("", "", "http://github.com/example/test", true));

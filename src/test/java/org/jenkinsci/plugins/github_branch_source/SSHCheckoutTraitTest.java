@@ -1,10 +1,10 @@
 package org.jenkinsci.plugins.github_branch_source;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeThat;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import hudson.model.Item;
 import hudson.model.User;
@@ -14,71 +14,77 @@ import hudson.security.AuthorizationStrategy;
 import hudson.security.SecurityRealm;
 import hudson.util.ListBoxModel;
 import jenkins.model.Jenkins;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.MockFolder;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class SSHCheckoutTraitTest {
-    @ClassRule
-    public static JenkinsRule j = new JenkinsRule();
+@WithJenkins
+class SSHCheckoutTraitTest {
+
+    private static JenkinsRule j;
+
+    @BeforeAll
+    static void beforeAll(JenkinsRule rule, TestInfo info) {
+        j = rule;
+    }
 
     @Test
-    public void given__legacyConfig__when__creatingTrait__then__convertedToModern() throws Exception {
+    void given__legacyConfig__when__creatingTrait__then__convertedToModern() {
         assertThat(new SSHCheckoutTrait(GitHubSCMSource.DescriptorImpl.ANONYMOUS).getCredentialsId(), is(nullValue()));
     }
 
     @Test
-    public void given__sshCheckoutWithCredentials__when__decorating__then__credentialsApplied_with_repositoryUrl()
-            throws Exception {
+    void given__sshCheckoutWithCredentials__when__decorating__then__credentialsApplied_with_repositoryUrl() {
         SSHCheckoutTrait instance = new SSHCheckoutTrait("keyId");
         GitHubSCMSource source = new GitHubSCMSource("", "", "https://github.com/example/does-not-exist", true);
         source.setCredentialsId("scanId");
         GitHubSCMBuilder probe = new GitHubSCMBuilder(source, new BranchSCMHead("master"), null);
-        assumeThat(probe.credentialsId(), is("scanId"));
+        assumeTrue(probe.credentialsId().equals("scanId"));
         instance.decorateBuilder(probe);
         assertThat(probe.credentialsId(), is("keyId"));
     }
 
     @Test
-    public void given__sshCheckoutWithCredentials__when__decorating__then__credentialsApplied() throws Exception {
+    void given__sshCheckoutWithCredentials__when__decorating__then__credentialsApplied() {
         SSHCheckoutTrait instance = new SSHCheckoutTrait("keyId");
         GitHubSCMSource source = new GitHubSCMSource("example", "does-not-exist");
         source.setApiUri("https://github.test");
         source.setCredentialsId("scanId");
         GitHubSCMBuilder probe = new GitHubSCMBuilder(source, new BranchSCMHead("master"), null);
-        assumeThat(probe.credentialsId(), is("scanId"));
+        assumeTrue(probe.credentialsId().equals("scanId"));
         instance.decorateBuilder(probe);
         assertThat(probe.credentialsId(), is("keyId"));
     }
 
     @Test
-    public void given__sshCheckoutWithAgentKey__when__decorating__then__useAgentKeyApplied_with_repositoryUrl()
-            throws Exception {
+    void given__sshCheckoutWithAgentKey__when__decorating__then__useAgentKeyApplied_with_repositoryUrl() {
         SSHCheckoutTrait instance = new SSHCheckoutTrait(null);
         GitHubSCMSource source = new GitHubSCMSource("", "", "https://github.com/example/does-not-exist", true);
         source.setCredentialsId("scanId");
         GitHubSCMBuilder probe = new GitHubSCMBuilder(source, new BranchSCMHead("master"), null);
-        assumeThat(probe.credentialsId(), is("scanId"));
+        assumeTrue(probe.credentialsId().equals("scanId"));
         instance.decorateBuilder(probe);
         assertThat(probe.credentialsId(), is(nullValue()));
     }
 
     @Test
-    public void given__sshCheckoutWithAgentKey__when__decorating__then__useAgentKeyApplied() throws Exception {
+    void given__sshCheckoutWithAgentKey__when__decorating__then__useAgentKeyApplied() {
         SSHCheckoutTrait instance = new SSHCheckoutTrait(null);
         GitHubSCMSource source = new GitHubSCMSource("example", "does-not-exist");
         source.setApiUri("https://github.test");
         source.setCredentialsId("scanId");
         GitHubSCMBuilder probe = new GitHubSCMBuilder(source, new BranchSCMHead("master"), null);
-        assumeThat(probe.credentialsId(), is("scanId"));
+        assumeTrue(probe.credentialsId().equals("scanId"));
         instance.decorateBuilder(probe);
         assertThat(probe.credentialsId(), is(nullValue()));
     }
 
     @Test
-    public void given__descriptor__when__displayingCredentials__then__contractEnforced() throws Exception {
+    void given__descriptor__when__displayingCredentials__then__contractEnforced() throws Exception {
         final SSHCheckoutTrait.DescriptorImpl d = j.jenkins.getDescriptorByType(SSHCheckoutTrait.DescriptorImpl.class);
         final MockFolder dummy = j.createFolder("dummy");
         SecurityRealm realm = j.jenkins.getSecurityRealm();
