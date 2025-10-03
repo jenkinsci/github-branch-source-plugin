@@ -99,7 +99,7 @@
       <groupId>io.jenkins.configuration-as-code</groupId>
       <artifactId>test-harness</artifactId>
       <!-- TODO: remove when included in jenkins-bom via parent -->
-      <version>1995.v540b_50a_eb_0c1</version>
+      <version>1998.v3e50e6e9d9d3</version>
       <scope>test</scope>
     </dependency>
     <dependency>
