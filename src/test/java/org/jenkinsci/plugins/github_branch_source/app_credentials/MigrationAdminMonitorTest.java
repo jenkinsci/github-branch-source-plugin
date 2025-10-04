@@ -41,16 +41,19 @@ public class MigrationAdminMonitorTest {
                 CredentialsProvider.lookupCredentialsInItemGroup(GitHubAppCredentials.class, r.jenkins, ACL.SYSTEM2),
                 CredentialsMatchers.withId("old-credentials-with-owner"));
         assertThat(credentialsWithOwner.getOwner(), nullValue());
-        var strategy = (AccessSpecifiedRepositories) credentialsWithOwner.getRepositoryAccessStrategy();
-        assertThat(strategy.getOwner(), is("cloudBeers"));
-        assertThat(strategy.getRepositories(), empty());
+        var strategyWithOwner = (AccessSpecifiedRepositories) credentialsWithOwner.getRepositoryAccessStrategy();
+        assertThat(strategyWithOwner.getOwner(), is("cloudBeers"));
+        assertThat(strategyWithOwner.getRepositories(), empty());
         assertThat(credentialsWithOwner.getDefaultPermissionsStrategy(), is(DefaultPermissionsStrategy.INHERIT_ALL));
 
         var credentialsNoOwner = CredentialsMatchers.firstOrNull(
                 CredentialsProvider.lookupCredentialsInItemGroup(GitHubAppCredentials.class, r.jenkins, ACL.SYSTEM2),
                 CredentialsMatchers.withId("old-credentials-no-owner"));
         assertThat(credentialsNoOwner.getOwner(), nullValue());
-        assertThat(credentialsNoOwner.getRepositoryAccessStrategy(), instanceOf(AccessInferredOwner.class));
+        assertThat(credentialsNoOwner.getRepositoryAccessStrategy(), instanceOf(AccessSpecifiedRepositories.class));
+        var strategyWithNoOwner = (AccessSpecifiedRepositories) credentialsNoOwner.getRepositoryAccessStrategy();
+        assertThat(strategyWithNoOwner.getOwner(), nullValue());
+        assertThat(strategyWithNoOwner.getRepositories(), empty());
         assertThat(credentialsNoOwner.getDefaultPermissionsStrategy(), is(DefaultPermissionsStrategy.INHERIT_ALL));
 
         var monitor = ExtensionList.lookupSingleton(MigrationAdminMonitor.class);
