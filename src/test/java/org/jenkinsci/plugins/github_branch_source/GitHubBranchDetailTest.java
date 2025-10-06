@@ -1,12 +1,12 @@
 package org.jenkinsci.plugins.github_branch_source;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 import hudson.model.Job;
 import hudson.model.Run;
 import jenkins.scm.api.metadata.ObjectMetadataAction;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class GitHubBranchDetailTest {
 

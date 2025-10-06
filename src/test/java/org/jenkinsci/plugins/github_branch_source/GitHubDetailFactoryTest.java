@@ -1,17 +1,16 @@
 package org.jenkinsci.plugins.github_branch_source;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 import hudson.model.Run;
+import java.util.List;
 import jenkins.model.details.Detail;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
-
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class GitHubDetailFactoryTest {
 

@@ -1,5 +1,8 @@
 package org.jenkinsci.plugins.github_branch_source;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 import hudson.model.Job;
 import hudson.model.Run;
 import jenkins.plugins.git.AbstractGitSCMSource;
@@ -7,9 +10,6 @@ import jenkins.scm.api.SCMRevisionAction;
 import jenkins.scm.api.SCMSource;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 class GitHubCommitDetailTest {
 

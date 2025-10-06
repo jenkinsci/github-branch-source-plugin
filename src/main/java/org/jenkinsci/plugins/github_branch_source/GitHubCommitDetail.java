@@ -54,7 +54,8 @@ public class GitHubCommitDetail extends Detail {
             }
 
             // getRepositoryUrl includes .git which breaks the URL, so trim it
-            return src.getRepositoryUrl().substring(0, src.getRepositoryUrl().length() - 4) + "/commit/" + abstractRevision.getHash();
+            return src.getRepositoryUrl().substring(0, src.getRepositoryUrl().length() - 4) + "/commit/"
+                    + abstractRevision.getHash();
         }
 
         if (revision instanceof PullRequestSCMRevision pullRequestSCMRevision) {

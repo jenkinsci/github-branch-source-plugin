@@ -1,18 +1,17 @@
 package org.jenkinsci.plugins.github_branch_source;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.AssertionsKt.assertNull;
+import static org.mockito.Mockito.*;
+
 import hudson.model.Run;
+import java.lang.reflect.Method;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.mockito.MockedStatic;
-
-import java.lang.reflect.Method;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.AssertionsKt.assertNull;
-import static org.mockito.Mockito.*;
 
 class GitHubRepositoryDetailTest {
 
@@ -24,8 +23,8 @@ class GitHubRepositoryDetailTest {
     }
 
     GitHubSCMSource load() {
-        return (GitHubSCMSource)
-                Jenkins.XSTREAM2.fromXML(getClass().getResource(getClass().getSimpleName() + "/" + methodName+ ".xml"));
+        return (GitHubSCMSource) Jenkins.XSTREAM2.fromXML(
+                getClass().getResource(getClass().getSimpleName() + "/" + methodName + ".xml"));
     }
 
     @Test
