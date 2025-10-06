@@ -22,11 +22,11 @@ public class GitHubRepositoryDetail extends Detail {
     private GitHubSCMSource getSCMSource() {
         var source = SCMSource.SourceByItem.findSource(((Run) getObject()).getParent());
 
-        if (!(source instanceof GitHubSCMSource)) {
-            return null;
+        if (source instanceof GitHubSCMSource githubSource) {
+            return githubSource;
         }
 
-        return (GitHubSCMSource) source;
+        return null;
     }
 
     @Nullable
