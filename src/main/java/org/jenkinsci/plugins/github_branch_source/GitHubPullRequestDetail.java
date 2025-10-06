@@ -22,20 +22,21 @@ public class GitHubPullRequestDetail extends Detail {
     @Nullable
     @Override
     public String getDisplayName() {
-        var run = (Run<?, ?>) getObject();
-        ObjectMetadataAction action = run.getParent().getAction(ObjectMetadataAction.class);
-        return action.getObjectDisplayName();
+        return getObjectMetadataAction().getObjectDisplayName();
     }
 
     @Override
     public String getLink() {
-        var run = (Run<?, ?>) getObject();
-        GitHubLink repoLink = run.getParent().getAction(GitHubLink.class);
-        return repoLink.getUrl();
+        return getObjectMetadataAction().getObjectUrl();
     }
 
     @Override
     public DetailGroup getGroup() {
         return SCMDetailGroup.get();
+    }
+
+    private ObjectMetadataAction getObjectMetadataAction() {
+        Run<?, ?> run = (Run<?, ?>) getObject();
+        return run.getParent().getAction(ObjectMetadataAction.class);
     }
 }

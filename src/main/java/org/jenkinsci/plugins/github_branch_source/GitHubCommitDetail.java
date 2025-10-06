@@ -21,12 +21,17 @@ public class GitHubCommitDetail extends Detail {
 
     @Override
     public String getDisplayName() {
-        SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
-        SCMRevision revision = scmRevisionAction.getRevision();
+        SCMRevision revision = getRevision();
+
+        if (revision == null) {
+            return null;
+        }
 
         if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl abstractRevision) {
             return abstractRevision.getHash().substring(0, 7);
-        } else if (revision instanceof PullRequestSCMRevision pullRequestSCMRevision) {
+        }
+
+        if (revision instanceof PullRequestSCMRevision pullRequestSCMRevision) {
             return pullRequestSCMRevision.getPullHash().substring(0, 7);
         }
 
@@ -35,8 +40,11 @@ public class GitHubCommitDetail extends Detail {
 
     @Override
     public String getLink() {
-        SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
-        SCMRevision revision = scmRevisionAction.getRevision();
+        SCMRevision revision = getRevision();
+
+        if (revision == null) {
+            return null;
+        }
 
         if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl abstractRevision) {
             GitHubSCMSource src = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run) getObject()).getParent());
@@ -45,8 +53,11 @@ public class GitHubCommitDetail extends Detail {
                 return null;
             }
 
-            return src.getRepositoryUrl() + "/commit/" + abstractRevision.getHash();
-        } else if (revision instanceof PullRequestSCMRevision pullRequestSCMRevision) {
+            // getRepositoryUrl includes .git which breaks the URL, so trim it
+            return src.getRepositoryUrl().substring(0, src.getRepositoryUrl().length() - 4) + "/commit/" + abstractRevision.getHash();
+        }
+
+        if (revision instanceof PullRequestSCMRevision pullRequestSCMRevision) {
             var run = (Run<?, ?>) getObject();
             GitHubLink repoLink = run.getParent().getAction(GitHubLink.class);
             return repoLink.getUrl() + "/commits/" + pullRequestSCMRevision.getPullHash();
@@ -58,5 +69,15 @@ public class GitHubCommitDetail extends Detail {
     @Override
     public DetailGroup getGroup() {
         return SCMDetailGroup.get();
+    }
+
+    private SCMRevision getRevision() {
+        SCMRevisionAction scmRevisionAction = getObject().getAction(SCMRevisionAction.class);
+
+        if (scmRevisionAction == null) {
+            return null;
+        }
+
+        return scmRevisionAction.getRevision();
     }
 }

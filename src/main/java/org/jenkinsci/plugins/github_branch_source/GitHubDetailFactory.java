@@ -10,6 +10,7 @@ import jenkins.model.details.Detail;
 import jenkins.model.details.DetailFactory;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
+import jenkins.scm.api.SCMSource;
 
 @Extension
 public final class GitHubDetailFactory extends DetailFactory<Run> {
@@ -22,13 +23,20 @@ public final class GitHubDetailFactory extends DetailFactory<Run> {
     @NonNull
     @Override
     public List<? extends Detail> createFor(@NonNull Run target) {
+        SCMSource src = SCMSource.SourceByItem.findSource(target.getParent());
+
+        // Don't add details for non-GitHub SCM sources
+        if (!(src instanceof GitHubSCMSource)) {
+            return Collections.emptyList();
+        }
+
         SCMRevisionAction scmRevisionAction = target.getAction(SCMRevisionAction.class);
+
         if (scmRevisionAction == null) {
             return Collections.emptyList();
         }
 
         List<Detail> details = new ArrayList<>();
-
         SCMRevision revision = scmRevisionAction.getRevision();
 
         if (revision instanceof PullRequestSCMRevision) {
