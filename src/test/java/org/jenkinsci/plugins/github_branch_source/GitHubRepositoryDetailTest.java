@@ -5,31 +5,18 @@ import static org.junit.jupiter.api.AssertionsKt.assertNull;
 import static org.mockito.Mockito.*;
 
 import hudson.model.Run;
-import java.lang.reflect.Method;
-import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSource;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 import org.mockito.MockedStatic;
 
 class GitHubRepositoryDetailTest {
 
-    private String methodName;
-
-    @BeforeEach
-    void setup(TestInfo testInfo) {
-        methodName = testInfo.getTestMethod().map(Method::getName).orElse("unknown");
-    }
-
-    GitHubSCMSource load() {
-        return (GitHubSCMSource) Jenkins.XSTREAM2.fromXML(
-                getClass().getResource(getClass().getSimpleName() + "/" + methodName + ".xml"));
-    }
-
     @Test
     void gitHubRepositoryDetail_showsDetails() {
-        GitHubSCMSource instance = load();
+        GitHubSCMSource instance = mock(GitHubSCMSource.class);
+        when(instance.getRepoOwner()).thenReturn("cloudbeers");
+        when(instance.getRepository()).thenReturn("stunning-adventure");
+        when(instance.getRepositoryUrl()).thenReturn("https://github.com/cloudbeers/stunning-adventure");
         Run<?, ?> run = mock(Run.class);
 
         try (MockedStatic<SCMSource.SourceByItem> mocked = mockStatic(SCMSource.SourceByItem.class)) {

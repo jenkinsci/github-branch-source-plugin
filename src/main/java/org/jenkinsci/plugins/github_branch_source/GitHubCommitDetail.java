@@ -8,7 +8,6 @@ import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMDetailGroup;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMRevisionAction;
-import jenkins.scm.api.SCMSource;
 
 public class GitHubCommitDetail extends Detail {
     public GitHubCommitDetail(Actionable object) {
@@ -47,19 +46,11 @@ public class GitHubCommitDetail extends Detail {
         }
 
         if (revision instanceof AbstractGitSCMSource.SCMRevisionImpl abstractRevision) {
-            GitHubSCMSource src = (GitHubSCMSource) SCMSource.SourceByItem.findSource(((Run) getObject()).getParent());
-
-            if (src == null) {
-                return null;
-            }
-
-            // getRepositoryUrl includes .git which breaks the URL, so trim it
-            return src.getRepositoryUrl().substring(0, src.getRepositoryUrl().length() - 4) + "/commit/"
-                    + abstractRevision.getHash();
+            return new GitHubRepositoryDetail(getObject()).getLink() + "/commit/" + abstractRevision.getHash();
         }
 
         if (revision instanceof PullRequestSCMRevision pullRequestSCMRevision) {
-            var run = (Run<?, ?>) getObject();
+            Run<?, ?> run = (Run<?, ?>) getObject();
             GitHubLink repoLink = run.getParent().getAction(GitHubLink.class);
             return repoLink.getUrl() + "/commits/" + pullRequestSCMRevision.getPullHash();
         }

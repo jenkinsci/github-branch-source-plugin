@@ -15,7 +15,9 @@ class GitHubCommitDetailTest {
 
     @Test
     void displayName_and_link_forScmRevisionImpl() {
-        Run<?, ?> run = mock(Run.class);
+        Run run = mock(Run.class);
+        Job job = mock(Job.class);
+        when(run.getParent()).thenReturn(job);
 
         SCMRevisionAction action = mock(SCMRevisionAction.class);
         when(run.getAction(SCMRevisionAction.class)).thenReturn(action);
@@ -24,11 +26,11 @@ class GitHubCommitDetailTest {
         when(revision.getHash()).thenReturn("abcdef1234567890");
         when(action.getRevision()).thenReturn(revision);
 
-        GitHubSCMSource src = mock(GitHubSCMSource.class);
-        when(src.getRepositoryUrl()).thenReturn("https://github.com/octo/hello-world.git");
+        GitHubSCMSource instance = mock(GitHubSCMSource.class);
+        when(instance.getRepositoryUrl()).thenReturn("https://github.com/octo/hello-world");
 
         try (MockedStatic<SCMSource.SourceByItem> mocked = mockStatic(SCMSource.SourceByItem.class)) {
-            mocked.when(() -> SCMSource.SourceByItem.findSource(any())).thenReturn(src);
+            mocked.when(() -> SCMSource.SourceByItem.findSource(any())).thenReturn(instance);
 
             GitHubCommitDetail detail = new GitHubCommitDetail(run);
 
@@ -57,6 +59,7 @@ class GitHubCommitDetailTest {
 
         GitHubCommitDetail detail = new GitHubCommitDetail(run);
 
+        // Only first 7 chars of hash
         assertEquals("1234567", detail.getDisplayName());
         assertEquals("https://github.com/octo/hello-world/commits/1234567deadbeef", detail.getLink());
     }
