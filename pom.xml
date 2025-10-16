@@ -44,7 +44,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>5506.va_222b_131ec34</version>
+        <version>5543.vfd758c7c868d</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -91,15 +91,11 @@
     <dependency>
       <groupId>io.jenkins</groupId>
       <artifactId>configuration-as-code</artifactId>
-      <!-- TODO: remove when included in jenkins-bom via parent -->
-      <version>1995.v540b_50a_eb_0c1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.jenkins.configuration-as-code</groupId>
       <artifactId>test-harness</artifactId>
-      <!-- TODO: remove when included in jenkins-bom via parent -->
-      <version>1995.v540b_50a_eb_0c1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
