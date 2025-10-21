@@ -51,7 +51,8 @@ public class GitHubAppCredentialsJCasCCompatibilityTest {
         List<Credentials> credentials = domainCredentials.get(0).getCredentials();
         assertThat(credentials.size(), is(7));
 
-        assertGitHubAppCredential(credentials.get(0), "github-app", "GitHub app 1111");
+        assertGitHubAppCredential(
+                credentials.get(0), "github-app", "GitHub app 1111", new AccessSpecifiedRepositories(null, List.of()));
         assertGitHubAppCredential(
                 credentials.get(1), "old-owner", "", new AccessSpecifiedRepositories("test", List.of()));
         assertGitHubAppCredential(
@@ -104,10 +105,6 @@ public class GitHubAppCredentialsJCasCCompatibilityTest {
         Mapping configNode = Objects.requireNonNull(root.describe(root.getTargetComponent(context), context))
                 .asMapping();
         return configNode;
-    }
-
-    private static void assertGitHubAppCredential(Credentials credentials, String id, String description) {
-        assertGitHubAppCredential(credentials, id, description, new AccessInferredOwner());
     }
 
     private static void assertGitHubAppCredential(

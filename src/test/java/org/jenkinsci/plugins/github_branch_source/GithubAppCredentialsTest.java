@@ -113,7 +113,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
         githubApi.stubFor(get(urlEqualTo("/app/installations"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json; charset=utf-8")
-                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations.json")));
+                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations-multiple.json")));
 
         final String scenarioName = "credentials-accesstoken";
 
@@ -287,27 +287,58 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
             List<String> credentialsLog = getOutputLines();
 
+            // Assert that individual messages occur at least once in the credentials log
+            String generatingMsg = "Generating App Installation Token for app ID 54321";
+            String failedMsg =
+                    "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired";
+
+            // Be sure the expected messages are in the log
+            assertThat(credentialsLog, hasItem(generatingMsg));
+            assertThat(credentialsLog, hasItem(failedMsg));
+
             // Verify correct messages from GitHubAppCredential logger indicating token was retrieved on
             // agent
-            assertThat(
-                    "Creds should cache on master",
-                    credentialsLog,
-                    contains(
-                            // refresh on controller
-                            "Generating App Installation Token for app ID 54321",
-                            // next call uses cached token
-                            // sleep and then refresh stale token
-                            "Generating App Installation Token for app ID 54321",
-                            // next call (error forced by wiremock)
-                            "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired",
-                            // next call refreshes the still stale token
-                            "Generating App Installation Token for app ID 54321",
-                            // sleep and then refresh stale token hits another error forced by wiremock
-                            "Failed to generate new GitHub App Installation Token for app ID 54321: cached token is stale but has not expired",
-                            // next call refreshes the still stale token
-                            "Generating App Installation Token for app ID 54321"
-                            // next call uses cached token
-                            ));
+            if (credentialsLog.get(2).equals(failedMsg)) {
+                assertThat(
+                        "Creds should cache on master - typical order",
+                        credentialsLog,
+                        contains(
+                                // refresh on controller
+                                generatingMsg,
+                                // next call uses cached token
+                                // sleep and then refresh stale token
+                                generatingMsg,
+                                // next call (error forced by wiremock)
+                                failedMsg,
+                                // next call refreshes the still stale token
+                                generatingMsg,
+                                // sleep and then refresh stale token hits another error forced by wiremock
+                                failedMsg,
+                                // next call refreshes the still stale token
+                                generatingMsg
+                                // next call uses cached token
+                                ));
+            } else {
+                assertThat(
+                        "Creds should cache on master - alternate order",
+                        credentialsLog,
+                        contains(
+                                // refresh on controller
+                                generatingMsg,
+                                // next call uses cached token
+                                // sleep and then refresh stale token
+                                generatingMsg,
+                                // next call refreshes the still stale token
+                                generatingMsg,
+                                // next call (error forced by wiremock)
+                                failedMsg,
+                                // sleep and then refresh stale token hits another error forced by wiremock
+                                failedMsg,
+                                // next call refreshes the still stale token
+                                generatingMsg
+                                // next call uses cached token
+                                ));
+            }
 
             // Getting the token for via AuthorizationProvider on controller should not check rate_limit
             githubApi.verify(

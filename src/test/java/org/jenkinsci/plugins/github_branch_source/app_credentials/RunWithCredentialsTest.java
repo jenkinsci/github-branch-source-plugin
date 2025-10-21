@@ -127,12 +127,6 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
                         .withHeaders(HEADERS)
                         .withBodyFile("../AppCredentials/files/body-mapping-githubapp-app.json")));
 
-        // Stub app installation
-        githubApi.stubFor(get(urlEqualTo("/app/installations"))
-                .willReturn(aResponse()
-                        .withHeaders(HEADERS)
-                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations.json")));
-
         // Stub app installation access token
         githubApi.stubFor(post(urlEqualTo("/app/installations/654321/access_tokens"))
                 .withRequestBody(equalToJson(
@@ -206,6 +200,22 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
                                                 "{\"repositories\":[{\"id\":1,\"name\":\"repository-a\",\"full_name\":\"cloudbeers/repository-a\"},{\"id\":2,\"name\":\"repository-b\",\"full_name\":\"cloudbeers/repository-b\"}]}")));
     }
 
+    private void simpleInstallations() {
+        // Stub app installation
+        githubApi.stubFor(get(urlEqualTo("/app/installations"))
+                .willReturn(aResponse()
+                        .withHeaders(HEADERS)
+                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations-single.json")));
+    }
+
+    private void multipleInstallations() {
+        // Stub app installation
+        githubApi.stubFor(get(urlEqualTo("/app/installations"))
+                .willReturn(aResponse()
+                        .withHeaders(HEADERS)
+                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations-multiple.json")));
+    }
+
     @After
     public void cleanup() throws IOException, InterruptedException {
         if (project != null) {
@@ -218,6 +228,8 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
 
     @Test
     public void inferredRepository() throws Exception {
+        multipleInstallations();
+
         credentials.setRepositoryAccessStrategy(new AccessInferredRepository());
 
         final var build = r.buildAndAssertSuccess(project);
@@ -228,6 +240,8 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
 
     @Test
     public void inferredOwner() throws Exception {
+        multipleInstallations();
+
         credentials.setRepositoryAccessStrategy(new AccessInferredOwner());
 
         final var build = r.buildAndAssertSuccess(project);
@@ -238,6 +252,8 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
 
     @Test
     public void specifiedRepositoriesA() throws Exception {
+        multipleInstallations();
+
         credentials.setRepositoryAccessStrategy(
                 new AccessSpecifiedRepositories("cloudbeers", Arrays.asList("repository-a")));
 
@@ -249,6 +265,8 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
 
     @Test
     public void specifiedRepositoriesB() throws Exception {
+        multipleInstallations();
+
         credentials.setRepositoryAccessStrategy(
                 new AccessSpecifiedRepositories("cloudbeers", Arrays.asList("repository-b")));
 
@@ -260,6 +278,8 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
 
     @Test
     public void specifiedRepositoriesAB() throws Exception {
+        multipleInstallations();
+
         credentials.setRepositoryAccessStrategy(
                 new AccessSpecifiedRepositories("cloudbeers", Arrays.asList("repository-a", "repository-b")));
 
@@ -271,6 +291,8 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
 
     @Test
     public void specifiedRepositoriesABC() throws Exception {
+        multipleInstallations();
+
         credentials.setRepositoryAccessStrategy(new AccessSpecifiedRepositories(
                 "cloudbeers", Arrays.asList("repository-a", "repository-b", "repository-c")));
 
@@ -282,6 +304,31 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
                 build);
     }
 
+    @Test
+    public void specifiedRepositoryWithOwner() throws Exception {
+        simpleInstallations();
+
+        credentials.setRepositoryAccessStrategy(new AccessSpecifiedRepositories("cloudbeers", List.of()));
+
+        final var build = r.buildAndAssertSuccess(project);
+
+        // Only specified repositories should be accessible from the contextualized credentials (TOKEN_AB)
+        assertAccessibleRepositories(build, "cloudbeers/repository-a", "cloudbeers/repository-b");
+    }
+
+    @Test
+    public void specifiedRepositoryWithoutOwner() throws Exception {
+        simpleInstallations();
+
+        // Owner is inferred from the context in this case
+        credentials.setRepositoryAccessStrategy(new AccessSpecifiedRepositories(null, List.of()));
+
+        final var build = r.buildAndAssertSuccess(project);
+
+        // Only specified repositories should be accessible from the contextualized credentials (TOKEN_AB)
+        assertAccessibleRepositories(build, "cloudbeers/repository-a", "cloudbeers/repository-b");
+    }
+
     /**
      * Demonstrates how a user who only has access to edit a Jenkinsfile can abuse GithubProjectProperty in combination
      * with the properties step to access any repository accessible to the app installation, as long as the Pipeline is
@@ -289,6 +336,8 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
      */
     @Test
     public void propertiesStepAllowsAccessBypass() throws Exception {
+        multipleInstallations();
+
         credentials.setRepositoryAccessStrategy(new AccessInferredRepository());
 
         project.setDefinition(new CpsFlowDefinition(
