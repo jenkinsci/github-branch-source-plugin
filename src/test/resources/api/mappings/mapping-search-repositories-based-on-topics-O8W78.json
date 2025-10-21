@@ -8,7 +8,7 @@
     },
     "queryParameters" : {
       "q" : {
-        "equalTo" : "topic:cool topic:great topic:was-awesome org:stephenc fork:true"
+        "equalTo" : "topic:cool topic:great topic:was-awesome org:stephenc fork:true sort:name-asc"
       }
     }
   },
