@@ -32,9 +32,9 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.model.Item;
-import hudson.scm.SCM;
 import java.io.StringReader;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -43,6 +43,8 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import hudson.scm.SCM;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.scm.api.SCMEvent;
@@ -53,11 +55,14 @@ import jenkins.scm.api.SCMNavigator;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.SCMSourceOwner;
+import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMHeadPrefilter;
 import org.jenkinsci.plugins.github.extension.GHEventsSubscriber;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
 import org.kohsuke.github.GHEvent;
 import org.kohsuke.github.GHEventPayload;
+import org.kohsuke.github.GHIssueState;
+import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
@@ -175,6 +180,11 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                     && repoOwner.equalsIgnoreCase(((GitHubSCMNavigator) navigator).getRepoOwner());
         }
 
+        @Override
+        public boolean isMatch(@NonNull SCM scm) {
+            return false;
+        }
+
         /** {@inheritDoc} */
         @Override
         public String descriptionFor(@NonNull SCMNavigator navigator) {
@@ -253,18 +263,22 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             }
 
             /*
-             * What we are looking for is to return the BranchSCMHead for this push
+             * What we are looking for is to return the BranchSCMHead for this push and also any
+             * PullRequestSCMHead instances that target this branch with MERGE strategy.
              *
              * Since anything we provide here is untrusted, we don't have to worry about whether this is also a PR...
              * It will be revalidated later when the event is processed
              *
-             * In any case, if it is also a PR then there will be a PullRequest:synchronize event that will handle
-             * things for us, so we just claim a BranchSCMHead
+             * For source branch changes, the PullRequest:synchronize event will handle those updates.
+             * However, for target branch changes with MERGE strategy, we need to trigger PR builds here
+             * because the merge result has changed even though the source branch hasn't.
              */
 
             GitHubSCMSourceContext context =
                     new GitHubSCMSourceContext(null, SCMHeadObserver.none()).withTraits(src.getTraits());
             String ref = push.getRef();
+            Map<SCMHead, SCMRevision> result = new HashMap<>();
+
             if (context.wantBranches() && !ref.startsWith(R_TAGS)) {
                 // we only want the branch details if the branch is actually built!
                 BranchSCMHead head;
@@ -282,8 +296,13 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                     }
                 }
                 if (!excluded) {
-                    return Collections.singletonMap(
-                            head, new AbstractGitSCMSource.SCMRevisionImpl(head, push.getHead()));
+                    result.put(head, new AbstractGitSCMSource.SCMRevisionImpl(head, push.getHead()));
+                }
+
+                // Query for PRs targeting this branch with MERGE strategy
+                // Only query for PRs on UPDATED events, not CREATED or REMOVED
+                if (getType() == Type.UPDATED) {
+                    addPullRequestsTargetingBranch(result, source, context, head.getName(), push.getHead());
                 }
             }
             if (context.wantTags() && ref.startsWith(R_TAGS)) {
@@ -321,16 +340,168 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                     }
                 }
                 if (!excluded) {
-                    return Collections.singletonMap(head, new GitTagSCMRevision(head, push.getHead()));
+                    result.put(head, new GitTagSCMRevision(head, push.getHead()));
                 }
             }
-            return Collections.emptyMap();
+            return result;
         }
 
-        /** {@inheritDoc} */
-        @Override
-        public boolean isMatch(@NonNull SCM scm) {
-            return false;
+        /**
+         * Query GitHub API for open PRs targeting the specified branch and add them to the result
+         * if they use MERGE strategy.
+         *
+         * @param result the map to add PR heads to
+         * @param source the SCM source
+         * @param context the context with trait configuration
+         * @param branchName the target branch name
+         * @param branchHash the current hash of the target branch
+         */
+        private void addPullRequestsTargetingBranch(
+                Map<SCMHead, SCMRevision> result,
+                SCMSource source,
+                GitHubSCMSourceContext context,
+                String branchName,
+                String branchHash) {
+
+            // Only query for PRs if PR discovery is enabled
+            if (!context.wantPRs()) {
+                return;
+            }
+
+            // Check if MERGE strategy is enabled for either origin or fork PRs
+            boolean wantOriginMerge = context.wantOriginPRs()
+                    && context.originPRStrategies().contains(ChangeRequestCheckoutStrategy.MERGE);
+            boolean wantForkMerge = context.wantForkPRs()
+                    && context.forkPRStrategies().contains(ChangeRequestCheckoutStrategy.MERGE);
+
+            if (!wantOriginMerge && !wantForkMerge) {
+                // No MERGE strategies enabled, nothing to do
+                return;
+            }
+
+            GitHubSCMSource src = (GitHubSCMSource) source;
+            GitHub github = null;
+            try {
+                LOGGER.log(Level.FINE, "Querying for open PRs targeting branch {0} in {1}/{2}",
+                        new Object[] {branchName, repoOwner, repository});
+
+                // Get a fresh GitHub connection using the source's credentials and API URI
+                // This ensures tests using WireMock work correctly
+                com.cloudbees.plugins.credentials.common.StandardCredentials credentials =
+                        Connector.lookupScanCredentials(
+                                (Item) src.getOwner(),
+                                src.getApiUri(),
+                                src.getCredentialsId(),
+                                repoOwner);
+                github = Connector.connect(src.getApiUri(), credentials);
+
+                // Get the repository using the proper connection
+                GHRepository ghRepo = github.getRepository(repoOwner + "/" + this.repository);
+
+                // Query GitHub for open PRs targeting this branch
+                Iterable<GHPullRequest> pullRequests = ghRepo.queryPullRequests()
+                        .state(GHIssueState.OPEN)
+                        .base(branchName)
+                        .list();
+
+                int prCount = 0;
+                for (GHPullRequest pr : pullRequests) {
+                    prCount++;
+                    try {
+                        // Validate the PR data
+                        if (!pr.getBase().getSha().matches(GitHubSCMSource.VALID_GIT_SHA1)) {
+                            LOGGER.log(Level.WARNING, "Skipping PR #{0} with invalid base SHA", pr.getNumber());
+                            continue;
+                        }
+                        if (!pr.getHead().getSha().matches(GitHubSCMSource.VALID_GIT_SHA1)) {
+                            LOGGER.log(Level.WARNING, "Skipping PR #{0} with invalid head SHA", pr.getNumber());
+                            continue;
+                        }
+
+                        // Determine if this is a fork PR
+                        GHRepository headRepo = pr.getHead().getRepository();
+                        if (headRepo == null) {
+                            LOGGER.log(Level.FINE, "Skipping PR #{0} with deleted fork", pr.getNumber());
+                            continue;
+                        }
+
+                        String prHeadOwner = headRepo.getOwnerName();
+                        boolean fork = !repoOwner.equalsIgnoreCase(prHeadOwner);
+
+                        // Check if MERGE strategy is wanted for this PR type
+                        Set<ChangeRequestCheckoutStrategy> strategies =
+                                fork ? context.forkPRStrategies() : context.originPRStrategies();
+
+                        if (!strategies.contains(ChangeRequestCheckoutStrategy.MERGE)) {
+                            // MERGE strategy not enabled for this PR type
+                            continue;
+                        }
+
+                        // Determine the branch name for the PR head
+                        final String prBranchName;
+                        if (strategies.size() == 1) {
+                            prBranchName = "PR-" + pr.getNumber();
+                        } else {
+                            prBranchName = "PR-" + pr.getNumber() + "-merge";
+                        }
+
+                        // Create the PullRequestSCMHead for MERGE strategy
+                        PullRequestSCMHead head = new PullRequestSCMHead(
+                                prBranchName,
+                                prHeadOwner,
+                                headRepo.getName(),
+                                pr.getHead().getRef(),
+                                pr.getNumber(),
+                                new BranchSCMHead(pr.getBase().getRef()),
+                                fork ? new jenkins.scm.api.SCMHeadOrigin.Fork(prHeadOwner)
+                                     : jenkins.scm.api.SCMHeadOrigin.DEFAULT,
+                                ChangeRequestCheckoutStrategy.MERGE
+                        );
+
+                        // Check if the head is excluded by pre-filters
+                        boolean excluded = false;
+                        for (SCMHeadPrefilter prefilter : context.prefilters()) {
+                            if (prefilter.isExcluded(source, head)) {
+                                excluded = true;
+                                break;
+                            }
+                        }
+
+                        if (!excluded) {
+                            // Create revision with current base and head hashes
+                            // For MERGE strategy, we don't provide the merge hash in the event
+                            // (it will be fetched later during the actual build)
+                            PullRequestSCMRevision revision = new PullRequestSCMRevision(
+                                    head,
+                                    branchHash,  // Use the updated target branch hash
+                                    pr.getHead().getSha()
+                            );
+                            result.put(head, revision);
+
+                            LOGGER.log(Level.FINE, "Added PR #{0} ({1}) targeting {2} for rebuild due to target branch update",
+                                    new Object[] {pr.getNumber(), prBranchName, branchName});
+                        }
+                    } catch (Exception e) {
+                        // Log warning but continue processing other PRs
+                        LOGGER.log(Level.WARNING, "Failed to process PR #" + pr.getNumber()
+                                + " targeting branch " + branchName, e);
+                    }
+                }
+
+                if (prCount > 0) {
+                    LOGGER.log(Level.FINE, "Found {0} open PR(s) targeting branch {1}",
+                            new Object[] {prCount, branchName});
+                }
+            } catch (Exception e) {
+                // Log warning but don't fail the entire event
+                LOGGER.log(Level.WARNING, "Failed to query PRs targeting branch " + branchName
+                        + " in repository " + repoOwner + "/" + repository
+                        + ". PR builds may not be triggered for target branch updates.", e);
+            } finally {
+                if (github != null) {
+                    Connector.release(github);
+                }
+            }
         }
     }
 }
