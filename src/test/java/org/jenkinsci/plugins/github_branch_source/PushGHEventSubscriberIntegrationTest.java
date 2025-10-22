@@ -235,10 +235,7 @@ public class PushGHEventSubscriberIntegrationTest extends AbstractGitHubWireMock
 
         // Create source with tag discovery enabled
         GitHubSCMSource source = new GitHubSCMSource("test-owner", "test-repo", null, false);
-        source.setTraits(Arrays.asList(
-                new BranchDiscoveryTrait(true, true),
-                new TagDiscoveryTrait()
-        ));
+        source.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, true), new TagDiscoveryTrait()));
         source.forceApiUri("http://localhost:" + githubApi.port());
 
         PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
@@ -306,9 +303,7 @@ public class PushGHEventSubscriberIntegrationTest extends AbstractGitHubWireMock
         githubApi.stubFor(get(urlPathEqualTo("/repos/test-owner/test-repo/pulls"))
                 .withQueryParam("state", equalTo("open"))
                 .withQueryParam("base", equalTo("main"))
-                .willReturn(aResponse()
-                        .withStatus(500)
-                        .withBody("Internal Server Error")));
+                .willReturn(aResponse().withStatus(500).withBody("Internal Server Error")));
 
         GitHubSCMSource source = createSource("test-owner", "test-repo", true, true, true);
 
@@ -365,7 +360,8 @@ public class PushGHEventSubscriberIntegrationTest extends AbstractGitHubWireMock
     // Helper methods
 
     @SuppressWarnings({"SameParameterValue", "unused"})
-    private GitHubSCMSource createSource(String owner, String repo, boolean branches, boolean prs, boolean mergeStrategy) {
+    private GitHubSCMSource createSource(
+            String owner, String repo, boolean branches, boolean prs, boolean mergeStrategy) {
         GitHubSCMSource source = new GitHubSCMSource(owner, repo, null, false);
         List<SCMSourceTrait> traits = new ArrayList<>();
 
@@ -375,8 +371,8 @@ public class PushGHEventSubscriberIntegrationTest extends AbstractGitHubWireMock
 
         if (prs) {
             if (mergeStrategy) {
-                traits.add(new OriginPullRequestDiscoveryTrait(EnumSet.of(
-                        ChangeRequestCheckoutStrategy.MERGE, ChangeRequestCheckoutStrategy.HEAD)));
+                traits.add(new OriginPullRequestDiscoveryTrait(
+                        EnumSet.of(ChangeRequestCheckoutStrategy.MERGE, ChangeRequestCheckoutStrategy.HEAD)));
                 traits.add(new ForkPullRequestDiscoveryTrait(
                         EnumSet.of(ChangeRequestCheckoutStrategy.MERGE, ChangeRequestCheckoutStrategy.HEAD),
                         new ForkPullRequestDiscoveryTrait.TrustContributors()));
@@ -398,7 +394,8 @@ public class PushGHEventSubscriberIntegrationTest extends AbstractGitHubWireMock
         githubApi.stubFor(get(urlEqualTo("/repos/" + owner + "/" + repo))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json; charset=utf-8")
-                        .withBodyFile("PushGHEventSubscriberIntegrationTest/repository-" + owner + "-" + repo + ".json")));
+                        .withBodyFile(
+                                "PushGHEventSubscriberIntegrationTest/repository-" + owner + "-" + repo + ".json")));
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -481,4 +478,3 @@ public class PushGHEventSubscriberIntegrationTest extends AbstractGitHubWireMock
         }
     }
 }
-

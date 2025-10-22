@@ -32,6 +32,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.Extension;
 import hudson.model.Item;
+import hudson.scm.SCM;
 import java.io.StringReader;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,8 +44,6 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import hudson.scm.SCM;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitTagSCMRevision;
 import jenkins.scm.api.SCMEvent;
@@ -371,8 +370,8 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             // Check if MERGE strategy is enabled for either origin or fork PRs
             boolean wantOriginMerge = context.wantOriginPRs()
                     && context.originPRStrategies().contains(ChangeRequestCheckoutStrategy.MERGE);
-            boolean wantForkMerge = context.wantForkPRs()
-                    && context.forkPRStrategies().contains(ChangeRequestCheckoutStrategy.MERGE);
+            boolean wantForkMerge =
+                    context.wantForkPRs() && context.forkPRStrategies().contains(ChangeRequestCheckoutStrategy.MERGE);
 
             if (!wantOriginMerge && !wantForkMerge) {
                 // No MERGE strategies enabled, nothing to do
@@ -382,17 +381,15 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
             GitHubSCMSource src = (GitHubSCMSource) source;
             GitHub github = null;
             try {
-                LOGGER.log(Level.FINE, "Querying for open PRs targeting branch {0} in {1}/{2}",
-                        new Object[] {branchName, repoOwner, repository});
+                LOGGER.log(Level.FINE, "Querying for open PRs targeting branch {0} in {1}/{2}", new Object[] {
+                    branchName, repoOwner, repository
+                });
 
                 // Get a fresh GitHub connection using the source's credentials and API URI
                 // This ensures tests using WireMock work correctly
                 com.cloudbees.plugins.credentials.common.StandardCredentials credentials =
                         Connector.lookupScanCredentials(
-                                (Item) src.getOwner(),
-                                src.getApiUri(),
-                                src.getCredentialsId(),
-                                repoOwner);
+                                (Item) src.getOwner(), src.getApiUri(), src.getCredentialsId(), repoOwner);
                 github = Connector.connect(src.getApiUri(), credentials);
 
                 // Get the repository using the proper connection
@@ -453,10 +450,10 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                                 pr.getHead().getRef(),
                                 pr.getNumber(),
                                 new BranchSCMHead(pr.getBase().getRef()),
-                                fork ? new jenkins.scm.api.SCMHeadOrigin.Fork(prHeadOwner)
-                                     : jenkins.scm.api.SCMHeadOrigin.DEFAULT,
-                                ChangeRequestCheckoutStrategy.MERGE
-                        );
+                                fork
+                                        ? new jenkins.scm.api.SCMHeadOrigin.Fork(prHeadOwner)
+                                        : jenkins.scm.api.SCMHeadOrigin.DEFAULT,
+                                ChangeRequestCheckoutStrategy.MERGE);
 
                         // Check if the head is excluded by pre-filters
                         boolean excluded = false;
@@ -473,30 +470,37 @@ public class PushGHEventSubscriber extends GHEventsSubscriber {
                             // (it will be fetched later during the actual build)
                             PullRequestSCMRevision revision = new PullRequestSCMRevision(
                                     head,
-                                    branchHash,  // Use the updated target branch hash
-                                    pr.getHead().getSha()
-                            );
+                                    branchHash, // Use the updated target branch hash
+                                    pr.getHead().getSha());
                             result.put(head, revision);
 
-                            LOGGER.log(Level.FINE, "Added PR #{0} ({1}) targeting {2} for rebuild due to target branch update",
+                            LOGGER.log(
+                                    Level.FINE,
+                                    "Added PR #{0} ({1}) targeting {2} for rebuild due to target branch update",
                                     new Object[] {pr.getNumber(), prBranchName, branchName});
                         }
                     } catch (Exception e) {
                         // Log warning but continue processing other PRs
-                        LOGGER.log(Level.WARNING, "Failed to process PR #" + pr.getNumber()
-                                + " targeting branch " + branchName, e);
+                        LOGGER.log(
+                                Level.WARNING,
+                                "Failed to process PR #" + pr.getNumber() + " targeting branch " + branchName,
+                                e);
                     }
                 }
 
                 if (prCount > 0) {
-                    LOGGER.log(Level.FINE, "Found {0} open PR(s) targeting branch {1}",
-                            new Object[] {prCount, branchName});
+                    LOGGER.log(
+                            Level.FINE, "Found {0} open PR(s) targeting branch {1}", new Object[] {prCount, branchName
+                            });
                 }
             } catch (Exception e) {
                 // Log warning but don't fail the entire event
-                LOGGER.log(Level.WARNING, "Failed to query PRs targeting branch " + branchName
-                        + " in repository " + repoOwner + "/" + repository
-                        + ". PR builds may not be triggered for target branch updates.", e);
+                LOGGER.log(
+                        Level.WARNING,
+                        "Failed to query PRs targeting branch " + branchName
+                                + " in repository " + repoOwner + "/" + repository
+                                + ". PR builds may not be triggered for target branch updates.",
+                        e);
             } finally {
                 if (github != null) {
                     Connector.release(github);

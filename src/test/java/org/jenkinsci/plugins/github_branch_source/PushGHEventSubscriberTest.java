@@ -258,4 +258,3 @@ public class PushGHEventSubscriberTest {
         return IOUtils.toString(getClass().getResourceAsStream(name), StandardCharsets.UTF_8);
     }
 }
-
