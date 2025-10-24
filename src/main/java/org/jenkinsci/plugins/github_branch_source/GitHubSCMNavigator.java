@@ -1716,7 +1716,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
             } finally {
                 Connector.release(hub);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             DescriptorImpl.LOGGER.log(Level.WARNING, e.getMessage(), e);
         }
     }
