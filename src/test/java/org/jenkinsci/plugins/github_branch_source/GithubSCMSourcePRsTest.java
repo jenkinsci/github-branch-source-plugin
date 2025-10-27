@@ -1,7 +1,7 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -10,19 +10,19 @@ import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHRepository;
 import org.mockito.Mockito;
 
-public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
+class GithubSCMSourcePRsTest extends GitSCMSourceBase {
 
     public GithubSCMSourcePRsTest() {
         this.source = new GitHubSCMSource("cloudbeers", "yolo", null, false);
     }
 
     @Test
-    public void testClosedSinglePR() throws IOException {
+    void testClosedSinglePR() {
         // Situation: Hitting the Github API for a PR and getting a closed PR
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/pulls/1"))
                 .willReturn(aResponse()
@@ -33,7 +33,7 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
                 .thenReturn(Collections.singleton(new PullRequestSCMHead(
                         "PR-1",
                         "*",
-                        "http://localhost:" + githubApi.port(),
+                        "http://localhost:" + githubApi.getPort(),
                         "master",
                         1,
                         new BranchSCMHead("master"),
@@ -51,7 +51,7 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
 
     // Single PR that is open: returns singleton
     @Test
-    public void testOpenSinglePR() throws IOException {
+    void testOpenSinglePR() {
         // Situation: Hitting the Github API for a PR and getting a open PR
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/pulls/1"))
                 .willReturn(aResponse()
@@ -62,7 +62,7 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
                 .thenReturn(Collections.singleton(new PullRequestSCMHead(
                         "PR-1",
                         "ataylor",
-                        "http://localhost:" + githubApi.port(),
+                        "http://localhost:" + githubApi.getPort(),
                         "master",
                         1,
                         new BranchSCMHead("master"),
@@ -82,7 +82,7 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void testSinglePRThrowingExceptionOnGettingNumbers() throws Exception {
+    void testSinglePRThrowingExceptionOnGettingNumbers() throws Exception {
         // Situation: Hitting the Github API for a PR and an IO exception during the building of the
         // iterator
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/pulls/1"))
@@ -94,7 +94,7 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
                 .thenReturn(Collections.singleton(new PullRequestSCMHead(
                         "PR-1",
                         "ataylor",
-                        "http://localhost:" + githubApi.port(),
+                        "http://localhost:" + githubApi.getPort(),
                         "master",
                         1,
                         new BranchSCMHead("master"),
@@ -109,18 +109,14 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
         Mockito.when(mockRequest.getPullRequest(1)).thenThrow(new IOException("Number does not exist"));
 
         // Expected: This will fail when trying to generate the iterator
-        try {
-            Iterator<GHPullRequest> pullRequest = new GitHubSCMSource("cloudbeers", "yolo", null, false)
-                    .new LazyPullRequests(request, mockRequest)
-                    .iterator();
-            fail();
-        } catch (Exception e) {
-            assertEquals("java.io.IOException: Number does not exist", e.getMessage());
-        }
+        Exception e = assertThrows(Exception.class, () -> new GitHubSCMSource("cloudbeers", "yolo", null, false)
+                .new LazyPullRequests(request, mockRequest)
+                .iterator());
+        assertEquals("java.io.IOException: Number does not exist", e.getMessage());
     }
 
     @Test
-    public void testOpenSinglePRThrowsFileNotFoundOnObserve() throws Exception {
+    void testOpenSinglePRThrowsFileNotFoundOnObserve() throws Exception {
         // Situation: Hitting the Github API for a PR and an FileNotFound exception during the
         // getPullRequest
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/pulls/1"))
@@ -132,7 +128,7 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
                 .thenReturn(Collections.singleton(new PullRequestSCMHead(
                         "PR-1",
                         "ataylor",
-                        "http://localhost:" + githubApi.port(),
+                        "http://localhost:" + githubApi.getPort(),
                         "master",
                         1,
                         new BranchSCMHead("master"),
@@ -156,16 +152,12 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
         // Expected: In the iterator will have one item in it but when getting that item you receive an
         // FileNotFound exception
         assertTrue(pullRequestIterator.hasNext());
-        try {
-            pullRequestIterator.next();
-            fail();
-        } catch (Exception e) {
-            assertEquals("java.io.FileNotFoundException: User not found", e.getMessage());
-        }
+        Exception e = assertThrows(Exception.class, pullRequestIterator::next);
+        assertEquals("java.io.FileNotFoundException: User not found", e.getMessage());
     }
 
     @Test
-    public void testOpenSinglePRThrowsIOOnObserve() throws Exception {
+    void testOpenSinglePRThrowsIOOnObserve() throws Exception {
         // Situation: Hitting the Github API for a PR and an IO exception during the getPullRequest
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/pulls/1"))
                 .willReturn(aResponse()
@@ -176,7 +168,7 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
                 .thenReturn(Collections.singleton(new PullRequestSCMHead(
                         "PR-1",
                         "ataylor",
-                        "http://localhost:" + githubApi.port(),
+                        "http://localhost:" + githubApi.getPort(),
                         "master",
                         1,
                         new BranchSCMHead("master"),
@@ -200,17 +192,13 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
         // Expected: In the iterator will have one item in it but when getting that item you receive an
         // IO exception
         assertTrue(pullRequestIterator.hasNext());
-        try {
-            pullRequestIterator.next();
-            fail();
-        } catch (Exception e) {
-            assertEquals("java.io.IOException: Failed to get user", e.getMessage());
-        }
+        Exception e = assertThrows(Exception.class, pullRequestIterator::next);
+        assertEquals("java.io.IOException: Failed to get user", e.getMessage());
     }
 
     // Multiple PRs
     @Test
-    public void testOpenMultiplePRs() throws IOException {
+    void testOpenMultiplePRs() throws Exception {
         // Situation: Hitting the Github API all the PRs and they are all Open. Then we close the
         // request at the end
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/pulls?state=open"))
@@ -235,7 +223,7 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
 
     // Multiple PRs
     @Test
-    public void testOpenMultiplePRsWithMasterAsOrigin() throws IOException {
+    void testOpenMultiplePRsWithMasterAsOrigin() {
         // Situation: Hitting the Github API all the PRs and they are all Open but the master is the
         // head branch
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/pulls?state=open&head=cloudbeers%3Amaster"))

@@ -27,9 +27,9 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import jenkins.scm.api.SCMEvent;
 import jenkins.scm.api.SCMEvents;
@@ -38,44 +38,46 @@ import jenkins.scm.api.SCMSourceEvent;
 import org.apache.commons.io.IOUtils;
 import org.awaitility.Awaitility;
 import org.jenkinsci.plugins.github.extension.GHSubscriberEvent;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class EventsTest {
+@WithJenkins
+class EventsTest {
 
     /** All tests in this class only use Jenkins for the extensions */
-    @ClassRule
-    public static JenkinsRule r = new JenkinsRule();
+    @SuppressWarnings("unused")
+    private static JenkinsRule r;
 
-    private static int defaultFireDelayInSeconds = GitHubSCMSource.getEventDelaySeconds();
+    private static final int DEFAULT_FIRE_DELAY_IN_SECONDS = GitHubSCMSource.getEventDelaySeconds();
 
     private static SCMEvent.Type firedEventType;
     private static GHSubscriberEvent ghEvent;
 
-    @BeforeClass
-    public static void setupDelay() {
+    @BeforeAll
+    static void beforeAll(JenkinsRule rule) {
+        r = rule;
         GitHubSCMSource.setEventDelaySeconds(0); // fire immediately without delay
     }
 
-    @Before
-    public void resetFiredEvent() {
+    @BeforeEach
+    void beforeEach() {
         firedEventType = null;
         ghEvent = null;
         TestSCMEventListener.setReceived(false);
     }
 
-    @AfterClass
-    public static void resetDelay() {
-        GitHubSCMSource.setEventDelaySeconds(defaultFireDelayInSeconds);
+    @AfterAll
+    static void afterAll() {
+        GitHubSCMSource.setEventDelaySeconds(DEFAULT_FIRE_DELAY_IN_SECONDS);
     }
 
     @Test
-    public void given_ghPushEventCreated_then_createdHeadEventFired() throws Exception {
+    void given_ghPushEventCreated_then_createdHeadEventFired() throws Exception {
         PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.CREATED;
@@ -84,7 +86,7 @@ public class EventsTest {
     }
 
     @Test
-    public void given_ghPushEventDeleted_then_removedHeadEventFired() throws Exception {
+    void given_ghPushEventDeleted_then_removedHeadEventFired() throws Exception {
         PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.REMOVED;
@@ -93,7 +95,7 @@ public class EventsTest {
     }
 
     @Test
-    public void given_ghPushEventUpdated_then_updatedHeadEventFired() throws Exception {
+    void given_ghPushEventUpdated_then_updatedHeadEventFired() throws Exception {
         PushGHEventSubscriber subscriber = new PushGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.UPDATED;
@@ -102,7 +104,7 @@ public class EventsTest {
     }
 
     @Test
-    public void given_ghPullRequestEventOpened_then_createdHeadEventFired() throws Exception {
+    void given_ghPullRequestEventOpened_then_createdHeadEventFired() throws Exception {
         PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.CREATED;
@@ -111,7 +113,7 @@ public class EventsTest {
     }
 
     @Test
-    public void given_ghPullRequestEventClosed_then_removedHeadEventFired() throws Exception {
+    void given_ghPullRequestEventClosed_then_removedHeadEventFired() throws Exception {
         PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.REMOVED;
@@ -120,7 +122,7 @@ public class EventsTest {
     }
 
     @Test
-    public void given_ghPullRequestEventReopened_then_updatedHeadEventFired() throws Exception {
+    void given_ghPullRequestEventReopened_then_updatedHeadEventFired() throws Exception {
         PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.UPDATED;
@@ -129,7 +131,7 @@ public class EventsTest {
     }
 
     @Test
-    public void given_ghPullRequestEventSync_then_updatedHeadEventFired() throws Exception {
+    void given_ghPullRequestEventSync_then_updatedHeadEventFired() throws Exception {
         PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.UPDATED;
@@ -138,7 +140,7 @@ public class EventsTest {
     }
 
     @Test
-    public void given_ghPullRequestEventConvertedToDraft_then_updatedHeadEventFired() throws Exception {
+    void given_ghPullRequestEventConvertedToDraft_then_updatedHeadEventFired() throws Exception {
         PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.UPDATED;
@@ -147,7 +149,7 @@ public class EventsTest {
     }
 
     @Test
-    public void given_ghPullRequestEventReadyForReview_then_updatedHeadEventFired() throws Exception {
+    void given_ghPullRequestEventReadyForReview_then_updatedHeadEventFired() throws Exception {
         PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
         firedEventType = SCMEvent.Type.UPDATED;
@@ -156,7 +158,7 @@ public class EventsTest {
     }
 
     @Test
-    public void given_ghRepositoryEventCreatedFromFork_then_createdSourceEventFired() throws Exception {
+    void given_ghRepositoryEventCreatedFromFork_then_createdSourceEventFired() throws Exception {
         GitHubRepositoryEventSubscriber subscriber = new GitHubRepositoryEventSubscriber();
 
         firedEventType = SCMEvent.Type.CREATED;
@@ -165,7 +167,7 @@ public class EventsTest {
     }
 
     @Test
-    public void given_ghRepositoryEventCreatedNotFork_then_noSourceEventFired() throws Exception {
+    void given_ghRepositoryEventCreatedNotFork_then_noSourceEventFired() throws Exception {
         GitHubRepositoryEventSubscriber subscriber = new GitHubRepositoryEventSubscriber();
 
         ghEvent = callOnEvent(subscriber, "EventsTest/repositoryEventNotFiredNotFork.json");
@@ -173,40 +175,39 @@ public class EventsTest {
     }
 
     @Test
-    public void given_ghRepositoryEventWrongAction_then_noSourceEventFired() throws Exception {
+    void given_ghRepositoryEventWrongAction_then_noSourceEventFired() throws Exception {
         GitHubRepositoryEventSubscriber subscriber = new GitHubRepositoryEventSubscriber();
 
         ghEvent = callOnEvent(subscriber, "EventsTest/repositoryEventNotFiredWrongAction.json");
         waitAndAssertReceived(false);
     }
 
-    private GHSubscriberEvent callOnEvent(PushGHEventSubscriber subscriber, String eventPayloadFile)
-            throws IOException {
+    private GHSubscriberEvent callOnEvent(PushGHEventSubscriber subscriber, String eventPayloadFile) throws Exception {
         GHSubscriberEvent event = createEvent(eventPayloadFile);
         subscriber.onEvent(event);
         return event;
     }
 
     private GHSubscriberEvent callOnEvent(PullRequestGHEventSubscriber subscriber, String eventPayloadFile)
-            throws IOException {
+            throws Exception {
         GHSubscriberEvent event = createEvent(eventPayloadFile);
         subscriber.onEvent(event);
         return event;
     }
 
     private GHSubscriberEvent callOnEvent(GitHubRepositoryEventSubscriber subscriber, String eventPayloadFile)
-            throws IOException {
+            throws Exception {
         GHSubscriberEvent event = createEvent(eventPayloadFile);
         subscriber.onEvent(event);
         return event;
     }
 
-    private GHSubscriberEvent createEvent(String eventPayloadFile) throws IOException {
-        String payload = IOUtils.toString(getClass().getResourceAsStream(eventPayloadFile));
+    private GHSubscriberEvent createEvent(String eventPayloadFile) throws Exception {
+        String payload = IOUtils.toString(getClass().getResourceAsStream(eventPayloadFile), StandardCharsets.UTF_8);
         return new GHSubscriberEvent("myOrigin", null, payload);
     }
 
-    private void waitAndAssertReceived(boolean received) throws InterruptedException {
+    private void waitAndAssertReceived(boolean received) throws Exception {
         long watermark = SCMEvents.getWatermark();
         // event will be fired by subscriber at some point
         SCMEvents.awaitOne(watermark, received ? 20 : 200, TimeUnit.MILLISECONDS);
@@ -216,9 +217,9 @@ public class EventsTest {
         }
 
         assertEquals(
-                "Event should have " + ((!received) ? "not " : "") + "been received",
                 received,
-                TestSCMEventListener.didReceive());
+                TestSCMEventListener.didReceive(),
+                "Event should have " + ((!received) ? "not " : "") + "been received");
     }
 
     @TestExtension
@@ -237,8 +238,8 @@ public class EventsTest {
         private void receiveEvent(SCMEvent.Type type, String origin) {
             eventReceived = true;
 
-            assertEquals("Event type should be the same", type, firedEventType);
-            assertEquals("Event origin should be the same", origin, ghEvent.getOrigin());
+            assertEquals(type, firedEventType, "Event type should be the same");
+            assertEquals(origin, ghEvent.getOrigin(), "Event origin should be the same");
         }
 
         public static boolean didReceive() {

@@ -17,15 +17,17 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import jenkins.branch.BranchSource;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 
 @Issue("JENKINS-73474")
-public class GitHubAppCredentialsContextualizationTest extends AbstractGitHubWireMockTest {
+class GitHubAppCredentialsContextualizationTest extends AbstractGitHubWireMockTest {
 
-    @Before
-    public void setUpWireMock() throws Exception {
+    @Override
+    @BeforeEach
+    void beforeEach() throws Exception {
+        super.beforeEach();
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleOnOver);
 
         // Add wiremock responses for App, App Installation, and App Installation Token
@@ -67,7 +69,7 @@ public class GitHubAppCredentialsContextualizationTest extends AbstractGitHubWir
     }
 
     @Test
-    public void ownerMustBeInferredFromRepository() throws Exception {
+    void ownerMustBeInferredFromRepository() throws Exception {
         final var store = CredentialsProvider.lookupStores(r.jenkins).iterator().next();
 
         final var credentials = GitHubApp.createCredentials("myAppCredentialsWithoutOwner");

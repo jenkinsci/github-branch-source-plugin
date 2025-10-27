@@ -1,29 +1,26 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import jenkins.scm.api.SCMHeadObserver;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.kohsuke.github.GHBranch;
 import org.kohsuke.github.GHFileNotFoundException;
 import org.kohsuke.github.GHRepository;
 import org.mockito.Mockito;
 
-public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
+class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
 
     public GithubSCMSourceBranchesTest() {
         this.source = new GitHubSCMSource("cloudbeers", "yolo", null, false);
     }
 
     @Test
-    public void testMissingSingleBranch() throws IOException {
+    void testMissingSingleBranch() {
         // Situation: Hitting the Github API for a branch and getting a 404
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/branches/non-existent-branch"))
                 .willReturn(aResponse()
@@ -44,7 +41,7 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void testExistentSingleBranch() throws IOException {
+    void testExistentSingleBranch() {
         // Situation: Hitting the Github API for a branch and getting an existing branch
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/branches/existent-branch"))
                 .willReturn(aResponse()
@@ -65,7 +62,7 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void testThrownErrorSingleBranchException() throws IOException {
+    void testThrownErrorSingleBranchException() throws Exception {
         // Situation: When sending a request for a branch which exists, throw a GHNotFoundException
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/branches/existent-branch"))
                 .willReturn(aResponse()
@@ -82,17 +79,16 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
                 context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
         Mockito.doThrow(e).when(repoSpy).getBranch("existent-branch");
         // Expected: This will throw an error when requesting a branch
-        try {
-            Iterator<GHBranch> branches = new GitHubSCMSource.LazyBranches(request, repoSpy).iterator();
-            fail("This should throw an exception");
-        } catch (Error error) {
-            // Error is expected here so this is "success"
-            assertEquals("Bad Branch Request", error.getMessage());
-        }
+        Error error = assertThrows(
+                Error.class,
+                () -> new GitHubSCMSource.LazyBranches(request, repoSpy).iterator(),
+                "This should throw an exception");
+        // Error is expected here so this is "success"
+        assertEquals("Bad Branch Request", error.getMessage());
     }
 
     @Test
-    public void testExistingMultipleBranchesWithDefaultInPosition1() throws IOException {
+    void testExistingMultipleBranchesWithDefaultInPosition1() {
         // Situation: Hitting github and getting back multiple branches where master is first in the lst
         // position
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/branches"))
@@ -117,7 +113,7 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void testExistingMultipleBranchesWithDefaultInPosition2() throws IOException {
+    void testExistingMultipleBranchesWithDefaultInPosition2() {
         // Situation: Hitting github and getting back multiple branches where master is first in the 2nd
         // position
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/branches"))
@@ -139,7 +135,7 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void testExistingMultipleBranchesWithNoDefault() throws IOException {
+    void testExistingMultipleBranchesWithNoDefault() {
         // Situation: Hitting github and getting back multiple branches where master is not in the list
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/branches"))
                 .willReturn(aResponse()
@@ -161,7 +157,7 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void testExistingMultipleBranchesWithThrownError() throws IOException {
+    void testExistingMultipleBranchesWithThrownError() throws Exception {
         // Situation: Hitting github and getting back multiple branches but throws an I/O error
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/branches"))
@@ -177,12 +173,11 @@ public class GithubSCMSourceBranchesTest extends GitSCMSourceBase {
         IOException error = new IOException("Thrown Branch Error");
         Mockito.when(repoSpy.getBranches()).thenThrow(error);
         // Expected: In the iterator will throw an error when calling getBranches
-        try {
-            Iterator<GHBranch> branches = new GitHubSCMSource.LazyBranches(request, repoSpy).iterator();
-            fail("This should throw an exception");
-        } catch (Exception e) {
-            // We swallow the new GetRef error and then throw the original one for some reason...
-            assertEquals("java.io.IOException: Thrown Branch Error", e.getMessage());
-        }
+        Exception e = assertThrows(
+                Exception.class,
+                () -> new GitHubSCMSource.LazyBranches(request, repoSpy).iterator(),
+                "This should throw an exception");
+        // We swallow the new GetRef error and then throw the original one for some reason...
+        assertEquals("java.io.IOException: Thrown Branch Error", e.getMessage());
     }
 }
