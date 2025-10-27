@@ -35,7 +35,7 @@
     <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.504</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
     <spotless.check.skip>false</spotless.check.skip>
     <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
   </properties>
@@ -45,7 +45,7 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>5294.va_d2e144c80e1</version>
+        <version>5543.vfd758c7c868d</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -92,15 +92,11 @@
     <dependency>
       <groupId>io.jenkins</groupId>
       <artifactId>configuration-as-code</artifactId>
-      <!-- TODO: remove when included in jenkins-bom via parent -->
-      <version>1995.v540b_50a_eb_0c1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>io.jenkins.configuration-as-code</groupId>
       <artifactId>test-harness</artifactId>
-      <!-- TODO: remove when included in jenkins-bom via parent -->
-      <version>1995.v540b_50a_eb_0c1</version>
       <scope>test</scope>
     </dependency>
     <dependency>

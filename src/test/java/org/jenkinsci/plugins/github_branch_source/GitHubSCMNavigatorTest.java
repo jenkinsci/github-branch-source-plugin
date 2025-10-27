@@ -25,9 +25,13 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsScope;
@@ -67,6 +71,7 @@ import jenkins.scm.impl.NoOpProjectObserver;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.MockFolder;
 import org.mockito.Mock;
@@ -574,6 +579,30 @@ class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
             r.jenkins.setAuthorizationStrategy(strategy);
             r.jenkins.remove(dummy);
         }
+    }
+
+    @Issue("JENKINS-76235")
+    @Test
+    void afterSaveWithGitHubAppOwnerMismatch() {
+        // Given GitHub App credentials
+        githubApi.stubFor(get(urlEqualTo("/app"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":54321,\"name\":\"test-app\"}")));
+        githubApi.stubFor(get(urlEqualTo("/app/installations"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("[{\"id\":654321,\"account\":{\"login\":\"corp\"},\"app_id\":54321}]")));
+        GitHubAppCredentials appCredentials = GitHubApp.createCredentials("test-app-creds");
+        appCredentials.setApiUri(githubApi.baseUrl());
+        // And using a owner that doesn't have the application installed
+        appCredentials.setOwner("org-or-user-without-app");
+        setCredentials(Collections.singletonList(appCredentials));
+
+        // When creating a SCMNavigator and calling afterSave
+        navigator = navigatorForRepoOwner("corp", appCredentials.getId());
+        assertDoesNotThrow(() -> navigator.afterSave(Mockito.mock(SCMNavigatorOwner.class)));
+        // Then no exception
     }
 
     private SCMSourceObserver getObserver(Collection<String> names) {
