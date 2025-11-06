@@ -4,7 +4,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import jenkins.scm.api.SCMHead;
@@ -12,18 +11,18 @@ import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import jenkins.scm.api.trait.SCMHeadFilter;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.kohsuke.github.GHPullRequest;
 import org.mockito.Mockito;
 
-public class IgnoreDraftPullRequestFilterTraitTest extends GitSCMSourceBase {
+class IgnoreDraftPullRequestFilterTraitTest extends GitSCMSourceBase {
 
     public IgnoreDraftPullRequestFilterTraitTest() {
         this.source = new GitHubSCMSource("cloudbeers", "yolo", null, false);
     }
 
     @Test
-    public void testTraitFiltersDraft() throws IOException, InterruptedException {
+    void testTraitFiltersDraft() throws Exception {
         GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
         IgnoreDraftPullRequestFilterTrait instance = new IgnoreDraftPullRequestFilterTrait();
         instance.decorateContext(probe);
@@ -33,7 +32,7 @@ public class IgnoreDraftPullRequestFilterTraitTest extends GitSCMSourceBase {
         SCMHead scmHead = new PullRequestSCMHead(
                 "PR-5",
                 "cloudbeers",
-                "http://localhost:" + githubApi.port(),
+                "http://localhost:" + githubApi.getPort(),
                 "feature/5",
                 5,
                 new BranchSCMHead("master"),
@@ -49,7 +48,7 @@ public class IgnoreDraftPullRequestFilterTraitTest extends GitSCMSourceBase {
     }
 
     @Test
-    public void testTraitDoesNotFilterNonDraft() throws IOException, InterruptedException {
+    void testTraitDoesNotFilterNonDraft() throws Exception {
         GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
         IgnoreDraftPullRequestFilterTrait instance = new IgnoreDraftPullRequestFilterTrait();
         instance.decorateContext(probe);
@@ -59,7 +58,7 @@ public class IgnoreDraftPullRequestFilterTraitTest extends GitSCMSourceBase {
         SCMHead scmHead = new PullRequestSCMHead(
                 "PR-5",
                 "cloudbeers",
-                "http://localhost:" + githubApi.port(),
+                "http://localhost:" + githubApi.getPort(),
                 "feature/5",
                 5,
                 new BranchSCMHead("master"),

@@ -30,63 +30,59 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.*;
 
 import hudson.AbortException;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
-public class PullRequestSCMRevisionTest extends AbstractGitHubWireMockTest {
+class PullRequestSCMRevisionTest extends AbstractGitHubWireMockTest {
     private GitHub github;
     private GHRepository repo;
 
-    @Before
-    public void setupRevisionTests() throws Exception {
-        github = Connector.connect("http://localhost:" + githubApi.port(), null);
-        repo = github.getRepository("cloudbeers/yolo");
-    }
-
-    public static SCMHead master = new BranchSCMHead("master");
-    public static PullRequestSCMHead prHead = new PullRequestSCMHead(
+    private static final SCMHead MASTER = new BranchSCMHead("master");
+    private static final PullRequestSCMHead PR_HEAD = new PullRequestSCMHead(
             "",
             "stephenc",
             "yolo",
             "master",
             1,
-            (BranchSCMHead) master,
+            (BranchSCMHead) MASTER,
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.HEAD);
-    public static PullRequestSCMHead prMerge = new PullRequestSCMHead(
+    private static final PullRequestSCMHead PR_MERGE = new PullRequestSCMHead(
             "",
             "stephenc",
             "yolo",
             "master",
             1,
-            (BranchSCMHead) master,
+            (BranchSCMHead) MASTER,
             SCMHeadOrigin.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
 
+    @Override
+    @BeforeEach
+    void beforeEach() throws Exception {
+        super.beforeEach();
+        github = Connector.connect("http://localhost:" + githubApi.getPort(), null);
+        repo = github.getRepository("cloudbeers/yolo");
+    }
+
     @Test
-    public void createHeadwithNullMergeRevision() throws Exception {
-        PullRequestSCMHead currentHead = prHead;
-        PullRequestSCMHead otherHead = prMerge;
+    void createHeadWithNullMergeRevision() {
+        PullRequestSCMHead currentHead = PR_HEAD;
+        PullRequestSCMHead otherHead = PR_MERGE;
 
         PullRequestSCMRevision currentRevision =
                 new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision");
         assertThat(currentRevision.toString(), is("pr-branch-revision"));
 
-        try {
-            currentRevision.validateMergeHash();
-        } catch (AbortException e) {
-            fail("Validation should succeed, but: " + e.getMessage());
-        }
+        assertDoesNotThrow(currentRevision::validateMergeHash, "Validation should succeed, but: ");
 
         // equivalence
         assertTrue(currentRevision.equivalent(
@@ -117,19 +113,15 @@ public class PullRequestSCMRevisionTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void createHeadwithMergeRevision() throws Exception {
-        PullRequestSCMHead currentHead = prHead;
-        PullRequestSCMHead otherHead = prMerge;
+    void createHeadWithMergeRevision() {
+        PullRequestSCMHead currentHead = PR_HEAD;
+        PullRequestSCMHead otherHead = PR_MERGE;
 
         PullRequestSCMRevision currentRevision =
                 new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", "pr-merge-revision");
         assertThat(currentRevision.toString(), is("pr-branch-revision"));
 
-        try {
-            currentRevision.validateMergeHash();
-        } catch (AbortException e) {
-            fail("Validation should succeed, but: " + e.getMessage());
-        }
+        assertDoesNotThrow(currentRevision::validateMergeHash, "Validation should succeed, but: ");
 
         // equivalence
         assertTrue(currentRevision.equivalent(
@@ -160,19 +152,15 @@ public class PullRequestSCMRevisionTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void createMergewithNullMergeRevision() throws Exception {
-        PullRequestSCMHead currentHead = prMerge;
-        PullRequestSCMHead otherHead = prHead;
+    void createMergeWithNullMergeRevision() {
+        PullRequestSCMHead currentHead = PR_MERGE;
+        PullRequestSCMHead otherHead = PR_HEAD;
 
         PullRequestSCMRevision currentRevision =
                 new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision");
         assertThat(currentRevision.toString(), is("pr-branch-revision+master-revision (UNKNOWN_MERGE_STATE)"));
 
-        try {
-            currentRevision.validateMergeHash();
-        } catch (AbortException e) {
-            fail("Validation should succeed, but: " + e.getMessage());
-        }
+        assertDoesNotThrow(currentRevision::validateMergeHash, "Validation should succeed, but: ");
 
         // equivalence
         assertTrue(currentRevision.equivalent(
@@ -204,9 +192,9 @@ public class PullRequestSCMRevisionTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void createMergewithNotMergeableRevision() throws Exception {
-        PullRequestSCMHead currentHead = prMerge;
-        PullRequestSCMHead otherHead = prHead;
+    void createMergeWithNotMergeableRevision() {
+        PullRequestSCMHead currentHead = PR_MERGE;
+        PullRequestSCMHead otherHead = PR_HEAD;
 
         PullRequestSCMRevision currentRevision = new PullRequestSCMRevision(
                 currentHead, "master-revision", "pr-branch-revision", PullRequestSCMRevision.NOT_MERGEABLE_HASH);
@@ -252,19 +240,15 @@ public class PullRequestSCMRevisionTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void createMergewithMergeRevision() throws Exception {
-        PullRequestSCMHead currentHead = prMerge;
-        PullRequestSCMHead otherHead = prHead;
+    void createMergeWithMergeRevision() {
+        PullRequestSCMHead currentHead = PR_MERGE;
+        PullRequestSCMHead otherHead = PR_HEAD;
 
         PullRequestSCMRevision currentRevision =
                 new PullRequestSCMRevision(currentHead, "master-revision", "pr-branch-revision", "pr-merge-revision");
         assertThat(currentRevision.toString(), is("pr-branch-revision+master-revision (pr-merge-revision)"));
 
-        try {
-            currentRevision.validateMergeHash();
-        } catch (AbortException e) {
-            fail("Validation should succeed, but: " + e.getMessage());
-        }
+        assertDoesNotThrow(currentRevision::validateMergeHash, "Validation should succeed, but: ");
 
         // equivalence
         assertTrue(currentRevision.equivalent(
