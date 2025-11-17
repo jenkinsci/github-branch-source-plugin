@@ -35,10 +35,11 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import hudson.AbortException;
+import java.util.stream.Stream;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMFile;
 import jenkins.scm.api.SCMFileSystem;
@@ -47,49 +48,50 @@ import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.MethodSource;
 
-@RunWith(Parameterized.class)
-public class GitHubSCMFileSystemTest extends AbstractGitHubWireMockTest {
+@ParameterizedClass(name = "{index}: revision={0}")
+@MethodSource("revisions")
+class GitHubSCMFileSystemTest extends AbstractGitHubWireMockTest {
 
-    public static SCMHead master = new BranchSCMHead("master");
+    private static final SCMHead MASTER = new BranchSCMHead("master");
     private final SCMRevision revision;
 
-    public static PullRequestSCMHead prHead = new PullRequestSCMHead(
+    private static final PullRequestSCMHead PR_HEAD = new PullRequestSCMHead(
             "PR-2",
             "stephenc",
             "yolo",
             "master",
             2,
-            (BranchSCMHead) master,
+            (BranchSCMHead) MASTER,
             SCMHeadOrigin.Fork.DEFAULT,
             ChangeRequestCheckoutStrategy.HEAD);
-    public static PullRequestSCMRevision prHeadRevision = new PullRequestSCMRevision(
-            prHead, "8f1314fc3c8284d8c6d5886d473db98f2126071c", "c0e024f89969b976da165eecaa71e09dc60c3da1");
+    private static final PullRequestSCMRevision PR_HEAD_REVISION = new PullRequestSCMRevision(
+            PR_HEAD, "8f1314fc3c8284d8c6d5886d473db98f2126071c", "c0e024f89969b976da165eecaa71e09dc60c3da1");
 
-    public static PullRequestSCMHead prMerge = new PullRequestSCMHead(
+    private static final PullRequestSCMHead PR_MERGE = new PullRequestSCMHead(
             "PR-2",
             "stephenc",
             "yolo",
             "master",
             2,
-            (BranchSCMHead) master,
+            (BranchSCMHead) MASTER,
             SCMHeadOrigin.Fork.DEFAULT,
             ChangeRequestCheckoutStrategy.MERGE);
-    public static PullRequestSCMRevision prMergeRevision = new PullRequestSCMRevision(
-            prMerge,
+    private static final PullRequestSCMRevision PR_MERGE_REVISION = new PullRequestSCMRevision(
+            PR_MERGE,
             "8f1314fc3c8284d8c6d5886d473db98f2126071c",
             "c0e024f89969b976da165eecaa71e09dc60c3da1",
             "38814ca33833ff5583624c29f305be9133f27a40");
 
-    public static PullRequestSCMRevision prMergeInvalidRevision = new PullRequestSCMRevision(
-            prMerge, "8f1314fc3c8284d8c6d5886d473db98f2126071c", "c0e024f89969b976da165eecaa71e09dc60c3da1", null);
+    private static final PullRequestSCMRevision PR_MERGE_INVALID_REVISION = new PullRequestSCMRevision(
+            PR_MERGE, "8f1314fc3c8284d8c6d5886d473db98f2126071c", "c0e024f89969b976da165eecaa71e09dc60c3da1", null);
 
-    public static PullRequestSCMRevision prMergeNotMergeableRevision = new PullRequestSCMRevision(
-            prMerge,
+    private static final PullRequestSCMRevision PR_MERGE_NOT_MERGEABLE_REVISION = new PullRequestSCMRevision(
+            PR_MERGE,
             "8f1314fc3c8284d8c6d5886d473db98f2126071c",
             "c0e024f89969b976da165eecaa71e09dc60c3da1",
             PullRequestSCMRevision.NOT_MERGEABLE_HASH);
@@ -97,77 +99,69 @@ public class GitHubSCMFileSystemTest extends AbstractGitHubWireMockTest {
     private GitHubSCMSource source;
 
     public GitHubSCMFileSystemTest(String revision) {
-        this.revision = revision == null ? null : new AbstractGitSCMSource.SCMRevisionImpl(master, revision);
+        this.revision = revision == null ? null : new AbstractGitSCMSource.SCMRevisionImpl(MASTER, revision);
     }
 
-    @Parameterized.Parameters(name = "{index}: revision={0}")
-    public static String[] revisions() {
-        return new String[] {
-            "c0e024f89969b976da165eecaa71e09dc60c3da1", // Pull Request #2, unmerged but exposed on target
-            // repo
-            "e301dc6d5bb7e6e18d80e85f19caa92c74e15e96",
-            null
-        };
+    static Stream<String> revisions() {
+        return Stream.of(
+                "c0e024f89969b976da165eecaa71e09dc60c3da1", // Pull Request #2, unmerged but exposed on target
+                "e301dc6d5bb7e6e18d80e85f19caa92c74e15e96", // repo
+                null);
     }
 
-    @Before
     @Override
-    public void prepareMockGitHub() {
-        super.prepareMockGitHub();
+    @BeforeEach
+    void beforeEach() throws Exception {
+        super.beforeEach();
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile("body-yolo-pulls-2-mergeable-true.json")));
         source = new GitHubSCMSource(
                 null,
-                "http://localhost:" + githubApi.port(),
+                "http://localhost:" + githubApi.getPort(),
                 GitHubSCMSource.DescriptorImpl.SAME,
                 null,
                 "cloudbeers",
                 "yolo");
     }
 
-    @Override
-    void prepareMockGitHubFileMappings() {
-        super.prepareMockGitHubFileMappings();
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/pulls/2"))
-                .willReturn(aResponse()
-                        .withHeader("Content-Type", "application/json; charset=utf-8")
-                        .withBodyFile("body-yolo-pulls-2-mergeable-true.json")));
+    @Test
+    void haveFilesystem() throws Exception {
+        assertThat(SCMFileSystem.of(source, MASTER, revision), notNullValue());
     }
 
     @Test
-    public void haveFilesystem() throws Exception {
-        assertThat(SCMFileSystem.of(source, master, revision), notNullValue());
-    }
-
-    @Test
-    public void rootIsADirectory() throws Exception {
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
+    void rootIsADirectory() throws Exception {
+        SCMFileSystem fs = SCMFileSystem.of(source, MASTER, revision);
         assertThat(fs.getRoot().getType(), is(SCMFile.Type.DIRECTORY));
     }
 
     @Test
-    public void listFilesInRoot() throws Exception {
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
+    void listFilesInRoot() throws Exception {
+        SCMFileSystem fs = SCMFileSystem.of(source, MASTER, revision);
         assertThat(fs.getRoot().children(), hasItem(Matchers.<SCMFile>hasProperty("name", is("README.md"))));
     }
 
     @Test
-    public void readmeIsAFile() throws Exception {
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
+    void readmeIsAFile() throws Exception {
+        SCMFileSystem fs = SCMFileSystem.of(source, MASTER, revision);
         assertThat(fs.getRoot().child("README.md").getType(), is(SCMFile.Type.REGULAR_FILE));
     }
 
     @Test
-    public void readmeContents() throws Exception {
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
+    void readmeContents() throws Exception {
+        SCMFileSystem fs = SCMFileSystem.of(source, MASTER, revision);
         assertThat(fs.getRoot().child("README.md").contentAsString(), containsString("yolo"));
     }
 
     @Test
-    public void readFileFromDir() throws Exception {
-        assumeThat(revision, instanceOf(AbstractGitSCMSource.SCMRevisionImpl.class));
-        assumeThat(
-                ((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash(),
-                is("c0e024f89969b976da165eecaa71e09dc60c3da1"));
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
+    void readFileFromDir() throws Exception {
+        assumeTrue(revision instanceof AbstractGitSCMSource.SCMRevisionImpl);
+        assumeTrue(((AbstractGitSCMSource.SCMRevisionImpl) revision)
+                .getHash()
+                .equals("c0e024f89969b976da165eecaa71e09dc60c3da1"));
+        SCMFileSystem fs = SCMFileSystem.of(source, MASTER, revision);
 
         String expected = "Some text\n";
         // In previous versions of github-api, GHContent.read() (called by contentAsString())
@@ -191,33 +185,33 @@ public class GitHubSCMFileSystemTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void resolveDir() throws Exception {
-        assumeThat(revision, instanceOf(AbstractGitSCMSource.SCMRevisionImpl.class));
-        assumeThat(
-                ((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash(),
-                is("c0e024f89969b976da165eecaa71e09dc60c3da1"));
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
+    void resolveDir() throws Exception {
+        assumeTrue(revision instanceof AbstractGitSCMSource.SCMRevisionImpl);
+        assumeTrue(((AbstractGitSCMSource.SCMRevisionImpl) revision)
+                .getHash()
+                .equals("c0e024f89969b976da165eecaa71e09dc60c3da1"));
+        SCMFileSystem fs = SCMFileSystem.of(source, MASTER, revision);
         assertThat(fs.getRoot().child("fu").getType(), is(SCMFile.Type.DIRECTORY));
     }
 
     @Test
-    public void listDir() throws Exception {
-        assumeThat(revision, instanceOf(AbstractGitSCMSource.SCMRevisionImpl.class));
-        assumeThat(
-                ((AbstractGitSCMSource.SCMRevisionImpl) revision).getHash(),
-                is("c0e024f89969b976da165eecaa71e09dc60c3da1"));
-        SCMFileSystem fs = SCMFileSystem.of(source, master, revision);
+    void listDir() throws Exception {
+        assumeTrue(revision instanceof AbstractGitSCMSource.SCMRevisionImpl);
+        assumeTrue(((AbstractGitSCMSource.SCMRevisionImpl) revision)
+                .getHash()
+                .equals("c0e024f89969b976da165eecaa71e09dc60c3da1"));
+        SCMFileSystem fs = SCMFileSystem.of(source, MASTER, revision);
         assertThat(
                 fs.getRoot().child("fu").children(), hasItem(Matchers.<SCMFile>hasProperty("name", is("manchu.txt"))));
     }
 
     @Test
-    public void resolveDirPRHead() throws Exception {
-        assumeThat(revision, nullValue());
+    void resolveDirPRHead() throws Exception {
+        assumeTrue(revision == null);
 
-        assertThat(prHeadRevision.isMerge(), is(false));
+        assertThat(PR_HEAD_REVISION.isMerge(), is(false));
 
-        SCMFileSystem fs = SCMFileSystem.of(source, prHead, prHeadRevision);
+        SCMFileSystem fs = SCMFileSystem.of(source, PR_HEAD, PR_HEAD_REVISION);
         assertThat(fs, instanceOf(GitHubSCMFileSystem.class));
 
         // We can't check the sha, but we can check last modified
@@ -228,12 +222,12 @@ public class GitHubSCMFileSystemTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void resolveDirPRMerge() throws Exception {
-        assumeThat(revision, nullValue());
+    void resolveDirPRMerge() throws Exception {
+        assumeTrue(revision == null);
 
-        assertThat(prMergeRevision.isMerge(), is(true));
+        assertThat(PR_MERGE_REVISION.isMerge(), is(true));
 
-        SCMFileSystem fs = SCMFileSystem.of(source, prMerge, prMergeRevision);
+        SCMFileSystem fs = SCMFileSystem.of(source, PR_MERGE, PR_MERGE_REVISION);
         assertThat(fs, instanceOf(GitHubSCMFileSystem.class));
 
         // We can't check the sha, but we can check last modified
@@ -244,22 +238,19 @@ public class GitHubSCMFileSystemTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void resolveDirPRInvalidMerge() throws Exception {
-        assumeThat(revision, nullValue());
+    void resolveDirPRInvalidMerge() throws Exception {
+        assumeTrue(revision == null);
 
-        assertThat(prMergeInvalidRevision.isMerge(), is(true));
+        assertThat(PR_MERGE_INVALID_REVISION.isMerge(), is(true));
 
-        SCMFileSystem fs = SCMFileSystem.of(source, prMerge, prMergeInvalidRevision);
+        SCMFileSystem fs = SCMFileSystem.of(source, PR_MERGE, PR_MERGE_INVALID_REVISION);
         assertThat(fs, nullValue());
     }
 
-    @Test(expected = AbortException.class)
-    public void resolveDirPRNotMergeable() throws Exception {
-        assumeThat(revision, nullValue());
-
-        assertThat(prMergeNotMergeableRevision.isMerge(), is(true));
-
-        SCMFileSystem fs = SCMFileSystem.of(source, prMerge, prMergeNotMergeableRevision);
-        fail();
+    @Test
+    void resolveDirPRNotMergeable() {
+        assumeTrue(revision == null);
+        assertThat(PR_MERGE_NOT_MERGEABLE_REVISION.isMerge(), is(true));
+        assertThrows(AbortException.class, () -> SCMFileSystem.of(source, PR_MERGE, PR_MERGE_NOT_MERGEABLE_REVISION));
     }
 }

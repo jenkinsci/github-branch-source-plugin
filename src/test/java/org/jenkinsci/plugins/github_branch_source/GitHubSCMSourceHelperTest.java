@@ -1,14 +1,14 @@
 package org.jenkinsci.plugins.github_branch_source;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class GitHubSCMSourceHelperTest {
+class GitHubSCMSourceHelperTest {
 
     @Test
-    public void httpsUrl_non_github() {
+    void httpsUrl_non_github() {
         GitHubRepositoryInfo sut = GitHubRepositoryInfo.forRepositoryUrl("https://mygithub.com/jenkinsci/jenkins");
         assertThat(sut.getRepoOwner(), is("jenkinsci"));
         assertThat(sut.getRepository(), is("jenkins"));
@@ -16,7 +16,7 @@ public class GitHubSCMSourceHelperTest {
     }
 
     @Test
-    public void httpsUrl_github() {
+    void httpsUrl_github() {
         GitHubRepositoryInfo sut = GitHubRepositoryInfo.forRepositoryUrl("https://github.com/jenkinsci/jenkins");
         assertThat(sut.getRepoOwner(), is("jenkinsci"));
         assertThat(sut.getRepository(), is("jenkins"));
