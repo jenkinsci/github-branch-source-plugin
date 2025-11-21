@@ -35,8 +35,11 @@
     <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.504</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
+    <!-- TODO https://github.com/jenkinsci/jenkins/pull/11269 -->
+    <jenkins.version>2.537-rc37714.d5718019b_8ff</jenkins.version>
     <spotless.check.skip>false</spotless.check.skip>
+    <!-- AvatarContributor in GitHubOrgMetadataAction; SuppressRestrictedWarnings doesn't work -->
+    <useBeta>true</useBeta>
   </properties>
 
   <dependencyManagement>
