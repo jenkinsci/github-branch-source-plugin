@@ -32,7 +32,9 @@ import java.io.IOException;
 import java.io.ObjectStreamException;
 import java.util.Objects;
 import jenkins.scm.api.metadata.AvatarMetadataAction;
+import jenkins.security.csp.AvatarContributor;
 import org.apache.commons.lang3.StringUtils;
+import org.kohsuke.accmod.restrictions.suppressions.SuppressRestrictedWarnings;
 import org.kohsuke.github.GHUser;
 import org.kohsuke.stapler.Stapler;
 
@@ -42,6 +44,7 @@ import org.kohsuke.stapler.Stapler;
  *
  * @author Kohsuke Kawaguchi
  */
+@SuppressRestrictedWarnings(AvatarContributor.class)
 public class GitHubOrgMetadataAction extends AvatarMetadataAction {
     @CheckForNull
     private final String avatar;
@@ -52,6 +55,7 @@ public class GitHubOrgMetadataAction extends AvatarMetadataAction {
 
     public GitHubOrgMetadataAction(@CheckForNull String avatar) {
         this.avatar = Util.fixEmpty(avatar);
+        AvatarContributor.allow(avatar);
     }
 
     public GitHubOrgMetadataAction(@NonNull GitHubOrgMetadataAction that) {
@@ -60,6 +64,7 @@ public class GitHubOrgMetadataAction extends AvatarMetadataAction {
 
     private Object readResolve() throws ObjectStreamException {
         if (avatar != null && StringUtils.isBlank(avatar)) return new GitHubOrgMetadataAction(this);
+        AvatarContributor.allow(avatar);
         return this;
     }
 
