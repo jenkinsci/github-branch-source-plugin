@@ -38,8 +38,6 @@
     <!-- TODO https://github.com/jenkinsci/jenkins/pull/11269 -->
     <jenkins.version>2.537-rc37714.d5718019b_8ff</jenkins.version>
     <spotless.check.skip>false</spotless.check.skip>
-    <!-- AvatarContributor in GitHubOrgMetadataAction; SuppressRestrictedWarnings doesn't work -->
-    <useBeta>true</useBeta>
   </properties>
 
   <dependencyManagement>
@@ -90,6 +88,12 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-support</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.kohsuke</groupId>
+      <artifactId>access-modifier-suppressions</artifactId>
+      <version>1.35</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.jenkins</groupId>
