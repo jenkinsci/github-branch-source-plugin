@@ -37,6 +37,7 @@
     <jenkins.baseline>2.528</jenkins.baseline>
     <jenkins.version>2.539</jenkins.version>
     <spotless.check.skip>false</spotless.check.skip>
+    <useBeta>true</useBeta>
   </properties>
 
   <dependencyManagement>
@@ -87,12 +88,6 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-support</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.kohsuke</groupId>
-      <artifactId>access-modifier-suppressions</artifactId>
-      <version>${access-modifier-checker.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>io.jenkins</groupId>
