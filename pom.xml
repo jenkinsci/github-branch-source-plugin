@@ -35,7 +35,6 @@
     <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.504</jenkins.baseline>
-    <!-- TODO https://github.com/jenkinsci/jenkins/pull/11269 -->
     <jenkins.version>2.539</jenkins.version>
     <spotless.check.skip>false</spotless.check.skip>
   </properties>
