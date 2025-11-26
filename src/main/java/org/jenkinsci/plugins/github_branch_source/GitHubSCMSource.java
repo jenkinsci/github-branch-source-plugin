@@ -2626,17 +2626,13 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     // PR user not found at all - log and skip this PR
                     request.listener()
                             .getLogger()
-                            .format(
-                                    "%n  Could not find user for pull request #%d. Skipping PR.%n",
-                                    number);
+                            .format("%n  Could not find user for pull request #%d. Skipping PR.%n", number);
                     // Don't throw exception - just skip this PR and continue scanning
                 } catch (IOException e) {
                     // Other IO errors when getting PR user - log and skip this PR
                     request.listener()
                             .getLogger()
-                            .format(
-                                    "%n  IO error for pull request #%d: %s. Skipping PR.%n",
-                                    number, e.getMessage());
+                            .format("%n  IO error for pull request #%d: %s. Skipping PR.%n", number, e.getMessage());
                     // Don't throw exception - just skip this PR and continue scanning
                 }
             }
