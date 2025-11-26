@@ -2581,28 +2581,64 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             // looked up this user already
                             user = users.get(login);
                         }
+                        // Try to get user metadata, but be tolerant to API failures
+                        String userName = login;
+                        String userEmail = login + "@users.noreply.github.com";
+                        try {
+                            userName = user.getName();
+                            if (userName == null || userName.isEmpty()) {
+                                userName = login;
+                            }
+                            userEmail = user.getEmail();
+                            if (userEmail == null || userEmail.isEmpty()) {
+                                userEmail = login + "@users.noreply.github.com";
+                            }
+                        } catch (FileNotFoundException e) {
+                            // User metadata not accessible (e.g., bot users like Copilot)
+                            // Log warning but continue with default values
+                            request.listener()
+                                    .getLogger()
+                                    .format(
+                                            "%n  Could not find user metadata for %s (PR #%d). Using default values.%n",
+                                            login, number);
+                        } catch (IOException e) {
+                            // Other IO errors, use default values but log
+                            request.listener()
+                                    .getLogger()
+                                    .format(
+                                            "%n  IO error fetching user metadata for %s (PR #%d): %s. Using default values.%n",
+                                            login, number, e.getMessage());
+                        }
                         ContributorMetadataAction contributor =
-                                new ContributorMetadataAction(login, user.getName(), user.getEmail());
+                                new ContributorMetadataAction(login, userName, userEmail);
                         // store the populated user record now that we have it
                         pullRequestContributorCache.put(number, contributor);
                         users.put(login, user);
                     }
+                    // Store PR metadata
+                    pullRequestMetadataCache.put(
+                            number,
+                            new ObjectMetadataAction(
+                                    pr.getTitle(), pr.getBody(), pr.getHtmlUrl().toExternalForm()));
+                    pullRequestMetadataKeys.add(number);
+
                 } catch (FileNotFoundException e) {
+                    // PR user not found at all - log and skip this PR
                     request.listener()
                             .getLogger()
                             .format(
-                                    "%n  Could not find user %s for pull request %d.%n",
-                                    user == null ? "null" : user.getLogin(), number);
-                    throw new WrappedException(e);
+                                    "%n  Could not find user for pull request #%d. Skipping PR.%n",
+                                    number);
+                    // Don't throw exception - just skip this PR and continue scanning
                 } catch (IOException e) {
-                    throw new WrappedException(e);
+                    // Other IO errors when getting PR user - log and skip this PR
+                    request.listener()
+                            .getLogger()
+                            .format(
+                                    "%n  IO error for pull request #%d: %s. Skipping PR.%n",
+                                    number, e.getMessage());
+                    // Don't throw exception - just skip this PR and continue scanning
                 }
-
-                pullRequestMetadataCache.put(
-                        number,
-                        new ObjectMetadataAction(
-                                pr.getTitle(), pr.getBody(), pr.getHtmlUrl().toExternalForm()));
-                pullRequestMetadataKeys.add(number);
             }
 
             @Override
