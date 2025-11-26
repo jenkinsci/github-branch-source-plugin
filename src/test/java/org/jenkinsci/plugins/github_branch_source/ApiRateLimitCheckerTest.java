@@ -2,15 +2,11 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.resetAllScenarios;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.ScenarioMappingBuilder;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import hudson.util.LogTaskListener;
@@ -25,14 +21,14 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.kohsuke.github.GHRateLimit;
 import org.kohsuke.github.GitHub;
 import org.mockito.Mockito;
 
-public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
+class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
 
     private RingBufferLogHandler handler;
     private LogTaskListener listener;
@@ -57,26 +53,21 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         return countOfOutputLines(m -> m.contains(substring));
     }
 
-    public static int getRequestCount(WireMockServer server) {
-        return server.countRequestsMatching(RequestPatternBuilder.allRequests().build())
+    private static int getRequestCount(WireMockExtension extension) {
+        return extension
+                .countRequestsMatching(RequestPatternBuilder.allRequests().build())
                 .getCount();
     }
 
-    private class RateLimit {
-        final int remaining;
-        final int limit;
-        final Date reset;
+    private record RateLimit(int limit, int remaining, Date reset) {}
 
-        RateLimit(int limit, int remaining, Date reset) {
-            this.limit = limit;
-            this.remaining = remaining;
-            this.reset = reset;
-        }
-    }
+    @Override
+    @BeforeEach
+    void beforeEach() throws Exception {
+        super.beforeEach();
 
-    @Before
-    public void setUp() throws Exception {
-        resetAllScenarios();
+        githubApi.resetScenarios();
+        githubRaw.resetScenarios();
 
         handler = new RingBufferLogHandler(1000);
         final Logger logger = Logger.getLogger(getClass().getName());
@@ -98,13 +89,12 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         ApiRateLimitChecker.resetLocalChecker();
     }
 
-    @After
-    public void tearDown() throws Exception {
+    @AfterEach
+    void afterEach() {
         GitHubConfiguration.get().setEndpoints(new ArrayList<>());
     }
 
     private void setupStubs(List<RateLimit> scenarios) throws Exception {
-
         githubApi.stubFor(get(urlEqualTo("/meta"))
                 .willReturn(aResponse().withStatus(200).withBody("{\"verifiable_password_authentication\": false}")));
 
@@ -159,13 +149,13 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
             githubApi.stubFor(scenario);
         }
 
-        github = Connector.connect("http://localhost:" + githubApi.port(), null);
+        github = Connector.connect("http://localhost:" + githubApi.getPort(), null);
         initialRequestCount = getRequestCount(githubApi);
         assertEquals(2, initialRequestCount);
     }
 
     @Test
-    public void NoCheckerConfigured() throws Exception {
+    void NoCheckerConfigured() throws Exception {
         // set up scenarios
         List<RateLimit> scenarios = new ArrayList<>();
         long now = System.currentTimeMillis();
@@ -204,7 +194,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void NoCheckerConfiguredWithEndpoint() throws Exception {
+    void NoCheckerConfiguredWithEndpoint() throws Exception {
         // set up scenarios
         List<RateLimit> scenarios = new ArrayList<>();
         long now = System.currentTimeMillis();
@@ -240,7 +230,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Julian V. Modesto
      */
     @Test
-    public void ThrottleOnOverTestWithQuota() throws Exception {
+    void ThrottleOnOverTestWithQuota() throws Exception {
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleOnOver);
 
         // set up scenarios
@@ -269,7 +259,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Julian V. Modesto
      */
     @Test
-    public void ThrottleOnNormalizeTestWithQuota() throws Exception {
+    void ThrottleOnNormalizeTestWithQuota() throws Exception {
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleForNormalize);
 
         // set up scenarios
@@ -296,7 +286,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Marc Salles Navarro
      */
     @Test
-    public void NoThrottleTestShouldNotThrottle() throws Exception {
+    void NoThrottleTestShouldNotThrottle() throws Exception {
         // set up scenarios
         List<RateLimit> scenarios = new ArrayList<>();
         int limit = 5000;
@@ -324,8 +314,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Marc Salles Navarro
      */
     @Test
-    public void NoThrottleTestShouldNotThrottle404() throws Exception {
-
+    void NoThrottleTestShouldNotThrottle404() throws Exception {
         setupStubs(new ArrayList<>());
         GHRateLimit.Record initial = github.lastRateLimit().getCore();
         assertEquals(2, getRequestCount(githubApi));
@@ -341,7 +330,8 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
         github.getMeta();
 
         // The core should be unknown, but different from initial
-        assertTrue(github.rateLimit().getCore() instanceof GHRateLimit.UnknownLimitRecord);
+        assertInstanceOf(
+                GHRateLimit.UnknownLimitRecord.class, github.rateLimit().getCore());
         assertNotEquals(initial, github.rateLimit().getCore());
 
         // there should be no output
@@ -357,7 +347,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Marc Salles Navarro
      */
     @Test
-    public void NoThrottleTestShouldFallbackToThrottleOnOverForGitHubDotCom() throws Exception {
+    void NoThrottleTestShouldFallbackToThrottleOnOverForGitHubDotCom() throws Exception {
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleOnOver);
 
         // set up scenarios
@@ -391,7 +381,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Julian V. Modesto
      */
     @Test
-    public void ThrottleOnOverTest() throws Exception {
+    void ThrottleOnOverTest() throws Exception {
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleOnOver);
 
         // set up scenarios
@@ -462,7 +452,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Julian V. Modesto
      */
     @Test
-    public void ThrottleForNormalizeTestWithinIdeal() throws Exception {
+    void ThrottleForNormalizeTestWithinIdeal() throws Exception {
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleForNormalize);
 
         List<RateLimit> scenarios = new ArrayList<>();
@@ -552,7 +542,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Julian V. Modesto
      */
     @Test
-    public void NormalizeThrottleWithBurnedBuffer() throws Exception {
+    void NormalizeThrottleWithBurnedBuffer() throws Exception {
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleForNormalize);
 
         long now = System.currentTimeMillis();
@@ -614,7 +604,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Alex Taylor
      */
     @Test
-    public void OnOverThrottleTimingRateLimitCheck() throws Exception {
+    void OnOverThrottleTimingRateLimitCheck() throws Exception {
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleOnOver);
 
         // Longer timings that test defaults for more consistent measurements.
@@ -695,7 +685,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Alex Taylor
      */
     @Test
-    public void NormalizeThrottleTimingRateLimitCheck() throws Exception {
+    void NormalizeThrottleTimingRateLimitCheck() throws Exception {
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleForNormalize);
 
         ApiRateLimitChecker.setExpirationWaitMillis(60);
@@ -763,7 +753,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Alex Taylor
      */
     @Test
-    public void NormalizeExpectedIdealOverTime() throws Exception {
+    void NormalizeExpectedIdealOverTime() throws Exception {
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleForNormalize);
 
         // Set up scenarios
@@ -840,7 +830,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Alex Taylor
      */
     @Test
-    public void OnOverExpectedIdealOverTime() throws Exception {
+    void OnOverExpectedIdealOverTime() throws Exception {
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleOnOver);
 
         long start = System.currentTimeMillis();
@@ -894,7 +884,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Alex Taylor
      */
     @Test
-    public void ExpectedResetTimingNormalize() throws Exception {
+    void ExpectedResetTimingNormalize() throws Exception {
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleForNormalize);
 
         // Use a longer notification interval to make the test produce stable output
@@ -940,7 +930,7 @@ public class ApiRateLimitCheckerTest extends AbstractGitHubWireMockTest {
      * @author Alex Taylor
      */
     @Test
-    public void ExpectedResetTimingOnOver() throws Exception {
+    void ExpectedResetTimingOnOver() throws Exception {
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleOnOver);
 
         // Use a longer notification interval to make the test produce stable output

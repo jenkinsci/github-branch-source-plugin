@@ -30,36 +30,33 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 
-import com.github.tomakehurst.wiremock.common.SingleRootFileSource;
 import com.github.tomakehurst.wiremock.core.Options;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 
-public class WireMockRuleFactory {
-    private String urlToMock = System.getProperty("wiremock.record");
+public class WireMockExtensionFactory {
+    private final String urlToMock = System.getProperty("wiremock.record");
 
-    public WireMockRule getRule(int port) {
-        return getRule(wireMockConfig().port(port));
+    public WireMockExtension getExtension(int port) {
+        return getExtension(wireMockConfig().port(port));
     }
 
-    public WireMockRule getRule(Options options) {
+    public WireMockExtension getExtension(Options options) {
         if (urlToMock != null && !urlToMock.isEmpty()) {
-            return new WireMockRecorderRule(options, urlToMock);
+            return new WireMockRecorderExtension(options, urlToMock);
         } else {
-            return new WireMockRule(options);
+            return new WireMockRecorderExtension(options, null);
         }
     }
 
-    private class WireMockRecorderRule extends WireMockRule {
-        // needed for WireMockRule file location
-        private String mappingLocation = "src/test/resources";
+    private static class WireMockRecorderExtension extends WireMockExtension {
 
-        public WireMockRecorderRule(Options options, String url) {
-            super(options);
-            this.stubFor(
-                    get(urlMatching(".*")).atPriority(10).willReturn(aResponse().proxiedFrom(url)));
-            this.enableRecordMappings(
-                    new SingleRootFileSource(mappingLocation + "/mappings"),
-                    new SingleRootFileSource(mappingLocation + "/__files"));
+        public WireMockRecorderExtension(Options options, String url) {
+            super(new Builder().options(options));
+            if (url != null) {
+                this.stubFor(get(urlMatching(".*"))
+                        .atPriority(10)
+                        .willReturn(aResponse().proxiedFrom(url)));
+            }
         }
     }
 }

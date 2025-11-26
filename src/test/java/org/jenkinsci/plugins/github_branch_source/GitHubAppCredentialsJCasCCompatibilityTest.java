@@ -14,10 +14,9 @@ import com.cloudbees.plugins.credentials.domains.DomainCredentials;
 import io.jenkins.plugins.casc.ConfigurationContext;
 import io.jenkins.plugins.casc.ConfiguratorRegistry;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
-import io.jenkins.plugins.casc.misc.EnvVarsRule;
 import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
+import io.jenkins.plugins.casc.misc.junit.jupiter.WithJenkinsConfiguredWithCode;
 import io.jenkins.plugins.casc.model.CNode;
-import io.jenkins.plugins.casc.model.Mapping;
 import java.util.List;
 import java.util.Objects;
 import jenkins.model.Jenkins;
@@ -26,24 +25,18 @@ import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessInferred
 import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessSpecifiedRepositories;
 import org.jenkinsci.plugins.github_branch_source.app_credentials.DefaultPermissionsStrategy;
 import org.jenkinsci.plugins.github_branch_source.app_credentials.RepositoryAccessStrategy;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
+import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.SetEnvironmentVariable;
 
-public class GitHubAppCredentialsJCasCCompatibilityTest {
+@WithJenkinsConfiguredWithCode
+@SetEnvironmentVariable(key = "GITHUB_APP_KEY", value = GitHubAppCredentialsJCasCCompatibilityTest.GITHUB_APP_KEY)
+class GitHubAppCredentialsJCasCCompatibilityTest {
 
-    @ConfiguredWithCode("github-app-jcasc-minimal.yaml")
-    public static JenkinsConfiguredWithCodeRule j = new JenkinsConfiguredWithCodeRule();
-
-    private static final String GITHUB_APP_KEY = "SomeString";
-
-    @ClassRule
-    public static RuleChain chain = RuleChain.outerRule(new EnvVarsRule().set("GITHUB_APP_KEY", GITHUB_APP_KEY))
-            .around(j);
+    protected static final String GITHUB_APP_KEY = "SomeString";
 
     @Test
     @ConfiguredWithCode("github-app-jcasc-minimal.yaml")
-    public void should_support_configuration_as_code() throws Exception {
+    void should_support_configuration_as_code(JenkinsConfiguredWithCodeRule j) {
         List<DomainCredentials> domainCredentials =
                 SystemCredentialsProvider.getInstance().getDomainCredentials();
 
@@ -80,7 +73,7 @@ public class GitHubAppCredentialsJCasCCompatibilityTest {
 
     @Test
     @ConfiguredWithCode("github-app-jcasc-minimal.yaml")
-    public void should_support_configuration_export() throws Exception {
+    void should_support_configuration_export(JenkinsConfiguredWithCodeRule j) throws Exception {
         CNode credentials = getCredentials();
 
         String exported = toYamlString(credentials)
@@ -102,9 +95,8 @@ public class GitHubAppCredentialsJCasCCompatibilityTest {
 
         ConfiguratorRegistry registry = ConfiguratorRegistry.get();
         ConfigurationContext context = new ConfigurationContext(registry);
-        Mapping configNode = Objects.requireNonNull(root.describe(root.getTargetComponent(context), context))
+        return Objects.requireNonNull(root.describe(root.getTargetComponent(context), context))
                 .asMapping();
-        return configNode;
     }
 
     private static void assertGitHubAppCredential(
@@ -127,8 +119,7 @@ public class GitHubAppCredentialsJCasCCompatibilityTest {
         assertThat(appCredentials.getDefaultPermissionsStrategy(), is(permissionsStrategy));
         var actualRepoStrategy = appCredentials.getRepositoryAccessStrategy();
         assertThat(actualRepoStrategy.getClass(), is(repoStrategy.getClass()));
-        if (actualRepoStrategy instanceof AccessSpecifiedRepositories) {
-            var actualRepos = (AccessSpecifiedRepositories) actualRepoStrategy;
+        if (actualRepoStrategy instanceof AccessSpecifiedRepositories actualRepos) {
             var expectedRepos = (AccessSpecifiedRepositories) repoStrategy;
             assertThat(actualRepos.getOwner(), is(expectedRepos.getOwner()));
             assertThat(actualRepos.getRepositories(), is(expectedRepos.getRepositories()));
