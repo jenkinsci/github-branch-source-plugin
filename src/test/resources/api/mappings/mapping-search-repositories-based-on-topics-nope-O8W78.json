@@ -8,7 +8,7 @@
     },
     "queryParameters" : {
       "q" : {
-        "equalTo" : "topic:nope org:stephenc fork:true"
+        "equalTo" : "topic:nope org:stephenc fork:true sort:name-asc"
       }
     }
   },
