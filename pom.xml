@@ -37,6 +37,7 @@
     <jenkins.baseline>2.528</jenkins.baseline>
     <jenkins.version>2.539</jenkins.version>
     <spotless.check.skip>false</spotless.check.skip>
+    <ban-junit4-imports.skip>false</ban-junit4-imports.skip>
     <useBeta>true</useBeta>
   </properties>
 
@@ -130,6 +131,12 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-multibranch</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit-pioneer</groupId>
+      <artifactId>junit-pioneer</artifactId>
+      <version>2.3.0</version>
       <scope>test</scope>
     </dependency>
     <dependency>

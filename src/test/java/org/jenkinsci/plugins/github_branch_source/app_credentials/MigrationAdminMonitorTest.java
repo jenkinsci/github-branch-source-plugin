@@ -6,28 +6,34 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import hudson.ExtensionList;
 import hudson.security.ACL;
 import org.jenkinsci.plugins.github_branch_source.GitHubAppCredentials;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.jvnet.hudson.test.recipes.LocalData;
 
-public class MigrationAdminMonitorTest {
+@WithJenkins
+class MigrationAdminMonitorTest {
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    private JenkinsRule r;
+
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
 
     // Checks the migration behavior for credentials created prior to the introduction of the repository access
     // strategy and the default permissions strategy.
     @Test
     @LocalData
-    public void smokes() throws Throwable {
+    void smokes() {
         // LocalData based on the following code at commit 50351eb
         /*
         var store = CredentialsProvider.lookupStores(r.jenkins).iterator().next();

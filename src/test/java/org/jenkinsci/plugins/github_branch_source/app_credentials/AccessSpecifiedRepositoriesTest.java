@@ -5,15 +5,15 @@ import static org.hamcrest.Matchers.equalTo;
 
 import java.util.List;
 import org.jenkinsci.plugins.github_branch_source.GitHubAppUsageContext;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class AccessSpecifiedRepositoriesTest {
+class AccessSpecifiedRepositoriesTest {
 
     private final RepositoryAccessStrategy strategy =
             new AccessSpecifiedRepositories("owner", List.of("repo-one", "repo-two"));
 
     @Test
-    public void smokes() {
+    void smokes() {
         assertThat(
                 strategy.forContext(GitHubAppUsageContext.builder()
                         .inferredOwner("inferred-owner")
@@ -23,7 +23,7 @@ public class AccessSpecifiedRepositoriesTest {
     }
 
     @Test
-    public void trustedUsageAllowsArbitraryRepositoryAccess() {
+    void trustedUsageAllowsArbitraryRepositoryAccess() {
         assertThat(
                 strategy.forContext(GitHubAppUsageContext.builder()
                         .inferredOwner("inferred-owner")
