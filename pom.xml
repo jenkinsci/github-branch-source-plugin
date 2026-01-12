@@ -45,9 +45,15 @@
       <dependency>
         <groupId>io.jenkins.tools.bom</groupId>
         <artifactId>bom-${jenkins.baseline}.x</artifactId>
-        <version>5543.vfd758c7c868d</version>
+        <version>5804.v80587a_38d937</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <!-- TODO until in BOM -->
+      <dependency>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>credentials</artifactId>
+        <version>1480.v2246fd131e83</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

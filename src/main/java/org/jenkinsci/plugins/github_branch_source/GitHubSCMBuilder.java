@@ -25,7 +25,6 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import com.cloudbees.jenkins.plugins.sshcredentials.SSHUserPrivateKey;
 import com.cloudbees.plugins.credentials.Credentials;
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.IdCredentials;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
@@ -219,19 +218,14 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
         if (credentialsId == null) {
             return HTTPS;
         } else {
-            StandardCredentials credentials = CredentialsMatchers.firstOrNull(
-                    CredentialsProvider.lookupCredentialsInItem(
-                            StandardCredentials.class,
-                            context,
-                            context instanceof Queue.Task
-                                    ? ((Queue.Task) context).getDefaultAuthentication2()
-                                    : ACL.SYSTEM2,
-                            URIRequirementBuilder.create()
-                                    .withHostname(RepositoryUriResolver.hostnameFromApiUri(apiUri))
-                                    .build()),
-                    CredentialsMatchers.allOf(
-                            CredentialsMatchers.withId(credentialsId),
-                            CredentialsMatchers.instanceOf(StandardCredentials.class)));
+            var credentials = CredentialsProvider.findCredentialByIdInItem(
+                    credentialsId,
+                    StandardCredentials.class,
+                    context,
+                    context instanceof Queue.Task t ? t.getDefaultAuthentication2() : ACL.SYSTEM2,
+                    URIRequirementBuilder.create()
+                            .withHostname(RepositoryUriResolver.hostnameFromApiUri(apiUri))
+                            .build());
             if (credentials instanceof SSHUserPrivateKey) {
                 return SSH;
             } else {

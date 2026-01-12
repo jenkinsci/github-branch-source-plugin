@@ -27,8 +27,6 @@ package org.jenkinsci.plugins.github_branch_source;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
 
-import com.cloudbees.plugins.credentials.CredentialsMatcher;
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
@@ -131,12 +129,11 @@ public class Connector {
     public static ListBoxModel listScanCredentials(@CheckForNull Item context, String apiUri) {
         return new StandardListBoxModel()
                 .includeEmptyValue()
-                .includeMatchingAs(
-                        context instanceof Queue.Task ? ((Queue.Task) context).getDefaultAuthentication() : ACL.SYSTEM,
+                .includeAs(
+                        context instanceof Queue.Task t ? t.getDefaultAuthentication2() : ACL.SYSTEM2,
                         context,
-                        StandardUsernameCredentials.class,
-                        githubDomainRequirements(apiUri),
-                        githubScanCredentialsMatcher());
+                        StandardUsernamePasswordCredentials.class,
+                        githubDomainRequirements(apiUri));
     }
 
     /**
@@ -298,16 +295,12 @@ public class Connector {
         if (Util.fixEmpty(scanCredentialsId) == null) {
             return null;
         }
-        StandardCredentials c = CredentialsMatchers.firstOrNull(
-                CredentialsProvider.lookupCredentialsInItem(
-                        StandardUsernameCredentials.class,
-                        context,
-                        context instanceof Queue.Task
-                                ? ((Queue.Task) context).getDefaultAuthentication2()
-                                : ACL.SYSTEM2,
-                        githubDomainRequirements(apiUri)),
-                CredentialsMatchers.allOf(
-                        CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher()));
+        var c = CredentialsProvider.findCredentialByIdInItem(
+                scanCredentialsId,
+                StandardUsernamePasswordCredentials.class,
+                context,
+                context instanceof Queue.Task t ? t.getDefaultAuthentication2() : ACL.SYSTEM2,
+                githubDomainRequirements(apiUri));
         if (c instanceof GitHubAppCredentials && repoOwner != null) {
             // Note: We considered adding an overload so that all existing callers in this plugin could
             // specify an exact repository and granular permission, but decided against it. This method
@@ -334,6 +327,7 @@ public class Connector {
      * @return the {@link StandardCredentials} or {@code null}
      * @deprecated use {@link #listCheckoutCredentials(Item, String)}
      */
+    @Deprecated
     @NonNull
     public static ListBoxModel listCheckoutCredentials(@CheckForNull SCMSourceOwner context, String apiUri) {
         return listCheckoutCredentials((Item) context, apiUri);
@@ -354,7 +348,7 @@ public class Connector {
         result.add("- same as scan credentials -", GitHubSCMSource.DescriptorImpl.SAME);
         result.add("- anonymous -", GitHubSCMSource.DescriptorImpl.ANONYMOUS);
         return result.includeMatchingAs(
-                context instanceof Queue.Task ? ((Queue.Task) context).getDefaultAuthentication() : ACL.SYSTEM,
+                context instanceof Queue.Task t ? t.getDefaultAuthentication2() : ACL.SYSTEM2,
                 context,
                 StandardUsernameCredentials.class,
                 githubDomainRequirements(apiUri),
@@ -519,11 +513,6 @@ public class Connector {
                 LOGGER.log(WARNING, "There is a mismatch in connect and release calls.", e);
             }
         }
-    }
-
-    private static CredentialsMatcher githubScanCredentialsMatcher() {
-        // TODO OAuth credentials
-        return CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class));
     }
 
     static List<DomainRequirement> githubDomainRequirements(String apiUri) {
