@@ -1,34 +1,35 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.RequestMethod;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
 import java.io.File;
-import java.io.IOException;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import org.apache.commons.io.FileUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
-public class GitHubSCMProbeTest {
+@WithJenkins
+class GitHubSCMProbeTest {
 
-    @Rule
-    public JenkinsRule j = new JenkinsRule();
+    private JenkinsRule j;
 
-    public static WireMockRuleFactory factory = new WireMockRuleFactory();
+    private static final WireMockExtensionFactory FACTORY = new WireMockExtensionFactory();
 
-    @Rule
-    public WireMockRule githubApi = factory.getRule(WireMockConfiguration.options()
+    @RegisterExtension
+    private static final WireMockExtension GITHUB_API = FACTORY.getExtension(WireMockConfiguration.options()
             .dynamicPort()
             .usingFilesUnderClasspath("cache_failure")
             .globalTemplating(true)
@@ -36,30 +37,31 @@ public class GitHubSCMProbeTest {
 
     private GitHubSCMProbe probe;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) throws Exception {
+        j = rule;
         // Clear all caches before each test
         File cacheBaseDir = new File(j.jenkins.getRootDir(), GitHubSCMProbe.class.getName() + ".cache");
         if (cacheBaseDir.exists()) {
             FileUtils.cleanDirectory(cacheBaseDir);
         }
 
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo"))
+        GITHUB_API.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo"))
                 .willReturn(aResponse()
                         .withStatus(200)
                         .withHeader("Content-Type", "application/json")
                         .withBodyFile("body-cloudbeers-yolo-PucD6.json")));
 
         // Return 404 for /rate_limit
-        githubApi.stubFor(get(urlEqualTo("/rate_limit")).willReturn(aResponse().withStatus(404)));
+        GITHUB_API.stubFor(get(urlEqualTo("/rate_limit")).willReturn(aResponse().withStatus(404)));
 
         // validate api url
-        githubApi.stubFor(get(urlEqualTo("/"))
+        GITHUB_API.stubFor(get(urlEqualTo("/"))
                 .willReturn(aResponse().withBody("{\"rate_limit_url\": \"https://localhost/placeholder/\"}")));
     }
 
-    void createProbeForPR(int number) throws IOException {
-        final GitHub github = Connector.connect("http://localhost:" + githubApi.port(), null);
+    private void createProbeForPR(int number) throws Exception {
+        final GitHub github = Connector.connect("http://localhost:" + GITHUB_API.getPort(), null);
 
         final GHRepository repo = github.getRepository("cloudbeers/yolo");
         final PullRequestSCMHead head = new PullRequestSCMHead(
@@ -72,13 +74,17 @@ public class GitHubSCMProbeTest {
                 new SCMHeadOrigin.Fork("rsandell"),
                 ChangeRequestCheckoutStrategy.MERGE);
         probe = new GitHubSCMProbe(
-                "http://localhost:" + githubApi.port(), null, repo, head, new PullRequestSCMRevision(head, "a", "b"));
+                "http://localhost:" + GITHUB_API.getPort(),
+                null,
+                repo,
+                head,
+                new PullRequestSCMRevision(head, "a", "b"));
     }
 
     @Issue("JENKINS-54126")
     @Test
-    public void statWhenRootIs404() throws Exception {
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge"))
+    void statWhenRootIs404() throws Exception {
+        GITHUB_API.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge"))
                 .willReturn(aResponse().withStatus(404))
                 .atPriority(0));
 
@@ -89,8 +95,8 @@ public class GitHubSCMProbeTest {
 
     @Issue("JENKINS-54126")
     @Test
-    public void statWhenDirIs404() throws Exception {
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/subdir?ref=refs%2Fpull%2F1%2Fmerge"))
+    void statWhenDirIs404() throws Exception {
+        GITHUB_API.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/subdir?ref=refs%2Fpull%2F1%2Fmerge"))
                 .willReturn(aResponse().withStatus(404))
                 .atPriority(0));
 
@@ -103,7 +109,7 @@ public class GitHubSCMProbeTest {
 
     @Issue("JENKINS-54126")
     @Test
-    public void statWhenRoot404andThenIncorrectCached() throws Exception {
+    void statWhenRoot404andThenIncorrectCached() throws Exception {
         GitHubSCMSource.setCacheSize(10);
 
         createProbeForPR(9);
@@ -149,7 +155,7 @@ public class GitHubSCMProbeTest {
         // Verify the expected requests were made
         if (hudson.Functions.isWindows()) {
             // On windows caching is disabled by default, so the work around doesn't happen
-            githubApi.verify(
+            GITHUB_API.verify(
                     3,
                     RequestPatternBuilder.newRequestPattern(
                                     RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
@@ -158,28 +164,28 @@ public class GitHubSCMProbeTest {
                             .withHeader("If-None-Match", absent()));
         } else {
             // 1.
-            githubApi.verify(RequestPatternBuilder.newRequestPattern(
+            GITHUB_API.verify(RequestPatternBuilder.newRequestPattern(
                             RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
                     .withHeader("Cache-Control", equalTo("max-age=0"))
                     .withHeader("If-None-Match", absent())
                     .withHeader("If-Modified-Since", absent()));
 
             // 3.
-            githubApi.verify(RequestPatternBuilder.newRequestPattern(
+            GITHUB_API.verify(RequestPatternBuilder.newRequestPattern(
                             RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
                     .withHeader("Cache-Control", containing("max-age"))
                     .withHeader("If-None-Match", absent())
                     .withHeader("If-Modified-Since", containing("GMT")));
 
             // 4.
-            githubApi.verify(RequestPatternBuilder.newRequestPattern(
+            GITHUB_API.verify(RequestPatternBuilder.newRequestPattern(
                             RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
                     .withHeader("Cache-Control", equalTo("no-cache"))
                     .withHeader("If-Modified-Since", absent())
                     .withHeader("If-None-Match", absent()));
 
             // 5.
-            githubApi.verify(RequestPatternBuilder.newRequestPattern(
+            GITHUB_API.verify(RequestPatternBuilder.newRequestPattern(
                             RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
                     .withHeader("Cache-Control", equalTo("max-age=0"))
                     .withHeader("If-None-Match", equalTo("\"d3be5b35b8d84ef7ac03c0cc9c94ed81\"")));
