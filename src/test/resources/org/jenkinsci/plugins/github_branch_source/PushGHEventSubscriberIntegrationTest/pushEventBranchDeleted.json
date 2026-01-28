@@ -1,0 +1,31 @@
+{
+  "ref": "refs/heads/old-feature",
+  "before": "d1e2f3a4b5c6789012345678901234567890abcd",
+  "after": "0000000000000000000000000000000000000000",
+  "created": false,
+  "deleted": true,
+  "forced": false,
+  "base_ref": null,
+  "compare": "https://api.github.com/repos/test-owner/test-repo/compare/d1e2f3a4b5c6...000000000000",
+  "commits": [],
+  "head_commit": null,
+  "repository": {
+    "id": 12345,
+    "name": "test-repo",
+    "full_name": "test-owner/test-repo",
+    "owner": {
+      "name": "test-owner",
+      "email": "owner@example.com",
+      "login": "test-owner"
+    },
+    "private": false,
+    "html_url": "http://localhost/test-owner/test-repo",
+    "description": "Test repository",
+    "fork": false,
+    "url": "https://api.github.com/repos/test-owner/test-repo"
+  },
+  "pusher": {
+    "name": "testuser",
+    "email": "test@example.com"
+  }
+}
