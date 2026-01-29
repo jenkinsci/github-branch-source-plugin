@@ -3,11 +3,14 @@ package org.jenkinsci.plugins.github_branch_source;
 import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 
+import com.cloudbees.plugins.credentials.common.StandardUsernameCredentials;
 import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.common.SingleRootFileSource;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.extension.Parameters;
 import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
+import com.github.tomakehurst.wiremock.extension.requestfilter.RequestFilterAction;
+import com.github.tomakehurst.wiremock.extension.requestfilter.StubRequestFilter;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.http.Response;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
@@ -38,30 +41,47 @@ public abstract class AbstractGitHubWireMockTest {
     @Rule
     public WireMockRule githubApi = factory.getRule(WireMockConfiguration.options()
             .dynamicPort()
+            .needClientAuth(true)
             .usingFilesUnderClasspath("api")
-            .extensions(new ResponseTransformer() {
-                @Override
-                public Response transform(Request request, Response response, FileSource files, Parameters parameters) {
-                    if ("application/json"
-                            .equals(response.getHeaders().getContentTypeHeader().mimeTypePart())) {
-                        return Response.Builder.like(response)
-                                .but()
-                                .body(response.getBodyAsString()
-                                        .replace(
-                                                "https://api.github.com/", "http://localhost:" + githubApi.port() + "/")
-                                        .replace(
-                                                "https://raw.githubusercontent.com/",
-                                                "http://localhost:" + githubRaw.port() + "/"))
-                                .build();
-                    }
-                    return response;
-                }
+            .extensions(
+                    new ResponseTransformer() {
+                        @Override
+                        public Response transform(
+                                Request request, Response response, FileSource files, Parameters parameters) {
+                            if ("application/json"
+                                    .equals(response.getHeaders()
+                                            .getContentTypeHeader()
+                                            .mimeTypePart())) {
+                                return Response.Builder.like(response)
+                                        .but()
+                                        .body(response.getBodyAsString()
+                                                .replace(
+                                                        "https://api.github.com/",
+                                                        "http://localhost:" + githubApi.port() + "/")
+                                                .replace(
+                                                        "https://raw.githubusercontent.com/",
+                                                        "http://localhost:" + githubRaw.port() + "/"))
+                                        .build();
+                            }
+                            return response;
+                        }
 
-                @Override
-                public String getName() {
-                    return "url-rewrite";
-                }
-            }));
+                        @Override
+                        public String getName() {
+                            return "url-rewrite";
+                        }
+                    },
+                    new StubRequestFilter() {
+                        @Override
+                        public RequestFilterAction filter(Request request) {
+                            return RequestFilterAction.continueWith(request);
+                        }
+
+                        @Override
+                        public String getName() {
+                            return "test-auth";
+                        }
+                    }));
 
     @Before
     public void prepareMockGitHub() {
@@ -88,5 +108,9 @@ public abstract class AbstractGitHubWireMockTest {
         githubRaw.enableRecordMappings(
                 new SingleRootFileSource("src/test/resources/raw/mappings"),
                 new SingleRootFileSource("src/test/resources/raw/__files"));
+    }
+
+    StandardUsernameCredentials getCredentials() {
+        return null;
     }
 }
