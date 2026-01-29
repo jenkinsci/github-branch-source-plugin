@@ -30,8 +30,8 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsScope;
@@ -69,20 +69,20 @@ import jenkins.scm.api.metadata.ObjectMetadataAction;
 import jenkins.scm.api.trait.SCMTrait;
 import jenkins.scm.impl.NoOpProjectObserver;
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.MockFolder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
-public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
+class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
 
     @Mock
     private SCMSourceOwner scmSourceOwner;
 
-    private BaseStandardCredentials credentials;
+    private final BaseStandardCredentials credentials;
 
     {
         try {
@@ -95,17 +95,17 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
 
     private GitHubSCMNavigator navigator;
 
-    @Before
     @Override
-    public void prepareMockGitHub() {
-        super.prepareMockGitHub();
+    @BeforeEach
+    void beforeEach() throws Exception {
+        super.beforeEach();
         setCredentials(Collections.emptyList());
         navigator = navigatorForRepoOwner("cloudbeers", null);
     }
 
     private GitHubSCMNavigator navigatorForRepoOwner(String repoOwner, @Nullable String credentialsId) {
         GitHubSCMNavigator navigator = new GitHubSCMNavigator(repoOwner);
-        navigator.setApiUri("http://localhost:" + githubApi.port());
+        navigator.setApiUri("http://localhost:" + githubApi.getPort());
         navigator.setCredentialsId(credentialsId);
         return navigator;
     }
@@ -116,7 +116,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchSmokes() throws Exception {
+    void fetchSmokes() throws Exception {
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -126,7 +126,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchReposWithoutTeamSlug() throws Exception {
+    void fetchReposWithoutTeamSlug() throws Exception {
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -137,7 +137,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchReposFromTeamSlug() throws Exception {
+    void fetchReposFromTeamSlug() throws Exception {
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -153,7 +153,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchOneRepoWithTeamSlug_InTeam() throws Exception {
+    void fetchOneRepoWithTeamSlug_InTeam() throws Exception {
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -166,7 +166,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchOneRepoWithTeamSlug_NotInTeam() throws Exception {
+    void fetchOneRepoWithTeamSlug_NotInTeam() throws Exception {
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -179,7 +179,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchOneRepo_BelongingToAuthenticatedUser() throws Exception {
+    void fetchOneRepo_BelongingToAuthenticatedUser() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         final Set<String> projectNames = new HashSet<>();
@@ -191,7 +191,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToAuthenticatedUser_FilteredByTopic() throws Exception {
+    void fetchRepos_BelongingToAuthenticatedUser_FilteredByTopic() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         navigator.setTraits(Collections.singletonList(new TopicsTrait("awesome")));
@@ -204,7 +204,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToAuthenticatedUser_FilteredByTopic_ExcludeForks() throws Exception {
+    void fetchRepos_BelongingToAuthenticatedUser_FilteredByTopic_ExcludeForks() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         navigator.setTraits(Arrays.asList(new TopicsTrait("api"), new ExcludeForkedRepositoriesTrait()));
@@ -217,7 +217,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToAuthenticatedUser_FilteredByTopic_RemovesAll() throws Exception {
+    void fetchRepos_BelongingToAuthenticatedUser_FilteredByTopic_RemovesAll() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         navigator.setTraits(Collections.singletonList(new TopicsTrait("nope")));
@@ -230,7 +230,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToAuthenticatedUser_FilteredByMultipleTopics() throws Exception {
+    void fetchRepos_BelongingToAuthenticatedUser_FilteredByMultipleTopics() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         navigator.setTraits(Collections.singletonList(new TopicsTrait("cool, great,was-awesome")));
@@ -243,7 +243,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToAuthenticatedUser_ExcludeByTopic() throws Exception {
+    void fetchRepos_BelongingToAuthenticatedUser_ExcludeByTopic() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         navigator.setTraits(Collections.singletonList(new TopicsTrait("-awesome")));
@@ -256,7 +256,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToAuthenticatedUser_ExcludeAndFilterByTopic() throws Exception {
+    void fetchRepos_BelongingToAuthenticatedUser_ExcludeAndFilterByTopic() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         navigator.setTraits(Collections.singletonList(new TopicsTrait("-awesome,octocat")));
@@ -269,7 +269,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchOneRepo_BelongingToAuthenticatedUser_ExcludingArchived() throws Exception {
+    void fetchOneRepo_BelongingToAuthenticatedUser_ExcludingArchived() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         navigator.setTraits(Collections.singletonList(new ExcludeArchivedRepositoriesTrait()));
@@ -282,7 +282,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchOneRepo_ExcludingPublic() throws Exception {
+    void fetchOneRepo_ExcludingPublic() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         navigator.setTraits(Collections.singletonList(new ExcludePublicRepositoriesTrait()));
@@ -295,7 +295,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchOneRepo_ExcludingPrivate() throws Exception {
+    void fetchOneRepo_ExcludingPrivate() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         navigator.setTraits(Collections.singletonList(new ExcludePrivateRepositoriesTrait()));
@@ -308,7 +308,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchOneRepo_ExcludingForked() throws Exception {
+    void fetchOneRepo_ExcludingForked() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         navigator.setTraits(Collections.singletonList(new ExcludeForkedRepositoriesTrait()));
@@ -321,7 +321,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchOneRepo_BelongingToOrg() throws Exception {
+    void fetchOneRepo_BelongingToOrg() throws Exception {
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -331,7 +331,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchOneRepo_BelongingToOrg_ExcludingArchived() throws Exception {
+    void fetchOneRepo_BelongingToOrg_ExcludingArchived() throws Exception {
         navigator.setTraits(Collections.singletonList(new ExcludeArchivedRepositoriesTrait()));
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
@@ -342,7 +342,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchOneRepo_BelongingToUser() throws Exception {
+    void fetchOneRepo_BelongingToUser() throws Exception {
         navigator = navigatorForRepoOwner("stephenc", null);
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
@@ -353,7 +353,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchOneRepo_BelongingToUser_ExcludingArchived() throws Exception {
+    void fetchOneRepo_BelongingToUser_ExcludingArchived() throws Exception {
         navigator = navigatorForRepoOwner("stephenc", null);
         navigator.setTraits(Collections.singletonList(new ExcludeArchivedRepositoriesTrait()));
         final Set<String> projectNames = new HashSet<>();
@@ -365,7 +365,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToAuthenticatedUser() throws Exception {
+    void fetchRepos_BelongingToAuthenticatedUser() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         final Set<String> projectNames = new HashSet<>();
@@ -377,7 +377,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToAuthenticatedUser_ExcludingArchived() throws Exception {
+    void fetchRepos_BelongingToAuthenticatedUser_ExcludingArchived() throws Exception {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         navigator.setTraits(Collections.singletonList(new ExcludeArchivedRepositoriesTrait()));
@@ -390,7 +390,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToOrg() throws Exception {
+    void fetchRepos_BelongingToOrg() throws Exception {
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -400,7 +400,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToOrg_ExcludingArchived() throws Exception {
+    void fetchRepos_BelongingToOrg_ExcludingArchived() throws Exception {
         navigator.setTraits(Collections.singletonList(new ExcludeArchivedRepositoriesTrait()));
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
@@ -411,7 +411,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToOrg_ExcludingPublic() throws Exception {
+    void fetchRepos_BelongingToOrg_ExcludingPublic() throws Exception {
         navigator.setTraits(Collections.singletonList(new ExcludePublicRepositoriesTrait()));
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
@@ -423,7 +423,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToOrg_ExcludingPrivate() throws Exception {
+    void fetchRepos_BelongingToOrg_ExcludingPrivate() throws Exception {
         navigator.setTraits(Collections.singletonList(new ExcludePrivateRepositoriesTrait()));
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
@@ -434,7 +434,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToUser() throws Exception {
+    void fetchRepos_BelongingToUser() throws Exception {
         navigator = navigatorForRepoOwner("stephenc", null);
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
@@ -445,7 +445,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchRepos_BelongingToUser_ExcludingArchived() throws Exception {
+    void fetchRepos_BelongingToUser_ExcludingArchived() throws Exception {
         navigator = navigatorForRepoOwner("stephenc", null);
         navigator.setTraits(Collections.singletonList(new ExcludeArchivedRepositoriesTrait()));
         final Set<String> projectNames = new HashSet<>();
@@ -457,7 +457,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void appliesFilters() throws Exception {
+    void appliesFilters() throws Exception {
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -467,7 +467,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchBadRepo() throws Exception {
+    void fetchBadRepo() throws Exception {
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = new SCMSourceObserver() {
             @NonNull
@@ -503,7 +503,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchActions() throws Exception {
+    void fetchActions() throws Exception {
         assertThat(
                 navigator.fetchActions(Mockito.mock(SCMNavigatorOwner.class), null, null),
                 Matchers.containsInAnyOrder(
@@ -514,7 +514,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void fetchActionsWithAvatar() throws Exception {
+    void fetchActionsWithAvatar() throws Exception {
         navigator.setEnableAvatar(true);
         assertThat(
                 navigator.fetchActions(Mockito.mock(SCMNavigatorOwner.class), null, null),
@@ -526,7 +526,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void doFillScanCredentials() throws Exception {
+    void doFillScanCredentials() throws Exception {
         final GitHubSCMNavigator.DescriptorImpl d =
                 r.jenkins.getDescriptorByType(GitHubSCMNavigator.DescriptorImpl.class);
         final MockFolder dummy = r.createFolder("dummy");
@@ -583,7 +583,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
 
     @Issue("JENKINS-76235")
     @Test
-    public void afterSaveWithGitHubAppOwnerMismatch() {
+    void afterSaveWithGitHubAppOwnerMismatch() {
         // Given GitHub App credentials
         githubApi.stubFor(get(urlEqualTo("/app"))
                 .willReturn(aResponse()

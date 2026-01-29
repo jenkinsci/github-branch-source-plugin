@@ -5,7 +5,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.equalTo;
 import static org.jenkinsci.plugins.github_branch_source.Connector.createGitHubBuilder;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.CredentialsStore;
@@ -34,51 +34,52 @@ import java.util.logging.LogRecord;
 import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
 import jenkins.plugins.git.GitSampleRepoRule;
+import jenkins.plugins.git.junit.jupiter.WithGitSampleRepo;
 import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessSpecifiedRepositories;
 import org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition;
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 import org.jenkinsci.plugins.workflow.job.WorkflowRun;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
-import org.jvnet.hudson.test.LoggerRule;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.authorization.AuthorizationProvider;
 
-public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
+@WithGitSampleRepo
+class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
 
     private static Slave agent;
-    private static final String myAppCredentialsId = "myAppCredentialsId";
-    private static final String myAppCredentialsNoOwnerId = "myAppCredentialsNoOwnerId";
+    private static final String MY_APP_CREDENTIALS_ID = "myAppCredentialsId";
+    private static final String MY_APP_CREDENTIALS_NO_OWNER_ID = "myAppCredentialsNoOwnerId";
     private static CredentialsStore store;
     private static GitHubAppCredentials appCredentials, appCredentialsNoOwner;
     private static LogRecorder logRecorder;
 
-    @Rule
-    public GitSampleRepoRule sampleRepo = new GitSampleRepoRule();
+    private GitSampleRepoRule sampleRepo;
 
-    @Rule
-    public BuildWatcher buildWatcher = new BuildWatcher();
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension BUILD_WATCHER = new BuildWatcherExtension();
 
     // here to aid debugging - we can not use LoggerRule for the test assertion as it only captures
     // logs from the controller
-    @ClassRule
-    public static LoggerRule loggerRule = new LoggerRule().record(GitHubAppCredentials.class, Level.FINE);
+    @SuppressWarnings("unused")
+    private static final org.jvnet.hudson.test.LogRecorder LOG_RECORDER =
+            new org.jvnet.hudson.test.LogRecorder().record(GitHubAppCredentials.class, Level.FINE);
 
-    @BeforeClass
-    public static void setUpJenkins() throws Exception {
+    @BeforeAll
+    static void beforeAll() throws Exception {
         // Add credential (Must have valid private key for Jwt to work, but App doesn't have to actually
         // exist)
         store = CredentialsProvider.lookupStores(r.jenkins).iterator().next();
-        appCredentials = GitHubApp.createCredentials(myAppCredentialsId);
+        appCredentials = GitHubApp.createCredentials(MY_APP_CREDENTIALS_ID);
         appCredentials.setRepositoryAccessStrategy(
                 new AccessSpecifiedRepositories("cloudBeers", Collections.emptyList()));
 
         store.addCredentials(Domain.global(), appCredentials);
-        appCredentialsNoOwner = GitHubApp.createCredentials(myAppCredentialsNoOwnerId);
+        appCredentialsNoOwner = GitHubApp.createCredentials(MY_APP_CREDENTIALS_NO_OWNER_ID);
         appCredentialsNoOwner.setRepositoryAccessStrategy(
                 new AccessSpecifiedRepositories(null, Collections.emptyList()));
         store.addCredentials(Domain.global(), appCredentialsNoOwner);
@@ -95,11 +96,13 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
         logRecorder.save();
         t.enable();
         // but even though we can not capture the logs we want to echo them
-        r.showAgentLogs(agent, loggerRule);
+        r.showAgentLogs(agent, LOG_RECORDER);
     }
 
-    @Before
-    public void setUpWireMock() throws Exception {
+    @BeforeEach
+    void beforeEach(GitSampleRepoRule repo) {
+        sampleRepo = repo;
+
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleOnOver);
 
         // During credential refreshes we should never check rate_limit
@@ -248,7 +251,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void testProviderRefresh() throws Exception {
+    void testProviderRefresh() throws Exception {
         final long notStaleSeconds = GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
         try {
             appCredentials.setApiUri(githubApi.baseUrl());
@@ -351,7 +354,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void testAgentRefresh() throws Exception {
+    void testAgentRefresh() throws Exception {
         final long notStaleSeconds = GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
         try {
             appCredentials.setApiUri(githubApi.baseUrl());
@@ -364,7 +367,8 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             Thread.sleep(Duration.ofSeconds(GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS + 2)
                     .toMillis());
 
-            final String gitCheckoutStep = String.format("    git url: REPO, credentialsId: '%s'", myAppCredentialsId);
+            final String gitCheckoutStep =
+                    String.format("    git url: REPO, credentialsId: '%s'", MY_APP_CREDENTIALS_ID);
 
             final String jenkinsfile = String.join(
                     "\n",
@@ -468,7 +472,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void testPassword() throws Exception {
+    void testPassword() throws Exception {
         long notStaleSeconds = GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
         try {
             appCredentials.setApiUri(githubApi.baseUrl());

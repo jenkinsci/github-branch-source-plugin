@@ -1,21 +1,21 @@
 package org.jenkinsci.plugins.github_branch_source;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.jenkins.plugins.casc.misc.RoundTripAbstractTest;
+import io.jenkins.plugins.casc.misc.junit.jupiter.AbstractRoundTripTest;
 import org.jenkinsci.plugins.workflow.libs.GlobalLibraries;
 import org.jenkinsci.plugins.workflow.libs.LibraryConfiguration;
 import org.jenkinsci.plugins.workflow.libs.SCMSourceRetriever;
 import org.jvnet.hudson.test.Issue;
-import org.jvnet.hudson.test.RestartableJenkinsRule;
+import org.jvnet.hudson.test.JenkinsRule;
 
-public class GitHubBranchSourcesJCasCCompatibilityTest extends RoundTripAbstractTest {
+class GitHubBranchSourcesJCasCCompatibilityTest extends AbstractRoundTripTest {
 
     @Issue("JENKINS-57557")
     @Override
-    protected void assertConfiguredAsExpected(RestartableJenkinsRule restartableJenkinsRule, String s) {
+    protected void assertConfiguredAsExpected(JenkinsRule rule, String s) {
         assertEquals(1, GlobalLibraries.get().getLibraries().size());
         final LibraryConfiguration library =
                 GlobalLibraries.get().getLibraries().get(0);

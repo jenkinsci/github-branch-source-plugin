@@ -16,12 +16,10 @@ import com.coravy.hudson.plugins.github.GithubProjectProperty;
 import com.github.tomakehurst.wiremock.http.HttpHeader;
 import com.github.tomakehurst.wiremock.http.HttpHeaders;
 import hudson.ProxyConfiguration;
-import hudson.model.Descriptor.FormException;
 import hudson.model.InvisibleAction;
 import hudson.model.Result;
 import hudson.model.Run;
 import hudson.model.TaskListener;
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
@@ -32,7 +30,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import net.sf.json.JSONObject;
 import org.jenkinsci.plugins.github_branch_source.AbstractGitHubWireMockTest;
 import org.jenkinsci.plugins.github_branch_source.ApiRateLimitChecker;
@@ -46,29 +43,25 @@ import org.jenkinsci.plugins.workflow.steps.StepContext;
 import org.jenkinsci.plugins.workflow.steps.StepDescriptor;
 import org.jenkinsci.plugins.workflow.steps.StepExecution;
 import org.jenkinsci.plugins.workflow.steps.StepExecutions;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.jvnet.hudson.test.BuildWatcher;
-import org.jvnet.hudson.test.FlagRule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.jvnet.hudson.test.TestExtension;
+import org.jvnet.hudson.test.junit.jupiter.BuildWatcherExtension;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * This creates a pipeline job that logs the repositories accessible from the contextualized credentials.
  * It asserts that the correct repositories are accessible based on the repository access strategy set on the credentials.
  */
-public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
+class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
 
-    @ClassRule
-    public static BuildWatcher watcher = new BuildWatcher();
+    @SuppressWarnings("unused")
+    @RegisterExtension
+    private static final BuildWatcherExtension WATCHER = new BuildWatcherExtension();
 
-    @Rule
-    public FlagRule<Boolean> resetAllowUnsafeRepoInference = new FlagRule<>(
-            () -> GitHubAppCredentials.ALLOW_UNSAFE_REPOSITORY_INFERENCE,
-            x -> GitHubAppCredentials.ALLOW_UNSAFE_REPOSITORY_INFERENCE = x);
+    private boolean resetAllowUnsafeRepoInference;
 
     private enum InstallationAccessToken {
         TOKEN,
@@ -100,8 +93,10 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
     private CredentialsStore credentialsStore;
     private WorkflowJob project;
 
-    @Before
-    public void setup() throws IOException, FormException, InterruptedException, ExecutionException {
+    @BeforeEach
+    void beforeEach() throws Exception {
+        resetAllowUnsafeRepoInference = GitHubAppCredentials.ALLOW_UNSAFE_REPOSITORY_INFERENCE;
+
         GitHubConfiguration.get().setApiRateLimitChecker(ApiRateLimitChecker.ThrottleOnOver);
         // Tests here use WorkflowJob+GithubProjectProperty for simplicity. We could switch to Multibranch Projects
         // instead to avoid this flag.
@@ -118,7 +113,7 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
         project.addProperty(new GithubProjectProperty("https://github.com/cloudbeers/repository-a/"));
         project.setDefinition(new CpsFlowDefinition(
                 "getAccessibleRepositories(credentialsId: '" + credentials.getId()
-                        + "', githubApiUri: 'http://localhost:" + githubApi.port() + "/installation/repositories')",
+                        + "', githubApiUri: 'http://localhost:" + githubApi.getPort() + "/installation/repositories')",
                 true));
 
         // Sub app
@@ -216,8 +211,10 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
                         .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations-multiple.json")));
     }
 
-    @After
-    public void cleanup() throws IOException, InterruptedException {
+    @AfterEach
+    void afterEach() throws Exception {
+        GitHubAppCredentials.ALLOW_UNSAFE_REPOSITORY_INFERENCE = resetAllowUnsafeRepoInference;
+
         if (project != null) {
             project.delete();
         }
@@ -227,7 +224,7 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void inferredRepository() throws Exception {
+    void inferredRepository() throws Exception {
         multipleInstallations();
 
         credentials.setRepositoryAccessStrategy(new AccessInferredRepository());
@@ -239,7 +236,7 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void inferredOwner() throws Exception {
+    void inferredOwner() throws Exception {
         multipleInstallations();
 
         credentials.setRepositoryAccessStrategy(new AccessInferredOwner());
@@ -251,7 +248,7 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void specifiedRepositoriesA() throws Exception {
+    void specifiedRepositoriesA() throws Exception {
         multipleInstallations();
 
         credentials.setRepositoryAccessStrategy(
@@ -264,7 +261,7 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void specifiedRepositoriesB() throws Exception {
+    void specifiedRepositoriesB() throws Exception {
         multipleInstallations();
 
         credentials.setRepositoryAccessStrategy(
@@ -277,7 +274,7 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void specifiedRepositoriesAB() throws Exception {
+    void specifiedRepositoriesAB() throws Exception {
         multipleInstallations();
 
         credentials.setRepositoryAccessStrategy(
@@ -290,7 +287,7 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void specifiedRepositoriesABC() throws Exception {
+    void specifiedRepositoriesABC() throws Exception {
         multipleInstallations();
 
         credentials.setRepositoryAccessStrategy(new AccessSpecifiedRepositories(
@@ -305,7 +302,7 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void specifiedRepositoryWithOwner() throws Exception {
+    void specifiedRepositoryWithOwner() throws Exception {
         simpleInstallations();
 
         credentials.setRepositoryAccessStrategy(new AccessSpecifiedRepositories("cloudbeers", List.of()));
@@ -317,7 +314,7 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
-    public void specifiedRepositoryWithoutOwner() throws Exception {
+    void specifiedRepositoryWithoutOwner() throws Exception {
         simpleInstallations();
 
         // Owner is inferred from the context in this case
@@ -335,7 +332,7 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
      * not part of a MultiBranchProject.
      */
     @Test
-    public void propertiesStepAllowsAccessBypass() throws Exception {
+    void propertiesStepAllowsAccessBypass() throws Exception {
         multipleInstallations();
 
         credentials.setRepositoryAccessStrategy(new AccessInferredRepository());
@@ -343,7 +340,7 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
         project.setDefinition(new CpsFlowDefinition(
                 "properties([githubProjectProperty('https://github.com/cloudbeers/repository-b/')])\n"
                         + "getAccessibleRepositories(credentialsId: '" + credentials.getId()
-                        + "', githubApiUri: 'http://localhost:" + githubApi.port() + "/installation/repositories')",
+                        + "', githubApiUri: 'http://localhost:" + githubApi.getPort() + "/installation/repositories')",
                 true));
 
         // First build uses the property configured in RunWithCredentialsTest#before
@@ -371,7 +368,7 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
         }
 
         @Override
-        public StepExecution start(StepContext context) throws Exception {
+        public StepExecution start(StepContext context) {
             return StepExecutions.synchronous(context, c -> {
                 var run = c.get(Run.class);
                 var credentials =

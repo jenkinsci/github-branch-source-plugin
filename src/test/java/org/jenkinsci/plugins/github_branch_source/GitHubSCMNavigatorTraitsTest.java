@@ -22,23 +22,34 @@ import jenkins.scm.impl.trait.RegexSCMSourceFilterTrait;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TestName;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.JenkinsRule;
 import org.jvnet.hudson.test.WithoutJenkins;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
-public class GitHubSCMNavigatorTraitsTest {
-    @ClassRule
-    public static JenkinsRule j = new JenkinsRule();
+@WithJenkins
+class GitHubSCMNavigatorTraitsTest {
 
-    @Rule
-    public TestName currentTestName = new TestName();
+    private static JenkinsRule j;
+
+    private String currentTestName;
+
+    @BeforeAll
+    static void beforeAll(JenkinsRule rule) {
+        j = rule;
+    }
+
+    @BeforeEach
+    void beforeEach(TestInfo info) {
+        currentTestName = info.getTestMethod().orElseThrow().getName();
+    }
 
     private GitHubSCMNavigator load() {
-        return load(currentTestName.getMethodName());
+        return load(currentTestName);
     }
 
     private GitHubSCMNavigator load(String dataSet) {
@@ -55,7 +66,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     private static Matcher<SCMTrait<?>> sshCheckoutTraitItem(Matcher<Object> credentialsMatcher) {
-        return Matchers.<SCMTrait<?>>allOf(
+        return Matchers.allOf(
                 Matchers.instanceOf(SSHCheckoutTrait.class), hasProperty("credentialsId", credentialsMatcher));
     }
 
@@ -91,7 +102,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void modern() throws Exception {
+    void modern() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.id(), is("https://api.github.com::cloudbeers"));
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
@@ -101,7 +112,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void basic_cloud() throws Exception {
+    void basic_cloud() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.id(), is("https://api.github.com::cloudbeers"));
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
@@ -130,7 +141,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void basic_server() throws Exception {
+    void basic_server() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.id(), is("https://github.test/api/v3::cloudbeers"));
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
@@ -160,7 +171,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void use_agent_checkout() throws Exception {
+    void use_agent_checkout() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.id(), is("https://github.test/api/v3::cloudbeers"));
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
@@ -191,7 +202,7 @@ public class GitHubSCMNavigatorTraitsTest {
 
     @Issue("JENKINS-45467")
     @Test
-    public void same_checkout_credentials() throws Exception {
+    void same_checkout_credentials() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.id(), is("https://github.test/api/v3::cloudbeers"));
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
@@ -220,7 +231,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void limit_repositories() throws Exception {
+    void limit_repositories() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.id(), is("https://github.test/api/v3::cloudbeers"));
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
@@ -247,7 +258,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void exclude_branches() throws Exception {
+    void exclude_branches() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.id(), is("https://api.github.com::cloudbeers"));
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
@@ -269,7 +280,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void limit_branches() throws Exception {
+    void limit_branches() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.id(), is("https://api.github.com::cloudbeers"));
         assertThat(instance.getRepoOwner(), is("cloudbeers"));
@@ -291,37 +302,37 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_000000() throws Exception {
+    void build_000000() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.getTraits(), empty());
     }
 
     @Test
-    public void build_000001() throws Exception {
+    void build_000001() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.getTraits(), contains(forkPullRequestDiscoveryTraitItem(2)));
     }
 
     @Test
-    public void build_000010() throws Exception {
+    void build_000010() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.getTraits(), contains(forkPullRequestDiscoveryTraitItem(1)));
     }
 
     @Test
-    public void build_000011() throws Exception {
+    void build_000011() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.getTraits(), contains(forkPullRequestDiscoveryTraitItem(3)));
     }
 
     @Test
-    public void build_000100() throws Exception {
+    void build_000100() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.getTraits(), contains(originPullRequestDiscoveryTraitItem(2)));
     }
 
     @Test
-    public void build_000101() throws Exception {
+    void build_000101() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -329,7 +340,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_000110() throws Exception {
+    void build_000110() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -337,7 +348,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_000111() throws Exception {
+    void build_000111() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -345,13 +356,13 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_001000() throws Exception {
+    void build_001000() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.getTraits(), contains(originPullRequestDiscoveryTraitItem(1)));
     }
 
     @Test
-    public void build_001001() throws Exception {
+    void build_001001() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -359,7 +370,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_001010() throws Exception {
+    void build_001010() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -367,7 +378,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_001011() throws Exception {
+    void build_001011() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -375,13 +386,13 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_001100() throws Exception {
+    void build_001100() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.getTraits(), contains(originPullRequestDiscoveryTraitItem(3)));
     }
 
     @Test
-    public void build_001101() throws Exception {
+    void build_001101() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -389,7 +400,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_001110() throws Exception {
+    void build_001110() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -397,7 +408,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_001111() throws Exception {
+    void build_001111() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -405,13 +416,13 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_010000() throws Exception {
+    void build_010000() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.getTraits(), contains(branchDiscoveryTraitItem(false, true)));
     }
 
     @Test
-    public void build_010001() throws Exception {
+    void build_010001() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -419,7 +430,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_010010() throws Exception {
+    void build_010010() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -427,7 +438,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_010011() throws Exception {
+    void build_010011() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -435,7 +446,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_010100() throws Exception {
+    void build_010100() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -443,7 +454,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_010101() throws Exception {
+    void build_010101() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -454,7 +465,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_010110() throws Exception {
+    void build_010110() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -465,7 +476,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_010111() throws Exception {
+    void build_010111() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -476,7 +487,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_011000() throws Exception {
+    void build_011000() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -484,7 +495,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_011001() throws Exception {
+    void build_011001() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -495,7 +506,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_011010() throws Exception {
+    void build_011010() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -506,7 +517,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_011011() throws Exception {
+    void build_011011() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -517,7 +528,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_011100() throws Exception {
+    void build_011100() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -525,7 +536,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_011101() throws Exception {
+    void build_011101() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -536,7 +547,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_011110() throws Exception {
+    void build_011110() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -547,7 +558,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_011111() throws Exception {
+    void build_011111() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -558,13 +569,13 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_100000() throws Exception {
+    void build_100000() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.getTraits(), contains(branchDiscoveryTraitItem(true, false)));
     }
 
     @Test
-    public void build_100001() throws Exception {
+    void build_100001() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -572,7 +583,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_100010() throws Exception {
+    void build_100010() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -580,7 +591,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_100011() throws Exception {
+    void build_100011() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -588,7 +599,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_100100() throws Exception {
+    void build_100100() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -596,7 +607,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_100101() throws Exception {
+    void build_100101() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -607,7 +618,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_100110() throws Exception {
+    void build_100110() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -618,7 +629,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_100111() throws Exception {
+    void build_100111() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -629,7 +640,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_101000() throws Exception {
+    void build_101000() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -637,7 +648,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_101001() throws Exception {
+    void build_101001() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -648,7 +659,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_101010() throws Exception {
+    void build_101010() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -659,7 +670,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_101011() throws Exception {
+    void build_101011() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -670,7 +681,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_101100() throws Exception {
+    void build_101100() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -678,7 +689,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_101101() throws Exception {
+    void build_101101() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -689,7 +700,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_101110() throws Exception {
+    void build_101110() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -700,7 +711,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_101111() throws Exception {
+    void build_101111() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -711,13 +722,13 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_110000() throws Exception {
+    void build_110000() {
         GitHubSCMNavigator instance = load();
         assertThat(instance.getTraits(), contains(branchDiscoveryTraitItem(true, true)));
     }
 
     @Test
-    public void build_110001() throws Exception {
+    void build_110001() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -725,7 +736,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_110010() throws Exception {
+    void build_110010() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -733,7 +744,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_110011() throws Exception {
+    void build_110011() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -741,7 +752,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_110100() throws Exception {
+    void build_110100() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -749,7 +760,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_110101() throws Exception {
+    void build_110101() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -760,7 +771,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_110110() throws Exception {
+    void build_110110() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -771,7 +782,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_110111() throws Exception {
+    void build_110111() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -782,7 +793,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_111000() throws Exception {
+    void build_111000() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -790,7 +801,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_111001() throws Exception {
+    void build_111001() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -801,7 +812,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_111010() throws Exception {
+    void build_111010() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -812,7 +823,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_111011() throws Exception {
+    void build_111011() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -823,7 +834,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_111100() throws Exception {
+    void build_111100() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -831,7 +842,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_111101() throws Exception {
+    void build_111101() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -842,7 +853,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_111110() throws Exception {
+    void build_111110() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -853,7 +864,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void build_111111() throws Exception {
+    void build_111111() {
         GitHubSCMNavigator instance = load();
         assertThat(
                 instance.getTraits(),
@@ -865,7 +876,7 @@ public class GitHubSCMNavigatorTraitsTest {
 
     @WithoutJenkins
     @Test
-    public void given__legacyCode__when__constructor_cloud__then__discoveryTraitDefaults() throws Exception {
+    void given__legacyCode__when__constructor_cloud__then__discoveryTraitDefaults() {
         GitHubSCMNavigator instance =
                 new GitHubSCMNavigator(null, "cloudbeers", "bcaef157-f105-407f-b150-df7722eab6c1", "SAME");
         assertThat(instance.id(), is("https://api.github.com::cloudbeers"));
@@ -889,7 +900,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode__when__constructor_server__then__discoveryTraitDefaults() throws Exception {
+    void given__legacyCode__when__constructor_server__then__discoveryTraitDefaults() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator(
                 "https://github.test/api/v3",
                 "cloudbeers",
@@ -917,14 +928,14 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__instance__when__setTraits_empty__then__traitsEmpty() {
+    void given__instance__when__setTraits_empty__then__traitsEmpty() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(new SCMTrait[0]);
         assertThat(instance.getTraits(), is(Collections.<SCMTrait<?>>emptyList()));
     }
 
     @Test
-    public void given__instance__when__setTraits__then__traitsSet() {
+    void given__instance__when__setTraits__then__traitsSet() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(
                 Arrays.asList(new BranchDiscoveryTrait(BranchDiscoveryTrait.EXCLUDE_PRS), new SSHCheckoutTrait(null)));
@@ -934,21 +945,21 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__instance__when__setCredentials_empty__then__credentials_null() {
+    void given__instance__when__setCredentials_empty__then__credentials_null() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setCredentialsId("");
         assertThat(instance.getCredentialsId(), is(nullValue()));
     }
 
     @Test
-    public void given__instance__when__setCredentials_null__then__credentials_null() {
+    void given__instance__when__setCredentials_null__then__credentials_null() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setCredentialsId("");
         assertThat(instance.getCredentialsId(), is(nullValue()));
     }
 
     @Test
-    public void given__instance__when__setCredentials__then__credentials_set() {
+    void given__instance__when__setCredentials__then__credentials_set() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setCredentialsId("test");
         assertThat(instance.getCredentialsId(), is("test"));
@@ -956,28 +967,28 @@ public class GitHubSCMNavigatorTraitsTest {
 
     @WithoutJenkins
     @Test
-    public void given__instance__when__setApiUri_null__then__set__to_api_github_com() {
+    void given__instance__when__setApiUri_null__then__set__to_api_github_com() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setApiUri(null);
         assertThat(instance.getApiUri(), is("https://api.github.com"));
     }
 
     @Test
-    public void given__instance__when__setApiUri_value__then__valueApplied() {
+    void given__instance__when__setApiUri_value__then__valueApplied() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setApiUri("https://github.test");
         assertThat(instance.getApiUri(), is("https://github.test"));
     }
 
     @Test
-    public void given__instance__when__setApiUri_cloudUrl__then__valueApplied() {
+    void given__instance__when__setApiUri_cloudUrl__then__valueApplied() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setApiUri("https://github.com");
         assertThat(instance.getApiUri(), is("https://github.com"));
     }
 
     @Test
-    public void given__legacyCode__when__setPattern_default__then__patternSetAndTraitRemoved() {
+    void given__legacyCode__when__setPattern_default__then__patternSetAndTraitRemoved() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
@@ -991,7 +1002,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode__when__setPattern_custom__then__patternSetAndTraitAdded() {
+    void given__legacyCode__when__setPattern_custom__then__patternSetAndTraitAdded() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(Arrays.asList(new BranchDiscoveryTrait(true, false), new SSHCheckoutTrait("dummy")));
         assertThat(instance.getPattern(), is(".*"));
@@ -1002,7 +1013,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode__when__setPattern_custom__then__patternSetAndTraitUpdated() {
+    void given__legacyCode__when__setPattern_custom__then__patternSetAndTraitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(new SCMTrait[] {
             new BranchDiscoveryTrait(true, false), new RegexSCMSourceFilterTrait("job.*"), new SSHCheckoutTrait("dummy")
@@ -1016,28 +1027,28 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode__when__checkoutCredentials_SAME__then__noTraitAdded() {
+    void given__legacyCode__when__checkoutCredentials_SAME__then__noTraitAdded() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator(null, "test", "scan", GitHubSCMSource.DescriptorImpl.SAME);
         assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMNavigator.DescriptorImpl.SAME));
         assertThat(instance.getTraits(), not(hasItem(instanceOf(SSHCheckoutTrait.class))));
     }
 
     @Test
-    public void given__legacyCode__when__checkoutCredentials_null__then__traitAdded_ANONYMOUS() {
+    void given__legacyCode__when__checkoutCredentials_null__then__traitAdded_ANONYMOUS() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator(null, "test", "scan", null);
         assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMSource.DescriptorImpl.ANONYMOUS));
         assertThat(instance.getTraits(), hasItem(sshCheckoutTraitItem(nullValue())));
     }
 
     @Test
-    public void given__legacyCode__when__checkoutCredentials_value__then__traitAdded() {
+    void given__legacyCode__when__checkoutCredentials_value__then__traitAdded() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator(null, "test", "scan", "value");
         assertThat(instance.getCheckoutCredentialsId(), is("value"));
         assertThat(instance.getTraits(), hasItem(sshCheckoutTraitItem("value")));
     }
 
     @Test
-    public void given__legacyCode__when__checkoutCredentials_ANONYMOUS__then__traitAdded() {
+    void given__legacyCode__when__checkoutCredentials_ANONYMOUS__then__traitAdded() {
         GitHubSCMNavigator instance =
                 new GitHubSCMNavigator(null, "test", "scan", GitHubSCMSource.DescriptorImpl.ANONYMOUS);
         assertThat(instance.getCheckoutCredentialsId(), is(GitHubSCMSource.DescriptorImpl.ANONYMOUS));
@@ -1045,7 +1056,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode_withoutExcludes__when__setIncludes_default__then__traitRemoved() {
+    void given__legacyCode_withoutExcludes__when__setIncludes_default__then__traitRemoved() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
@@ -1061,7 +1072,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode_withoutExcludes__when__setIncludes_value__then__traitUpdated() {
+    void given__legacyCode_withoutExcludes__when__setIncludes_value__then__traitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(new SCMTrait[] {
             new BranchDiscoveryTrait(true, false),
@@ -1078,7 +1089,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode_withoutTrait__when__setIncludes_value__then__traitAdded() {
+    void given__legacyCode_withoutTrait__when__setIncludes_value__then__traitAdded() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(
                 Arrays.asList(new BranchDiscoveryTrait(true, false), new RegexSCMSourceFilterTrait("job.*")));
@@ -1092,7 +1103,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode_withExcludes__when__setIncludes_default__then__traitUpdated() {
+    void given__legacyCode_withExcludes__when__setIncludes_default__then__traitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
@@ -1108,7 +1119,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode_withExcludes__when__setIncludes_value__then__traitUpdated() {
+    void given__legacyCode_withExcludes__when__setIncludes_value__then__traitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(new SCMTrait[] {
             new BranchDiscoveryTrait(true, false),
@@ -1125,7 +1136,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode_withoutIncludes__when__setExcludes_default__then__traitRemoved() {
+    void given__legacyCode_withoutIncludes__when__setExcludes_default__then__traitRemoved() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
@@ -1141,7 +1152,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode_withoutIncludes__when__setExcludes_value__then__traitUpdated() {
+    void given__legacyCode_withoutIncludes__when__setExcludes_value__then__traitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
@@ -1157,7 +1168,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode_withoutTrait__when__setExcludes_value__then__traitAdded() {
+    void given__legacyCode_withoutTrait__when__setExcludes_value__then__traitAdded() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(
                 Arrays.asList(new BranchDiscoveryTrait(true, false), new RegexSCMSourceFilterTrait("job.*")));
@@ -1171,7 +1182,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode_withIncludes__when__setExcludes_default__then__traitUpdated() {
+    void given__legacyCode_withIncludes__when__setExcludes_default__then__traitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
@@ -1187,7 +1198,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode_withIncludes__when__setExcludes_value__then__traitUpdated() {
+    void given__legacyCode_withIncludes__when__setExcludes_value__then__traitUpdated() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(Arrays.asList(
                 new BranchDiscoveryTrait(true, false),
@@ -1203,7 +1214,7 @@ public class GitHubSCMNavigatorTraitsTest {
     }
 
     @Test
-    public void given__legacyCode__when__setBuildOriginBranch__then__traitsMaintained() {
+    void given__legacyCode__when__setBuildOriginBranch__then__traitsMaintained() {
         GitHubSCMNavigator instance = new GitHubSCMNavigator("test");
         instance.setTraits(Collections.emptyList());
         assertThat(instance.getTraits(), is(empty()));

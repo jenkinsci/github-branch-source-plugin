@@ -23,29 +23,35 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
 import java.util.List;
 import jenkins.branch.BranchSource;
 import jenkins.scm.api.trait.SCMSourceTrait;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.jvnet.hudson.test.For;
 import org.jvnet.hudson.test.JenkinsRule;
+import org.jvnet.hudson.test.junit.jupiter.WithJenkins;
 
 @For(ForkPullRequestDiscoveryTrait.class)
-public class ForkPullRequestDiscoveryTrait2Test {
+@WithJenkins
+class ForkPullRequestDiscoveryTrait2Test {
 
-    @Rule
-    public JenkinsRule r = new JenkinsRule();
+    private JenkinsRule r;
 
-    @Ignore(
+    @BeforeEach
+    void beforeEach(JenkinsRule rule) {
+        r = rule;
+    }
+
+    @Disabled(
             "These tests fail because users get automatically migrated to URL-based configuration if they re-save the GitHubSCMSource")
     @Test
-    public void configRoundtrip() throws Exception {
+    void configRoundtrip() throws Exception {
         WorkflowMultiBranchProject p = r.createProject(WorkflowMultiBranchProject.class);
 
         assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustNobody(), false);
@@ -55,13 +61,17 @@ public class ForkPullRequestDiscoveryTrait2Test {
     }
 
     @Test
-    public void configRoundtripWithRawUrl() throws Exception {
+    void configRoundtripWithRawUrl() throws Exception {
         WorkflowMultiBranchProject p = r.createProject(WorkflowMultiBranchProject.class);
-
-        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustNobody(), true);
-        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustEveryone(), true);
-        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustContributors(), true);
-        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustPermission(), true);
+        try {
+            assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustNobody(), true);
+            assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustEveryone(), true);
+            assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustContributors(), true);
+            assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustPermission(), true);
+        } finally {
+            // branch indexing may still be running which causes problems during shutdown
+            p.delete();
+        }
     }
 
     private void assertRoundTrip(

@@ -11,13 +11,12 @@ import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.hamcrest.number.BigDecimalCloseTo;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class GithubAppCredentialsAppInstallationTokenTest {
+class GithubAppCredentialsAppInstallationTokenTest {
 
     @Test
-    public void testAppInstallationTokenStale() throws Exception {
-
+    void testAppInstallationTokenStale() throws Exception {
         GitHubAppCredentials.AppInstallationToken token;
         long now;
 
@@ -85,7 +84,7 @@ public class GithubAppCredentialsAppInstallationTokenTest {
 
     private static Matcher<Long> closeTo(long operand, long error) {
         BigDecimalCloseTo delegate = new BigDecimalCloseTo(new BigDecimal(operand), new BigDecimal(error));
-        return new TypeSafeMatcher<Long>(Long.class) {
+        return new TypeSafeMatcher<>(Long.class) {
             @Override
             protected boolean matchesSafely(Long item) {
                 return delegate.matches(new BigDecimal(item));
