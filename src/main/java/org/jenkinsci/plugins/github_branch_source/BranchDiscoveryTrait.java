@@ -61,7 +61,16 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
     /** All branches. */
     public static final int ALL_BRANCHES = 3;
 
-    /** The strategy encoded as a bit-field. */
+    /**
+     * The strategy encoded as a bit-field.
+     *
+     * <dl>
+     *   <dt>Bit 0
+     *   <dd>Build branches that are not filed as a PR
+     *   <dt>Bit 1
+     *   <dd>Build branches that are filed as a PR
+     * </dl>
+     */
     private final int strategyId;
 
     /**
@@ -221,6 +230,15 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
                     if (headRepo != null // head repo can be null if the PR is from a repo that has been deleted
                             && p.getBase().getRepository().getFullName().equalsIgnoreCase(headRepo.getFullName())
                             && p.getHead().getRef().equals(head.getName())) {
+                        // Log that we ignore the branch and why.
+                        // End the format with newline to avoid logging this
+                        // result blocked together with a later indexed branch.
+                        request.listener()
+                                .getLogger()
+                                .format(
+                                        "Ignoring %s because current strategy excludes branches "
+                                                + "that ARE also filed as a pull request%n",
+                                        head.toString());
                         return true;
                     }
                 }
@@ -243,6 +261,15 @@ public class BranchDiscoveryTrait extends SCMSourceTrait {
                         return false;
                     }
                 }
+                // Log that we ignore the branch and why.
+                // End the format with newline to avoid logging this
+                // result blocked together with a later indexed branch.
+                request.listener()
+                        .getLogger()
+                        .format(
+                                "Ignoring %s because current strategy excludes branches "
+                                        + "that ARE NOT also filed as a pull request%n",
+                                head.toString());
                 return true;
             }
             return false;
