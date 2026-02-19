@@ -22,12 +22,21 @@
   </f:entry>
 
   <f:advanced>
-    <f:entry title="${%Owner}" field="owner">
-      <f:textbox/>
+    <f:dropdownDescriptorSelector title="${%Repository access strategy}" field="repositoryAccessStrategy" default="${descriptor.defaultRepositoryAccessStrategy}" />
+    <f:entry title="${%Default permissions strategy}" field="defaultPermissionsStrategy">
+      <f:enum default="INHERIT_ALL">
+        ${it.displayName}
+      </f:enum>
     </f:entry>
   </f:advanced>
 
-  <f:validateButton
-      title="${%Test Connection}" progress="${%Testing...}"
-      method="testConnection" with="appID,apiUri,privateKey,owner" />
+  <f:section title="Test Connection">
+    <f:entry title="GitHub organization to test against" field="testConnectionOwner">
+      <f:textbox/>
+    </f:entry>
+    <f:validateButton
+        title="${%Test Connection}" progress="${%Testing...}"
+        method="testConnection" with="appID,apiUri,privateKey,mode,testConnectionOwner" />
+  </f:section>
+
 </j:jelly>

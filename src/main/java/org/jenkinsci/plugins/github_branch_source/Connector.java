@@ -27,8 +27,6 @@ package org.jenkinsci.plugins.github_branch_source;
 import static java.util.logging.Level.FINE;
 import static java.util.logging.Level.WARNING;
 
-import com.cloudbees.plugins.credentials.CredentialsMatcher;
-import com.cloudbees.plugins.credentials.CredentialsMatchers;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
 import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
@@ -75,7 +73,7 @@ import jenkins.scm.api.SCMSourceOwner;
 import jenkins.util.SystemProperties;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
 import org.kohsuke.github.GHAppInstallationToken;
@@ -131,12 +129,11 @@ public class Connector {
     public static ListBoxModel listScanCredentials(@CheckForNull Item context, String apiUri) {
         return new StandardListBoxModel()
                 .includeEmptyValue()
-                .includeMatchingAs(
-                        context instanceof Queue.Task ? ((Queue.Task) context).getDefaultAuthentication() : ACL.SYSTEM,
+                .includeAs(
+                        context instanceof Queue.Task t ? t.getDefaultAuthentication2() : ACL.SYSTEM2,
                         context,
-                        StandardUsernameCredentials.class,
-                        githubDomainRequirements(apiUri),
-                        githubScanCredentialsMatcher());
+                        StandardUsernamePasswordCredentials.class,
+                        githubDomainRequirements(apiUri));
     }
 
     /**
@@ -227,7 +224,7 @@ public class Connector {
                     } finally {
                         Connector.release(connector);
                     }
-                } catch (IllegalArgumentException | InvalidPrivateKeyException e) {
+                } catch (IllegalArgumentException | IllegalStateException | InvalidPrivateKeyException e) {
                     String msg = "Exception validating credentials " + CredentialsNameProvider.name(credentials);
                     LOGGER.log(Level.WARNING, msg, e);
                     return FormValidation.error(e, msg);
@@ -261,8 +258,7 @@ public class Connector {
     }
 
     /**
-     * Resolves the specified scan credentials in the specified context for use against the specified
-     * API endpoint.
+     * Retained for binary compatibility only.
      *
      * @param context the context.
      * @param apiUri the API endpoint.
@@ -281,6 +277,9 @@ public class Connector {
      * Resolves the specified scan credentials in the specified context for use against the specified
      * API endpoint.
      *
+     * <p>Callers of this method must not expose the credentials to unprivileged users for
+     * uncontrolled usage.
+     *
      * @param context the context.
      * @param apiUri the API endpoint.
      * @param scanCredentialsId the credentials to resolve.
@@ -295,23 +294,29 @@ public class Connector {
             @CheckForNull String repoOwner) {
         if (Util.fixEmpty(scanCredentialsId) == null) {
             return null;
-        } else {
-            StandardCredentials c = CredentialsMatchers.firstOrNull(
-                    CredentialsProvider.lookupCredentials(
-                            StandardUsernameCredentials.class,
-                            context,
-                            context instanceof Queue.Task
-                                    ? ((Queue.Task) context).getDefaultAuthentication()
-                                    : ACL.SYSTEM,
-                            githubDomainRequirements(apiUri)),
-                    CredentialsMatchers.allOf(
-                            CredentialsMatchers.withId(scanCredentialsId), githubScanCredentialsMatcher()));
-            if (c instanceof GitHubAppCredentials && repoOwner != null) {
-                return ((GitHubAppCredentials) c).withOwner(repoOwner);
-            } else {
-                return c;
-            }
         }
+        var c = CredentialsProvider.findCredentialByIdInItem(
+                scanCredentialsId,
+                StandardUsernamePasswordCredentials.class,
+                context,
+                context instanceof Queue.Task t ? t.getDefaultAuthentication2() : ACL.SYSTEM2,
+                githubDomainRequirements(apiUri));
+        if (c instanceof GitHubAppCredentials && repoOwner != null) {
+            // Note: We considered adding an overload so that all existing callers in this plugin could
+            // specify an exact repository and granular permission, but decided against it. This method
+            // should only be called in contexts where the credential could not be exposed to users
+            // other than those who were able to create/configure whatever is using the credential in
+            // the first place. Those users would be able to steal the GitHub App refresh JWT, which
+            // they can then use to generate their own credentials, so dynamic limitations in this
+            // context have no benefits, and would unnecessarily increase the size of the connection
+            // cache because the cache keys are distinct for every context.
+            final var usageContext = GitHubAppUsageContext.builder()
+                    .inferredOwner(repoOwner)
+                    .trust()
+                    .build();
+            return ((GitHubAppCredentials) c).contextualize(usageContext);
+        }
+        return c;
     }
 
     /**
@@ -322,6 +327,7 @@ public class Connector {
      * @return the {@link StandardCredentials} or {@code null}
      * @deprecated use {@link #listCheckoutCredentials(Item, String)}
      */
+    @Deprecated
     @NonNull
     public static ListBoxModel listCheckoutCredentials(@CheckForNull SCMSourceOwner context, String apiUri) {
         return listCheckoutCredentials((Item) context, apiUri);
@@ -342,7 +348,7 @@ public class Connector {
         result.add("- same as scan credentials -", GitHubSCMSource.DescriptorImpl.SAME);
         result.add("- anonymous -", GitHubSCMSource.DescriptorImpl.ANONYMOUS);
         return result.includeMatchingAs(
-                context instanceof Queue.Task ? ((Queue.Task) context).getDefaultAuthentication() : ACL.SYSTEM,
+                context instanceof Queue.Task t ? t.getDefaultAuthentication2() : ACL.SYSTEM2,
                 context,
                 StandardUsernameCredentials.class,
                 githubDomainRequirements(apiUri),
@@ -369,12 +375,15 @@ public class Connector {
             password = null;
             gitHubAppCredentials = (GitHubAppCredentials) credentials;
             hash = Util.getDigestOf(gitHubAppCredentials.getAppID()
-                    + gitHubAppCredentials.getOwner()
+                    + gitHubAppCredentials.getAccessibleRepositories()
+                    + gitHubAppCredentials.getPermissions()
                     + gitHubAppCredentials.getPrivateKey().getPlainText()
                     + SALT); // want to ensure pooling by credential
             authHash = Util.getDigestOf(gitHubAppCredentials.getAppID()
                     + "::"
-                    + gitHubAppCredentials.getOwner()
+                    + gitHubAppCredentials.getAccessibleRepositories()
+                    + "::"
+                    + gitHubAppCredentials.getPermissions()
                     + "::"
                     + gitHubAppCredentials.getPrivateKey().getPlainText()
                     + "::"
@@ -504,11 +513,6 @@ public class Connector {
                 LOGGER.log(WARNING, "There is a mismatch in connect and release calls.", e);
             }
         }
-    }
-
-    private static CredentialsMatcher githubScanCredentialsMatcher() {
-        // TODO OAuth credentials
-        return CredentialsMatchers.anyOf(CredentialsMatchers.instanceOf(StandardUsernamePasswordCredentials.class));
     }
 
     static List<DomainRequirement> githubDomainRequirements(String apiUri) {

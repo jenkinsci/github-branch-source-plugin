@@ -1,0 +1,10 @@
+[
+  {
+    "name": "master",
+    "commit": {
+      "sha": "ba1fdaa6c2088cecea85333e763710cd3f39688f",
+      "url": "https://api.github.com/repos/cloudbeers/multibranch-demo/commits/ba1fdaa6c2088cecea85333e763710cd3f39688f"
+    },
+    "protected": false
+  }
+]

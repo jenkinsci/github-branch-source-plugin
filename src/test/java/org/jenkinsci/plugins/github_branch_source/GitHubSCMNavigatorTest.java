@@ -25,9 +25,13 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsScope;
@@ -37,6 +41,7 @@ import com.cloudbees.plugins.credentials.impl.BaseStandardCredentials;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
+import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.model.TaskListener;
 import hudson.model.User;
@@ -46,6 +51,7 @@ import hudson.security.AuthorizationStrategy;
 import hudson.security.SecurityRealm;
 import hudson.util.ListBoxModel;
 import hudson.util.LogTaskListener;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -65,6 +71,7 @@ import jenkins.scm.impl.NoOpProjectObserver;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+import org.jvnet.hudson.test.Issue;
 import org.jvnet.hudson.test.MockAuthorizationStrategy;
 import org.jvnet.hudson.test.MockFolder;
 import org.mockito.Mock;
@@ -75,8 +82,16 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     @Mock
     private SCMSourceOwner scmSourceOwner;
 
-    private BaseStandardCredentials credentials = new UsernamePasswordCredentialsImpl(
-            CredentialsScope.GLOBAL, "authenticated-user", null, "git-user", "git-secret");
+    private BaseStandardCredentials credentials;
+
+    {
+        try {
+            credentials = new UsernamePasswordCredentialsImpl(
+                    CredentialsScope.GLOBAL, "authenticated-user", null, "git-user", "git-secret");
+        } catch (Descriptor.FormException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private GitHubSCMNavigator navigator;
 
@@ -219,6 +234,32 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
         setCredentials(Collections.singletonList(credentials));
         navigator = navigatorForRepoOwner("stephenc", credentials.getId());
         navigator.setTraits(Collections.singletonList(new TopicsTrait("cool, great,was-awesome")));
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(observer);
+
+        assertEquals(projectNames, Collections.singleton("yolo-archived"));
+    }
+
+    @Test
+    public void fetchRepos_BelongingToAuthenticatedUser_ExcludeByTopic() throws Exception {
+        setCredentials(Collections.singletonList(credentials));
+        navigator = navigatorForRepoOwner("stephenc", credentials.getId());
+        navigator.setTraits(Collections.singletonList(new TopicsTrait("-awesome")));
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = getObserver(projectNames);
+
+        navigator.visitSources(observer);
+
+        assertEquals(projectNames, Collections.singleton("yolo-archived"));
+    }
+
+    @Test
+    public void fetchRepos_BelongingToAuthenticatedUser_ExcludeAndFilterByTopic() throws Exception {
+        setCredentials(Collections.singletonList(credentials));
+        navigator = navigatorForRepoOwner("stephenc", credentials.getId());
+        navigator.setTraits(Collections.singletonList(new TopicsTrait("-awesome,octocat")));
         final Set<String> projectNames = new HashSet<>();
         final SCMSourceObserver observer = getObserver(projectNames);
 
@@ -426,6 +467,42 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     }
 
     @Test
+    public void fetchBadRepo() throws Exception {
+        final Set<String> projectNames = new HashSet<>();
+        final SCMSourceObserver observer = new SCMSourceObserver() {
+            @NonNull
+            @Override
+            public SCMSourceOwner getContext() {
+                return scmSourceOwner;
+            }
+
+            @NonNull
+            @Override
+            public TaskListener getListener() {
+                return new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO);
+            }
+
+            @NonNull
+            @Override
+            public ProjectObserver observe(@NonNull String projectName) throws IllegalArgumentException, IOException {
+                if ("basic".equalsIgnoreCase(projectName)) {
+                    throw new IOException("Failed to get repo basic");
+                }
+                projectNames.add(projectName);
+                return new NoOpProjectObserver();
+            }
+
+            @Override
+            public void addAttribute(@NonNull String key, @Nullable Object value)
+                    throws IllegalArgumentException, ClassCastException {}
+        };
+
+        navigator.visitSources(SCMSourceObserver.filter(observer, "basic", "yolo"));
+
+        assertThat(projectNames, containsInAnyOrder("yolo"));
+    }
+
+    @Test
     public void fetchActions() throws Exception {
         assertThat(
                 navigator.fetchActions(Mockito.mock(SCMNavigatorOwner.class), null, null),
@@ -502,6 +579,30 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
             r.jenkins.setAuthorizationStrategy(strategy);
             r.jenkins.remove(dummy);
         }
+    }
+
+    @Issue("JENKINS-76235")
+    @Test
+    public void afterSaveWithGitHubAppOwnerMismatch() {
+        // Given GitHub App credentials
+        githubApi.stubFor(get(urlEqualTo("/app"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"id\":54321,\"name\":\"test-app\"}")));
+        githubApi.stubFor(get(urlEqualTo("/app/installations"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("[{\"id\":654321,\"account\":{\"login\":\"corp\"},\"app_id\":54321}]")));
+        GitHubAppCredentials appCredentials = GitHubApp.createCredentials("test-app-creds");
+        appCredentials.setApiUri(githubApi.baseUrl());
+        // And using a owner that doesn't have the application installed
+        appCredentials.setOwner("org-or-user-without-app");
+        setCredentials(Collections.singletonList(appCredentials));
+
+        // When creating a SCMNavigator and calling afterSave
+        navigator = navigatorForRepoOwner("corp", appCredentials.getId());
+        assertDoesNotThrow(() -> navigator.afterSave(Mockito.mock(SCMNavigatorOwner.class)));
+        // Then no exception
     }
 
     private SCMSourceObserver getObserver(Collection<String> names) {

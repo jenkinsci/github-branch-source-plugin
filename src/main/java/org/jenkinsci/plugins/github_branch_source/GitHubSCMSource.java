@@ -26,10 +26,11 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import static hudson.Functions.isWindows;
 import static hudson.model.Items.XSTREAM2;
-import static org.apache.commons.lang.StringUtils.isBlank;
-import static org.apache.commons.lang.StringUtils.removeEnd;
+import static org.apache.commons.lang3.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.removeEnd;
 import static org.jenkinsci.plugins.github_branch_source.Connector.isCredentialValid;
 import static org.jenkinsci.plugins.github_branch_source.GitHubSCMBuilder.API_V3;
+import static org.jenkinsci.plugins.github_branch_source.GitHubSCMBuilder.HTTPS;
 
 import com.cloudbees.jenkins.GitHubWebHook;
 import com.cloudbees.plugins.credentials.CredentialsNameProvider;
@@ -57,6 +58,7 @@ import hudson.scm.SCM;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import hudson.util.LogTaskListener;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.Closeable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -84,7 +86,6 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.servlet.http.HttpServletResponse;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.plugins.git.GitTagSCMRevision;
@@ -116,7 +117,7 @@ import jenkins.scm.impl.trait.Discovery;
 import jenkins.scm.impl.trait.Selection;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
 import jenkins.util.SystemProperties;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.github.config.GitHubServerConfig;
@@ -272,6 +273,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /** The cache of {@link ObjectMetadataAction} instances for each open PR. */
     @NonNull
     private transient /*effectively final*/ Map<Integer, ContributorMetadataAction> pullRequestContributorCache;
+    /** The cache of the credentials object */
+    @CheckForNull
+    private transient volatile StandardCredentials credentials;
 
     /**
      * Used during upgrade from 1.x to 2.2.0+ only.
@@ -318,6 +322,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     }
 
     /**
+     * Constructor that passes a looked up credentials object.
+     *
+     * @param repoOwner the repository owner.
+     * @param repository the repository name.
+     * @param credentials a {@link com.cloudbees.plugins.credentials.common.StandardCredentials}
+     */
+    @Restricted(NoExternalUse.class)
+    GitHubSCMSource(String repoOwner, String repository, StandardCredentials credentials) {
+        this(repoOwner, repository, null, false);
+        this.credentials = credentials;
+    }
+
+    /**
      * Legacy constructor.
      *
      * @param repoOwner the repository owner.
@@ -360,6 +377,15 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         if (!DescriptorImpl.SAME.equals(checkoutCredentialsId)) {
             traits.add(new SSHCheckoutTrait(checkoutCredentialsId));
         }
+    }
+
+    @CheckForNull
+    @Restricted(NoExternalUse.class)
+    private StandardCredentials getCredentials(@CheckForNull Item context, boolean forceRefresh) {
+        if (credentials == null || forceRefresh) {
+            credentials = Connector.lookupScanCredentials(context, getApiUri(), getCredentialsId(), getRepoOwner());
+        }
+        return credentials;
     }
 
     @Restricted(NoExternalUse.class)
@@ -598,8 +624,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /** {@inheritDoc} */
     @Override
     public String getRemote() {
-        return GitHubSCMBuilder.uriResolver(getOwner(), apiUri, credentialsId)
-                .getRepositoryUri(apiUri, repoOwner, repository);
+        // Only HTTPS is applicable to the source remote with Username / Password credentials
+        return HTTPS.getRepositoryUri(apiUri, repoOwner, repository);
     }
 
     /** {@inheritDoc} */
@@ -619,7 +645,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Restricted(DoNotUse.class)
     @RestrictedSince("2.2.0")
     public RepositoryUriResolver getUriResolver() {
-        return GitHubSCMBuilder.uriResolver(getOwner(), apiUri, credentialsId);
+        return HTTPS;
     }
 
     @Restricted(NoExternalUse.class)
@@ -977,8 +1003,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             @CheckForNull SCMHeadEvent<?> event,
             @NonNull final TaskListener listener)
             throws IOException, InterruptedException {
-        StandardCredentials credentials =
-                Connector.lookupScanCredentials((Item) getOwner(), apiUri, credentialsId, repoOwner);
+        // In case we are in an Organization Scan - i.e. (observer instanceof SCMHeadObserver.Any) - use the cached
+        // credentials
+        // https://github.com/jenkinsci/branch-api-plugin/blob/2.1169.va_f810c56e895/src/main/java/jenkins/branch/MultiBranchProjectFactory.java#L262
+        StandardCredentials credentials = getCredentials(getOwner(), !(observer instanceof SCMHeadObserver.Any));
         // Github client and validation
         final GitHub github = Connector.connect(apiUri, credentials);
         try {
@@ -1025,6 +1053,19 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         }
                     });
 
+                    if (request.isFetchPRs()) {
+                        // JENKINS-56996 / JENKINS-73791
+                        // PRs are one the most error prone areas for scans
+                        // Branches and tags are contained only the current repo, PRs go across forks
+                        // FileNotFoundException can occur in a number of situations
+                        // When this happens, it is not ideal behavior but it is better to let the PR be
+                        // orphaned
+                        // and the orphan strategy control the result than for this error to stop scanning
+                        // (For Org scanning this is particularly important.)
+                        // If some more general IO exception is thrown, we will still fail.
+                        validatePullRequests(request);
+                    }
+
                     if (request.isFetchBranches()
                             && !request.isComplete()
                             && this.shouldRetrieve(observer, event, BranchSCMHead.class)) {
@@ -1039,6 +1080,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                             HyperlinkNote.encodeTo(
                                                     resolvedRepositoryUrl + "/tree/" + branchName, branchName));
                             BranchSCMHead head = new BranchSCMHead(branchName);
+
                             if (request.process(
                                     head,
                                     new SCMRevisionImpl(head, branch.getSHA1()),
@@ -1053,8 +1095,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                                         }
                                     },
                                     new CriteriaWitness(listener))) {
-                                listener.getLogger()
-                                        .format("%n  %d branches were processed (query completed)%n", count);
                                 break;
                             }
                         }
@@ -1067,18 +1107,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         int count = 0;
                         int errorCount = 0;
                         Map<Boolean, Set<ChangeRequestCheckoutStrategy>> strategies = request.getPRStrategies();
-
-                        // JENKINS-56996
-                        // PRs are one the most error prone areas for scans
-                        // Branches and tags are contained only the current repo, PRs go across forks
-                        // FileNotFoundException can occur in a number of situations
-                        // When this happens, it is not ideal behavior but it is better to let the PR be
-                        // orphaned
-                        // and the orphan strategy control the result than for this error to stop scanning
-                        // (For Org scanning this is particularly important.)
-                        // If some more general IO exception is thrown, we will still fail.
-
-                        validatePullRequests(request);
                         for (final GHPullRequest pr : request.getPullRequests()) {
                             int number = pr.getNumber();
                             try {
@@ -1279,10 +1307,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Override
     protected Set<String> retrieveRevisions(@NonNull TaskListener listener, Item retrieveContext)
             throws IOException, InterruptedException {
-        StandardCredentials credentials =
-                Connector.lookupScanCredentials(retrieveContext, apiUri, credentialsId, repoOwner);
         // Github client and validation
-        final GitHub github = Connector.connect(apiUri, credentials);
+        final GitHub github = Connector.connect(apiUri, getCredentials(retrieveContext, false));
         try {
             Connector.configureLocalRateLimitChecker(listener, github);
             Set<String> result = new TreeSet<>();
@@ -1385,10 +1411,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Override
     protected SCMRevision retrieve(@NonNull String headName, @NonNull TaskListener listener, Item retrieveContext)
             throws IOException, InterruptedException {
-        StandardCredentials credentials =
-                Connector.lookupScanCredentials(retrieveContext, apiUri, credentialsId, repoOwner);
         // Github client and validation
-        final GitHub github = Connector.connect(apiUri, credentials);
+        final GitHub github = Connector.connect(apiUri, getCredentials(retrieveContext, false));
         try {
             Connector.configureLocalRateLimitChecker(listener, github);
             // Input data validation
@@ -1614,10 +1638,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @NonNull
     @Override
     protected SCMProbe createProbe(@NonNull SCMHead head, @CheckForNull final SCMRevision revision) throws IOException {
-        StandardCredentials credentials =
-                Connector.lookupScanCredentials((Item) getOwner(), apiUri, credentialsId, repoOwner);
         // Github client and validation
-        GitHub github = Connector.connect(apiUri, credentials);
+        GitHub github = Connector.connect(apiUri, getCredentials(getOwner(), false));
         try {
             String fullName = repoOwner + "/" + repository;
             final GHRepository repo = github.getRepository(fullName);
@@ -1632,11 +1654,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @Override
     @CheckForNull
     protected SCMRevision retrieve(SCMHead head, TaskListener listener) throws IOException, InterruptedException {
-        StandardCredentials credentials =
-                Connector.lookupScanCredentials((Item) getOwner(), apiUri, credentialsId, repoOwner);
-
         // Github client and validation
-        GitHub github = Connector.connect(apiUri, credentials);
+        GitHub github = Connector.connect(apiUri, getCredentials(getOwner(), false));
         try {
             try {
                 Connector.checkConnectionValidity(apiUri, listener, credentials, github);
@@ -1783,11 +1802,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 if (StringUtils.isNotBlank(repository)) {
                     String fullName = repoOwner + "/" + repository;
                     LOGGER.log(Level.INFO, "Getting remote pull requests from {0}", fullName);
-                    StandardCredentials credentials =
-                            Connector.lookupScanCredentials((Item) getOwner(), apiUri, credentialsId, repoOwner);
                     LogTaskListener listener = new LogTaskListener(LOGGER, Level.INFO);
                     try {
-                        GitHub github = Connector.connect(apiUri, credentials);
+                        GitHub github = Connector.connect(apiUri, getCredentials(getOwner(), false));
                         try {
                             Connector.configureLocalRateLimitChecker(listener, github);
                             ghRepository = github.getRepository(fullName);
@@ -1952,8 +1969,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         result.add(new GitHubRepoMetadataAction());
         String repository = this.repository;
 
-        StandardCredentials credentials =
-                Connector.lookupScanCredentials((Item) getOwner(), apiUri, credentialsId, repoOwner);
+        StandardCredentials credentials = getCredentials(getOwner(), true);
         GitHub hub = Connector.connect(apiUri, credentials);
         try {
             Connector.checkConnectionValidity(apiUri, listener, credentials, hub);
@@ -2100,8 +2116,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         public FormValidation doValidateRepositoryUrlAndCredentials(
                 @CheckForNull @AncestorInPath Item context,
                 @QueryParameter String repositoryUrl,
-                @QueryParameter String credentialsId,
-                @QueryParameter String repoOwner) {
+                @QueryParameter String credentialsId) {
             if (context == null && !Jenkins.get().hasPermission(Jenkins.MANAGE)
                     || context != null && !context.hasPermission(Item.EXTENDED_READ)) {
                 return FormValidation.error(
@@ -2119,9 +2134,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             } catch (IllegalArgumentException e) {
                 return FormValidation.error(e, e.getMessage());
             }
-
             StandardCredentials credentials =
-                    Connector.lookupScanCredentials(context, info.getApiUri(), credentialsId, repoOwner);
+                    Connector.lookupScanCredentials(context, info.getApiUri(), credentialsId, info.getRepoOwner());
             StringBuilder sb = new StringBuilder();
             try {
                 GitHub github = Connector.connect(info.getApiUri(), credentials);
@@ -2139,7 +2153,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 } finally {
                     Connector.release(github);
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 return FormValidation.error(e, "Error validating repository information. " + sb.toString());
             }
             return FormValidation.ok(sb.toString());
@@ -2556,17 +2570,24 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 GHUser user = null;
                 try {
                     user = pr.getUser();
-                    if (users.containsKey(user.getLogin())) {
-                        // looked up this user already
-                        user = users.get(user.getLogin());
+                    String login = user.getLogin();
+                    if ("copilot".equalsIgnoreCase(login)) {
+                        ContributorMetadataAction contributor =
+                                new ContributorMetadataAction("copilot", "copilot", "copilot@unknown.user");
+                        pullRequestContributorCache.put(number, contributor);
+                        users.put("copilot", user);
+                    } else {
+                        if (users.containsKey(login)) {
+                            // looked up this user already
+                            user = users.get(login);
+                        }
+                        ContributorMetadataAction contributor =
+                                new ContributorMetadataAction(login, user.getName(), user.getEmail());
+                        // store the populated user record now that we have it
+                        pullRequestContributorCache.put(number, contributor);
+                        users.put(login, user);
                     }
-                    ContributorMetadataAction contributor =
-                            new ContributorMetadataAction(user.getLogin(), user.getName(), user.getEmail());
-                    pullRequestContributorCache.put(number, contributor);
-                    // store the populated user record now that we have it
-                    users.put(user.getLogin(), user);
                 } catch (FileNotFoundException e) {
-                    // If file not found for user, warn but keep going
                     request.listener()
                             .getLogger()
                             .format(
@@ -2857,8 +2878,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     .format(
                             "Connecting to %s to obtain list of collaborators for %s/%s%n",
                             apiUri, repoOwner, repository);
-            StandardCredentials credentials =
-                    Connector.lookupScanCredentials((Item) getOwner(), apiUri, credentialsId, repoOwner);
+            StandardCredentials credentials = getCredentials(getOwner(), false);
             // Github client and validation
             try {
                 GitHub github = Connector.connect(apiUri, credentials);
@@ -2922,9 +2942,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                         .format(
                                 "Connecting to %s to check permissions of obtain list of %s for %s/%s%n",
                                 apiUri, username, repoOwner, repository);
-                StandardCredentials credentials =
-                        Connector.lookupScanCredentials((Item) getOwner(), apiUri, credentialsId, repoOwner);
-                github = Connector.connect(apiUri, credentials);
+                github = Connector.connect(apiUri, getCredentials(getOwner(), false));
                 String fullName = repoOwner + "/" + repository;
                 repo = github.getRepository(fullName);
             }

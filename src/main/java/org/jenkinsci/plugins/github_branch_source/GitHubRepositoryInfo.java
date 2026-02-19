@@ -24,13 +24,13 @@
 
 package org.jenkinsci.plugins.github_branch_source;
 
-import static org.apache.commons.lang.StringUtils.removeEnd;
+import static org.apache.commons.lang3.StringUtils.removeEnd;
 import static org.jenkinsci.plugins.github_branch_source.GitHubSCMSource.GITHUB_COM;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import java.net.MalformedURLException;
 import java.net.URL;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Used to compute values for GitHubSCMSource from a user-specified repository URL.
