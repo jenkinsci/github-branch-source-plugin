@@ -30,8 +30,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMFile;
@@ -136,7 +134,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
     public SCMProbeStat stat(@NonNull String path) throws IOException {
         checkOpen();
         try {
- 
+
             GHContent content = repo.getFileContent(path, Constants.R_REFS + ref);
             if (content.isFile()) {
                 return SCMProbeStat.fromType(SCMFile.Type.REGULAR_FILE);
@@ -149,7 +147,7 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
             }
         } catch (FileNotFoundException fnf) {
             // means that does not exist and this is handled below this try/catch block.
-        } 
+        }
         return SCMProbeStat.fromType(SCMFile.Type.NONEXISTENT);
     }
 
