@@ -30,7 +30,6 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.List;
 import java.util.logging.Logger;
 import jenkins.plugins.git.AbstractGitSCMSource;
 import jenkins.scm.api.SCMFile;
@@ -135,26 +134,16 @@ class GitHubSCMProbe extends SCMProbe implements GitHubClosable {
     public SCMProbeStat stat(@NonNull String path) throws IOException {
         checkOpen();
         try {
-            int index = path.lastIndexOf('/') + 1;
-            List<GHContent> directoryContent =
-                    repo.getDirectoryContent(path.substring(0, index), Constants.R_REFS + ref);
-            for (GHContent content : directoryContent) {
-                if (content.getPath().equals(path)) {
-                    if (content.isFile()) {
-                        return SCMProbeStat.fromType(SCMFile.Type.REGULAR_FILE);
-                    } else if (content.isDirectory()) {
-                        return SCMProbeStat.fromType(SCMFile.Type.DIRECTORY);
-                    } else if ("symlink".equals(content.getType())) {
-                        return SCMProbeStat.fromType(SCMFile.Type.LINK);
-                    } else {
-                        return SCMProbeStat.fromType(SCMFile.Type.OTHER);
-                    }
-                }
-            }
-            for (GHContent content : directoryContent) {
-                if (content.getPath().equalsIgnoreCase(path)) {
-                    return SCMProbeStat.fromAlternativePath(content.getPath());
-                }
+
+            GHContent content = repo.getFileContent(path, Constants.R_REFS + ref);
+            if (content.isFile()) {
+                return SCMProbeStat.fromType(SCMFile.Type.REGULAR_FILE);
+            } else if (content.isDirectory()) {
+                return SCMProbeStat.fromType(SCMFile.Type.DIRECTORY);
+            } else if ("symlink".equals(content.getType())) {
+                return SCMProbeStat.fromType(SCMFile.Type.LINK);
+            } else {
+                return SCMProbeStat.fromType(SCMFile.Type.OTHER);
             }
         } catch (FileNotFoundException fnf) {
             // means that does not exist and this is handled below this try/catch block.

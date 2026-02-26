@@ -224,6 +224,9 @@ public enum ApiRateLimitChecker {
         protected boolean checkRateLimit(GHRateLimit.Record rateLimitRecord, long count) throws InterruptedException {
             LocalChecker checker = getLocalChecker();
             if (checker == null) {
+                if (GitHubConfiguration.get() == null) {
+                    return false; // Some tests don't have a GitHubConfiguration, run without throttling.
+                }
                 // If a checker was not configured for this thread, try our best by attempting to get the
                 // URL from the first configured GitHub endpoint, else default to the public endpoint.
                 // NOTE: Defaulting to the public GitHub endpoint is insufficient for those using GitHub
