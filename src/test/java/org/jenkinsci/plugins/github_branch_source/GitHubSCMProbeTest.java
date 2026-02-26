@@ -56,6 +56,8 @@ public class GitHubSCMProbeTest {
         // validate api url
         githubApi.stubFor(get(urlEqualTo("/"))
                 .willReturn(aResponse().withBody("{\"rate_limit_url\": \"https://localhost/placeholder/\"}")));
+
+
     }
 
     void createProbeForPR(int number) throws IOException {
@@ -78,7 +80,7 @@ public class GitHubSCMProbeTest {
     @Issue("JENKINS-54126")
     @Test
     public void statWhenRootIs404() throws Exception {
-        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/?ref=refs%2Fpull%2F1%2Fmerge"))
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/Jenkinsfile?ref=refs%2Fpull%2F1%2Fmerge"))
                 .willReturn(aResponse().withStatus(404))
                 .atPriority(0));
 
@@ -92,6 +94,15 @@ public class GitHubSCMProbeTest {
     public void statWhenDirIs404() throws Exception {
         githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/subdir?ref=refs%2Fpull%2F1%2Fmerge"))
                 .willReturn(aResponse().withStatus(404))
+                .atPriority(0));
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/subdir/Jenkinsfile?ref=refs%2Fpull%2F1%2Fmerge"))
+                .willReturn(aResponse().withStatus(404))
+                .atPriority(0));
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/README.md?ref=refs%2Fpull%2F1%2Fmerge"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBodyFile("body-readme-md.json"))
                 .atPriority(0));
 
         createProbeForPR(1);
@@ -139,6 +150,12 @@ public class GitHubSCMProbeTest {
         // 1.
         assertFalse(probe.stat("README.md").exists());
 
+        githubApi.stubFor(get(urlEqualTo("/repos/cloudbeers/yolo/contents/README.md"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBodyFile("body-readme-md.json"))
+                .atPriority(0));
         // 3.
         // Without 4. this would return false and would stay false.
         assertTrue(probe.stat("README.md").exists());
@@ -152,35 +169,35 @@ public class GitHubSCMProbeTest {
             githubApi.verify(
                     3,
                     RequestPatternBuilder.newRequestPattern(
-                                    RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                                    RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/README.md"))
                             .withHeader("Cache-Control", equalTo("max-age=0"))
                             .withHeader("If-Modified-Since", absent())
                             .withHeader("If-None-Match", absent()));
         } else {
             // 1.
             githubApi.verify(RequestPatternBuilder.newRequestPattern(
-                            RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                            RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/README.md"))
                     .withHeader("Cache-Control", equalTo("max-age=0"))
                     .withHeader("If-None-Match", absent())
                     .withHeader("If-Modified-Since", absent()));
 
             // 3.
             githubApi.verify(RequestPatternBuilder.newRequestPattern(
-                            RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                            RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/README.md"))
                     .withHeader("Cache-Control", containing("max-age"))
                     .withHeader("If-None-Match", absent())
                     .withHeader("If-Modified-Since", containing("GMT")));
 
             // 4.
             githubApi.verify(RequestPatternBuilder.newRequestPattern(
-                            RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                            RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/README.md"))
                     .withHeader("Cache-Control", equalTo("no-cache"))
                     .withHeader("If-Modified-Since", absent())
                     .withHeader("If-None-Match", absent()));
 
             // 5.
             githubApi.verify(RequestPatternBuilder.newRequestPattern(
-                            RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
+                            RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/README.md"))
                     .withHeader("Cache-Control", equalTo("max-age=0"))
                     .withHeader("If-None-Match", equalTo("\"d3be5b35b8d84ef7ac03c0cc9c94ed81\"")));
         }
