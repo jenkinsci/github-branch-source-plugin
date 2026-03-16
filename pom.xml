@@ -36,6 +36,7 @@
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.528</jenkins.baseline>
     <jenkins.version>2.539</jenkins.version>
+    <hpi.bundledArtifacts>natural-comparator</hpi.bundledArtifacts>
     <spotless.check.skip>false</spotless.check.skip>
     <useBeta>true</useBeta>
   </properties>
@@ -76,6 +77,11 @@
     <dependency>
       <groupId>io.jenkins.plugins</groupId>
       <artifactId>okhttp-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>net.grey-panther</groupId>
+      <artifactId>natural-comparator</artifactId>
+      <version>1.1</version>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>

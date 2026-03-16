@@ -117,6 +117,7 @@ import jenkins.scm.impl.trait.Discovery;
 import jenkins.scm.impl.trait.Selection;
 import jenkins.scm.impl.trait.WildcardSCMHeadFilterTrait;
 import jenkins.util.SystemProperties;
+import net.greypanther.natsort.SimpleNaturalComparator;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.jgit.lib.Constants;
 import org.jenkinsci.Symbol;
@@ -2709,7 +2710,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                     // This loses lazy-loading but the GitHub REST API does not support
                     // reverse ordering on refs, so eager collection is unavoidable.
                     List<GHRef> allTags = collectTags(iterable);
-                    Collections.reverse(allTags);
+                    allTags.sort(Comparator.comparing(
+                            (GHRef ref) -> ref.getRef(),
+                            SimpleNaturalComparator.getInstance().reversed()));
                     return allTags;
                 }
 
