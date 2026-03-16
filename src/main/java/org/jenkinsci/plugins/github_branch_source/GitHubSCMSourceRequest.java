@@ -59,6 +59,8 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     private final boolean fetchBranches;
     /** {@code true} if tag details need to be fetched. */
     private final boolean fetchTags;
+    /** {@code true} if tags should be scanned in descending order. */
+    private final boolean tagDescendingOrder;
     /** {@code true} if origin pull requests need to be fetched. */
     private final boolean fetchOriginPRs;
     /** {@code true} if fork pull requests need to be fetched. */
@@ -124,6 +126,7 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
         super(source, context, listener);
         fetchBranches = context.wantBranches();
         fetchTags = context.wantTags();
+        tagDescendingOrder = context.isTagDescendingOrder();
         fetchOriginPRs = context.wantOriginPRs();
         fetchForkPRs = context.wantForkPRs();
         originPRStrategies = fetchOriginPRs && !context.originPRStrategies().isEmpty()
@@ -175,6 +178,15 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
      */
     public final boolean isFetchTags() {
         return fetchTags;
+    }
+
+    /**
+     * Returns {@code true} if tags should be scanned in descending order.
+     *
+     * @return {@code true} if tags should be scanned in descending order.
+     */
+    public final boolean isTagDescendingOrder() {
+        return tagDescendingOrder;
     }
 
     /**

@@ -39,6 +39,7 @@ import jenkins.scm.impl.TagSCMHeadCategory;
 import jenkins.scm.impl.trait.Discovery;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * A {@link Discovery} trait for GitHub that will discover tags on the repository.
@@ -46,15 +47,27 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * @since 2.3.0
  */
 public class TagDiscoveryTrait extends SCMSourceTrait {
+    private boolean descendingOrder;
+
     /** Constructor for stapler. */
     @DataBoundConstructor
     public TagDiscoveryTrait() {}
+
+    public boolean isDescendingOrder() {
+        return descendingOrder;
+    }
+
+    @DataBoundSetter
+    public void setDescendingOrder(boolean descendingOrder) {
+        this.descendingOrder = descendingOrder;
+    }
 
     /** {@inheritDoc} */
     @Override
     protected void decorateContext(SCMSourceContext<?, ?> context) {
         GitHubSCMSourceContext ctx = (GitHubSCMSourceContext) context;
         ctx.wantTags(true);
+        ctx.withTagDescendingOrder(descendingOrder);
         ctx.withAuthority(new TagSCMHeadAuthority());
     }
 

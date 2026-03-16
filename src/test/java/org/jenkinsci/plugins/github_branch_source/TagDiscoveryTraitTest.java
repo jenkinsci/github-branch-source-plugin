@@ -33,7 +33,19 @@ public class TagDiscoveryTraitTest {
         assertThat(probe.wantBranches(), is(false));
         assertThat(probe.wantPRs(), is(false));
         assertThat(probe.wantTags(), is(true));
+        assertThat(probe.isTagDescendingOrder(), is(false));
         assertThat(probe.authorities(), contains(instanceOf(TagDiscoveryTrait.TagSCMHeadAuthority.class)));
+    }
+
+    @Test
+    public void decorateContextDescendingOrder() throws Exception {
+        GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
+        assertThat(probe.isTagDescendingOrder(), is(false));
+        TagDiscoveryTrait trait = new TagDiscoveryTrait();
+        trait.setDescendingOrder(true);
+        trait.applyToContext(probe);
+        assertThat(probe.wantTags(), is(true));
+        assertThat(probe.isTagDescendingOrder(), is(true));
     }
 
     @Test

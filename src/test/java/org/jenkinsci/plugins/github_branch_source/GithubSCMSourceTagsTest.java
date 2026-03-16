@@ -8,10 +8,12 @@ import static org.junit.Assert.fail;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.NoSuchElementException;
 import jenkins.scm.api.SCMHeadObserver;
 import org.junit.Test;
@@ -148,6 +150,57 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
             // Error is expected here so this is "success"
             assertNotEquals("This should throw an exception", e.getMessage());
         }
+    }
+
+    @Test
+    public void testExistingMultipleTagsDescendingOrder() throws IOException {
+        // Scenario: Requesting multiple tags in descending order
+        SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+
+        Mockito.when(mockSCMHeadObserver.getIncludes())
+                .thenReturn(new HashSet<>(Arrays.asList(
+                        new GitHubTagSCMHead("existent-multiple-tags1", System.currentTimeMillis()),
+                        new GitHubTagSCMHead("existent-multiple-tags2", System.currentTimeMillis()))));
+        GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
+        context.wantTags(true);
+        context.withTagDescendingOrder(true);
+        GitHubSCMSourceRequest request =
+                context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
+        assertTrue(request.isTagDescendingOrder());
+        Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repo).iterator();
+
+        // Expected: Tags should be returned in reverse (descending) order
+        List<String> tagRefs = new ArrayList<>();
+        while (tags.hasNext()) {
+            tagRefs.add(tags.next().getRef());
+        }
+        assertEquals(2, tagRefs.size());
+        assertEquals("refs/tags/existent-multiple-tags2", tagRefs.get(0));
+        assertEquals("refs/tags/existent-multiple-tags1", tagRefs.get(1));
+    }
+
+    @Test
+    public void testExistingMultipleTagsAscendingOrderByDefault() throws IOException {
+        // Scenario: Requesting multiple tags without descending flag (default ascending)
+        SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+
+        Mockito.when(mockSCMHeadObserver.getIncludes())
+                .thenReturn(new HashSet<>(Arrays.asList(
+                        new GitHubTagSCMHead("existent-multiple-tags1", System.currentTimeMillis()),
+                        new GitHubTagSCMHead("existent-multiple-tags2", System.currentTimeMillis()))));
+        GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
+        context.wantTags(true);
+        GitHubSCMSourceRequest request =
+                context.newRequest(new GitHubSCMSource("cloudbeers", "yolo", null, false), null);
+        assertFalse(request.isTagDescendingOrder());
+        Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, repo).iterator();
+
+        // Expected: Tags should be returned in ascending (default) order
+        assertTrue(tags.hasNext());
+        assertEquals("refs/tags/existent-multiple-tags1", tags.next().getRef());
+        assertTrue(tags.hasNext());
+        assertEquals("refs/tags/existent-multiple-tags2", tags.next().getRef());
+        assertFalse(tags.hasNext());
     }
 
     @Test

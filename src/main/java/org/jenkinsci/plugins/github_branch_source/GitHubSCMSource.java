@@ -2665,10 +2665,12 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     static class LazyTags extends LazyIterable<GHRef> {
         private final GitHubSCMSourceRequest request;
         private final GHRepository repo;
+        private final boolean descendingOrder;
 
         public LazyTags(GitHubSCMSourceRequest request, GHRepository repo) {
             this.request = request;
             this.repo = repo;
+            this.descendingOrder = request.isTagDescendingOrder();
         }
 
         @Override
@@ -2701,76 +2703,99 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 //
                 // Instead we just return a wrapped iterator that does the right thing.
                 final Iterable<GHRef> iterable = repo.listRefs("tags");
+
+                if (descendingOrder) {
+                    // Collect all tags and reverse for descending order.
+                    // This loses lazy-loading but the GitHub REST API does not support
+                    // reverse ordering on refs, so eager collection is unavoidable.
+                    List<GHRef> allTags = collectTags(iterable);
+                    Collections.reverse(allTags);
+                    return allTags;
+                }
+
                 return new Iterable<GHRef>() {
                     @Override
                     public Iterator<GHRef> iterator() {
-                        final Iterator<GHRef> iterator;
-                        try {
-                            iterator = iterable.iterator();
-                        } catch (Error e) {
-                            if (e.getCause() instanceof GHFileNotFoundException) {
-                                return Collections.emptyIterator();
-                            }
-                            throw e;
-                        }
-                        return new Iterator<GHRef>() {
-                            boolean hadAtLeastOne;
-                            boolean hasNone;
-
-                            @Override
-                            public boolean hasNext() {
-                                try {
-                                    boolean hasNext = iterator.hasNext();
-                                    hadAtLeastOne = hadAtLeastOne || hasNext;
-                                    return hasNext;
-                                } catch (Error e) {
-                                    // pre https://github.com/kohsuke/github-api/commit
-                                    // /a17ce04552ddd3f6bd8210c740184e6c7ad13ae4
-                                    // we at least got the cause, even if wrapped in an Error
-                                    if (e.getCause() instanceof GHFileNotFoundException) {
-                                        return false;
-                                    }
-                                    throw e;
-                                } catch (GHException e) {
-                                    // JENKINS-52397 I have no clue why https://github.com/kohsuke/github-api/commit
-                                    // /a17ce04552ddd3f6bd8210c740184e6c7ad13ae4 does what it does, but it makes
-                                    // it rather difficult to distinguish between a network outage and the file
-                                    // not found.
-                                    if (hadAtLeastOne) {
-                                        throw e;
-                                    }
-                                    try {
-                                        hasNone = hasNone || repo.getRefs("tags").length == 0;
-                                        if (hasNone) return false;
-                                        throw e;
-                                    } catch (FileNotFoundException e1) {
-                                        hasNone = true;
-                                        return false;
-                                    } catch (IOException e1) {
-                                        e.addSuppressed(e1);
-                                        throw e;
-                                    }
-                                }
-                            }
-
-                            @Override
-                            public GHRef next() {
-                                if (!hasNext()) {
-                                    throw new NoSuchElementException();
-                                }
-                                return iterator.next();
-                            }
-
-                            @Override
-                            public void remove() {
-                                throw new UnsupportedOperationException("remove");
-                            }
-                        };
+                        return safeTagIterator(iterable);
                     }
                 };
             } catch (IOException e) {
                 throw new GitHubSCMSource.WrappedException(e);
             }
+        }
+
+        private List<GHRef> collectTags(Iterable<GHRef> iterable) {
+            List<GHRef> result = new ArrayList<>();
+            Iterator<GHRef> it = safeTagIterator(iterable);
+            while (it.hasNext()) {
+                result.add(it.next());
+            }
+            return result;
+        }
+
+        private Iterator<GHRef> safeTagIterator(Iterable<GHRef> iterable) {
+            final Iterator<GHRef> iterator;
+            try {
+                iterator = iterable.iterator();
+            } catch (Error e) {
+                if (e.getCause() instanceof GHFileNotFoundException) {
+                    return Collections.emptyIterator();
+                }
+                throw e;
+            }
+            return new Iterator<GHRef>() {
+                boolean hadAtLeastOne;
+                boolean hasNone;
+
+                @Override
+                public boolean hasNext() {
+                    try {
+                        boolean hasNext = iterator.hasNext();
+                        hadAtLeastOne = hadAtLeastOne || hasNext;
+                        return hasNext;
+                    } catch (Error e) {
+                        // pre https://github.com/kohsuke/github-api/commit
+                        // /a17ce04552ddd3f6bd8210c740184e6c7ad13ae4
+                        // we at least got the cause, even if wrapped in an Error
+                        if (e.getCause() instanceof GHFileNotFoundException) {
+                            return false;
+                        }
+                        throw e;
+                    } catch (GHException e) {
+                        // JENKINS-52397 I have no clue why https://github.com/kohsuke/github-api/commit
+                        // /a17ce04552ddd3f6bd8210c740184e6c7ad13ae4 does what it does, but it makes
+                        // it rather difficult to distinguish between a network outage and the file
+                        // not found.
+                        if (hadAtLeastOne) {
+                            throw e;
+                        }
+                        try {
+                            hasNone = hasNone || repo.getRefs("tags").length == 0;
+                            if (hasNone) return false;
+                            throw e;
+                        } catch (FileNotFoundException e1) {
+                            hasNone = true;
+                            return false;
+                        } catch (IOException e1) {
+                            e.addSuppressed(e1);
+                            throw e;
+                        }
+                    }
+                }
+
+                @Override
+                public GHRef next() {
+                    if (!hasNext()) {
+                        throw new NoSuchElementException();
+                    }
+                    return iterator.next();
+                }
+
+                @Override
+                public void remove() {
+                    throw new UnsupportedOperationException("remove");
+                }
+            };
         }
     }
 
