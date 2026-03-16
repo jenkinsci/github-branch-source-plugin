@@ -5,6 +5,11 @@
             <f:select />
         </f:entry>
     </f:section>
+    <f:section title="${%Tag Discovery}">
+        <f:entry title="${%Scan tags in descending order}" field="tagDescendingOrder">
+            <f:checkbox/>
+        </f:entry>
+    </f:section>
     <f:section title="${%GitHub Enterprise Servers}">
         <f:entry>
             <f:repeatableProperty field="endpoints">

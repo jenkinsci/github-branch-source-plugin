@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import jenkins.plugins.git.GitTagSCMRevision;
@@ -47,14 +48,27 @@ import org.kohsuke.stapler.DataBoundSetter;
  * @since 2.3.0
  */
 public class TagDiscoveryTrait extends SCMSourceTrait {
-    private boolean descendingOrder;
+    /**
+     * When {@code null}, the global default from {@link GitHubConfiguration#isTagDescendingOrder()}
+     * is used. When explicitly set, overrides the global default.
+     */
+    @CheckForNull
+    private Boolean descendingOrder;
 
     /** Constructor for stapler. */
     @DataBoundConstructor
     public TagDiscoveryTrait() {}
 
+    /**
+     * Returns the effective descending order setting, resolving the global default
+     * when no per-job override has been set.
+     */
     public boolean isDescendingOrder() {
-        return descendingOrder;
+        if (descendingOrder != null) {
+            return descendingOrder;
+        }
+        GitHubConfiguration cfg = GitHubConfiguration.get();
+        return cfg != null && cfg.isTagDescendingOrder();
     }
 
     @DataBoundSetter
@@ -67,7 +81,7 @@ public class TagDiscoveryTrait extends SCMSourceTrait {
     protected void decorateContext(SCMSourceContext<?, ?> context) {
         GitHubSCMSourceContext ctx = (GitHubSCMSourceContext) context;
         ctx.wantTags(true);
-        ctx.withTagDescendingOrder(descendingOrder);
+        ctx.withTagDescendingOrder(isDescendingOrder());
         ctx.withAuthority(new TagSCMHeadAuthority());
     }
 

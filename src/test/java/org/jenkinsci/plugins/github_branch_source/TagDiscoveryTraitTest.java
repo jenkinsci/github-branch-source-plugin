@@ -24,6 +24,7 @@ public class TagDiscoveryTraitTest {
 
     @Test
     public void decorateContext() throws Exception {
+        GitHubConfiguration.get().setTagDescendingOrder(false);
         GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
         assertThat(probe.wantBranches(), is(false));
         assertThat(probe.wantPRs(), is(false));
@@ -39,6 +40,7 @@ public class TagDiscoveryTraitTest {
 
     @Test
     public void decorateContextDescendingOrder() throws Exception {
+        GitHubConfiguration.get().setTagDescendingOrder(false);
         GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
         assertThat(probe.isTagDescendingOrder(), is(false));
         TagDiscoveryTrait trait = new TagDiscoveryTrait();
@@ -46,6 +48,34 @@ public class TagDiscoveryTraitTest {
         trait.applyToContext(probe);
         assertThat(probe.wantTags(), is(true));
         assertThat(probe.isTagDescendingOrder(), is(true));
+    }
+
+    @Test
+    public void decorateContextUsesGlobalDefault() throws Exception {
+        GitHubConfiguration.get().setTagDescendingOrder(true);
+        try {
+            GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
+            new TagDiscoveryTrait().applyToContext(probe);
+            assertThat(probe.wantTags(), is(true));
+            assertThat(probe.isTagDescendingOrder(), is(true));
+        } finally {
+            GitHubConfiguration.get().setTagDescendingOrder(false);
+        }
+    }
+
+    @Test
+    public void decorateContextPerJobOverridesGlobal() throws Exception {
+        GitHubConfiguration.get().setTagDescendingOrder(true);
+        try {
+            GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
+            TagDiscoveryTrait trait = new TagDiscoveryTrait();
+            trait.setDescendingOrder(false);
+            trait.applyToContext(probe);
+            assertThat(probe.wantTags(), is(true));
+            assertThat(probe.isTagDescendingOrder(), is(false));
+        } finally {
+            GitHubConfiguration.get().setTagDescendingOrder(false);
+        }
     }
 
     @Test

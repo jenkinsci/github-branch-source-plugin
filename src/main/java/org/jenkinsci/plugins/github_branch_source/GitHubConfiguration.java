@@ -55,6 +55,8 @@ public class GitHubConfiguration extends GlobalConfiguration {
 
     private ApiRateLimitChecker apiRateLimitChecker;
 
+    private boolean tagDescendingOrder;
+
     public GitHubConfiguration() {
         load();
     }
@@ -80,6 +82,25 @@ public class GitHubConfiguration extends GlobalConfiguration {
 
     public synchronized void setApiRateLimitChecker(@CheckForNull ApiRateLimitChecker apiRateLimitChecker) {
         this.apiRateLimitChecker = apiRateLimitChecker;
+        save();
+    }
+
+    /**
+     * Returns whether tags should be scanned in descending order by default.
+     *
+     * @return {@code true} if tags should be scanned in descending order by default.
+     */
+    public synchronized boolean isTagDescendingOrder() {
+        return tagDescendingOrder;
+    }
+
+    /**
+     * Sets whether tags should be scanned in descending order by default.
+     *
+     * @param tagDescendingOrder {@code true} to scan tags in descending order by default.
+     */
+    public synchronized void setTagDescendingOrder(boolean tagDescendingOrder) {
+        this.tagDescendingOrder = tagDescendingOrder;
         save();
     }
 
