@@ -79,6 +79,46 @@ public class TagDiscoveryTraitTest {
     }
 
     @Test
+    public void decorateContextMaxTagCount() throws Exception {
+        GitHubConfiguration.get().setMaxTagCount(0);
+        GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
+        assertThat(probe.getMaxTagCount(), is(0));
+        TagDiscoveryTrait trait = new TagDiscoveryTrait();
+        trait.setMaxTagCount(10);
+        trait.applyToContext(probe);
+        assertThat(probe.wantTags(), is(true));
+        assertThat(probe.getMaxTagCount(), is(10));
+    }
+
+    @Test
+    public void decorateContextMaxTagCountUsesGlobalDefault() throws Exception {
+        GitHubConfiguration.get().setMaxTagCount(25);
+        try {
+            GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
+            new TagDiscoveryTrait().applyToContext(probe);
+            assertThat(probe.wantTags(), is(true));
+            assertThat(probe.getMaxTagCount(), is(25));
+        } finally {
+            GitHubConfiguration.get().setMaxTagCount(0);
+        }
+    }
+
+    @Test
+    public void decorateContextMaxTagCountPerJobOverridesGlobal() throws Exception {
+        GitHubConfiguration.get().setMaxTagCount(25);
+        try {
+            GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
+            TagDiscoveryTrait trait = new TagDiscoveryTrait();
+            trait.setMaxTagCount(5);
+            trait.applyToContext(probe);
+            assertThat(probe.wantTags(), is(true));
+            assertThat(probe.getMaxTagCount(), is(5));
+        } finally {
+            GitHubConfiguration.get().setMaxTagCount(0);
+        }
+    }
+
+    @Test
     public void includeCategory() throws Exception {
         assertThat(new TagDiscoveryTrait().includeCategory(ChangeRequestSCMHeadCategory.DEFAULT), is(false));
         assertThat(new TagDiscoveryTrait().includeCategory(UncategorizedSCMHeadCategory.DEFAULT), is(false));

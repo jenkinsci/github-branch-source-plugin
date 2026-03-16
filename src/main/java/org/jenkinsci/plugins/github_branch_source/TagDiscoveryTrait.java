@@ -55,6 +55,13 @@ public class TagDiscoveryTrait extends SCMSourceTrait {
     @CheckForNull
     private Boolean descendingOrder;
 
+    /**
+     * When {@code null}, the global default from {@link GitHubConfiguration#getMaxTagCount()}
+     * is used. When explicitly set, overrides the global default.
+     */
+    @CheckForNull
+    private Integer maxTagCount;
+
     /** Constructor for stapler. */
     @DataBoundConstructor
     public TagDiscoveryTrait() {}
@@ -76,12 +83,30 @@ public class TagDiscoveryTrait extends SCMSourceTrait {
         this.descendingOrder = descendingOrder;
     }
 
+    /**
+     * Returns the effective max tag count, resolving the global default
+     * when no per-job override has been set.
+     */
+    public int getMaxTagCount() {
+        if (maxTagCount != null) {
+            return maxTagCount;
+        }
+        GitHubConfiguration cfg = GitHubConfiguration.get();
+        return cfg != null ? cfg.getMaxTagCount() : 0;
+    }
+
+    @DataBoundSetter
+    public void setMaxTagCount(int maxTagCount) {
+        this.maxTagCount = maxTagCount;
+    }
+
     /** {@inheritDoc} */
     @Override
     protected void decorateContext(SCMSourceContext<?, ?> context) {
         GitHubSCMSourceContext ctx = (GitHubSCMSourceContext) context;
         ctx.wantTags(true);
         ctx.withTagDescendingOrder(isDescendingOrder());
+        ctx.withMaxTagCount(getMaxTagCount());
         ctx.withAuthority(new TagSCMHeadAuthority());
     }
 

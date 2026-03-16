@@ -57,6 +57,8 @@ public class GitHubConfiguration extends GlobalConfiguration {
 
     private boolean tagDescendingOrder;
 
+    private int maxTagCount;
+
     public GitHubConfiguration() {
         load();
     }
@@ -101,6 +103,25 @@ public class GitHubConfiguration extends GlobalConfiguration {
      */
     public synchronized void setTagDescendingOrder(boolean tagDescendingOrder) {
         this.tagDescendingOrder = tagDescendingOrder;
+        save();
+    }
+
+    /**
+     * Returns the default maximum number of tags to process (0 = unlimited).
+     *
+     * @return the default maximum number of tags to process.
+     */
+    public synchronized int getMaxTagCount() {
+        return maxTagCount;
+    }
+
+    /**
+     * Sets the default maximum number of tags to process.
+     *
+     * @param maxTagCount maximum number of tags (0 = unlimited).
+     */
+    public synchronized void setMaxTagCount(int maxTagCount) {
+        this.maxTagCount = maxTagCount;
         save();
     }
 

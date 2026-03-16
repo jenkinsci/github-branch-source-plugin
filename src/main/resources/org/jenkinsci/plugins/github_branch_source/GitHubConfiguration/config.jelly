@@ -6,9 +6,11 @@
         </f:entry>
     </f:section>
     <f:section title="${%Tag Discovery}">
-        <f:entry title="${%Scan tags in descending order}" field="tagDescendingOrder">
-            <f:checkbox/>
-        </f:entry>
+        <f:optionalBlock title="${%Scan tags in descending order}" field="tagDescendingOrder" inline="true">
+            <f:entry title="${%Maximum number of tags to process}" field="maxTagCount">
+                <f:number default="0" min="0"/>
+            </f:entry>
+        </f:optionalBlock>
     </f:section>
     <f:section title="${%GitHub Enterprise Servers}">
         <f:entry>
