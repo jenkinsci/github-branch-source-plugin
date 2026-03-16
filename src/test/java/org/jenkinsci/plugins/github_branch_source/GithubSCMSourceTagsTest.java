@@ -153,6 +153,35 @@ public class GithubSCMSourceTagsTest extends GitSCMSourceBase {
     }
 
     @Test
+    public void testNaturalSortDescendingOrder() throws IOException {
+        // Scenario: Tags with version-like names where natural and alphabetical sort differ.
+        // Fixture returns alphabetical order: v0.1.11, v0.1.2, v0.10.0, v0.2.0
+        // Natural descending should give: v0.10.0, v0.2.0, v0.1.11, v0.1.2
+        // (Alphabetical descending would give: v0.2.0, v0.10.0, v0.1.2, v0.1.11 -- wrong)
+        SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
+        Mockito.when(mockSCMHeadObserver.getIncludes()).thenReturn(null);
+
+        GHRepository versionedRepo = github.getRepository("cloudbeers/yolo-versioned");
+
+        GitHubSCMSourceContext context = new GitHubSCMSourceContext(null, mockSCMHeadObserver);
+        context.wantTags(true);
+        context.withTagDescendingOrder(true);
+        GitHubSCMSourceRequest request =
+                context.newRequest(new GitHubSCMSource("cloudbeers", "yolo-versioned", null, false), null);
+        Iterator<GHRef> tags = new GitHubSCMSource.LazyTags(request, versionedRepo).iterator();
+
+        List<String> tagRefs = new ArrayList<>();
+        while (tags.hasNext()) {
+            tagRefs.add(tags.next().getRef());
+        }
+        assertEquals(4, tagRefs.size());
+        assertEquals("refs/tags/v0.10.0", tagRefs.get(0));
+        assertEquals("refs/tags/v0.2.0", tagRefs.get(1));
+        assertEquals("refs/tags/v0.1.11", tagRefs.get(2));
+        assertEquals("refs/tags/v0.1.2", tagRefs.get(3));
+    }
+
+    @Test
     public void testExistingMultipleTagsDescendingOrder() throws IOException {
         // Scenario: Requesting multiple tags in descending order
         SCMHeadObserver mockSCMHeadObserver = Mockito.mock(SCMHeadObserver.class);
