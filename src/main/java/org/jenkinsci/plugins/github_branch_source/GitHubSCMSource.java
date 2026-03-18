@@ -1188,10 +1188,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                             }
                             int maxTagCount = request.getMaxTagCount();
                             if (maxTagCount > 0 && count >= maxTagCount) {
-                                listener.getLogger()
-                                        .format(
-                                                "%n  %d tags were processed (limit reached)%n",
-                                                count);
+                                listener.getLogger().format("%n  %d tags were processed (limit reached)%n", count);
                                 break;
                             }
                         }
