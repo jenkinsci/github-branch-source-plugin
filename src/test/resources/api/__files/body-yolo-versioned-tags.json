@@ -1,0 +1,42 @@
+[
+  {
+    "ref": "refs/tags/v0.1.11",
+    "node_id": "MDM6UmVmNTU1NDMyMjU6dmVyc2lvbmVkLXYwLjEuMTE=",
+    "url": "https://api.github.com/repos/cloudbeers/yolo-versioned/git/refs/tags/v0.1.11",
+    "object": {
+      "sha": "aa11111111111111111111111111111111111111",
+      "type": "tag",
+      "url": "https://api.github.com/repos/cloudbeers/yolo-versioned/git/tags/aa11111111111111111111111111111111111111"
+    }
+  },
+  {
+    "ref": "refs/tags/v0.1.2",
+    "node_id": "MDM6UmVmNTU1NDMyMjU6dmVyc2lvbmVkLXYwLjEuMg==",
+    "url": "https://api.github.com/repos/cloudbeers/yolo-versioned/git/refs/tags/v0.1.2",
+    "object": {
+      "sha": "bb22222222222222222222222222222222222222",
+      "type": "tag",
+      "url": "https://api.github.com/repos/cloudbeers/yolo-versioned/git/tags/bb22222222222222222222222222222222222222"
+    }
+  },
+  {
+    "ref": "refs/tags/v0.2.0",
+    "node_id": "MDM6UmVmNTU1NDMyMjU6dmVyc2lvbmVkLXYwLjIuMA==",
+    "url": "https://api.github.com/repos/cloudbeers/yolo-versioned/git/refs/tags/v0.2.0",
+    "object": {
+      "sha": "cc33333333333333333333333333333333333333",
+      "type": "tag",
+      "url": "https://api.github.com/repos/cloudbeers/yolo-versioned/git/tags/cc33333333333333333333333333333333333333"
+    }
+  },
+  {
+    "ref": "refs/tags/v0.10.0",
+    "node_id": "MDM6UmVmNTU1NDMyMjU6dmVyc2lvbmVkLXYwLjEwLjA=",
+    "url": "https://api.github.com/repos/cloudbeers/yolo-versioned/git/refs/tags/v0.10.0",
+    "object": {
+      "sha": "dd44444444444444444444444444444444444444",
+      "type": "tag",
+      "url": "https://api.github.com/repos/cloudbeers/yolo-versioned/git/tags/dd44444444444444444444444444444444444444"
+    }
+  }
+]

@@ -23,6 +23,7 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
 import jenkins.plugins.git.GitTagSCMRevision;
@@ -39,6 +40,7 @@ import jenkins.scm.impl.TagSCMHeadCategory;
 import jenkins.scm.impl.trait.Discovery;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * A {@link Discovery} trait for GitHub that will discover tags on the repository.
@@ -46,15 +48,65 @@ import org.kohsuke.stapler.DataBoundConstructor;
  * @since 2.3.0
  */
 public class TagDiscoveryTrait extends SCMSourceTrait {
+    /**
+     * When {@code null}, the global default from {@link GitHubConfiguration#isTagDescendingOrder()}
+     * is used. When explicitly set, overrides the global default.
+     */
+    @CheckForNull
+    private Boolean descendingOrder;
+
+    /**
+     * When {@code null}, the global default from {@link GitHubConfiguration#getMaxTagCount()}
+     * is used. When explicitly set, overrides the global default.
+     */
+    @CheckForNull
+    private Integer maxTagCount;
+
     /** Constructor for stapler. */
     @DataBoundConstructor
     public TagDiscoveryTrait() {}
+
+    /**
+     * Returns the effective descending order setting, resolving the global default
+     * when no per-job override has been set.
+     */
+    public boolean isDescendingOrder() {
+        if (descendingOrder != null) {
+            return descendingOrder;
+        }
+        GitHubConfiguration cfg = GitHubConfiguration.get();
+        return cfg != null && cfg.isTagDescendingOrder();
+    }
+
+    @DataBoundSetter
+    public void setDescendingOrder(boolean descendingOrder) {
+        this.descendingOrder = descendingOrder;
+    }
+
+    /**
+     * Returns the effective max tag count, resolving the global default
+     * when no per-job override has been set.
+     */
+    public int getMaxTagCount() {
+        if (maxTagCount != null) {
+            return maxTagCount;
+        }
+        GitHubConfiguration cfg = GitHubConfiguration.get();
+        return cfg != null ? cfg.getMaxTagCount() : 0;
+    }
+
+    @DataBoundSetter
+    public void setMaxTagCount(int maxTagCount) {
+        this.maxTagCount = maxTagCount;
+    }
 
     /** {@inheritDoc} */
     @Override
     protected void decorateContext(SCMSourceContext<?, ?> context) {
         GitHubSCMSourceContext ctx = (GitHubSCMSourceContext) context;
         ctx.wantTags(true);
+        ctx.withTagDescendingOrder(isDescendingOrder());
+        ctx.withMaxTagCount(getMaxTagCount());
         ctx.withAuthority(new TagSCMHeadAuthority());
     }
 

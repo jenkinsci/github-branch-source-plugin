@@ -59,6 +59,10 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
     private final boolean fetchBranches;
     /** {@code true} if tag details need to be fetched. */
     private final boolean fetchTags;
+    /** {@code true} if tags should be scanned in descending order. */
+    private final boolean tagDescendingOrder;
+    /** Maximum number of tags to process (0 = unlimited). */
+    private final int maxTagCount;
     /** {@code true} if origin pull requests need to be fetched. */
     private final boolean fetchOriginPRs;
     /** {@code true} if fork pull requests need to be fetched. */
@@ -124,6 +128,8 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
         super(source, context, listener);
         fetchBranches = context.wantBranches();
         fetchTags = context.wantTags();
+        tagDescendingOrder = context.isTagDescendingOrder();
+        maxTagCount = context.getMaxTagCount();
         fetchOriginPRs = context.wantOriginPRs();
         fetchForkPRs = context.wantForkPRs();
         originPRStrategies = fetchOriginPRs && !context.originPRStrategies().isEmpty()
@@ -175,6 +181,24 @@ public class GitHubSCMSourceRequest extends SCMSourceRequest {
      */
     public final boolean isFetchTags() {
         return fetchTags;
+    }
+
+    /**
+     * Returns {@code true} if tags should be scanned in descending order.
+     *
+     * @return {@code true} if tags should be scanned in descending order.
+     */
+    public final boolean isTagDescendingOrder() {
+        return tagDescendingOrder;
+    }
+
+    /**
+     * Returns the maximum number of tags to process (0 = unlimited).
+     *
+     * @return the maximum number of tags to process.
+     */
+    public final int getMaxTagCount() {
+        return maxTagCount;
     }
 
     /**

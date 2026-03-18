@@ -24,6 +24,7 @@ public class TagDiscoveryTraitTest {
 
     @Test
     public void decorateContext() throws Exception {
+        GitHubConfiguration.get().setTagDescendingOrder(false);
         GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
         assertThat(probe.wantBranches(), is(false));
         assertThat(probe.wantPRs(), is(false));
@@ -33,7 +34,88 @@ public class TagDiscoveryTraitTest {
         assertThat(probe.wantBranches(), is(false));
         assertThat(probe.wantPRs(), is(false));
         assertThat(probe.wantTags(), is(true));
+        assertThat(probe.isTagDescendingOrder(), is(false));
         assertThat(probe.authorities(), contains(instanceOf(TagDiscoveryTrait.TagSCMHeadAuthority.class)));
+    }
+
+    @Test
+    public void decorateContextDescendingOrder() throws Exception {
+        GitHubConfiguration.get().setTagDescendingOrder(false);
+        GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
+        assertThat(probe.isTagDescendingOrder(), is(false));
+        TagDiscoveryTrait trait = new TagDiscoveryTrait();
+        trait.setDescendingOrder(true);
+        trait.applyToContext(probe);
+        assertThat(probe.wantTags(), is(true));
+        assertThat(probe.isTagDescendingOrder(), is(true));
+    }
+
+    @Test
+    public void decorateContextUsesGlobalDefault() throws Exception {
+        GitHubConfiguration.get().setTagDescendingOrder(true);
+        try {
+            GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
+            new TagDiscoveryTrait().applyToContext(probe);
+            assertThat(probe.wantTags(), is(true));
+            assertThat(probe.isTagDescendingOrder(), is(true));
+        } finally {
+            GitHubConfiguration.get().setTagDescendingOrder(false);
+        }
+    }
+
+    @Test
+    public void decorateContextPerJobOverridesGlobal() throws Exception {
+        GitHubConfiguration.get().setTagDescendingOrder(true);
+        try {
+            GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
+            TagDiscoveryTrait trait = new TagDiscoveryTrait();
+            trait.setDescendingOrder(false);
+            trait.applyToContext(probe);
+            assertThat(probe.wantTags(), is(true));
+            assertThat(probe.isTagDescendingOrder(), is(false));
+        } finally {
+            GitHubConfiguration.get().setTagDescendingOrder(false);
+        }
+    }
+
+    @Test
+    public void decorateContextMaxTagCount() throws Exception {
+        GitHubConfiguration.get().setMaxTagCount(0);
+        GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
+        assertThat(probe.getMaxTagCount(), is(0));
+        TagDiscoveryTrait trait = new TagDiscoveryTrait();
+        trait.setMaxTagCount(10);
+        trait.applyToContext(probe);
+        assertThat(probe.wantTags(), is(true));
+        assertThat(probe.getMaxTagCount(), is(10));
+    }
+
+    @Test
+    public void decorateContextMaxTagCountUsesGlobalDefault() throws Exception {
+        GitHubConfiguration.get().setMaxTagCount(25);
+        try {
+            GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
+            new TagDiscoveryTrait().applyToContext(probe);
+            assertThat(probe.wantTags(), is(true));
+            assertThat(probe.getMaxTagCount(), is(25));
+        } finally {
+            GitHubConfiguration.get().setMaxTagCount(0);
+        }
+    }
+
+    @Test
+    public void decorateContextMaxTagCountPerJobOverridesGlobal() throws Exception {
+        GitHubConfiguration.get().setMaxTagCount(25);
+        try {
+            GitHubSCMSourceContext probe = new GitHubSCMSourceContext(null, SCMHeadObserver.collect());
+            TagDiscoveryTrait trait = new TagDiscoveryTrait();
+            trait.setMaxTagCount(5);
+            trait.applyToContext(probe);
+            assertThat(probe.wantTags(), is(true));
+            assertThat(probe.getMaxTagCount(), is(5));
+        } finally {
+            GitHubConfiguration.get().setMaxTagCount(0);
+        }
     }
 
     @Test

@@ -63,6 +63,10 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     /** Set of {@link ChangeRequestCheckoutStrategy} to create for each fork pull request. */
     @NonNull
     private Set<ChangeRequestCheckoutStrategy> forkPRStrategies = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
+    /** {@code true} if tags should be scanned in descending (reverse alphabetical) order. */
+    private boolean tagDescendingOrder;
+    /** Maximum number of tags to process (0 = unlimited). */
+    private int maxTagCount;
     /** {@code true} if notifications should be disabled in this context. */
     private boolean notificationsDisabled;
     /**
@@ -100,6 +104,24 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
      */
     public final boolean wantTags() {
         return wantTags;
+    }
+
+    /**
+     * Returns {@code true} if tags should be scanned in descending order.
+     *
+     * @return {@code true} if tags should be scanned in descending order.
+     */
+    public final boolean isTagDescendingOrder() {
+        return tagDescendingOrder;
+    }
+
+    /**
+     * Returns the maximum number of tags to process (0 = unlimited).
+     *
+     * @return the maximum number of tags to process.
+     */
+    public final int getMaxTagCount() {
+        return maxTagCount;
     }
 
     /**
@@ -200,6 +222,30 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     @NonNull
     public GitHubSCMSourceContext wantTags(boolean include) {
         wantTags = wantTags || include;
+        return this;
+    }
+
+    /**
+     * Sets whether tags should be scanned in descending (reverse alphabetical) order.
+     *
+     * @param descending {@code true} to scan tags in descending order.
+     * @return {@code this} for method chaining.
+     */
+    @NonNull
+    public GitHubSCMSourceContext withTagDescendingOrder(boolean descending) {
+        tagDescendingOrder = descending;
+        return this;
+    }
+
+    /**
+     * Sets the maximum number of tags to process.
+     *
+     * @param maxTagCount maximum number of tags (0 = unlimited).
+     * @return {@code this} for method chaining.
+     */
+    @NonNull
+    public GitHubSCMSourceContext withMaxTagCount(int maxTagCount) {
+        this.maxTagCount = maxTagCount;
         return this;
     }
 
