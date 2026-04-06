@@ -1,0 +1,54 @@
+{
+  "id": 2,
+  "number": 2,
+  "state": "open",
+  "title": "Fork PR with MERGE strategy",
+  "user": {
+    "login": "contributor2",
+    "id": 22222,
+    "type": "User"
+  },
+  "body": "This is a fork PR targeting main",
+  "created_at": "2025-10-19T15:00:00Z",
+  "updated_at": "2025-10-19T15:00:00Z",
+  "head": {
+    "label": "contributor2:feature-2",
+    "ref": "feature-2",
+    "sha": "f203c4d5e6789012345678901234567890abc2ef",
+    "user": {
+      "login": "contributor2",
+      "id": 22222
+    },
+    "repo": {
+      "id": 54321,
+      "name": "test-repo",
+      "full_name": "contributor2/test-repo",
+      "owner": {
+        "login": "contributor2",
+        "id": 22222
+      },
+      "fork": true
+    }
+  },
+  "base": {
+    "label": "test-owner:main",
+    "ref": "main",
+    "sha": "b2c3d4e5f6789012345678901234567890abcdef",
+    "user": {
+      "login": "test-owner",
+      "id": 67890
+    },
+    "repo": {
+      "id": 12345,
+      "name": "test-repo",
+      "full_name": "test-owner/test-repo",
+      "owner": {
+        "login": "test-owner",
+        "id": 67890
+      }
+    }
+  },
+  "merged": false,
+  "mergeable": true,
+  "draft": false
+}
