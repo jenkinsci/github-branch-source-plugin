@@ -793,6 +793,10 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             return Messages.GitHubAppCredentials_displayName();
         }
 
+        public String getDescription() {
+            return "Authenticate to GitHub using your App ID and private key for secure, scoped access to repositories and APIs.";
+        }
+
         /** {@inheritDoc} */
         @Override
         public String getIconClassName() {
