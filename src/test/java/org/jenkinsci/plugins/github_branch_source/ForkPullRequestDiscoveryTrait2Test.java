@@ -83,5 +83,6 @@ public class ForkPullRequestDiscoveryTrait2Test {
         assertEquals(
                 trust.getClass(),
                 ((ForkPullRequestDiscoveryTrait) traits.get(0)).getTrust().getClass());
+        r.waitUntilNoActivity();
     }
 }
