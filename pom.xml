@@ -9,7 +9,7 @@
   </parent>
 
   <artifactId>github-branch-source</artifactId>
-  <version>${changelist}</version>
+  <version>1967.${changelist}</version>
   <packaging>hpi</packaging>
   <name>GitHub Branch Source Plugin</name>
   <description>Multibranch projects and organization folders from GitHub. Maintained by CloudBees, Inc.</description>
