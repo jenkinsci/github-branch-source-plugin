@@ -35,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSource;
 import jenkins.security.SlaveToMasterCallable;
 import jenkins.util.JenkinsJVM;
@@ -804,6 +805,11 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             return !GitHubConfiguration.get().getEndpoints().isEmpty();
         }
 
+        @SuppressWarnings("unused") // jelly
+        public boolean isTestConnectionVisible() {
+            return Jenkins.get().hasPermission(Jenkins.MANAGE);
+        }
+
         /**
          * Returns the available GitHub endpoint items.
          *
@@ -838,6 +844,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 @QueryParameter("privateKey") final String privateKey,
                 @QueryParameter("apiUri") final String apiUri,
                 @QueryParameter("testConnectionOwner") final String owner) {
+
+            Jenkins.get().checkPermission(Jenkins.MANAGE);
 
             GitHubAppCredentials gitHubAppCredential = new GitHubAppCredentials(
                     CredentialsScope.GLOBAL, "test-id-not-being-saved", null, appID, Secret.fromString(privateKey));
