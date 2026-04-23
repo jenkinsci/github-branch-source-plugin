@@ -115,7 +115,6 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
      * The string parameter is the credential key (e.g. {@code git:https://github.com}).
      * Non-final to allow replacement in tests.
      */
-    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Non-final for testing purposes")
     @Restricted(NoExternalUse.class)
     static Consumer<String> windowsCredentialCleaner = key -> {
         try {
