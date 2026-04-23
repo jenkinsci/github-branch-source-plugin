@@ -23,6 +23,7 @@ import hudson.util.Secret;
 import java.io.IOException;
 import java.io.Serial;
 import java.io.Serializable;
+import java.net.URI;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.Instant;
@@ -32,6 +33,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -94,6 +96,46 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Non-final for modification from script console")
     public static boolean ALLOW_UNSAFE_REPOSITORY_INFERENCE =
             Boolean.getBoolean(GitHubAppCredentials.class.getName() + ".ALLOW_UNSAFE_REPOSITORY_INFERENCE");
+
+    /**
+     * On Windows agents, clears the Windows Credential Manager cache entry for the GitHub host
+     * before each Git credential use. This prevents Git from serving an expired GitHub App
+     * installation token that was cached by a previous build, and ensures Git falls through to
+     * {@code GIT_ASKPASS} to receive the fresh token Jenkins is about to provide.
+     *
+     * <p>Disable only if the {@code cmdkey} invocations cause problems in your environment.
+     * Non-final so it can be adjusted from the Jenkins script console if needed.
+     */
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Non-final for script console override")
+    public static boolean CLEAR_WINDOWS_CREDENTIAL_MANAGER_CACHE = Boolean.parseBoolean(
+            System.getProperty(
+                    GitHubAppCredentials.class.getName() + ".CLEAR_WINDOWS_CREDENTIAL_MANAGER_CACHE", "true"));
+
+    /**
+     * Replaceable executor for Windows Credential Manager key deletion.
+     * The string parameter is the credential key (e.g. {@code git:https://github.com}).
+     * Non-final to allow replacement in tests.
+     */
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Non-final for testing purposes")
+    @Restricted(NoExternalUse.class)
+    static Consumer<String> windowsCredentialCleaner = key -> {
+        try {
+            Process process =
+                    new ProcessBuilder("cmdkey", "/delete:" + key).redirectErrorStream(true).start();
+            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
+            if (!finished) {
+                process.destroyForcibly();
+                LOGGER.log(Level.WARNING, "Timed out clearing Windows Credential Manager entry: {0}", key);
+            } else {
+                LOGGER.log(
+                        Level.FINE,
+                        "Cleared Windows Credential Manager entry: {0} (exit: {1})",
+                        new Object[] {key, process.exitValue()});
+            }
+        } catch (IOException | InterruptedException e) {
+            LOGGER.log(Level.WARNING, "Failed to clear Windows Credential Manager entry: " + key, e);
+        }
+    };
 
     @NonNull
     private final String appID;
@@ -613,6 +655,45 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     }
 
     /**
+     * Derives the Git repository host from a GitHub API URI.
+     *
+     * <p>Returns {@code github.com} for the standard endpoint ({@code https://api.github.com}), or
+     * the host component of the URI for GitHub Enterprise Server instances.
+     *
+     * @param apiUri the GitHub API URI (e.g. {@code https://api.github.com})
+     * @return the corresponding Git repository host (e.g. {@code github.com})
+     */
+    static String deriveGitHostFromApiUri(String apiUri) {
+        try {
+            String host = new URI(apiUri).getHost();
+            if (host == null) {
+                return "github.com";
+            }
+            return "api.github.com".equals(host) ? "github.com" : host;
+        } catch (Exception e) {
+            LOGGER.log(Level.FINE, "Could not parse API URI to derive git host: " + apiUri, e);
+            return "github.com";
+        }
+    }
+
+    /**
+     * Clears cached GitHub credentials from the Windows Credential Manager for the host
+     * corresponding to {@code apiUri}.
+     *
+     * <p>Removes both the modern ({@code git:https://host}) and legacy
+     * ({@code LegacyGenericCredential:https://host}) key formats used by the Windows git credential
+     * helpers, so that Git falls through to {@code GIT_ASKPASS} and uses the fresh token Jenkins is
+     * about to provide.
+     *
+     * @param apiUri the GitHub API URI used to derive the Git repository host
+     */
+    static void clearWindowsCredentialManagerCache(String apiUri) {
+        String httpsUrl = "https://" + deriveGitHostFromApiUri(apiUri);
+        windowsCredentialCleaner.accept("git:" + httpsUrl);
+        windowsCredentialCleaner.accept("LegacyGenericCredential:" + httpsUrl);
+    }
+
+    /**
      * Ensures that the credentials state as serialized via Remoting to an agent calls back to the
      * controller. Benefits:
      *
@@ -636,6 +717,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             implements StandardUsernamePasswordCredentials {
 
         private final String appID;
+        /** The GitHub API URI, used to derive the git host for Windows Credential Manager clearing. */
+        private final String apiUri;
         /**
          * An encrypted form of all data needed to refresh the token. Used to prevent {@link GetToken}
          * from being abused by compromised build agents.
@@ -650,6 +733,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             super(onMaster.getScope(), onMaster.getId(), onMaster.getDescription());
             JenkinsJVM.checkJenkinsJVM();
             appID = onMaster.getAppID();
+            apiUri = onMaster.actualApiUri();
             JSONObject j = new JSONObject();
             j.put("appID", appID);
             j.put("privateKey", onMaster.getPrivateKey().getPlainText());
@@ -706,6 +790,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         public Secret getPassword() {
             JenkinsJVM.checkNotJenkinsJVM();
             try {
+                final Secret token;
                 synchronized (this) {
                     try {
                         if (cachedToken == null || cachedToken.isStale()) {
@@ -741,10 +826,22 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                         }
                     }
                     LOGGER.log(Level.FINEST, "Returned GitHub App Installation Token for app ID {0} on agent", appID);
-
-                    return cachedToken.getToken();
+                    token = cachedToken.getToken();
                 }
 
+                // On Windows agents, evict the cached credential from Windows Credential Manager
+                // so that Git does not serve the previously-cached (possibly expired) token to the
+                // next Git operation instead of calling GIT_ASKPASS for the fresh token we just
+                // obtained above.  This is the Windows equivalent of the token-refresh fix on
+                // Linux; see also CLEAR_WINDOWS_CREDENTIAL_MANAGER_CACHE.
+                if (CLEAR_WINDOWS_CREDENTIAL_MANAGER_CACHE
+                        && System.getProperty("os.name", "")
+                                .toLowerCase(Locale.ROOT)
+                                .startsWith("windows")) {
+                    clearWindowsCredentialManagerCache(apiUri);
+                }
+
+                return token;
             } catch (IOException | InterruptedException x) {
                 throw new RuntimeException(x);
             }
