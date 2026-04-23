@@ -516,11 +516,12 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             result.addAll(agentLogs);
         }
 
-        // sort the logs into chronological order
-        // then just format the message.
+        // sort the logs into chronological order, then just format the message.
+        // Agent JVM has its own static field copy (defaults true), so filter its wincred messages.
         return result.stream()
                 .sorted(Comparator.comparingLong(LogRecord::getMillis))
                 .map(formatter::formatMessage)
+                .filter(msg -> !msg.startsWith("Cleared Windows Credential Manager"))
                 .collect(Collectors.toList());
     }
 
