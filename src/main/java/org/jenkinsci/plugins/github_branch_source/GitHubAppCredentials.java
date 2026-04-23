@@ -107,9 +107,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
      * Non-final so it can be adjusted from the Jenkins script console if needed.
      */
     @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Non-final for script console override")
-    public static boolean CLEAR_WINDOWS_CREDENTIAL_MANAGER_CACHE = Boolean.parseBoolean(
-            System.getProperty(
-                    GitHubAppCredentials.class.getName() + ".CLEAR_WINDOWS_CREDENTIAL_MANAGER_CACHE", "true"));
+    public static boolean CLEAR_WINDOWS_CREDENTIAL_MANAGER_CACHE = Boolean.parseBoolean(System.getProperty(
+            GitHubAppCredentials.class.getName() + ".CLEAR_WINDOWS_CREDENTIAL_MANAGER_CACHE", "true"));
 
     /**
      * Replaceable executor for Windows Credential Manager key deletion.
@@ -120,17 +119,17 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     @Restricted(NoExternalUse.class)
     static Consumer<String> windowsCredentialCleaner = key -> {
         try {
-            Process process =
-                    new ProcessBuilder("cmdkey", "/delete:" + key).redirectErrorStream(true).start();
+            Process process = new ProcessBuilder("cmdkey", "/delete:" + key)
+                    .redirectErrorStream(true)
+                    .start();
             boolean finished = process.waitFor(5, TimeUnit.SECONDS);
             if (!finished) {
                 process.destroyForcibly();
                 LOGGER.log(Level.WARNING, "Timed out clearing Windows Credential Manager entry: {0}", key);
             } else {
-                LOGGER.log(
-                        Level.FINE,
-                        "Cleared Windows Credential Manager entry: {0} (exit: {1})",
-                        new Object[] {key, process.exitValue()});
+                LOGGER.log(Level.FINE, "Cleared Windows Credential Manager entry: {0} (exit: {1})", new Object[] {
+                    key, process.exitValue()
+                });
             }
         } catch (IOException | InterruptedException e) {
             LOGGER.log(Level.WARNING, "Failed to clear Windows Credential Manager entry: " + key, e);

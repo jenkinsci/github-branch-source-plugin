@@ -55,8 +55,7 @@ public class GithubAppCredentialsWindowsAgentTest {
     @Test
     public void deriveGitHost_githubEnterprise() {
         assertThat(
-                GitHubAppCredentials.deriveGitHostFromApiUri("https://ghe.example.com/api/v3"),
-                is("ghe.example.com"));
+                GitHubAppCredentials.deriveGitHostFromApiUri("https://ghe.example.com/api/v3"), is("ghe.example.com"));
     }
 
     @Test
@@ -84,9 +83,7 @@ public class GithubAppCredentialsWindowsAgentTest {
     public void clearCache_standardGitHub_deletesExpectedKeys() {
         GitHubAppCredentials.clearWindowsCredentialManagerCache("https://api.github.com");
 
-        assertThat(
-                deletedKeys,
-                contains("git:https://github.com", "LegacyGenericCredential:https://github.com"));
+        assertThat(deletedKeys, contains("git:https://github.com", "LegacyGenericCredential:https://github.com"));
     }
 
     @Test
@@ -95,9 +92,7 @@ public class GithubAppCredentialsWindowsAgentTest {
 
         assertThat(
                 deletedKeys,
-                contains(
-                        "git:https://ghe.example.com",
-                        "LegacyGenericCredential:https://ghe.example.com"));
+                contains("git:https://ghe.example.com", "LegacyGenericCredential:https://ghe.example.com"));
     }
 
     @Test
