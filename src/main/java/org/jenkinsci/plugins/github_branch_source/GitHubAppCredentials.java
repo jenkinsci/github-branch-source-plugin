@@ -14,6 +14,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.Util;
+import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.Run;
 import hudson.remoting.Channel;
@@ -58,6 +59,7 @@ import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.authorization.AuthorizationProvider;
 import org.kohsuke.github.extras.authorization.JWTTokenProvider;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -817,8 +819,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          */
         @SuppressWarnings("unused") // stapler
         @Restricted(NoExternalUse.class) // stapler
-        public ListBoxModel doFillApiUriItems() {
-            return getPossibleApiUriItems();
+        public ListBoxModel doFillApiUriItems(@CheckForNull @AncestorInPath Item context) {
+            return getPossibleApiUriItems(context);
         }
 
         public static RepositoryAccessStrategy getDefaultRepositoryAccessStrategy() {

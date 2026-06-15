@@ -59,6 +59,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
@@ -579,6 +580,76 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
             r.jenkins.setAuthorizationStrategy(strategy);
             r.jenkins.remove(dummy);
         }
+    }
+
+    @Issue("SECURITY-3808")
+    @Test
+    public void doFillApiUriItemsRequiresPermission() throws Exception {
+        // Given a GHE endpoint configured and a folder
+        final GitHubConfiguration ghConfig = GitHubConfiguration.get();
+        final Endpoint ghe = new Endpoint("https://ghe.example.com/api/v3", "GHE");
+        final MockFolder folder = r.createFolder(UUID.randomUUID().toString());
+
+        SecurityRealm realm = r.jenkins.getSecurityRealm();
+        AuthorizationStrategy strategy = r.jenkins.getAuthorizationStrategy();
+        try {
+            ghConfig.addEndpoint(ghe);
+            r.jenkins.setSecurityRealm(r.createDummySecurityRealm());
+            MockAuthorizationStrategy mockStrategy = new MockAuthorizationStrategy();
+            r.jenkins.setAuthorizationStrategy(mockStrategy);
+
+            final GitHubSCMNavigator.DescriptorImpl navigatorD =
+                    r.jenkins.getDescriptorByType(GitHubSCMNavigator.DescriptorImpl.class);
+            final GitHubSCMSource.DescriptorImpl sourceD =
+                    r.jenkins.getDescriptorByType(GitHubSCMSource.DescriptorImpl.class);
+            final GitHubAppCredentials.DescriptorImpl appCredsD =
+                    r.jenkins.getDescriptorByType(GitHubAppCredentials.DescriptorImpl.class);
+
+            // When user have 'Read'
+            mockStrategy.grant(Jenkins.READ).onRoot().to("readOnly");
+            try (ACLContext ctx = ACL.as2(User.getById("readOnly", true).impersonate2())) {
+                // Then GHE URL is never returned
+                assertThat(navigatorD.doFillApiUriItems(null), hasSize(0));
+                assertThat(navigatorD.doFillApiUriItems(folder), hasSize(0));
+                assertThat(sourceD.doFillApiUriItems(null), hasSize(0));
+                assertThat(sourceD.doFillApiUriItems(folder), hasSize(0));
+                assertThat(appCredsD.doFillApiUriItems(null), hasSize(0));
+                assertThat(appCredsD.doFillApiUriItems(folder), hasSize(0));
+            }
+
+            // When user have 'Manage'
+            mockStrategy.grant(Jenkins.MANAGE).onRoot().to("admin");
+            try (ACLContext ctx = ACL.as2(User.getById("admin", true).impersonate2())) {
+                // Then GHE URL is visible with root context, hidden with folder context
+                assertThat(values(navigatorD.doFillApiUriItems(null)), hasItem(ghe.getApiUri()));
+                assertThat(navigatorD.doFillApiUriItems(folder), hasSize(0));
+                assertThat(values(sourceD.doFillApiUriItems(null)), hasItem(ghe.getApiUri()));
+                assertThat(sourceD.doFillApiUriItems(folder), hasSize(0));
+                assertThat(values(appCredsD.doFillApiUriItems(null)), hasItem(ghe.getApiUri()));
+                assertThat(appCredsD.doFillApiUriItems(folder), hasSize(0));
+            }
+
+            // When user have 'Configure' on folder
+            mockStrategy.grant(Item.CONFIGURE).onItems(folder).to("configurator");
+            try (ACLContext ctx = ACL.as2(User.getById("configurator", true).impersonate2())) {
+                // Then GHE URL is visible with folder context, hidden without
+                assertThat(navigatorD.doFillApiUriItems(null), hasSize(0));
+                assertThat(values(navigatorD.doFillApiUriItems(folder)), hasItem(ghe.getApiUri()));
+                assertThat(sourceD.doFillApiUriItems(null), hasSize(0));
+                assertThat(values(sourceD.doFillApiUriItems(folder)), hasItem(ghe.getApiUri()));
+                assertThat(appCredsD.doFillApiUriItems(null), hasSize(0));
+                assertThat(values(appCredsD.doFillApiUriItems(folder)), hasItem(ghe.getApiUri()));
+            }
+        } finally {
+            r.jenkins.setSecurityRealm(realm);
+            r.jenkins.setAuthorizationStrategy(strategy);
+            r.jenkins.remove(folder);
+            ghConfig.removeEndpoint(ghe);
+        }
+    }
+
+    private static List<String> values(ListBoxModel model) {
+        return model.stream().map(o -> o.value).toList();
     }
 
     @Issue("JENKINS-76235")
