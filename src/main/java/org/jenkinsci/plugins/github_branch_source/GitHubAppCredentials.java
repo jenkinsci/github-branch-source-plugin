@@ -41,6 +41,7 @@ import jenkins.security.SlaveToMasterCallable;
 import jenkins.util.JenkinsJVM;
 import net.sf.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessSpecifiedRepositories;
 import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessibleRepositories;
 import org.jenkinsci.plugins.github_branch_source.app_credentials.DefaultPermissionsStrategy;
@@ -785,6 +786,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     }
 
     /** {@inheritDoc} */
+    @Symbol("gitHubApp")
     @Extension
     public static class DescriptorImpl extends BaseStandardCredentialsDescriptor {
 
