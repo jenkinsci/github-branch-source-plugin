@@ -30,6 +30,6 @@ public class SshRepositoryUriResolver extends RepositoryUriResolver {
     /** {@inheritDoc} */
     @Override
     public String getRepositoryUri(String apiUri, String owner, String repository) {
-        return "git@" + hostnameFromApiUri(apiUri) + ":" + owner + "/" + repository + ".git";
+        return "ssh://git@" + hostnameFromApiUri(apiUri) + ":" + owner + "/" + repository + ".git";
     }
 }
