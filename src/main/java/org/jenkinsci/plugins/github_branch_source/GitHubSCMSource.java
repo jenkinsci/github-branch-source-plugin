@@ -1264,6 +1264,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
                 // The probe github will be closed along with the probe.
                 final GitHub gitHub = Connector.connect(apiUri, credentials);
                 try {
+                    Connector.configureLocalRateLimitChecker(listener, github);
                     ensureDetailedGHPullRequest(pr, listener, gitHub, ghRepository);
                 } finally {
                     Connector.release(gitHub);
@@ -1973,6 +1974,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
         GitHub hub = Connector.connect(apiUri, credentials);
         try {
             Connector.checkConnectionValidity(apiUri, listener, credentials, hub);
+            Connector.configureLocalRateLimitChecker(listener, github);
             try {
                 ghRepository = hub.getRepository(getRepoOwner() + '/' + repository);
                 resolvedRepositoryUrl = ghRepository.getHtmlUrl();
