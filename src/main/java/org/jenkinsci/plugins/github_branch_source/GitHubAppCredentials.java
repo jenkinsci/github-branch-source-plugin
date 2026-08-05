@@ -600,8 +600,11 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         }
     }
 
+    // Must be at least protected: XStream skips an inherited package-private readResolve for a subclass
+    // in a different package, leaving transients null on deserialization. See
+    // https://github.com/x-stream/xstream/blob/a0f1637e977e6f682f483873b5877e6fe18247b8/xstream/src/java/com/thoughtworks/xstream/core/util/SerializationMembers.java#L193-L198
     @Serial
-    Object readResolve() {
+    protected Object readResolve() {
         cachedCredentials = new ConcurrentHashMap<>();
         if (repositoryAccessStrategy == null) {
             setRepositoryAccessStrategy(new AccessSpecifiedRepositories(owner, List.of()));
