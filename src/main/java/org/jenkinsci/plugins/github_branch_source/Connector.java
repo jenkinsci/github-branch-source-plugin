@@ -420,7 +420,7 @@ public class Connector {
                     gb.withAuthorizationProvider(
                             ImmutableAuthorizationProvider.fromLoginAndPassword(username, password));
                 }
-                return new GitHubConnection(gb.build(), cache, credentials instanceof GitHubAppCredentials);
+                return new GitHubConnection(gb.build(), cache);
             } catch (IOException e) {
                 throw new RuntimeException(e.getMessage(), e);
             }
@@ -512,6 +512,29 @@ public class Connector {
             } catch (IOException e) {
                 LOGGER.log(WARNING, "There is a mismatch in connect and release calls.", e);
             }
+        }
+    }
+
+    /**
+     * Closes the on-disk HTTP response cache of a connection that is being evicted from the pool.
+     *
+     * <p>The cache is closed so that its file handles are released and its journal is flushed, but
+     * the cache directory is intentionally <em>not</em> deleted. Preserving the directory lets the
+     * next connection created for the same credentials reuse the stored ETags and revalidate with
+     * conditional requests (returning {@code 304 Not Modified}) instead of refetching every
+     * resource from scratch on the following scan.
+     *
+     * @param cache the cache to close, or {@code null} if the connection had no cache
+     * @param connectionId identifies the connection, used only for logging
+     */
+    static void evictConnectionCache(@CheckForNull Cache cache, @NonNull Object connectionId) {
+        if (cache == null) {
+            return;
+        }
+        try {
+            cache.close();
+        } catch (IOException e) {
+            LOGGER.log(WARNING, "Exception closing cache for unused connection: " + connectionId, e);
         }
     }
 
@@ -641,15 +664,13 @@ public class Connector {
         @CheckForNull
         private final Cache cache;
 
-        private final boolean cleanupCacheFolder;
         private final AtomicInteger usageCount = new AtomicInteger(1);
         private final AtomicLong lastUsed = new AtomicLong(System.currentTimeMillis());
         private long lastVerified = Long.MIN_VALUE;
 
-        private GitHubConnection(GitHub gitHub, Cache cache, boolean cleanupCacheFolder) {
+        private GitHubConnection(GitHub gitHub, Cache cache) {
             this.gitHub = gitHub;
             this.cache = cache;
-            this.cleanupCacheFolder = cleanupCacheFolder;
         }
 
         /**
@@ -696,14 +717,7 @@ public class Connector {
                 connections.computeIfPresent(connectionId, (id, record) -> {
                     long lastUse = record.lastUsed.get();
                     if (record.usageCount.get() == 0 && lastUse < threshold) {
-                        try {
-                            if (record.cache != null && record.cleanupCacheFolder) {
-                                record.cache.delete();
-                                record.cache.close();
-                            }
-                        } catch (IOException e) {
-                            LOGGER.log(WARNING, "Exception removing cache directory for unused connection: " + id, e);
-                        }
+                        evictConnectionCache(record.cache, id);
                         reverseLookup.remove(record.gitHub);
 
                         // returning null will remove the connection
