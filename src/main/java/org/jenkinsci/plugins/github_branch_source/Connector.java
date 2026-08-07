@@ -56,10 +56,12 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Random;
+import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -93,6 +95,15 @@ public class Connector {
 
     private static final Map<TaskListener, Map<GitHub, Void>> checked = new WeakHashMap<>();
     private static final long API_URL_REVALIDATE_MILLIS = TimeUnit.MINUTES.toMillis(5);
+
+    /**
+     * How long a cache directory may go untouched before {@link #pruneStaleCaches()} removes it, once
+     * it no longer backs a pooled connection. Overridable via the {@code
+     * org.jenkinsci.plugins.github_branch_source.GitHubSCMSource.cacheStaleThresholdMillis} system
+     * property.
+     */
+    private static final long CACHE_STALE_THRESHOLD_MILLIS = SystemProperties.getLong(
+            GitHubSCMSource.class.getName() + ".cacheStaleThresholdMillis", TimeUnit.DAYS.toMillis(7));
 
     private static final Random ENTROPY = new Random();
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
@@ -406,7 +417,8 @@ public class Connector {
 
         GitHubConnection record = GitHubConnection.lookup(connectionId, () -> {
             try {
-                Cache cache = getCache(jenkins, apiUrl, authHash, username);
+                File cacheDir = getCacheDir(jenkins, apiUrl, authHash, username);
+                Cache cache = createCache(cacheDir);
 
                 GitHubBuilder gb = createGitHubBuilder(apiUrl, cache);
 
@@ -420,7 +432,7 @@ public class Connector {
                     gb.withAuthorizationProvider(
                             ImmutableAuthorizationProvider.fromLoginAndPassword(username, password));
                 }
-                return new GitHubConnection(gb.build(), cache);
+                return new GitHubConnection(gb.build(), cache, cacheDir);
             } catch (IOException e) {
                 throw new RuntimeException(e.getMessage(), e);
             }
@@ -463,36 +475,99 @@ public class Connector {
         return gb;
     }
 
+    @NonNull
+    private static File getCacheBaseDir(@NonNull Jenkins jenkins) {
+        String cacheRootDir = SystemProperties.getString(GitHubSCMSource.class.getName() + ".cacheRootDir");
+        return cacheRootDir != null
+                ? new File(cacheRootDir)
+                : new File(jenkins.getRootDir(), GitHubSCMProbe.class.getName() + ".cache");
+    }
+
+    /**
+     * Computes the stable on-disk cache directory for a connection, or {@code null} when caching is
+     * disabled or unavailable. The directory name is a hash of the endpoint, username and credential
+     * material (for GitHub App credentials the App id, accessible repositories, permissions and
+     * private key — not the short-lived installation token), so the same credential maps to the same
+     * directory on every scan and its cache is reused across scans rather than rebuilt.
+     */
     @CheckForNull
-    private static Cache getCache(
+    private static File getCacheDir(
             @NonNull Jenkins jenkins, @NonNull String apiUrl, @NonNull String authHash, @CheckForNull String username) {
-        Cache cache = null;
-        int cacheSize = GitHubSCMSource.getCacheSize();
-        if (cacheSize > 0) {
-            String cacheRootDir = SystemProperties.getString(GitHubSCMSource.class.getName() + ".cacheRootDir");
-            File cacheBase = cacheRootDir != null
-                    ? new File(cacheRootDir)
-                    : new File(jenkins.getRootDir(), GitHubSCMProbe.class.getName() + ".cache");
-            File cacheDir = null;
-            try {
-                MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
-                sha256.update(apiUrl.getBytes(StandardCharsets.UTF_8));
-                sha256.update("::".getBytes(StandardCharsets.UTF_8));
-                if (username != null) {
-                    sha256.update(username.getBytes(StandardCharsets.UTF_8));
-                }
-                sha256.update("::".getBytes(StandardCharsets.UTF_8));
-                sha256.update(authHash.getBytes(StandardCharsets.UTF_8));
-                cacheDir = new File(
-                        cacheBase, Base64.getUrlEncoder().withoutPadding().encodeToString(sha256.digest()));
-            } catch (NoSuchAlgorithmException e) {
-                // no cache for you mr non-spec compliant JVM
+        if (GitHubSCMSource.getCacheSize() <= 0) {
+            return null;
+        }
+        File cacheBase = getCacheBaseDir(jenkins);
+        try {
+            MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+            sha256.update(apiUrl.getBytes(StandardCharsets.UTF_8));
+            sha256.update("::".getBytes(StandardCharsets.UTF_8));
+            if (username != null) {
+                sha256.update(username.getBytes(StandardCharsets.UTF_8));
             }
-            if (cacheDir != null) {
-                cache = new Cache(cacheDir, cacheSize * 1024L * 1024L);
+            sha256.update("::".getBytes(StandardCharsets.UTF_8));
+            sha256.update(authHash.getBytes(StandardCharsets.UTF_8));
+            return new File(cacheBase, Base64.getUrlEncoder().withoutPadding().encodeToString(sha256.digest()));
+        } catch (NoSuchAlgorithmException e) {
+            // no cache for you mr non-spec compliant JVM
+            return null;
+        }
+    }
+
+    @CheckForNull
+    private static Cache createCache(@CheckForNull File cacheDir) {
+        if (cacheDir == null) {
+            return null;
+        }
+        return new Cache(cacheDir, GitHubSCMSource.getCacheSize() * 1024L * 1024L);
+    }
+
+    /**
+     * Prunes cache directories that no longer back a pooled connection and have gone untouched for at
+     * least {@link #CACHE_STALE_THRESHOLD_MILLIS}.
+     *
+     * <p>Because a cache directory is named by a stable hash of the endpoint, username and credential
+     * material, it is reused (and its modification time refreshed) on every scan for as long as those
+     * inputs are unchanged. When they change — for example a GitHub App's accessible repositories or
+     * permissions are edited — the previous directory is never selected again. Such orphaned
+     * directories would otherwise accumulate on disk, so they are removed here once stale. A directory
+     * that still backs a pooled connection is never removed regardless of age.
+     */
+    static void pruneStaleCaches() {
+        Jenkins jenkins = Jenkins.getInstanceOrNull();
+        if (jenkins == null) {
+            return;
+        }
+        Set<File> liveDirs = new HashSet<>();
+        for (GitHubConnection connection : connections.values()) {
+            if (connection.cacheDir != null) {
+                liveDirs.add(connection.cacheDir);
             }
         }
-        return cache;
+        pruneStaleCaches(getCacheBaseDir(jenkins), liveDirs, System.currentTimeMillis() - CACHE_STALE_THRESHOLD_MILLIS);
+    }
+
+    static void pruneStaleCaches(@CheckForNull File cacheBase, @NonNull Set<File> liveDirs, long staleBefore) {
+        if (cacheBase == null || !cacheBase.isDirectory()) {
+            return;
+        }
+        File[] entries = cacheBase.listFiles();
+        if (entries == null) {
+            return;
+        }
+        for (File dir : entries) {
+            if (!dir.isDirectory() || liveDirs.contains(dir)) {
+                continue;
+            }
+            if (dir.lastModified() >= staleBefore) {
+                // Recently used: keep so the next scan for the same credential can revalidate.
+                continue;
+            }
+            try {
+                Util.deleteRecursive(dir);
+            } catch (IOException e) {
+                LOGGER.log(WARNING, "Exception pruning stale cache directory: " + dir, e);
+            }
+        }
     }
 
     public static void release(@CheckForNull GitHub hub) {
@@ -654,6 +729,7 @@ public class Connector {
             long unusedThreshold = System.currentTimeMillis() - TimeUnit.MINUTES.toMillis(30);
 
             GitHubConnection.removeAllUnused(unusedThreshold);
+            pruneStaleCaches();
         }
     }
 
@@ -664,13 +740,17 @@ public class Connector {
         @CheckForNull
         private final Cache cache;
 
+        @CheckForNull
+        private final File cacheDir;
+
         private final AtomicInteger usageCount = new AtomicInteger(1);
         private final AtomicLong lastUsed = new AtomicLong(System.currentTimeMillis());
         private long lastVerified = Long.MIN_VALUE;
 
-        private GitHubConnection(GitHub gitHub, Cache cache) {
+        private GitHubConnection(GitHub gitHub, Cache cache, File cacheDir) {
             this.gitHub = gitHub;
             this.cache = cache;
+            this.cacheDir = cacheDir;
         }
 
         /**
