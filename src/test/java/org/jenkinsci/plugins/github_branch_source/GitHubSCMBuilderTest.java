@@ -6,6 +6,7 @@ import static jenkins.plugins.git.AbstractGitSCMSource.SCMRevisionImpl;
 import static jenkins.plugins.git.AbstractGitSCMSource.SpecificRevisionBuildChooser;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -29,9 +30,12 @@ import hudson.plugins.git.extensions.GitSCMExtension;
 import hudson.plugins.git.extensions.impl.BuildChooserSetting;
 import hudson.util.LogTaskListener;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.plugins.git.AbstractGitSCMSource;
@@ -39,6 +43,7 @@ import jenkins.plugins.git.GitSCMSourceDefaults;
 import jenkins.plugins.git.MergeWithGitSCMExtension;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
+import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.transport.RemoteConfig;
 import org.jenkinsci.plugins.gitclient.GitClient;
 import org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject;
@@ -1875,6 +1880,104 @@ public class GitHubSCMBuilderTest {
         assertThat(merge, notNullValue());
         assertThat(merge.getBaseName(), is("remotes/origin/test-branch"));
         assertThat(merge.getBaseHash(), is("deadbeefcafebabedeadbeefcafebabedeadbeef"));
+    }
+
+    // issue #1545 : SHAs taken from a live stacked-PR reproduction (PR whose base is another open PR's
+    // branch, that base PR being behind the target). baseHash is github's synthetic merge preview of the
+    // base PR, which is unreachable from any real branch; mergeHash is github's precomputed merge commit.
+    private static final String STACKED_BASE_HASH = "4546cf2e229fba1330fb9bc9ecd7555127fe6ef4";
+    private static final String STACKED_PULL_HASH = "263a673b389c5c2f3b6220362aa9c47301b28763";
+    private static final String STACKED_MERGE_HASH = "e3153159a0f16ffdd3f7b691da6ce73852acf34d";
+
+    private static PullRequestSCMHead stackedPullRequestHead() {
+        return new PullRequestSCMHead(
+                "PR-2",
+                "tester",
+                "test-repo",
+                "issue-1545-stacked",
+                2,
+                new BranchSCMHead("issue-1545-base"),
+                SCMHeadOrigin.DEFAULT,
+                ChangeRequestCheckoutStrategy.MERGE);
+    }
+
+    @Test
+    public void given__cloud_stackedPullMerge_rev__when__preferGitHubMergeCommit__then__mergeCommitCheckedOut()
+            throws Exception {
+        createGitHubSCMSourceForTest(false, null);
+        PullRequestSCMHead head = stackedPullRequestHead();
+        PullRequestSCMRevision revision =
+                new PullRequestSCMRevision(head, STACKED_BASE_HASH, STACKED_PULL_HASH, STACKED_MERGE_HASH);
+        source.setCredentialsId(null);
+        boolean original = GitHubSCMSource.preferGitHubMergeCommit;
+        GitHubSCMSource.preferGitHubMergeCommit = true;
+        try {
+            GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
+            instance.withGitHubRemote();
+            GitSCM actual = instance.build();
+            // github's precomputed merge commit is fetched instead of merging locally
+            UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
+            assertThat(config.getRefspec(), containsString("+refs/pull/2/merge:refs/remotes/origin/PR-2-merge"));
+            // every fetch refspec must target a distinct destination, or git fetch aborts with
+            // "Cannot fetch both ... to ..." - the merge ref must not reuse the pull head destination
+            RemoteConfig origin = actual.getRepositoryByName("origin");
+            List<String> destinations = new ArrayList<>();
+            for (RefSpec spec : origin.getFetchRefSpecs()) {
+                destinations.add(spec.getDestination());
+            }
+            assertThat(destinations.size(), is(new HashSet<>(destinations).size()));
+            // no local merge is performed against the unreachable base hash
+            assertThat(getExtension(actual, MergeWithGitSCMExtension.class), nullValue());
+            assertThat(
+                    actual.getExtensions(),
+                    containsInAnyOrder(instanceOf(GitSCMSourceDefaults.class), instanceOf(BuildChooserSetting.class)));
+            // the merge commit itself is the checked-out revision, not the pull head
+            BuildChooserSetting chooser = getExtension(actual, BuildChooserSetting.class);
+            AbstractGitSCMSource.SpecificRevisionBuildChooser revChooser =
+                    (AbstractGitSCMSource.SpecificRevisionBuildChooser) chooser.getBuildChooser();
+            Collection<Revision> revisions = revChooser.getCandidateRevisions(
+                    false,
+                    "issue-1545-base",
+                    Mockito.mock(GitClient.class),
+                    new LogTaskListener(Logger.getAnonymousLogger(), Level.FINEST),
+                    null,
+                    null);
+            assertThat(revisions, hasSize(1));
+            assertThat(revisions.iterator().next().getSha1String(), is(STACKED_MERGE_HASH));
+        } finally {
+            GitHubSCMSource.preferGitHubMergeCommit = original;
+        }
+    }
+
+    @Test
+    public void given__cloud_stackedPullMerge_rev__when__flagOff__then__localMergeAgainstUnreachableBase()
+            throws Exception {
+        createGitHubSCMSourceForTest(false, null);
+        PullRequestSCMHead head = stackedPullRequestHead();
+        PullRequestSCMRevision revision =
+                new PullRequestSCMRevision(head, STACKED_BASE_HASH, STACKED_PULL_HASH, STACKED_MERGE_HASH);
+        source.setCredentialsId(null);
+        // flag defaults to off: the merge hash is ignored and the merge is reconstructed locally against the
+        // unreachable base hash, which is the failure reproduced by issue #1545
+        GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
+        instance.withGitHubRemote();
+        GitSCM actual = instance.build();
+        MergeWithGitSCMExtension merge = getExtension(actual, MergeWithGitSCMExtension.class);
+        assertThat(merge, notNullValue());
+        assertThat(merge.getBaseName(), is("remotes/origin/issue-1545-base"));
+        assertThat(merge.getBaseHash(), is(STACKED_BASE_HASH));
+        BuildChooserSetting chooser = getExtension(actual, BuildChooserSetting.class);
+        AbstractGitSCMSource.SpecificRevisionBuildChooser revChooser =
+                (AbstractGitSCMSource.SpecificRevisionBuildChooser) chooser.getBuildChooser();
+        Collection<Revision> revisions = revChooser.getCandidateRevisions(
+                false,
+                "issue-1545-base",
+                Mockito.mock(GitClient.class),
+                new LogTaskListener(Logger.getAnonymousLogger(), Level.FINEST),
+                null,
+                null);
+        assertThat(revisions, hasSize(1));
+        assertThat(revisions.iterator().next().getSha1String(), is(STACKED_PULL_HASH));
     }
 
     @Test

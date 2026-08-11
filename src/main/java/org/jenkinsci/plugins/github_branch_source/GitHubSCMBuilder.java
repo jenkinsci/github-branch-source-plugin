@@ -272,7 +272,22 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
 
             if (h instanceof PullRequestSCMHead) {
                 PullRequestSCMHead head = (PullRequestSCMHead) h;
-                if (head.isMerge()) {
+                // preview: build GitHub's precomputed merge commit directly instead of merging
+                // locally, when enabled and a usable merge hash is available (issue #1545)
+                String gitHubMergeHash = null;
+                if (GitHubSCMSource.preferGitHubMergeCommit && head.isMerge() && r instanceof PullRequestSCMRevision) {
+                    String mergeHash = ((PullRequestSCMRevision) r).getMergeHash();
+                    if (mergeHash != null && !PullRequestSCMRevision.NOT_MERGEABLE_HASH.equals(mergeHash)) {
+                        gitHubMergeHash = mergeHash;
+                    }
+                }
+                if (gitHubMergeHash != null) {
+                    // fetch refs/pull/<n>/merge so the merge commit is available to check out below;
+                    // it must use a destination distinct from the pull head ref that the constructor
+                    // already fetches, otherwise git refuses to fetch two sources into one ref
+                    withRefSpec("+refs/pull/" + head.getId() + "/merge:refs/remotes/@{remote}/" + head.getName()
+                            + "-merge");
+                } else if (head.isMerge()) {
                     // add the target branch to ensure that the revision we want to merge is also available
                     String name = head.getTarget().getName();
                     String localName = "remotes/" + remoteName() + "/" + name;
@@ -324,7 +339,12 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
                 }
                 if (r instanceof PullRequestSCMRevision) {
                     PullRequestSCMRevision rev = (PullRequestSCMRevision) r;
-                    withRevision(new AbstractGitSCMSource.SCMRevisionImpl(head, rev.getPullHash()));
+                    if (GitHubSCMSource.preferGitHubMergeCommit && gitHubMergeHash != null) {
+                        // check out github's precomputed merge commit itself
+                        withRevision(new AbstractGitSCMSource.SCMRevisionImpl(head, gitHubMergeHash));
+                    } else {
+                        withRevision(new AbstractGitSCMSource.SCMRevisionImpl(head, rev.getPullHash()));
+                    }
                 }
             }
             return super.build();
