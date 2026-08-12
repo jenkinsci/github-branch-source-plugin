@@ -187,7 +187,6 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
      * derived base commit is a synthetic merge ref unreachable from any branch. Opt-in and subject to
      * change; affects all merge-strategy PRs, not only stacked ones.
      */
-    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "Non-final for modification from script console")
     static /* mostly final */ boolean preferGitHubMergeCommit =
             SystemProperties.getBoolean(GitHubSCMSource.class.getName() + ".preferGitHubMergeCommit");
 

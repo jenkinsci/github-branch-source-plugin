@@ -282,11 +282,10 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
                     }
                 }
                 if (gitHubMergeHash != null) {
-                    // fetch refs/pull/<n>/merge so the merge commit is available to check out below;
-                    // it must use a destination distinct from the pull head ref that the constructor
-                    // already fetches, otherwise git refuses to fetch two sources into one ref
-                    withRefSpec("+refs/pull/" + head.getId() + "/merge:refs/remotes/@{remote}/" + head.getName()
-                            + "-merge");
+                    // fetch the exact merge commit sha rather than refs/pull/<n>/merge, which GitHub live-recomputes
+                    // and may no longer point at the recorded hash we check out below; the destination must be distinct
+                    // from the pullhead ref the constructor fetches, else git refuses two sources into one ref
+                    withRefSpec("+" + gitHubMergeHash + ":refs/remotes/@{remote}/" + head.getName() + "-merge");
                 } else if (head.isMerge()) {
                     // add the target branch to ensure that the revision we want to merge is also available
                     String name = head.getTarget().getName();

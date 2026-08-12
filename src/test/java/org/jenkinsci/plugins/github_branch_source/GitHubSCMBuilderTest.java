@@ -1915,9 +1915,13 @@ public class GitHubSCMBuilderTest {
             GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, revision);
             instance.withGitHubRemote();
             GitSCM actual = instance.build();
-            // github's precomputed merge commit is fetched instead of merging locally
+            // github's precomputed merge commit is fetched directly by sha instead of merging locally;
+            // fetching the exact recorded sha (not refs/pull/2/merge, which github live-recomputes) keeps
+            // the fetched object consistent with the revision checked out below
             UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
-            assertThat(config.getRefspec(), containsString("+refs/pull/2/merge:refs/remotes/origin/PR-2-merge"));
+            assertThat(
+                    config.getRefspec(),
+                    containsString("+" + STACKED_MERGE_HASH + ":refs/remotes/origin/PR-2-merge"));
             // every fetch refspec must target a distinct destination, or git fetch aborts with
             // "Cannot fetch both ... to ..." - the merge ref must not reuse the pull head destination
             RemoteConfig origin = actual.getRepositoryByName("origin");
