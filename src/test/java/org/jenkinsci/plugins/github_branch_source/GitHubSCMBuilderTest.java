@@ -1920,8 +1920,7 @@ public class GitHubSCMBuilderTest {
             // the fetched object consistent with the revision checked out below
             UserRemoteConfig config = actual.getUserRemoteConfigs().get(0);
             assertThat(
-                    config.getRefspec(),
-                    containsString("+" + STACKED_MERGE_HASH + ":refs/remotes/origin/PR-2-merge"));
+                    config.getRefspec(), containsString("+" + STACKED_MERGE_HASH + ":refs/remotes/origin/PR-2-merge"));
             // every fetch refspec must target a distinct destination, or git fetch aborts with
             // "Cannot fetch both ... to ..." - the merge ref must not reuse the pull head destination
             RemoteConfig origin = actual.getRepositoryByName("origin");
