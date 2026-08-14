@@ -1045,6 +1045,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
                             }
 
                             try {
+                                // We do getSource() in order to force a populate()
+                                // populate() can sometimes fail (eg. if the repository has a DMCA),
+                                // so if it does we skip it.
+                                repo.getSource();
+                            } catch (HttpException ignored) {
+                                continue;
+                            }
+
+                            try {
                                 if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                                     witness.record(repo.getName(), false);
                                     listener.getLogger()
@@ -1150,6 +1159,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
                     for (GHRepository repo : repositories) {
                         try {
+                            // We do getSource() in order to force a populate()
+                            // populate() can sometimes fail (eg. if the repository has a DMCA),
+                            // so if it does we skip it.
+                            repo.getSource();
+                        } catch (HttpException ignored) {
+                            continue;
+                        }
+
+                        try {
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(
                                             System.currentTimeMillis(),
@@ -1240,6 +1258,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
                         repositories = user.listRepositories(100);
                     }
                     for (GHRepository repo : repositories) {
+                        try {
+                            // We do getSource() in order to force a populate()
+                            // populate() can sometimes fail (eg. if the repository has a DMCA),
+                            // so if it does we skip it.
+                            repo.getSource();
+                        } catch (HttpException ignored) {
+                            continue;
+                        }
+
                         if (repo.isArchived() && gitHubSCMNavigatorContext.isExcludeArchivedRepositories()) {
                             witness.record(repo.getName(), false);
                             listener.getLogger()
