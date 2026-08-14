@@ -1,0 +1,47 @@
+{
+  "ref": "refs/tags/v1.0.0",
+  "before": "0000000000000000000000000000000000000000",
+  "after": "d4e5f6789012345678901234567890abcdef0123",
+  "created": true,
+  "deleted": false,
+  "forced": false,
+  "base_ref": null,
+  "compare": "https://github.com/test-owner/test-repo/compare/v1.0.0",
+  "commits": [],
+  "head_commit": {
+    "id": "d4e5f6789012345678901234567890abcdef0123",
+    "tree_id": "e5f6789012345678901234567890abcdef012345",
+    "message": "Release v1.0.0",
+    "timestamp": "2025-10-21T11:00:00Z",
+    "author": {
+      "name": "Test User",
+      "email": "test@example.com",
+      "username": "testuser"
+    },
+    "committer": {
+      "name": "Test User",
+      "email": "test@example.com",
+      "username": "testuser"
+    }
+  },
+  "repository": {
+    "id": 12345,
+    "name": "test-repo",
+    "full_name": "test-owner/test-repo",
+    "owner": {
+      "name": "test-owner",
+      "email": "owner@example.com",
+      "login": "test-owner"
+    },
+    "private": false,
+    "html_url": "https://github.com/test-owner/test-repo",
+    "description": "Test repository",
+    "fork": false,
+    "url": "https://api.github.com/repos/test-owner/test-repo"
+  },
+  "pusher": {
+    "name": "testuser",
+    "email": "test@example.com"
+  }
+}
+
