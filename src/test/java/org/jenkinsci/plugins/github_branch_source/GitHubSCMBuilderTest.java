@@ -2704,6 +2704,52 @@ public class GitHubSCMBuilderTest {
         assertThat(merge.getBaseHash(), is(nullValue()));
     }
 
+    @Test
+    public void given__parameterized_repository_owner__when__checkout_remote_is_expanded__then__repository_is_selected()
+            throws Exception {
+        source = new GitHubSCMSource("${owner}", "test-repo", null, false);
+        BranchSCMHead head = new BranchSCMHead("test-branch");
+        GitSCM scm = new GitHubSCMBuilder(source, head, null).build();
+        FreeStyleProject project = j.createFreeStyleProject("parameterized-owner-" + configuredByUrl);
+        project.addProperty(new ParametersDefinitionProperty(new StringParameterDefinition("owner", "tester")));
+
+        FreeStyleBuild build = project.scheduleBuild2(
+                        0,
+                        new hudson.model.Cause.UserIdCause(),
+                        new ParametersAction(new StringParameterValue("owner", "tester")))
+                .waitForStart();
+        j.waitUntilNoActivity();
+
+        assertThat(
+                scm.getParamExpandedRepos(build).get(0).getURIs().get(0).toString(),
+                is("https://github.com/tester/test-repo.git"));
+    }
+
+    @Test
+    public void
+            given__parameterized_owner_and_repository__when__checkout_remote_is_expanded__then__repository_is_selected()
+                    throws Exception {
+        source = new GitHubSCMSource("${owner}", "${repo}", null, false);
+        BranchSCMHead head = new BranchSCMHead("test-branch");
+        GitSCM scm = new GitHubSCMBuilder(source, head, null).build();
+        FreeStyleProject project = j.createFreeStyleProject("parameterized-both-" + configuredByUrl);
+        project.addProperty(new ParametersDefinitionProperty(
+                new StringParameterDefinition("owner", "tester"), new StringParameterDefinition("repo", "test-repo")));
+
+        FreeStyleBuild build = project.scheduleBuild2(
+                        0,
+                        new hudson.model.Cause.UserIdCause(),
+                        new ParametersAction(
+                                new StringParameterValue("owner", "tester"),
+                                new StringParameterValue("repo", "test-repo")))
+                .waitForStart();
+        j.waitUntilNoActivity();
+
+        assertThat(
+                scm.getParamExpandedRepos(build).get(0).getURIs().get(0).toString(),
+                is("https://github.com/tester/test-repo.git"));
+    }
+
     private static <T extends GitSCMExtension> T getExtension(GitSCM scm, Class<T> type) {
         for (GitSCMExtension e : scm.getExtensions()) {
             if (type.isInstance(e)) {
