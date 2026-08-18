@@ -21,6 +21,12 @@ import com.cloudbees.plugins.credentials.SystemCredentialsProvider;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.model.Descriptor;
+import hudson.model.FreeStyleBuild;
+import hudson.model.FreeStyleProject;
+import hudson.model.ParametersAction;
+import hudson.model.ParametersDefinitionProperty;
+import hudson.model.StringParameterDefinition;
+import hudson.model.StringParameterValue;
 import hudson.plugins.git.GitSCM;
 import hudson.plugins.git.Revision;
 import hudson.plugins.git.UserRemoteConfig;
@@ -160,6 +166,38 @@ public class GitHubSCMBuilderTest {
                 null);
         assertThat(revisions, hasSize(1));
         assertThat(revisions.iterator().next().getSha1String(), is("cafebabedeadbeefcafebabedeadbeefcafebabe"));
+    }
+
+    @Test
+    public void given__parameterized_repository_url__when__build__then__parameter_is_preserved() throws Exception {
+        createGitHubSCMSourceForTest(true, "https://github.com/tester/${repo}");
+        BranchSCMHead head = new BranchSCMHead("test-branch");
+        GitHubSCMBuilder instance = new GitHubSCMBuilder(source, head, null);
+
+        GitSCM actual = instance.build();
+
+        assertThat(actual.getUserRemoteConfigs().get(0).getUrl(), is("https://github.com/tester/${repo}"));
+    }
+
+    @Test
+    public void given__parameterized_repository_name__when__checkout_remote_is_expanded__then__repository_is_selected()
+            throws Exception {
+        source = new GitHubSCMSource("tester", "${repo}", null, false);
+        BranchSCMHead head = new BranchSCMHead("test-branch");
+        GitSCM scm = new GitHubSCMBuilder(source, head, null).build();
+        FreeStyleProject project = j.createFreeStyleProject("parameterized-repository-" + configuredByUrl);
+        project.addProperty(new ParametersDefinitionProperty(new StringParameterDefinition("repo", "test-repo")));
+
+        FreeStyleBuild build = project.scheduleBuild2(
+                        0,
+                        new hudson.model.Cause.UserIdCause(),
+                        new ParametersAction(new StringParameterValue("repo", "test-repo")))
+                .waitForStart();
+        j.waitUntilNoActivity();
+
+        assertThat(
+                scm.getParamExpandedRepos(build).get(0).getURIs().get(0).toString(),
+                is("https://github.com/tester/test-repo.git"));
     }
 
     @Test
