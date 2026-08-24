@@ -23,10 +23,14 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -46,8 +50,12 @@ import jenkins.scm.impl.trait.Discovery;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHPermissionType;
+import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
 
 /**
  * A {@link Discovery} trait for GitHub that will discover pull requests from forks of the
@@ -382,6 +390,205 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
             @Override
             public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
                 return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+        }
+    }
+
+    /**
+     * An {@link SCMHeadAuthority} that requires external approval before fork pull requests can
+     * build. Jobs are created as disabled with a pending approval marker. An administrator must
+     * approve via the UI or API before the job will run.
+     */
+    public static class TrustExternalApproval extends GitHubForkTrustPolicy {
+        private boolean requireApprovalForNewCommits;
+
+        @CheckForNull
+        private List<String> autoApprovalLabels;
+
+        @CheckForNull
+        private List<String> autoApprovalUsers;
+
+        /** Constructor. */
+        @DataBoundConstructor
+        public TrustExternalApproval() {}
+
+        /**
+         * Returns whether a new approval is required when new commits are pushed to the PR.
+         *
+         * @return {@code true} if approval is required for each new commit.
+         */
+        public boolean isRequireApprovalForNewCommits() {
+            return requireApprovalForNewCommits;
+        }
+
+        /**
+         * Sets whether a new approval is required when new commits are pushed to the PR.
+         *
+         * @param requireApprovalForNewCommits {@code true} to require re-approval on new commits.
+         */
+        @DataBoundSetter
+        public void setRequireApprovalForNewCommits(boolean requireApprovalForNewCommits) {
+            this.requireApprovalForNewCommits = requireApprovalForNewCommits;
+        }
+
+        /**
+         * Returns the list of PR labels that trigger automatic approval.
+         *
+         * @return the list of label names, or {@code null} if not configured.
+         */
+        @CheckForNull
+        public List<String> getAutoApprovalLabels() {
+            return autoApprovalLabels;
+        }
+
+        /**
+         * Returns the auto-approval labels as a comma-separated string for form binding.
+         *
+         * @return comma-separated label names, or {@code null} if not configured.
+         */
+        @CheckForNull
+        public String getAutoApprovalLabelsString() {
+            return autoApprovalLabels == null ? null : String.join(", ", autoApprovalLabels);
+        }
+
+        /**
+         * Sets the list of PR labels from a comma-separated string (Stapler form binding).
+         *
+         * @param autoApprovalLabels comma-separated label names.
+         */
+        @DataBoundSetter
+        public void setAutoApprovalLabels(@CheckForNull String autoApprovalLabels) {
+            this.autoApprovalLabels = parseCommaSeparated(autoApprovalLabels);
+        }
+
+        /**
+         * Sets the list of PR labels that trigger automatic approval.
+         *
+         * @param autoApprovalLabels the label names to auto-approve.
+         */
+        public void setAutoApprovalLabelsList(@CheckForNull List<String> autoApprovalLabels) {
+            if (autoApprovalLabels == null || autoApprovalLabels.isEmpty()) {
+                this.autoApprovalLabels = null;
+            } else {
+                this.autoApprovalLabels = Collections.unmodifiableList(new ArrayList<>(autoApprovalLabels));
+            }
+        }
+
+        /**
+         * Returns the list of GitHub user logins that are automatically trusted.
+         *
+         * @return the list of user logins, or {@code null} if not configured.
+         */
+        @CheckForNull
+        public List<String> getAutoApprovalUsers() {
+            return autoApprovalUsers;
+        }
+
+        /**
+         * Returns the auto-approval users as a comma-separated string for form binding.
+         *
+         * @return comma-separated user logins, or {@code null} if not configured.
+         */
+        @CheckForNull
+        public String getAutoApprovalUsersString() {
+            return autoApprovalUsers == null ? null : String.join(", ", autoApprovalUsers);
+        }
+
+        /**
+         * Sets the list of GitHub user logins from a comma-separated string (Stapler form
+         * binding).
+         *
+         * @param autoApprovalUsers comma-separated GitHub login names.
+         */
+        @DataBoundSetter
+        public void setAutoApprovalUsers(@CheckForNull String autoApprovalUsers) {
+            this.autoApprovalUsers = parseCommaSeparated(autoApprovalUsers);
+        }
+
+        /**
+         * Sets the list of GitHub user logins that are automatically trusted.
+         *
+         * @param autoApprovalUsers the GitHub login names to auto-approve.
+         */
+        public void setAutoApprovalUsersList(@CheckForNull List<String> autoApprovalUsers) {
+            if (autoApprovalUsers == null || autoApprovalUsers.isEmpty()) {
+                this.autoApprovalUsers = null;
+            } else {
+                this.autoApprovalUsers = Collections.unmodifiableList(new ArrayList<>(autoApprovalUsers));
+            }
+        }
+
+        @CheckForNull
+        private static List<String> parseCommaSeparated(@CheckForNull String value) {
+            if (value == null || value.isBlank()) {
+                return null;
+            }
+            List<String> result = new ArrayList<>();
+            for (String entry : value.split(",")) {
+                String trimmed = entry.trim();
+                if (!trimmed.isEmpty()) {
+                    result.add(trimmed);
+                }
+            }
+            return result.isEmpty() ? null : Collections.unmodifiableList(result);
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head)
+                throws IOException, InterruptedException {
+            if (autoApprovalUsers != null && autoApprovalUsers.contains(head.getSourceOwner())) {
+                return true;
+            }
+            if (autoApprovalLabels != null && !autoApprovalLabels.isEmpty()) {
+                for (GHPullRequest pr : request.getPullRequests()) {
+                    if (pr.getNumber() != head.getNumber()) {
+                        continue;
+                    }
+                    for (GHLabel label : pr.getLabels()) {
+                        if (autoApprovalLabels.contains(label.getName())) {
+                            return true;
+                        }
+                    }
+                    break;
+                }
+            }
+            return false;
+        }
+
+        /** Our descriptor. */
+        @Symbol("gitHubTrustExternalApproval")
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+
+            /** {@inheritDoc} */
+            @Override
+            public String getDisplayName() {
+                return Messages.ForkPullRequestDiscoveryTrait_externalApprovalDisplayName();
+            }
+
+            /** {@inheritDoc} */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+
+            @Restricted(NoExternalUse.class)
+            @SuppressWarnings("unused") // stapler
+            public FormValidation doCheckAutoApprovalUsers(@QueryParameter String value) {
+                if (value == null || value.isBlank()) {
+                    return FormValidation.ok();
+                }
+                for (String entry : value.split(",")) {
+                    String trimmed = entry.trim();
+                    if (trimmed.isEmpty()) {
+                        continue;
+                    }
+                    if (trimmed.contains(" ")) {
+                        return FormValidation.warning("GitHub logins should not contain spaces: '" + trimmed + "'");
+                    }
+                }
+                return FormValidation.ok();
             }
         }
     }
