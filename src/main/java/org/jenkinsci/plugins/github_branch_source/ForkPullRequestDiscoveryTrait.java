@@ -26,6 +26,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.model.Item;
 import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.IOException;
@@ -34,6 +35,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
@@ -53,6 +55,7 @@ import org.kohsuke.accmod.restrictions.NoExternalUse;
 import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GHPullRequest;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -395,9 +398,10 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
     }
 
     /**
-     * An {@link SCMHeadAuthority} that requires external approval before fork pull requests can
-     * build. Jobs are created as disabled with a pending approval marker. An administrator must
-     * approve via the UI or API before the job will run.
+     * An {@link SCMHeadAuthority} that holds fork pull requests back until someone approves them.
+     * A new fork PR job starts disabled with a pending-approval marker, and an administrator has to
+     * approve it from the UI or API before it will build. PRs from trusted users or carrying a
+     * trusted label can be approved automatically.
      */
     public static class TrustExternalApproval extends GitHubForkTrustPolicy {
         private boolean requireApprovalForNewCommits;
@@ -537,8 +541,13 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         @Override
         protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head)
                 throws IOException, InterruptedException {
-            if (autoApprovalUsers != null && autoApprovalUsers.contains(head.getSourceOwner())) {
-                return true;
+            if (autoApprovalUsers != null) {
+                for (String user : autoApprovalUsers) {
+                    // GitHub logins are case-insensitive.
+                    if (user.equalsIgnoreCase(head.getSourceOwner())) {
+                        return true;
+                    }
+                }
             }
             if (autoApprovalLabels != null && !autoApprovalLabels.isEmpty()) {
                 for (GHPullRequest pr : request.getPullRequests()) {
@@ -575,7 +584,14 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
 
             @Restricted(NoExternalUse.class)
             @SuppressWarnings("unused") // stapler
-            public FormValidation doCheckAutoApprovalUsers(@QueryParameter String value) {
+            public FormValidation doCheckAutoApprovalUsers(
+                    @CheckForNull @AncestorInPath Item context, @QueryParameter String value) {
+                // Only let users who can configure the job (or admins, outside a job) run the check.
+                if (context == null) {
+                    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+                } else {
+                    context.checkPermission(Item.CONFIGURE);
+                }
                 if (value == null || value.isBlank()) {
                     return FormValidation.ok();
                 }

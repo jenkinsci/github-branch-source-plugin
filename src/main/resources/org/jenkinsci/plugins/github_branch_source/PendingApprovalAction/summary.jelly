@@ -7,7 +7,7 @@
             <br/>
             PR #${it.prNumber} from ${it.prAuthor}
             <j:if test="${it.currentPullHash != null}">
-                (commit ${it.currentPullHash.substring(0, 7)})
+                (commit ${it.currentPullHash.length() &gt; 7 ? it.currentPullHash.substring(0, 7) : it.currentPullHash})
             </j:if>
         </div>
     </j:if>

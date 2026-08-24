@@ -49,12 +49,15 @@ import org.kohsuke.stapler.StaplerRequest2;
 import org.kohsuke.stapler.interceptor.RequirePOST;
 
 /**
- * Action displayed on branch jobs that require external approval before building.
- * Provides UI elements and API endpoints to approve or reject fork pull requests.
+ * Shown on a branch job while its fork pull request waits for external approval. Gives an
+ * administrator the buttons and endpoints to approve or reject the build.
  */
 public class PendingApprovalAction implements Action {
 
     private static final Logger LOGGER = Logger.getLogger(PendingApprovalAction.class.getName());
+
+    /** Marker stored as the approver when a PR was approved automatically. */
+    private static final String AUTO_APPROVAL = "auto-approval";
 
     private final transient Job<?, ?> owner;
     private final ApprovalState state;
@@ -227,7 +230,7 @@ public class PendingApprovalAction implements Action {
         APPROVED
     }
 
-    /** Cause indicating a build was triggered by external approval. */
+    /** Marks a build as having been triggered by an external approval. */
     public static class ExternalApprovalCause extends Cause {
         @Override
         public String getShortDescription() {
@@ -235,7 +238,7 @@ public class PendingApprovalAction implements Action {
         }
     }
 
-    /** Persistent approval data stored in the job directory. */
+    /** The approval state, saved alongside the job in its directory. */
     static class ApprovalData implements Serializable {
         private static final long serialVersionUID = 1L;
 
@@ -284,7 +287,7 @@ public class PendingApprovalAction implements Action {
     }
 
     /**
-     * Contributes {@link PendingApprovalAction} to branch jobs that require external approval.
+     * Attaches a {@link PendingApprovalAction} to any branch job that needs external approval.
      */
     @Extension
     public static class ActionFactory extends TransientActionFactory<Job> {
@@ -301,29 +304,7 @@ public class PendingApprovalAction implements Action {
             if (info == null) {
                 return Collections.emptyList();
             }
-            ApprovalData data = ApprovalData.load(target);
-            if (!ApprovalData.exists(target)) {
-                data.state = ApprovalState.PENDING;
-                try {
-                    data.save(target);
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "Failed to initialize approval data for " + target.getFullName(), e);
-                }
-            }
-            if (info.requireApprovalForNewCommits
-                    && data.state == ApprovalState.APPROVED
-                    && data.approvedPullHash != null
-                    && !data.approvedPullHash.equals(info.currentPullHash)) {
-                data.state = ApprovalState.PENDING;
-                data.approvedBy = null;
-                data.approvedAt = 0;
-                data.approvedPullHash = null;
-                try {
-                    data.save(target);
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, "Failed to reset approval data for " + target.getFullName(), e);
-                }
-            }
+            ApprovalData data = resolveApprovalData(target, info);
             return Collections.singletonList(new PendingApprovalAction(
                     target,
                     data.state,
@@ -335,7 +316,56 @@ public class PendingApprovalAction implements Action {
     }
 
     /**
-     * Blocks builds of jobs that are pending external approval.
+     * Loads the approval record, initializing it on first use and re-evaluating it when new commits
+     * arrive. This is the single writer of the approval state and may make one GitHub API call (to
+     * check auto-approval labels), so it must not be called from the scheduler.
+     *
+     * @param job the branch job
+     * @param info the approval info
+     * @return the resolved approval data (persisted if it changed)
+     */
+    private static ApprovalData resolveApprovalData(Job<?, ?> job, ExternalApprovalInfo info) {
+        ApprovalData data = ApprovalData.load(job);
+        boolean changed = false;
+        if (!ApprovalData.exists(job)) {
+            // First time we see this PR: auto-approve it if it matches the configured users/labels.
+            if (ExternalApprovalHelper.evaluateAutoApproval(info)) {
+                data.state = ApprovalState.APPROVED;
+                data.approvedBy = AUTO_APPROVAL;
+                data.approvedPullHash = info.currentPullHash;
+            } else {
+                data.state = ApprovalState.PENDING;
+            }
+            changed = true;
+        } else if (info.requireApprovalForNewCommits
+                && data.state == ApprovalState.APPROVED
+                && data.approvedPullHash != null
+                && !data.approvedPullHash.equals(info.currentPullHash)) {
+            // A new commit was pushed after approval: keep it approved only if still auto-approved,
+            // otherwise require a fresh approval.
+            if (ExternalApprovalHelper.evaluateAutoApproval(info)) {
+                data.approvedBy = AUTO_APPROVAL;
+                data.approvedPullHash = info.currentPullHash;
+            } else {
+                data.state = ApprovalState.PENDING;
+                data.approvedBy = null;
+                data.approvedAt = 0;
+                data.approvedPullHash = null;
+            }
+            changed = true;
+        }
+        if (changed) {
+            try {
+                data.save(job);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "Failed to persist approval data for " + job.getFullName(), e);
+            }
+        }
+        return data;
+    }
+
+    /**
+     * Holds a job back from building while it is still waiting for external approval.
      */
     @Extension
     public static class QueueDecisionHandler extends Queue.QueueDecisionHandler {
@@ -351,9 +381,19 @@ public class PendingApprovalAction implements Action {
                 return true;
             }
             ApprovalData data = ApprovalData.load(job);
-            if (data.state == ApprovalState.PENDING) {
-                PendingApprovalAction helper =
-                        new PendingApprovalAction(job, data.state, info.prNumber, info.prAuthor, null, false);
+            boolean approved = data.state == ApprovalState.APPROVED;
+            // A new commit pushed after approval invalidates it, unless the author is an auto-trusted
+            // user (checked cheaply here so we never hit the GitHub API under the queue lock).
+            if (approved
+                    && info.requireApprovalForNewCommits
+                    && data.approvedPullHash != null
+                    && !data.approvedPullHash.equals(info.currentPullHash)
+                    && !ExternalApprovalHelper.isAutoApprovedUser(info)) {
+                approved = false;
+            }
+            if (!approved) {
+                PendingApprovalAction helper = new PendingApprovalAction(
+                        job, ApprovalState.PENDING, info.prNumber, info.prAuthor, null, false);
                 if (!helper.isJobDisabled()) {
                     try {
                         helper.makeDisabled(true);
@@ -362,15 +402,6 @@ public class PendingApprovalAction implements Action {
                     }
                 }
                 return false;
-            }
-            for (Action action : actions) {
-                if (action instanceof CauseAction) {
-                    for (Cause cause : ((CauseAction) action).getCauses()) {
-                        if (cause instanceof ExternalApprovalCause) {
-                            return true;
-                        }
-                    }
-                }
             }
             return true;
         }

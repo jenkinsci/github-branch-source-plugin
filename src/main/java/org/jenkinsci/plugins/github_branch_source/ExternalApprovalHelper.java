@@ -23,8 +23,14 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
+import com.cloudbees.plugins.credentials.common.StandardCredentials;
 import edu.umd.cs.findbugs.annotations.CheckForNull;
+import hudson.model.Item;
 import hudson.model.Job;
+import java.io.IOException;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import jenkins.branch.Branch;
 import jenkins.branch.BranchProjectFactory;
 import jenkins.branch.BranchSource;
@@ -34,20 +40,27 @@ import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
 import jenkins.scm.api.SCMSource;
 import jenkins.scm.api.trait.SCMSourceTrait;
+import org.kohsuke.github.GHLabel;
+import org.kohsuke.github.GHPullRequest;
+import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GitHub;
 
 /**
- * Utility class to determine if a branch job requires external approval.
+ * Helpers for working out whether a branch job needs external approval before it can build, and
+ * whether a pull request can be approved automatically.
  */
 final class ExternalApprovalHelper {
+
+    private static final Logger LOGGER = Logger.getLogger(ExternalApprovalHelper.class.getName());
 
     private ExternalApprovalHelper() {}
 
     /**
-     * Checks if the given job is a fork pull request in a MultiBranchProject configured
-     * with {@link ForkPullRequestDiscoveryTrait.TrustExternalApproval}.
+     * Returns the approval details when {@code job} is a fork pull request in a multibranch project
+     * that uses the {@link ForkPullRequestDiscoveryTrait.TrustExternalApproval} policy.
      *
      * @param job the job to check
-     * @return approval info if external approval is required, {@code null} otherwise
+     * @return the approval info, or {@code null} when external approval doesn't apply to this job
      */
     @CheckForNull
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -69,7 +82,11 @@ final class ExternalApprovalHelper {
         if (prHead.getOrigin().equals(SCMHeadOrigin.DEFAULT)) {
             return null;
         }
-        ForkPullRequestDiscoveryTrait.TrustExternalApproval trustPolicy = findTrustPolicy(mp);
+        GitHubSCMSource source = findSourceWithExternalApproval(mp);
+        if (source == null) {
+            return null;
+        }
+        ForkPullRequestDiscoveryTrait.TrustExternalApproval trustPolicy = getTrustPolicy(source);
         if (trustPolicy == null) {
             return null;
         }
@@ -78,24 +95,35 @@ final class ExternalApprovalHelper {
                 prHead.getNumber(),
                 prHead.getSourceOwner(),
                 currentPullHash,
-                trustPolicy.isRequireApprovalForNewCommits());
+                trustPolicy.isRequireApprovalForNewCommits(),
+                trustPolicy.getAutoApprovalUsers(),
+                trustPolicy.getAutoApprovalLabels(),
+                source,
+                mp);
     }
 
+    /** Finds the project's {@link GitHubSCMSource} that uses the external-approval policy, if any. */
     @CheckForNull
     @SuppressWarnings("rawtypes")
-    private static ForkPullRequestDiscoveryTrait.TrustExternalApproval findTrustPolicy(MultiBranchProject mp) {
+    private static GitHubSCMSource findSourceWithExternalApproval(MultiBranchProject mp) {
         for (Object src : mp.getSources()) {
             if (src instanceof BranchSource) {
                 SCMSource source = ((BranchSource) src).getSource();
-                if (source instanceof GitHubSCMSource) {
-                    for (SCMSourceTrait trait : ((GitHubSCMSource) source).getTraits()) {
-                        if (trait instanceof ForkPullRequestDiscoveryTrait) {
-                            Object trust = ((ForkPullRequestDiscoveryTrait) trait).getTrust();
-                            if (trust instanceof ForkPullRequestDiscoveryTrait.TrustExternalApproval) {
-                                return (ForkPullRequestDiscoveryTrait.TrustExternalApproval) trust;
-                            }
-                        }
-                    }
+                if (source instanceof GitHubSCMSource && getTrustPolicy((GitHubSCMSource) source) != null) {
+                    return (GitHubSCMSource) source;
+                }
+            }
+        }
+        return null;
+    }
+
+    @CheckForNull
+    private static ForkPullRequestDiscoveryTrait.TrustExternalApproval getTrustPolicy(GitHubSCMSource source) {
+        for (SCMSourceTrait trait : source.getTraits()) {
+            if (trait instanceof ForkPullRequestDiscoveryTrait) {
+                Object trust = ((ForkPullRequestDiscoveryTrait) trait).getTrust();
+                if (trust instanceof ForkPullRequestDiscoveryTrait.TrustExternalApproval) {
+                    return (ForkPullRequestDiscoveryTrait.TrustExternalApproval) trust;
                 }
             }
         }
@@ -111,10 +139,65 @@ final class ExternalApprovalHelper {
         }
         return null;
     }
+
+    /**
+     * Returns {@code true} when the PR author is on the auto-approval user list. This is just a
+     * list check with no GitHub call, so it's safe to use from the scheduler.
+     */
+    static boolean isAutoApprovedUser(ExternalApprovalInfo info) {
+        if (info.autoApprovalUsers == null || info.prAuthor == null) {
+            return false;
+        }
+        for (String user : info.autoApprovalUsers) {
+            // GitHub logins are case-insensitive.
+            if (user.equalsIgnoreCase(info.prAuthor)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Decides whether a PR can be approved automatically, either because its author is on the user
+     * list or because it carries one of the auto-approval labels. Checking labels costs one GitHub
+     * call, so only call this when first creating the approval record, never from the scheduler.
+     *
+     * @param info the approval info
+     * @return {@code true} if the PR should be auto-approved
+     */
+    static boolean evaluateAutoApproval(ExternalApprovalInfo info) {
+        if (isAutoApprovedUser(info)) {
+            return true;
+        }
+        if (info.autoApprovalLabels == null || info.autoApprovalLabels.isEmpty() || info.source == null) {
+            return false;
+        }
+        GitHubSCMSource src = info.source;
+        StandardCredentials credentials = Connector.lookupScanCredentials(
+                info.context, src.getApiUri(), src.getCredentialsId(), src.getRepoOwner());
+        GitHub github = null;
+        try {
+            github = Connector.connect(src.getApiUri(), credentials);
+            GHRepository repo = github.getRepository(src.getRepoOwner() + "/" + src.getRepository());
+            GHPullRequest pr = repo.getPullRequest(info.prNumber);
+            for (GHLabel label : pr.getLabels()) {
+                if (info.autoApprovalLabels.contains(label.getName())) {
+                    return true;
+                }
+            }
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Failed to check auto-approval labels for PR #" + info.prNumber, e);
+        } finally {
+            if (github != null) {
+                Connector.release(github);
+            }
+        }
+        return false;
+    }
 }
 
 /**
- * Holds information about a fork PR that requires external approval.
+ * A snapshot of a fork PR plus everything needed to decide its approval.
  */
 class ExternalApprovalInfo {
     final int prNumber;
@@ -122,10 +205,34 @@ class ExternalApprovalInfo {
     final String currentPullHash;
     final boolean requireApprovalForNewCommits;
 
-    ExternalApprovalInfo(int prNumber, String prAuthor, String currentPullHash, boolean requireApprovalForNewCommits) {
+    @CheckForNull
+    final List<String> autoApprovalUsers;
+
+    @CheckForNull
+    final List<String> autoApprovalLabels;
+
+    @CheckForNull
+    final GitHubSCMSource source;
+
+    @CheckForNull
+    final Item context;
+
+    ExternalApprovalInfo(
+            int prNumber,
+            String prAuthor,
+            String currentPullHash,
+            boolean requireApprovalForNewCommits,
+            @CheckForNull List<String> autoApprovalUsers,
+            @CheckForNull List<String> autoApprovalLabels,
+            @CheckForNull GitHubSCMSource source,
+            @CheckForNull Item context) {
         this.prNumber = prNumber;
         this.prAuthor = prAuthor;
         this.currentPullHash = currentPullHash;
         this.requireApprovalForNewCommits = requireApprovalForNewCommits;
+        this.autoApprovalUsers = autoApprovalUsers;
+        this.autoApprovalLabels = autoApprovalLabels;
+        this.source = source;
+        this.context = context;
     }
 }
