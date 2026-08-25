@@ -1,0 +1,18 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+  <f:entry title="${%Days stale}" field="daysStale">
+    <f:number clazz="setting-input" min="1" step="1"/>
+  </f:entry>
+  <f:entry title="${%Include regex}" field="includeRegex"
+           description="${%Only apply stale filtering to tags whose name matches this regular expression. Leave blank to apply to all tags.}">
+    <f:textbox clazz="setting-input" checkMethod="post"/>
+  </f:entry>
+  <f:entry title="${%Exclude regex}" field="excludeRegex"
+           description="${%Tags whose name matches this regular expression are never filtered as stale, regardless of age. Leave blank to disable.}">
+    <f:textbox clazz="setting-input" checkMethod="post"/>
+  </f:entry>
+  <f:entry title="${%Dry run}" field="dryRun"
+           description="${%Preview only. Log which tags would be filtered as stale without actually excluding them.}">
+    <f:checkbox/>
+  </f:entry>
+</j:jelly>
