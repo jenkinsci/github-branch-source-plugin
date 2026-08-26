@@ -1867,11 +1867,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
          */
         @Restricted(NoExternalUse.class) // stapler
         @SuppressWarnings("unused") // stapler
-        public ListBoxModel doFillApiUriItems() {
-            return getPossibleApiUriItems();
+        public ListBoxModel doFillApiUriItems(@CheckForNull @AncestorInPath Item context) {
+            return getPossibleApiUriItems(context);
         }
 
-        static ListBoxModel getPossibleApiUriItems() {
+        static ListBoxModel getPossibleApiUriItems(@CheckForNull Item context) {
+            if (context == null
+                    ? !Jenkins.get().hasPermission(Jenkins.MANAGE)
+                    : !context.hasPermission(Item.EXTENDED_READ)) {
+                return new ListBoxModel();
+            }
             ListBoxModel result = new ListBoxModel();
             result.add("GitHub", "");
             for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {

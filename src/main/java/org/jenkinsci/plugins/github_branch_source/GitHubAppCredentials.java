@@ -14,6 +14,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.Extension;
 import hudson.Functions;
 import hudson.Util;
+import hudson.model.Item;
 import hudson.model.Job;
 import hudson.model.Run;
 import hudson.remoting.Channel;
@@ -58,6 +59,7 @@ import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.authorization.AuthorizationProvider;
 import org.kohsuke.github.extras.authorization.JWTTokenProvider;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
@@ -598,8 +600,11 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         }
     }
 
+    // Must be at least protected: XStream skips an inherited package-private readResolve for a subclass
+    // in a different package, leaving transients null on deserialization. See
+    // https://github.com/x-stream/xstream/blob/a0f1637e977e6f682f483873b5877e6fe18247b8/xstream/src/java/com/thoughtworks/xstream/core/util/SerializationMembers.java#L193-L198
     @Serial
-    Object readResolve() {
+    protected Object readResolve() {
         cachedCredentials = new ConcurrentHashMap<>();
         if (repositoryAccessStrategy == null) {
             setRepositoryAccessStrategy(new AccessSpecifiedRepositories(owner, List.of()));
@@ -817,8 +822,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          */
         @SuppressWarnings("unused") // stapler
         @Restricted(NoExternalUse.class) // stapler
-        public ListBoxModel doFillApiUriItems() {
-            return getPossibleApiUriItems();
+        public ListBoxModel doFillApiUriItems(@CheckForNull @AncestorInPath Item context) {
+            return getPossibleApiUriItems(context);
         }
 
         public static RepositoryAccessStrategy getDefaultRepositoryAccessStrategy() {
