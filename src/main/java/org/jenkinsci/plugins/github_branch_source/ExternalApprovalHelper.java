@@ -46,8 +46,8 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 
 /**
- * Helpers for working out whether a branch job needs external approval before it can build, and
- * whether a pull request can be approved automatically.
+ * Works out whether a branch job needs external approval before it can build, and whether its pull
+ * request can be approved without asking anyone.
  */
 final class ExternalApprovalHelper {
 
@@ -56,11 +56,9 @@ final class ExternalApprovalHelper {
     private ExternalApprovalHelper() {}
 
     /**
-     * Returns the approval details when {@code job} is a fork pull request in a multibranch project
-     * that uses the {@link ForkPullRequestDiscoveryTrait.TrustExternalApproval} policy.
-     *
-     * @param job the job to check
-     * @return the approval info, or {@code null} when external approval doesn't apply to this job
+     * Returns the approval details for a fork pull request job in a multibranch project using the
+     * {@link ForkPullRequestDiscoveryTrait.TrustExternalApproval} policy, or {@code null} when
+     * external approval doesn't apply to this job.
      */
     @CheckForNull
     @SuppressWarnings({"rawtypes", "unchecked"})
@@ -130,20 +128,25 @@ final class ExternalApprovalHelper {
         return null;
     }
 
+    /**
+     * Returns the pull request head as branch indexing last saw it. It has to be the last seen
+     * revision and not the last built one: branch-api records the built revision only after a build
+     * has been scheduled, so that one still holds the previous commit while we decide about the new
+     * one.
+     */
     @CheckForNull
     @SuppressWarnings({"rawtypes", "unchecked"})
     private static String getCurrentPullHash(BranchProjectFactory factory, Job<?, ?> job) {
-        SCMRevision revision = factory.getRevision(job);
-        if (revision instanceof PullRequestSCMRevision) {
-            return ((PullRequestSCMRevision) revision).getPullHash();
-        }
-        return null;
+        String pullHash = pullHashOf(factory.getLastSeenRevision(job));
+        return pullHash != null ? pullHash : pullHashOf(factory.getRevision(job));
     }
 
-    /**
-     * Returns {@code true} when the PR author is on the auto-approval user list. This is just a
-     * list check with no GitHub call, so it's safe to use from the scheduler.
-     */
+    @CheckForNull
+    private static String pullHashOf(@CheckForNull SCMRevision revision) {
+        return revision instanceof PullRequestSCMRevision ? ((PullRequestSCMRevision) revision).getPullHash() : null;
+    }
+
+    /** Returns {@code true} when the PR author is on the auto-approval list. Just a list lookup. */
     static boolean isAutoApprovedUser(ExternalApprovalInfo info) {
         if (info.autoApprovalUsers == null || info.prAuthor == null) {
             return false;
@@ -158,12 +161,9 @@ final class ExternalApprovalHelper {
     }
 
     /**
-     * Decides whether a PR can be approved automatically, either because its author is on the user
-     * list or because it carries one of the auto-approval labels. Checking labels costs one GitHub
-     * call, so only call this when first creating the approval record, never from the scheduler.
-     *
-     * @param info the approval info
-     * @return {@code true} if the PR should be auto-approved
+     * Decides whether a pull request can be approved without asking anyone, because its author is on
+     * the user list or it carries one of the auto-approval labels. The label check costs a GitHub
+     * call, so only ask when first recording the approval or when the commit has moved on.
      */
     static boolean evaluateAutoApproval(ExternalApprovalInfo info) {
         if (isAutoApprovedUser(info)) {
@@ -196,9 +196,7 @@ final class ExternalApprovalHelper {
     }
 }
 
-/**
- * A snapshot of a fork PR plus everything needed to decide its approval.
- */
+/** A snapshot of a fork pull request, with everything needed to decide its approval. */
 class ExternalApprovalInfo {
     final int prNumber;
     final String prAuthor;

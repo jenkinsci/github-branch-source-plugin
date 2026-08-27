@@ -99,9 +99,10 @@ public class PendingApprovalActionTest {
     }
 
     @Test
-    public void queueDecisionHandlerAllowsNonMultiBranchJobs() throws Exception {
+    public void regularJobsAreLeftAlone() throws Exception {
         FreeStyleProject job = r.createFreeStyleProject("regular-job");
-        PendingApprovalAction.QueueDecisionHandler handler = new PendingApprovalAction.QueueDecisionHandler();
-        assertThat(handler.shouldSchedule(job, java.util.Collections.emptyList()), is(true));
+        new PendingApprovalAction.ApprovalItemListener().onCreated(job);
+        assertThat(job.isDisabled(), is(false));
+        assertThat(job.getAction(PendingApprovalAction.class), nullValue());
     }
 }

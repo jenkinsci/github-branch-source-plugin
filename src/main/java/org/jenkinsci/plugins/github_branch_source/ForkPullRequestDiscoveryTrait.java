@@ -59,6 +59,7 @@ import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
 /**
  * A {@link Discovery} trait for GitHub that will discover pull requests from forks of the
@@ -399,9 +400,8 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
 
     /**
      * An {@link SCMHeadAuthority} that holds fork pull requests back until someone approves them.
-     * A new fork PR job starts disabled with a pending-approval marker, and an administrator has to
-     * approve it from the UI or API before it will build. PRs from trusted users or carrying a
-     * trusted label can be approved automatically.
+     * The job starts out disabled and only builds once an administrator has approved it. Pull
+     * requests from a trusted login, or carrying a trusted label, are approved for you.
      */
     public static class TrustExternalApproval extends GitHubForkTrustPolicy {
         private boolean requireApprovalForNewCommits;
@@ -416,60 +416,35 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
         @DataBoundConstructor
         public TrustExternalApproval() {}
 
-        /**
-         * Returns whether a new approval is required when new commits are pushed to the PR.
-         *
-         * @return {@code true} if approval is required for each new commit.
-         */
+        /** Whether every new commit on the pull request has to be approved again. */
         public boolean isRequireApprovalForNewCommits() {
             return requireApprovalForNewCommits;
         }
 
-        /**
-         * Sets whether a new approval is required when new commits are pushed to the PR.
-         *
-         * @param requireApprovalForNewCommits {@code true} to require re-approval on new commits.
-         */
         @DataBoundSetter
         public void setRequireApprovalForNewCommits(boolean requireApprovalForNewCommits) {
             this.requireApprovalForNewCommits = requireApprovalForNewCommits;
         }
 
-        /**
-         * Returns the list of PR labels that trigger automatic approval.
-         *
-         * @return the list of label names, or {@code null} if not configured.
-         */
+        /** The labels that approve a pull request on sight, or {@code null} if none are set. */
         @CheckForNull
         public List<String> getAutoApprovalLabels() {
             return autoApprovalLabels;
         }
 
-        /**
-         * Returns the auto-approval labels as a comma-separated string for form binding.
-         *
-         * @return comma-separated label names, or {@code null} if not configured.
-         */
+        /** The same labels as one comma-separated string, which is how the config form wants them. */
         @CheckForNull
         public String getAutoApprovalLabelsString() {
             return autoApprovalLabels == null ? null : String.join(", ", autoApprovalLabels);
         }
 
-        /**
-         * Sets the list of PR labels from a comma-separated string (Stapler form binding).
-         *
-         * @param autoApprovalLabels comma-separated label names.
-         */
+        /** Reads the labels back from the config form, where they arrive comma-separated. */
         @DataBoundSetter
         public void setAutoApprovalLabels(@CheckForNull String autoApprovalLabels) {
             this.autoApprovalLabels = parseCommaSeparated(autoApprovalLabels);
         }
 
-        /**
-         * Sets the list of PR labels that trigger automatic approval.
-         *
-         * @param autoApprovalLabels the label names to auto-approve.
-         */
+        /** Sets the same labels from a list, for callers that already have one. */
         public void setAutoApprovalLabelsList(@CheckForNull List<String> autoApprovalLabels) {
             if (autoApprovalLabels == null || autoApprovalLabels.isEmpty()) {
                 this.autoApprovalLabels = null;
@@ -478,42 +453,25 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
             }
         }
 
-        /**
-         * Returns the list of GitHub user logins that are automatically trusted.
-         *
-         * @return the list of user logins, or {@code null} if not configured.
-         */
+        /** The GitHub logins whose pull requests are approved on sight, or {@code null} if none are set. */
         @CheckForNull
         public List<String> getAutoApprovalUsers() {
             return autoApprovalUsers;
         }
 
-        /**
-         * Returns the auto-approval users as a comma-separated string for form binding.
-         *
-         * @return comma-separated user logins, or {@code null} if not configured.
-         */
+        /** The same logins as one comma-separated string, which is how the config form wants them. */
         @CheckForNull
         public String getAutoApprovalUsersString() {
             return autoApprovalUsers == null ? null : String.join(", ", autoApprovalUsers);
         }
 
-        /**
-         * Sets the list of GitHub user logins from a comma-separated string (Stapler form
-         * binding).
-         *
-         * @param autoApprovalUsers comma-separated GitHub login names.
-         */
+        /** Reads the logins back from the config form, where they arrive comma-separated. */
         @DataBoundSetter
         public void setAutoApprovalUsers(@CheckForNull String autoApprovalUsers) {
             this.autoApprovalUsers = parseCommaSeparated(autoApprovalUsers);
         }
 
-        /**
-         * Sets the list of GitHub user logins that are automatically trusted.
-         *
-         * @param autoApprovalUsers the GitHub login names to auto-approve.
-         */
+        /** Sets the same logins from a list, for callers that already have one. */
         public void setAutoApprovalUsersList(@CheckForNull List<String> autoApprovalUsers) {
             if (autoApprovalUsers == null || autoApprovalUsers.isEmpty()) {
                 this.autoApprovalUsers = null;
@@ -584,9 +542,10 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
 
             @Restricted(NoExternalUse.class)
             @SuppressWarnings("unused") // stapler
+            @POST
             public FormValidation doCheckAutoApprovalUsers(
                     @CheckForNull @AncestorInPath Item context, @QueryParameter String value) {
-                // Only let users who can configure the job (or admins, outside a job) run the check.
+                // Only someone who can configure the job, or an admin when there is no job in the path.
                 if (context == null) {
                     Jenkins.get().checkPermission(Jenkins.ADMINISTER);
                 } else {

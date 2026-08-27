@@ -32,8 +32,10 @@ import hudson.model.Cause;
 import hudson.model.CauseAction;
 import hudson.model.Item;
 import hudson.model.Job;
-import hudson.model.Queue;
-import hudson.model.queue.ScheduleResult;
+import hudson.model.Run;
+import hudson.model.TaskListener;
+import hudson.model.listeners.ItemListener;
+import hudson.model.listeners.RunListener;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -41,16 +43,22 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jenkins.branch.MultiBranchProject;
 import jenkins.model.Jenkins;
+import jenkins.model.ParameterizedJobMixIn;
 import jenkins.model.TransientActionFactory;
 import org.kohsuke.stapler.HttpRedirect;
 import org.kohsuke.stapler.HttpResponse;
 import org.kohsuke.stapler.StaplerRequest2;
-import org.kohsuke.stapler.interceptor.RequirePOST;
+import org.kohsuke.stapler.verb.POST;
 
 /**
- * Shown on a branch job while its fork pull request waits for external approval. Gives an
- * administrator the buttons and endpoints to approve or reject the build.
+ * Shown on a branch job while its fork pull request waits for external approval, with the buttons
+ * and endpoints an administrator uses to approve or take back that approval.
+ *
+ * <p>What actually holds the pull request back is the job's own disabled flag. Until someone
+ * approves, the job stays disabled, so neither branch indexing nor a person clicking Build can start
+ * it.
  */
 public class PendingApprovalAction implements Action {
 
@@ -126,13 +134,8 @@ public class PendingApprovalAction implements Action {
         return owner;
     }
 
-    /**
-     * Approves the pull request, enabling the job and scheduling a build.
-     *
-     * @param req the stapler request
-     * @return redirect to the parent job
-     */
-    @RequirePOST
+    /** Approves the pull request: enables the job and starts a build. */
+    @POST
     public HttpResponse doApprove(StaplerRequest2 req) {
         owner.checkPermission(Item.CONFIGURE);
         try {
@@ -143,7 +146,10 @@ public class PendingApprovalAction implements Action {
             data.approvedAt = System.currentTimeMillis();
             data.approvedPullHash = currentPullHash;
             data.save(owner);
-            enableAndBuild();
+            setDisabled(owner, false);
+            if (ParameterizedJobMixIn.scheduleBuild2(owner, 0, new CauseAction(new ExternalApprovalCause())) == null) {
+                LOGGER.log(Level.WARNING, "Failed to schedule build for {0}", owner.getFullName());
+            }
             LOGGER.log(Level.INFO, "PR #{0} in {1} approved by {2}", new Object[] {
                 prNumber, owner.getFullName(), approvedBy
             });
@@ -153,23 +159,15 @@ public class PendingApprovalAction implements Action {
         return new HttpRedirect("..");
     }
 
-    /**
-     * Rejects the pull request approval.
-     *
-     * @param req the stapler request
-     * @return redirect to the parent job
-     */
-    @RequirePOST
+    /** Takes the approval back and disables the job again. */
+    @POST
     public HttpResponse doReject(StaplerRequest2 req) {
         owner.checkPermission(Item.CONFIGURE);
         try {
             ApprovalData data = ApprovalData.load(owner);
-            data.state = ApprovalState.PENDING;
-            data.approvedBy = null;
-            data.approvedAt = 0;
-            data.approvedPullHash = null;
+            data.reset();
             data.save(owner);
-            disableJob();
+            setDisabled(owner, true);
             LOGGER.log(Level.INFO, "PR #{0} in {1} rejected by {2}", new Object[] {
                 prNumber,
                 owner.getFullName(),
@@ -181,46 +179,25 @@ public class PendingApprovalAction implements Action {
         return new HttpRedirect("..");
     }
 
-    private void enableAndBuild() throws IOException {
-        if (isJobDisabled()) {
-            makeDisabled(false);
-        }
-        if (owner instanceof Queue.Task) {
-            ScheduleResult result = Jenkins.get()
-                    .getQueue()
-                    .schedule2((Queue.Task) owner, 0, new CauseAction(new ExternalApprovalCause()));
-            if (result.isRefused()) {
-                LOGGER.log(Level.WARNING, "Failed to schedule build for {0}", owner.getFullName());
-            }
-        }
+    /** Mirrors the approval onto the job. Anything short of an approval leaves it disabled. */
+    private static void applyApprovalState(Job<?, ?> job, ApprovalState state) {
+        setDisabled(job, state != ApprovalState.APPROVED);
     }
 
-    private void disableJob() throws IOException {
-        if (!isJobDisabled()) {
-            makeDisabled(true);
+    private static void setDisabled(Job<?, ?> job, boolean disabled) {
+        if (!(job instanceof ParameterizedJobMixIn.ParameterizedJob)) {
+            LOGGER.log(Level.WARNING, "Cannot change the disabled state of {0}", job.getFullName());
+            return;
         }
-    }
-
-    private boolean isJobDisabled() {
+        ParameterizedJobMixIn.ParameterizedJob<?, ?> project = (ParameterizedJobMixIn.ParameterizedJob<?, ?>) job;
+        if (project.isDisabled() == disabled) {
+            return;
+        }
         try {
-            java.lang.reflect.Method m = owner.getClass().getMethod("isDisabled");
-            return (boolean) m.invoke(owner);
-        } catch (ReflectiveOperationException e) {
-            return false;
-        }
-    }
-
-    @SuppressWarnings("unchecked")
-    private void makeDisabled(boolean disabled) throws IOException {
-        if (owner instanceof hudson.model.AbstractProject) {
-            ((hudson.model.AbstractProject<?, ?>) owner).makeDisabled(disabled);
-        } else {
-            try {
-                java.lang.reflect.Method m = owner.getClass().getMethod("setDisabled", boolean.class);
-                m.invoke(owner, disabled);
-            } catch (ReflectiveOperationException e) {
-                LOGGER.log(Level.WARNING, "Cannot change disabled state of " + owner.getFullName(), e);
-            }
+            // Disabling also cancels anything this job already has queued.
+            project.makeDisabled(disabled);
+        } catch (IOException e) {
+            LOGGER.log(Level.WARNING, "Cannot change the disabled state of " + job.getFullName(), e);
         }
     }
 
@@ -251,6 +228,14 @@ public class PendingApprovalAction implements Action {
 
         @Nullable
         String approvedPullHash;
+
+        /** Drops any approval, sending the pull request back to pending. */
+        void reset() {
+            state = ApprovalState.PENDING;
+            approvedBy = null;
+            approvedAt = 0;
+            approvedPullHash = null;
+        }
 
         static XmlFile getConfigFile(Job<?, ?> job) {
             return new XmlFile(new File(job.getRootDir(), "pending-approval.xml"));
@@ -286,15 +271,19 @@ public class PendingApprovalAction implements Action {
         }
     }
 
-    /**
-     * Attaches a {@link PendingApprovalAction} to any branch job that needs external approval.
-     */
+    /** Attaches a {@link PendingApprovalAction} to any branch job that needs external approval. */
     @Extension
     public static class ActionFactory extends TransientActionFactory<Job> {
 
         @Override
         public Class<Job> type() {
             return Job.class;
+        }
+
+        @NonNull
+        @Override
+        public Class<? extends Action> actionType() {
+            return PendingApprovalAction.class;
         }
 
         @NonNull
@@ -316,19 +305,85 @@ public class PendingApprovalAction implements Action {
     }
 
     /**
-     * Loads the approval record, initializing it on first use and re-evaluating it when new commits
-     * arrive. This is the single writer of the approval state and may make one GitHub API call (to
-     * check auto-approval labels), so it must not be called from the scheduler.
-     *
-     * @param job the branch job
-     * @param info the approval info
-     * @return the resolved approval data (persisted if it changed)
+     * Puts a newly discovered fork pull request on hold, and catches the jobs that were already
+     * there when the trust policy got switched on.
+     */
+    @Extension
+    public static class ApprovalItemListener extends ItemListener {
+
+        @Override
+        public void onCreated(Item item) {
+            if (item instanceof Job) {
+                refresh((Job<?, ?>) item);
+            }
+        }
+
+        @Override
+        public void onUpdated(Item item) {
+            if (item instanceof MultiBranchProject) {
+                for (Item child : ((MultiBranchProject<?, ?>) item).getItems()) {
+                    if (child instanceof Job) {
+                        refresh((Job<?, ?>) child);
+                    }
+                }
+            }
+        }
+
+        private static void refresh(Job<?, ?> job) {
+            ExternalApprovalInfo info = ExternalApprovalHelper.getApprovalInfo(job);
+            if (info != null) {
+                applyApprovalState(job, resolveApprovalData(job, info).state);
+            }
+        }
+    }
+
+    /**
+     * Spends the approval once the build it was granted for has started: the job goes back to
+     * disabled, so the next commit needs a fresh approval. Only does anything when the trust policy
+     * asks for approval on new commits.
+     */
+    @Extension
+    public static class ApprovalSpender extends RunListener<Run<?, ?>> {
+
+        @Override
+        public void onStarted(Run<?, ?> run, TaskListener listener) {
+            Job<?, ?> job = run.getParent();
+            ExternalApprovalInfo info = ExternalApprovalHelper.getApprovalInfo(job);
+            if (info == null || !info.requireApprovalForNewCommits) {
+                return;
+            }
+            if (ExternalApprovalHelper.isAutoApprovedUser(info)) {
+                // Authors on the auto-approval list never have to ask again.
+                return;
+            }
+            ApprovalData data = ApprovalData.load(job);
+            if (data.state != ApprovalState.APPROVED) {
+                return;
+            }
+            data.reset();
+            try {
+                data.save(job);
+            } catch (IOException e) {
+                LOGGER.log(Level.WARNING, "Failed to reset the approval of " + job.getFullName(), e);
+                return;
+            }
+            setDisabled(job, true);
+            listener.getLogger()
+                    .println("Approval spent: the next build of PR #" + info.prNumber + " needs a new approval.");
+        }
+    }
+
+    /**
+     * Loads the approval record, writing it the first time we see a pull request and looking at it
+     * again once the approved commit has moved on. This is the only writer of the approval state,
+     * and it can cost a GitHub call to read labels, so it does nothing at all in between. Whatever
+     * it changes is saved and mirrored onto the job.
      */
     private static ApprovalData resolveApprovalData(Job<?, ?> job, ExternalApprovalInfo info) {
         ApprovalData data = ApprovalData.load(job);
         boolean changed = false;
         if (!ApprovalData.exists(job)) {
-            // First time we see this PR: auto-approve it if it matches the configured users/labels.
+            // First time we see this PR: approve it straight away if it matches the users or labels.
             if (ExternalApprovalHelper.evaluateAutoApproval(info)) {
                 data.state = ApprovalState.APPROVED;
                 data.approvedBy = AUTO_APPROVAL;
@@ -341,16 +396,13 @@ public class PendingApprovalAction implements Action {
                 && data.state == ApprovalState.APPROVED
                 && data.approvedPullHash != null
                 && !data.approvedPullHash.equals(info.currentPullHash)) {
-            // A new commit was pushed after approval: keep it approved only if still auto-approved,
-            // otherwise require a fresh approval.
+            // Someone pushed after the approval. It only stays approved if it still auto-approves,
+            // otherwise it goes back to waiting for a person.
             if (ExternalApprovalHelper.evaluateAutoApproval(info)) {
                 data.approvedBy = AUTO_APPROVAL;
                 data.approvedPullHash = info.currentPullHash;
             } else {
-                data.state = ApprovalState.PENDING;
-                data.approvedBy = null;
-                data.approvedAt = 0;
-                data.approvedPullHash = null;
+                data.reset();
             }
             changed = true;
         }
@@ -360,50 +412,8 @@ public class PendingApprovalAction implements Action {
             } catch (IOException e) {
                 LOGGER.log(Level.WARNING, "Failed to persist approval data for " + job.getFullName(), e);
             }
+            applyApprovalState(job, data.state);
         }
         return data;
-    }
-
-    /**
-     * Holds a job back from building while it is still waiting for external approval.
-     */
-    @Extension
-    public static class QueueDecisionHandler extends Queue.QueueDecisionHandler {
-
-        @Override
-        public boolean shouldSchedule(Queue.Task task, java.util.List<Action> actions) {
-            if (!(task instanceof Job)) {
-                return true;
-            }
-            Job<?, ?> job = (Job<?, ?>) task;
-            ExternalApprovalInfo info = ExternalApprovalHelper.getApprovalInfo(job);
-            if (info == null) {
-                return true;
-            }
-            ApprovalData data = ApprovalData.load(job);
-            boolean approved = data.state == ApprovalState.APPROVED;
-            // A new commit pushed after approval invalidates it, unless the author is an auto-trusted
-            // user (checked cheaply here so we never hit the GitHub API under the queue lock).
-            if (approved
-                    && info.requireApprovalForNewCommits
-                    && data.approvedPullHash != null
-                    && !data.approvedPullHash.equals(info.currentPullHash)
-                    && !ExternalApprovalHelper.isAutoApprovedUser(info)) {
-                approved = false;
-            }
-            if (!approved) {
-                PendingApprovalAction helper = new PendingApprovalAction(
-                        job, ApprovalState.PENDING, info.prNumber, info.prAuthor, null, false);
-                if (!helper.isJobDisabled()) {
-                    try {
-                        helper.makeDisabled(true);
-                    } catch (IOException e) {
-                        LOGGER.log(Level.WARNING, "Failed to disable " + job.getFullName(), e);
-                    }
-                }
-                return false;
-            }
-            return true;
-        }
     }
 }
