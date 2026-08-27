@@ -585,7 +585,7 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
     @Issue("SECURITY-3808")
     @Test
     public void doFillApiUriItemsRequiresPermission() throws Exception {
-        // A GHE endpoint and a folder to look at it from
+        // Given a GHE endpoint configured and a folder
         final GitHubConfiguration ghConfig = GitHubConfiguration.get();
         final Endpoint ghe = new Endpoint("https://ghe.example.com/api/v3", "GHE");
         final MockFolder folder = r.createFolder(UUID.randomUUID().toString());
@@ -605,10 +605,10 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
             final GitHubAppCredentials.DescriptorImpl appCredsD =
                     r.jenkins.getDescriptorByType(GitHubAppCredentials.DescriptorImpl.class);
 
-            // A user with only 'Read'
+            // When user have 'Read'
             mockStrategy.grant(Jenkins.READ).onRoot().to("readOnly");
             try (ACLContext ctx = ACL.as2(User.getById("readOnly", true).impersonate2())) {
-                // never sees the GHE URL
+                // Then GHE URL is never returned
                 assertThat(navigatorD.doFillApiUriItems(null), hasSize(0));
                 assertThat(navigatorD.doFillApiUriItems(folder), hasSize(0));
                 assertThat(sourceD.doFillApiUriItems(null), hasSize(0));
@@ -617,10 +617,10 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
                 assertThat(appCredsD.doFillApiUriItems(folder), hasSize(0));
             }
 
-            // A user with 'Manage'
+            // When user have 'Manage'
             mockStrategy.grant(Jenkins.MANAGE).onRoot().to("admin");
             try (ACLContext ctx = ACL.as2(User.getById("admin", true).impersonate2())) {
-                // sees it at the root, but not inside a folder
+                // Then GHE URL is visible with root context, hidden with folder context
                 assertThat(values(navigatorD.doFillApiUriItems(null)), hasItem(ghe.getApiUri()));
                 assertThat(navigatorD.doFillApiUriItems(folder), hasSize(0));
                 assertThat(values(sourceD.doFillApiUriItems(null)), hasItem(ghe.getApiUri()));
@@ -629,10 +629,10 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
                 assertThat(appCredsD.doFillApiUriItems(folder), hasSize(0));
             }
 
-            // A user with 'Configure' on the folder
+            // When user have 'Configure' on folder
             mockStrategy.grant(Item.CONFIGURE).onItems(folder).to("configurator");
             try (ACLContext ctx = ACL.as2(User.getById("configurator", true).impersonate2())) {
-                // sees it inside that folder, but not outside it
+                // Then GHE URL is visible with folder context, hidden without
                 assertThat(navigatorD.doFillApiUriItems(null), hasSize(0));
                 assertThat(values(navigatorD.doFillApiUriItems(folder)), hasItem(ghe.getApiUri()));
                 assertThat(sourceD.doFillApiUriItems(null), hasSize(0));
