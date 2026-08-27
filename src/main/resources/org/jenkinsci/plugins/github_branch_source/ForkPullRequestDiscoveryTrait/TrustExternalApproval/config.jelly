@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:description>${%blurb}</f:description>
+    <f:entry title="${%Require approval for new commits}" field="requireApprovalForNewCommits">
+        <f:checkbox/>
+    </f:entry>
+    <f:entry title="${%Auto-approval labels}" field="autoApprovalLabels">
+        <f:textbox default="${instance.autoApprovalLabelsString}"/>
+    </f:entry>
+    <f:entry title="${%Auto-approval users}" field="autoApprovalUsers">
+        <f:textbox default="${instance.autoApprovalUsersString}" checkMethod="post"/>
+    </f:entry>
+</j:jelly>
