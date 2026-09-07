@@ -28,6 +28,8 @@ package org.jenkinsci.plugins.github_branch_source;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import com.cloudbees.plugins.credentials.Credentials;
 import com.cloudbees.plugins.credentials.CredentialsScope;
@@ -37,6 +39,7 @@ import com.cloudbees.plugins.credentials.common.StandardUsernamePasswordCredenti
 import com.cloudbees.plugins.credentials.domains.Domain;
 import com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl;
 import hudson.model.Item;
+import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
 import org.junit.After;
@@ -70,14 +73,14 @@ public class CredentialsRefreshTest {
         GitHubSCMSource source = new GitHubSCMSource("cloudbeers", "yolo", null, false);
         source.setCredentialsId(CREDENTIALS_ID);
 
-        StandardCredentials resolved = source.getCredentials(context, false);
+        StandardCredentials resolved = resolve(source, context);
         assertThat(password(resolved), is("first-secret"));
 
         store("second-secret");
-        assertThat(source.getCredentials(context, false), sameInstance(resolved));
+        assertThat(resolve(source, context), sameInstance(resolved));
 
-        Connector.credentialsTtlMillis = 0;
-        assertThat(password(source.getCredentials(context, false)), is("second-secret"));
+        expireTtl();
+        assertThat(password(resolve(source, context)), is("second-secret"));
     }
 
     @Test
@@ -88,14 +91,45 @@ public class CredentialsRefreshTest {
         GitHubSCMNavigator navigator = new GitHubSCMNavigator("cloudbeers");
         navigator.setCredentialsId(CREDENTIALS_ID);
 
-        StandardCredentials resolved = navigator.getCredentials(context, false);
+        StandardCredentials resolved = resolve(navigator, context);
         assertThat(password(resolved), is("first-secret"));
 
         store("second-secret");
-        assertThat(navigator.getCredentials(context, false), sameInstance(resolved));
+        assertThat(resolve(navigator, context), sameInstance(resolved));
 
-        Connector.credentialsTtlMillis = 0;
-        assertThat(password(navigator.getCredentials(context, false)), is("second-secret"));
+        expireTtl();
+        assertThat(password(resolve(navigator, context)), is("second-secret"));
+    }
+
+    @Test
+    public void staleOnlyOnceTheTtlHasElapsed() {
+        long now = System.currentTimeMillis();
+
+        Connector.credentialsTtlMillis = 60_000L;
+        assertFalse(Connector.isCredentialsStale(now));
+        assertTrue(Connector.isCredentialsStale(now - 60_000L));
+
+        Connector.credentialsTtlMillis = 0L;
+        assertTrue(Connector.isCredentialsStale(now));
+
+        Connector.credentialsTtlMillis = -1L;
+        assertFalse(Connector.isCredentialsStale(0L));
+    }
+
+    /**
+     * {@code getCredentials} is private on both classes, deliberately so per the review of #787, hence the
+     * reflection rather than widening it for this test.
+     */
+    private static StandardCredentials resolve(Object sourceOrNavigator, Item context) throws Exception {
+        Method method = sourceOrNavigator.getClass().getDeclaredMethod("getCredentials", Item.class, boolean.class);
+        method.setAccessible(true);
+        return (StandardCredentials) method.invoke(sourceOrNavigator, context, false);
+    }
+
+    /** Lets the TTL elapse for real, rather than exercising only the "resolve on every use" shortcut. */
+    private static void expireTtl() throws InterruptedException {
+        Connector.credentialsTtlMillis = 1L;
+        Thread.sleep(10L);
     }
 
     private static void store(String password) throws Exception {

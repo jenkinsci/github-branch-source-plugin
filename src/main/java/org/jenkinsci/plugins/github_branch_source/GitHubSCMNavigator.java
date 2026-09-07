@@ -269,7 +269,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
 
     @CheckForNull
     @Restricted(NoExternalUse.class)
-    StandardCredentials getCredentials(@CheckForNull Item context, boolean forceRefresh) {
+    private StandardCredentials getCredentials(@CheckForNull Item context, boolean forceRefresh) {
         if (credentials == null || forceRefresh || Connector.isCredentialsStale(credentialsResolvedAt)) {
             credentials = Connector.lookupScanCredentials(context, getApiUri(), getCredentialsId(), getRepoOwner());
             credentialsResolvedAt = System.currentTimeMillis();

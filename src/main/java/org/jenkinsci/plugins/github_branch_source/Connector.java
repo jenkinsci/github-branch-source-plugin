@@ -97,10 +97,10 @@ public class Connector {
     /**
      * How long a credentials object resolved by {@link #lookupScanCredentials(Item, String, String, String)} may
      * be reused before it is resolved again. Callers that hold on to a credentials object see a change to that
-     * credential only once this has elapsed. Set to {@code 0} to resolve on every use.
+     * credential only once this has elapsed. {@code 0} resolves on every use, a negative value reuses the
+     * credentials object until something forces a refresh.
      */
-    /* mostly final */ static long credentialsTtlMillis = TimeUnit.SECONDS.toMillis(
-            Math.max(0, SystemProperties.getInteger(Connector.class.getName() + ".credentialsTtlSeconds", 60)));
+    /* mostly final */ static long credentialsTtlMillis = defaultCredentialsTtlMillis();
 
     private static final Random ENTROPY = new Random();
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
@@ -119,7 +119,15 @@ public class Connector {
      */
     static boolean isCredentialsStale(long resolvedAtMillis) {
         long ttl = credentialsTtlMillis;
-        return ttl <= 0 || System.currentTimeMillis() - resolvedAtMillis >= ttl;
+        if (ttl < 0) {
+            return false;
+        }
+        return ttl == 0 || System.currentTimeMillis() - resolvedAtMillis >= ttl;
+    }
+
+    private static long defaultCredentialsTtlMillis() {
+        int seconds = SystemProperties.getInteger(Connector.class.getName() + ".credentialsTtlSeconds", 60);
+        return seconds < 0 ? -1L : TimeUnit.SECONDS.toMillis(seconds);
     }
 
     /**
