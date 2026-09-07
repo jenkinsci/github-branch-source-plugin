@@ -28,6 +28,7 @@ package org.jenkinsci.plugins.github_branch_source;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -73,14 +74,14 @@ public class CredentialsRefreshTest {
         GitHubSCMSource source = new GitHubSCMSource("cloudbeers", "yolo", null, false);
         source.setCredentialsId(CREDENTIALS_ID);
 
-        StandardCredentials resolved = resolve(source, context);
+        StandardCredentials resolved = resolve(source, context, false);
         assertThat(password(resolved), is("first-secret"));
 
         store("second-secret");
-        assertThat(resolve(source, context), sameInstance(resolved));
+        assertThat(resolve(source, context, false), sameInstance(resolved));
 
         expireTtl();
-        assertThat(password(resolve(source, context)), is("second-secret"));
+        assertThat(password(resolve(source, context, false)), is("second-secret"));
     }
 
     @Test
@@ -91,14 +92,34 @@ public class CredentialsRefreshTest {
         GitHubSCMNavigator navigator = new GitHubSCMNavigator("cloudbeers");
         navigator.setCredentialsId(CREDENTIALS_ID);
 
-        StandardCredentials resolved = resolve(navigator, context);
+        StandardCredentials resolved = resolve(navigator, context, false);
         assertThat(password(resolved), is("first-secret"));
 
         store("second-secret");
-        assertThat(resolve(navigator, context), sameInstance(resolved));
+        assertThat(resolve(navigator, context, false), sameInstance(resolved));
 
         expireTtl();
-        assertThat(password(resolve(navigator, context)), is("second-secret"));
+        assertThat(password(resolve(navigator, context, false)), is("second-secret"));
+    }
+
+    @Test
+    public void forceRefreshResolvesInsideTheTtl() throws Exception {
+        Item context = r.createFolder("force");
+        store("first-secret");
+
+        GitHubSCMSource source = new GitHubSCMSource("cloudbeers", "yolo", null, false);
+        source.setCredentialsId(CREDENTIALS_ID);
+        assertThat(password(resolve(source, context, false)), is("first-secret"));
+
+        store("second-secret");
+        assertThat(password(resolve(source, context, true)), is("second-secret"));
+    }
+
+    @Test
+    public void negativeTtlSecondsMeansNoExpiry() {
+        assertEquals(-1L, Connector.credentialsTtlMillis(-1));
+        assertEquals(0L, Connector.credentialsTtlMillis(0));
+        assertEquals(60_000L, Connector.credentialsTtlMillis(60));
     }
 
     @Test
@@ -120,10 +141,11 @@ public class CredentialsRefreshTest {
      * {@code getCredentials} is private on both classes, deliberately so per the review of #787, hence the
      * reflection rather than widening it for this test.
      */
-    private static StandardCredentials resolve(Object sourceOrNavigator, Item context) throws Exception {
+    private static StandardCredentials resolve(Object sourceOrNavigator, Item context, boolean forceRefresh)
+            throws Exception {
         Method method = sourceOrNavigator.getClass().getDeclaredMethod("getCredentials", Item.class, boolean.class);
         method.setAccessible(true);
-        return (StandardCredentials) method.invoke(sourceOrNavigator, context, false);
+        return (StandardCredentials) method.invoke(sourceOrNavigator, context, forceRefresh);
     }
 
     /** Lets the TTL elapse for real, rather than exercising only the "resolve on every use" shortcut. */

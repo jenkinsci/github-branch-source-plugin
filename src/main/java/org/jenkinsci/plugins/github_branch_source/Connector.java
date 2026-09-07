@@ -126,7 +126,14 @@ public class Connector {
     }
 
     private static long defaultCredentialsTtlMillis() {
-        int seconds = SystemProperties.getInteger(Connector.class.getName() + ".credentialsTtlSeconds", 60);
+        return credentialsTtlMillis(
+                SystemProperties.getInteger(Connector.class.getName() + ".credentialsTtlSeconds", 60));
+    }
+
+    /**
+     * Maps a configured TTL in seconds onto {@link #credentialsTtlMillis}, any negative value meaning no expiry.
+     */
+    static long credentialsTtlMillis(int seconds) {
         return seconds < 0 ? -1L : TimeUnit.SECONDS.toMillis(seconds);
     }
 
