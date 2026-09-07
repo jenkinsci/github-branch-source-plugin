@@ -94,6 +94,14 @@ public class Connector {
     private static final Map<TaskListener, Map<GitHub, Void>> checked = new WeakHashMap<>();
     private static final long API_URL_REVALIDATE_MILLIS = TimeUnit.MINUTES.toMillis(5);
 
+    /**
+     * How long a credentials object resolved by {@link #lookupScanCredentials(Item, String, String, String)} may
+     * be reused before it is resolved again. Callers that hold on to a credentials object see a change to that
+     * credential only once this has elapsed. Set to {@code 0} to resolve on every use.
+     */
+    /* mostly final */ static long credentialsTtlMillis = TimeUnit.SECONDS.toMillis(
+            Math.max(0, SystemProperties.getInteger(Connector.class.getName() + ".credentialsTtlSeconds", 60)));
+
     private static final Random ENTROPY = new Random();
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
     private static final OkHttpClient baseClient =
@@ -101,6 +109,17 @@ public class Connector {
 
     private Connector() {
         throw new IllegalAccessError("Utility class");
+    }
+
+    /**
+     * Whether a credentials object resolved at the given time should be resolved again.
+     *
+     * @param resolvedAtMillis when the credentials object was resolved, as {@link System#currentTimeMillis()}
+     * @return {@code true} if {@link #credentialsTtlMillis} has elapsed since then
+     */
+    static boolean isCredentialsStale(long resolvedAtMillis) {
+        long ttl = credentialsTtlMillis;
+        return ttl <= 0 || System.currentTimeMillis() - resolvedAtMillis >= ttl;
     }
 
     /**
