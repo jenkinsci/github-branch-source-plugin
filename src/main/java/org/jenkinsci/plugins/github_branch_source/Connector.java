@@ -94,6 +94,14 @@ public class Connector {
     private static final Map<TaskListener, Map<GitHub, Void>> checked = new WeakHashMap<>();
     private static final long API_URL_REVALIDATE_MILLIS = TimeUnit.MINUTES.toMillis(5);
 
+    /**
+     * How long a credentials object resolved by {@link #lookupScanCredentials(Item, String, String, String)} may
+     * be reused before it is resolved again. Callers that hold on to a credentials object see a change to that
+     * credential only once this has elapsed. {@code 0} resolves on every use, a negative value reuses the
+     * credentials object until something forces a refresh.
+     */
+    /* mostly final */ static long credentialsTtlMillis = defaultCredentialsTtlMillis();
+
     private static final Random ENTROPY = new Random();
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
     private static final OkHttpClient baseClient =
@@ -101,6 +109,32 @@ public class Connector {
 
     private Connector() {
         throw new IllegalAccessError("Utility class");
+    }
+
+    /**
+     * Whether a credentials object resolved at the given time should be resolved again.
+     *
+     * @param resolvedAtMillis when the credentials object was resolved, as {@link System#currentTimeMillis()}
+     * @return {@code true} if {@link #credentialsTtlMillis} has elapsed since then
+     */
+    static boolean isCredentialsStale(long resolvedAtMillis) {
+        long ttl = credentialsTtlMillis;
+        if (ttl < 0) {
+            return false;
+        }
+        return ttl == 0 || System.currentTimeMillis() - resolvedAtMillis >= ttl;
+    }
+
+    private static long defaultCredentialsTtlMillis() {
+        return credentialsTtlMillis(
+                SystemProperties.getInteger(Connector.class.getName() + ".credentialsTtlSeconds", 60));
+    }
+
+    /**
+     * Maps a configured TTL in seconds onto {@link #credentialsTtlMillis}, any negative value meaning no expiry.
+     */
+    static long credentialsTtlMillis(int seconds) {
+        return seconds < 0 ? -1L : TimeUnit.SECONDS.toMillis(seconds);
     }
 
     /**

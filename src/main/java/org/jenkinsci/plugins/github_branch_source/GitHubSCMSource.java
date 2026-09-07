@@ -276,6 +276,8 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     /** The cache of the credentials object */
     @CheckForNull
     private transient volatile StandardCredentials credentials;
+    /** When {@link #credentials} was resolved, as {@link System#currentTimeMillis()}. */
+    private transient volatile long credentialsResolvedAt;
 
     /**
      * Used during upgrade from 1.x to 2.2.0+ only.
@@ -382,8 +384,9 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     @CheckForNull
     @Restricted(NoExternalUse.class)
     private StandardCredentials getCredentials(@CheckForNull Item context, boolean forceRefresh) {
-        if (credentials == null || forceRefresh) {
+        if (credentials == null || forceRefresh || Connector.isCredentialsStale(credentialsResolvedAt)) {
             credentials = Connector.lookupScanCredentials(context, getApiUri(), getCredentialsId(), getRepoOwner());
+            credentialsResolvedAt = System.currentTimeMillis();
         }
         return credentials;
     }
