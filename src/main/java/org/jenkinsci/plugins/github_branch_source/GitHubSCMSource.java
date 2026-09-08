@@ -2239,14 +2239,10 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return FormValidation.ok();
         }
 
-        public ListBoxModel doFillApiUriItems() {
-            ListBoxModel result = new ListBoxModel();
-            result.add("GitHub", "");
-            for (Endpoint e : GitHubConfiguration.get().getEndpoints()) {
-                result.add(
-                        e.getName() == null ? e.getApiUri() : e.getName() + " (" + e.getApiUri() + ")", e.getApiUri());
-            }
-            return result;
+        @Restricted(NoExternalUse.class) // stapler
+        @SuppressWarnings("unused") // stapler
+        public ListBoxModel doFillApiUriItems(@CheckForNull @AncestorInPath Item context) {
+            return GitHubSCMNavigator.DescriptorImpl.getPossibleApiUriItems(context);
         }
 
         public boolean isApiUriSelectable() {
