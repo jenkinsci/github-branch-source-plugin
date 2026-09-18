@@ -1,0 +1,54 @@
+{
+  "id": 1,
+  "number": 1,
+  "state": "open",
+  "title": "Origin PR with MERGE strategy",
+  "user": {
+    "login": "contributor1",
+    "id": 11111,
+    "type": "User"
+  },
+  "body": "This is an origin PR targeting main",
+  "created_at": "2025-10-20T10:00:00Z",
+  "updated_at": "2025-10-20T10:00:00Z",
+  "head": {
+    "label": "test-owner:feature-1",
+    "ref": "feature-1",
+    "sha": "f1e2a3b4c5d6789012345678901234567890abc1",
+    "user": {
+      "login": "test-owner",
+      "id": 67890
+    },
+    "repo": {
+      "id": 12345,
+      "name": "test-repo",
+      "full_name": "test-owner/test-repo",
+      "owner": {
+        "login": "test-owner",
+        "id": 67890
+      }
+    }
+  },
+  "base": {
+    "label": "test-owner:main",
+    "ref": "main",
+    "sha": "b2c3d4e5f6789012345678901234567890abcdef",
+    "user": {
+      "login": "test-owner",
+      "id": 67890
+    },
+    "repo": {
+      "id": 12345,
+      "name": "test-repo",
+      "full_name": "test-owner/test-repo",
+      "owner": {
+        "login": "test-owner",
+        "id": 67890
+      }
+    }
+  },
+  "merged": false,
+  "mergeable": true,
+  "draft": false
+}
+

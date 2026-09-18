@@ -1,0 +1,52 @@
+[
+  {
+    "id": 3,
+    "number": 3,
+    "state": "open",
+    "title": "PR with only HEAD strategy",
+    "user": {
+      "login": "contributor3",
+      "id": 33333,
+      "type": "User"
+    },
+    "body": "This PR uses only HEAD checkout strategy",
+    "created_at": "2025-10-21T09:00:00Z",
+    "updated_at": "2025-10-21T09:00:00Z",
+    "head": {
+      "label": "test-owner:feature-3",
+      "ref": "feature-3",
+      "sha": "a3e4b5c6d7e8901234567890123456789abc3def",
+      "user": {
+        "login": "test-owner",
+        "id": 67890
+      },
+      "repo": {
+        "id": 12345,
+        "name": "test-repo",
+        "full_name": "test-owner/test-repo",
+        "owner": {
+          "login": "test-owner",
+          "id": 67890
+        }
+      }
+    },
+    "base": {
+      "label": "test-owner:main",
+      "ref": "main",
+      "sha": "b2c3d4e5f6789012345678901234567890abcdef",
+      "user": {
+        "login": "test-owner",
+        "id": 67890
+      },
+      "repo": {
+        "id": 12345,
+        "name": "test-repo",
+        "full_name": "test-owner/test-repo",
+        "owner": {
+          "login": "test-owner",
+          "id": 67890
+        }
+      }
+    }
+  }
+]

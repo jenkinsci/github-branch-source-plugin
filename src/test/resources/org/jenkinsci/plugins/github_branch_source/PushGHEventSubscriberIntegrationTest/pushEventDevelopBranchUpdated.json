@@ -1,0 +1,63 @@
+{
+  "ref": "refs/heads/develop",
+  "before": "d1e2a3b4c5d6789012345678901234567890abcd",
+  "after": "d2e3a4b5c6d7890123456789012345678901bcde",
+  "created": false,
+  "deleted": false,
+  "forced": false,
+  "base_ref": null,
+  "compare": "https://api.github.com/repos/test-owner/test-repo/compare/d1e2a3b4c5d6...d2e3a4b5c6d7",
+  "commits": [
+    {
+      "id": "d2e3a4b5c6d7890123456789012345678901bcde",
+      "tree_id": "e3a4b5c6d7890123456789012345678901bcde01",
+      "message": "Update develop branch",
+      "timestamp": "2025-10-21T13:00:00Z",
+      "author": {
+        "name": "Developer",
+        "email": "dev@example.com",
+        "username": "developer"
+      },
+      "committer": {
+        "name": "Developer",
+        "email": "dev@example.com",
+        "username": "developer"
+      }
+    }
+  ],
+  "head_commit": {
+    "id": "d2e3a4b5c6d7890123456789012345678901bcde",
+    "tree_id": "e3a4b5c6d7890123456789012345678901bcde01",
+    "message": "Update develop branch",
+    "timestamp": "2025-10-21T13:00:00Z",
+    "author": {
+      "name": "Developer",
+      "email": "dev@example.com",
+      "username": "developer"
+    },
+    "committer": {
+      "name": "Developer",
+      "email": "dev@example.com",
+      "username": "developer"
+    }
+  },
+  "repository": {
+    "id": 12345,
+    "name": "test-repo",
+    "full_name": "test-owner/test-repo",
+    "owner": {
+      "name": "test-owner",
+      "email": "owner@example.com",
+      "login": "test-owner"
+    },
+    "private": false,
+    "html_url": "http://localhost/test-owner/test-repo",
+    "description": "Test repository",
+    "fork": false,
+    "url": "https://api.github.com/repos/test-owner/test-repo"
+  },
+  "pusher": {
+    "name": "developer",
+    "email": "dev@example.com"
+  }
+}

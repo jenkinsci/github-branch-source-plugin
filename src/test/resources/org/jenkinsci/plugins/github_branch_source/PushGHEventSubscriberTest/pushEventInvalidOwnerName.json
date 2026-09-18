@@ -1,0 +1,47 @@
+{
+  "ref": "refs/heads/test-branch",
+  "before": "a1b2c3d4e5f6789012345678901234567890abcd",
+  "after": "b2c3d4e5f6789012345678901234567890abcdef",
+  "created": false,
+  "deleted": false,
+  "forced": false,
+  "base_ref": null,
+  "compare": "https://github.com/invalid@owner@name/test-repo/compare/a1b2c3d4e5f6...b2c3d4e5f678",
+  "commits": [],
+  "head_commit": {
+    "id": "b2c3d4e5f6789012345678901234567890abcdef",
+    "tree_id": "c3d4e5f6789012345678901234567890abcdef01",
+    "message": "Test commit",
+    "timestamp": "2025-10-21T10:30:00Z",
+    "author": {
+      "name": "Test User",
+      "email": "test@example.com",
+      "username": "testuser"
+    },
+    "committer": {
+      "name": "Test User",
+      "email": "test@example.com",
+      "username": "testuser"
+    }
+  },
+  "repository": {
+    "id": 12345,
+    "name": "test-repo",
+    "full_name": "invalid@owner@name/test-repo",
+    "owner": {
+      "name": "invalid@owner@name",
+      "email": "owner@example.com",
+      "login": "invalid@owner@name"
+    },
+    "private": false,
+    "html_url": "https://github.com/invalid@owner@name/test-repo",
+    "description": "Test repository",
+    "fork": false,
+    "url": "https://api.github.com/repos/invalid@owner@name/test-repo"
+  },
+  "pusher": {
+    "name": "testuser",
+    "email": "test@example.com"
+  }
+}
+
