@@ -52,6 +52,7 @@ public class ForkPullRequestDiscoveryTrait2Test {
         assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustEveryone(), false);
         assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustContributors(), false);
         assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustPermission(), false);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustExternalApproval(), false);
     }
 
     @Test
@@ -62,6 +63,7 @@ public class ForkPullRequestDiscoveryTrait2Test {
         assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustEveryone(), true);
         assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustContributors(), true);
         assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustPermission(), true);
+        assertRoundTrip(p, new ForkPullRequestDiscoveryTrait.TrustExternalApproval(), true);
     }
 
     private void assertRoundTrip(
