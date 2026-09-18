@@ -153,15 +153,11 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
                 .new LazyPullRequests(request, repoSpy)
                 .iterator();
 
-        // Expected: In the iterator will have one item in it but when getting that item you receive an
-        // FileNotFound exception
+        // Expected: In the iterator will have one item and it will be successfully retrieved
+        // with default user values since user metadata is not available
         assertTrue(pullRequestIterator.hasNext());
-        try {
-            pullRequestIterator.next();
-            fail();
-        } catch (Exception e) {
-            assertEquals("java.io.FileNotFoundException: User not found", e.getMessage());
-        }
+        GHPullRequest pr = pullRequestIterator.next();
+        assertNotNull(pr);
     }
 
     @Test
@@ -197,15 +193,11 @@ public class GithubSCMSourcePRsTest extends GitSCMSourceBase {
                 .new LazyPullRequests(request, repoSpy)
                 .iterator();
 
-        // Expected: In the iterator will have one item in it but when getting that item you receive an
-        // IO exception
+        // Expected: In the iterator will have one item and it will be successfully retrieved
+        // with default user values since user metadata retrieval fails
         assertTrue(pullRequestIterator.hasNext());
-        try {
-            pullRequestIterator.next();
-            fail();
-        } catch (Exception e) {
-            assertEquals("java.io.IOException: Failed to get user", e.getMessage());
-        }
+        GHPullRequest pr = pullRequestIterator.next();
+        assertNotNull(pr);
     }
 
     // Multiple PRs
