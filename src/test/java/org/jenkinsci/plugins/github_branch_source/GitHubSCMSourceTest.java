@@ -950,6 +950,8 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertTrue("a".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
         assertTrue("0".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
         assertTrue("a-b-c-d-e-f-g".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+        assertTrue("a.b".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+        assertTrue("a.b.c".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
 
         // Valid names should contain alphanumeric characters or single hyphens, and cannot begin or end
         // with a hyphen, and have a 39 char limit
@@ -965,5 +967,8 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertFalse("user123-_org456".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
         assertFalse("user123_org456-code789".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
         assertFalse("user123_org456_code789".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+        assertFalse(".user123_org456_code789".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+        assertFalse("user123_org456_code789.".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
+        assertFalse("a..b".matches(GitHubSCMSource.VALID_GITHUB_USER_NAME));
     }
 }
