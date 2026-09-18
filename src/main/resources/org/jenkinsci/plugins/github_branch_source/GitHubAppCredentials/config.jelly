@@ -1,7 +1,10 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:st="jelly:stapler">
-  <st:include page="id-and-description" class="${descriptor.clazz}"/>
-  <f:entry title="${%App ID}" field="appID">
+  <div class="jenkins-page-description">
+    ${%page.description}
+  </div>
+
+  <f:entry title="${%appID.name}" field="appID" description="${%appID.description}">
     <f:textbox/>
   </f:entry>
   <j:choose>
@@ -17,9 +20,12 @@
     </j:otherwise>
   </j:choose>
 
-  <f:entry title="${%Key}" field="privateKey">
+  <f:entry title="${%privateKey.name}" field="privateKey">
+    <div class="jenkins-form-description">${%privateKey.description}</div>
     <f:secretTextarea />
   </f:entry>
+
+  <st:include page="id-and-description" class="${descriptor.clazz}"/>
 
   <f:advanced>
     <f:dropdownDescriptorSelector title="${%Repository access strategy}" field="repositoryAccessStrategy" default="${descriptor.defaultRepositoryAccessStrategy}" />
