@@ -1,0 +1,58 @@
+[
+  {
+    "login": "stephenc",
+    "id": 209336,
+    "node_id": "MjA5MzM2OlVzZXIyMDkzMzYK",
+    "avatar_url": "https://api.github.com/avatars/u/4?",
+    "gravatar_id": "",
+    "url": "https://api.github.com//users/stephenc",
+    "html_url": "https://api.github.com/stephenc",
+    "followers_url": "https://api.github.com//users/stephenc/followers",
+    "following_url": "https://api.github.com//users/stephenc/following{/other_user}",
+    "gists_url": "https://api.github.com//users/stephenc/gists{/gist_id}",
+    "starred_url": "https://api.github.com//users/stephenc/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com//users/stephenc/subscriptions",
+    "organizations_url": "https://api.github.com//users/stephenc/orgs",
+    "repos_url": "https://api.github.com//users/stephenc/repos",
+    "events_url": "https://api.github.com//users/stephenc/events{/privacy}",
+    "received_events_url": "https://api.github.com//users/stephenc/received_events",
+    "type": "User",
+    "site_admin": false,
+    "permissions": {
+      "admin": false,
+      "maintain": false,
+      "push": true,
+      "triage": true,
+      "pull": true
+    },
+    "role_name": "write"
+  },
+  {
+    "login": "cloudbeers",
+    "id": 4181899,
+    "node_id": "NDE4MTg5OTpVc2VyNDE4MTg5OQo=",
+    "avatar_url": "https://avatars.githubusercontent.com/u/4181899?v=3",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/cloudbeers",
+    "html_url": "https://api.github.com/cloudbeers",
+    "followers_url": "https://api.github.com/users/cloudbeers/followers",
+    "following_url": "https://api.github.com/users/cloudbeers/following{/other_user}",
+    "gists_url": "https://api.github.com/users/cloudbeers/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/cloudbeers/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/cloudbeers/subscriptions",
+    "organizations_url": "https://api.github.com/users/cloudbeers/orgs",
+    "repos_url": "https://api.github.com/users/cloudbeers/repos",
+    "events_url": "https://api.github.com/users/cloudbeers/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/cloudbeers/received_events",
+    "type": "User",
+    "site_admin": false,
+    "permissions": {
+      "admin": true,
+      "maintain": true,
+      "push": true,
+      "triage": true,
+      "pull": true
+    },
+    "role_name": "admin"
+  }
+]
