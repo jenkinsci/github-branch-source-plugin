@@ -27,6 +27,7 @@ import java.io.Serializable;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -36,11 +37,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import jenkins.agents.AgentToControllerCallable;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSource;
-import jenkins.security.SlaveToMasterCallable;
 import jenkins.util.JenkinsJVM;
-import net.sf.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessSpecifiedRepositories;
 import org.jenkinsci.plugins.github_branch_source.app_credentials.AccessibleRepositories;
@@ -638,6 +639,19 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
         return new DelegatingGitHubAppCredentials(this);
     }
 
+    private record PermissionMapping(String detail, GHPermissionType type) implements Serializable {}
+
+    @SuppressWarnings("lgtm[jenkins/plaintext-storage]")
+    private record TokenRefreshData(
+            String appID,
+            String privateKey,
+            String apiUri,
+            String owner,
+            String[] repositories,
+            PermissionMapping[] permissions,
+            String inferredOwner)
+            implements Serializable {}
+
     private static final class DelegatingGitHubAppCredentials extends BaseStandardCredentials
             implements StandardUsernamePasswordCredentials {
 
@@ -646,7 +660,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
          * An encrypted form of all data needed to refresh the token. Used to prevent {@link GetToken}
          * from being abused by compromised build agents.
          */
-        private final String tokenRefreshData;
+        private final AgentToControllerCallable.EncryptedObject<TokenRefreshData> tokenRefreshData;
 
         private AppInstallationToken cachedToken;
 
@@ -656,19 +670,20 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             super(onMaster.getScope(), onMaster.getId(), onMaster.getDescription());
             JenkinsJVM.checkJenkinsJVM();
             appID = onMaster.getAppID();
-            JSONObject j = new JSONObject();
-            j.put("appID", appID);
-            j.put("privateKey", onMaster.getPrivateKey().getPlainText());
-            j.put("apiUri", onMaster.actualApiUri());
             final var accessibleRepositories = onMaster.getAccessibleRepositories();
             if (accessibleRepositories == null) {
                 throw new InferredAccessibleRepositoriesException(onMaster);
             }
-            j.put("owner", accessibleRepositories.getOwner());
-            j.put("repositories", accessibleRepositories.getRepositories());
-            j.put("permissions", onMaster.getPermissions());
-            j.put("inferredOwner", onMaster.getContext().getInferredOwner());
-            tokenRefreshData = Secret.fromString(j.toString()).getEncryptedValue();
+            tokenRefreshData = new AgentToControllerCallable.EncryptedObject<>(new TokenRefreshData(
+                    appID,
+                    onMaster.getPrivateKey().getPlainText(),
+                    onMaster.actualApiUri(),
+                    accessibleRepositories.getOwner(),
+                    accessibleRepositories.getRepositories().toArray(String[]::new),
+                    onMaster.getPermissions().entrySet().stream()
+                            .map(e -> new PermissionMapping(e.getKey(), e.getValue()))
+                            .toArray(PermissionMapping[]::new),
+                    onMaster.getContext().getInferredOwner()));
 
             // Check token is valid before sending it to the agent.
             // Ensuring the cached token is not stale before sending it to agents keeps agents from having
@@ -756,34 +771,26 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             }
         }
 
-        private static final class GetToken extends SlaveToMasterCallable<AppInstallationToken, RuntimeException> {
-
-            private final String data;
-
-            GetToken(String data) {
-                this.data = data;
-            }
-
+        private record GetToken(AgentToControllerCallable.EncryptedObject<TokenRefreshData> data)
+                implements AgentToControllerCallable<AppInstallationToken, RuntimeException> {
             @Override
             public AppInstallationToken call() throws RuntimeException {
                 JenkinsJVM.checkJenkinsJVM();
-                JSONObject fields =
-                        JSONObject.fromObject(Secret.fromString(data).getPlainText());
-                LOGGER.log(
-                        Level.FINE, "Generating App Installation Token for app ID {0} for agent", fields.get("appID"));
+                LOGGER.log(Level.FINE, "Generating App Installation Token for app ID {0} for agent", data.o().appID);
                 AppInstallationToken token = generateAppInstallationToken(
                         null,
-                        (String) fields.get("appID"),
-                        (String) fields.get("privateKey"),
-                        (String) fields.get("apiUri"),
-                        (String) fields.get("owner"),
-                        (List<String>) fields.get("repositories"),
-                        (Map<String, GHPermissionType>) fields.get("permissions"),
-                        (String) fields.get("inferredOwner"));
+                        data.o().appID,
+                        data.o().privateKey,
+                        data.o().apiUri,
+                        data.o().owner,
+                        Arrays.asList(data.o().repositories),
+                        Stream.of(data.o().permissions)
+                                .collect(Collectors.toMap(PermissionMapping::detail, PermissionMapping::type)),
+                        data.o().inferredOwner);
                 LOGGER.log(
                         Level.FINER,
                         "Retrieved GitHub App Installation Token for app ID {0} for agent",
-                        fields.get("appID"));
+                        data.o().appID);
                 return token;
             }
         }
