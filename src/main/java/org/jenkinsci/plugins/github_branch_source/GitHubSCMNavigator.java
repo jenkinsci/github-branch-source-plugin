@@ -1034,7 +1034,16 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                             String.format(
                                                     "Looking up repositories for topics: '%s'",
                                                     gitHubSCMNavigatorContext.getTopics())));
-                            repositories = searchRepositories(github, gitHubSCMNavigatorContext);
+                            repositories = searchRepositoriesByTopics(github, gitHubSCMNavigatorContext);
+                        }
+                        else if(!gitHubSCMNavigatorContext.getCustomProperties().isEmpty()) {
+                            listener.getLogger()
+                                    .println(GitHubConsoleNote.create(
+                                            System.currentTimeMillis(),
+                                            String.format(
+                                                    "Looking up repositories for custom properties: '%s'",
+                                                    gitHubSCMNavigatorContext.getCustomProperties())));
+                            repositories = searchRepositoriesByCustomProperties(github, gitHubSCMNavigatorContext);
                         } else {
                             repositories = myself.listRepositories(100);
                         }
@@ -1132,7 +1141,15 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                         String.format(
                                                 "Looking up repositories for topics: '%s'",
                                                 gitHubSCMNavigatorContext.getTopics())));
-                        repositories = searchRepositories(github, gitHubSCMNavigatorContext);
+                        repositories = searchRepositoriesByTopics(github, gitHubSCMNavigatorContext);
+                    } else if (!gitHubSCMNavigatorContext.getCustomProperties().isEmpty()) {
+                        listener.getLogger()
+                                .println(GitHubConsoleNote.create(
+                                        System.currentTimeMillis(),
+                                        String.format(
+                                                "Looking up repositories for custom properties: '%s'",
+                                                gitHubSCMNavigatorContext.getCustomProperties())));
+                        repositories = searchRepositoriesByCustomProperties(github, gitHubSCMNavigatorContext);
                     } else {
                         repositories = org.listRepositories(100);
                     }
@@ -1315,11 +1332,29 @@ public class GitHubSCMNavigator extends SCMNavigator {
         });
     }
 
-    private Iterable<GHRepository> searchRepositories(final GitHub github, final GitHubSCMNavigatorContext context) {
+    private Iterable<GHRepository> searchRepositoriesByTopics(final GitHub github, final GitHubSCMNavigatorContext context) {
         final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
         context.getTopics().forEach(topic -> {
             if (topic.startsWith("-")) ghRepositorySearchBuilder.q("-topic:" + topic.substring(1));
             else ghRepositorySearchBuilder.topic(topic);
+        });
+        ghRepositorySearchBuilder.org(getRepoOwner());
+        if (!context.isExcludeForkedRepositories()) {
+            ghRepositorySearchBuilder.q("fork:true");
+        }
+        ghRepositorySearchBuilder.q("sort:name-asc");
+        return ghRepositorySearchBuilder.list().withPageSize(100).asList();
+    }
+
+    private Iterable<GHRepository> searchRepositoriesByCustomProperties(final GitHub github, final GitHubSCMNavigatorContext context) {
+        final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
+        context.getCustomProperties().forEach(propertyAndValue -> {
+            var propertyAndValueArray = propertyAndValue.split(":");
+            var property = propertyAndValueArray[0];
+            var value = propertyAndValueArray[1];
+
+            if (property.startsWith("-")) ghRepositorySearchBuilder.q("-props." + property.substring(1) + ":" + value);
+            else ghRepositorySearchBuilder.q("props." + property.substring(1) + ":" + value);
         });
         ghRepositorySearchBuilder.org(getRepoOwner());
         if (!context.isExcludeForkedRepositories()) {
