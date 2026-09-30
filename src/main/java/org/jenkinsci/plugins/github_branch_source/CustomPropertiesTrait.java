@@ -1,16 +1,16 @@
 package org.jenkinsci.plugins.github_branch_source;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import java.util.ArrayList;
+import java.util.List;
 import jenkins.scm.api.trait.SCMNavigatorContext;
 import jenkins.scm.api.trait.SCMNavigatorTrait;
 import jenkins.scm.api.trait.SCMNavigatorTraitDescriptor;
 import jenkins.scm.impl.trait.Selection;
 import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
+
 
 /** Decorates a {@link SCMNavigatorContext} with GitHub custom properties */
 public class CustomPropertiesTrait extends SCMNavigatorTrait {
