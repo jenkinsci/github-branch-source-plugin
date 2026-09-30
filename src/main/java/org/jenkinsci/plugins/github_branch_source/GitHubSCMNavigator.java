@@ -1035,8 +1035,7 @@ public class GitHubSCMNavigator extends SCMNavigator {
                                                     "Looking up repositories for topics: '%s'",
                                                     gitHubSCMNavigatorContext.getTopics())));
                             repositories = searchRepositoriesByTopics(github, gitHubSCMNavigatorContext);
-                        }
-                        else if(!gitHubSCMNavigatorContext.getCustomProperties().isEmpty()) {
+                        } else if(!gitHubSCMNavigatorContext.getCustomProperties().isEmpty()) {
                             listener.getLogger()
                                     .println(GitHubConsoleNote.create(
                                             System.currentTimeMillis(),
