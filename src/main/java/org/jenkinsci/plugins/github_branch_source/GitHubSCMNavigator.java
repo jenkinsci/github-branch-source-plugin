@@ -1331,7 +1331,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
         });
     }
 
-    private Iterable<GHRepository> searchRepositoriesByTopics(final GitHub github, final GitHubSCMNavigatorContext context) {
+    private Iterable<GHRepository> searchRepositoriesByTopics(
+            final GitHub github, final GitHubSCMNavigatorContext context) {
         final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
         context.getTopics().forEach(topic -> {
             if (topic.startsWith("-")) ghRepositorySearchBuilder.q("-topic:" + topic.substring(1));
@@ -1345,7 +1346,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
         return ghRepositorySearchBuilder.list().withPageSize(100).asList();
     }
 
-    private Iterable<GHRepository> searchRepositoriesByCustomProperties(final GitHub github, final GitHubSCMNavigatorContext context) {
+    private Iterable<GHRepository> searchRepositoriesByCustomProperties(
+            final GitHub github, final GitHubSCMNavigatorContext context) {
         final GHRepositorySearchBuilder ghRepositorySearchBuilder = github.searchRepositories();
         context.getCustomProperties().forEach(propertyAndValue -> {
             var propertyAndValueArray = propertyAndValue.split(":");
