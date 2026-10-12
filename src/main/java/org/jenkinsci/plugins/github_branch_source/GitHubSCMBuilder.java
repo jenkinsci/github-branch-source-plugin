@@ -69,6 +69,11 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
     /** The context within which credentials should be resolved. */
     @CheckForNull
     private final SCMSourceOwner context;
+
+    @NonNull
+    private final String checkoutRepositoryUrl;
+
+    private final boolean configuredByUrl;
     /** The API URL */
     @NonNull
     private final String apiUri;
@@ -99,6 +104,8 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
             @NonNull GitHubSCMSource source, @NonNull SCMHead head, @CheckForNull SCMRevision revision) {
         super(head, revision, /*dummy value*/ guessRemote(source), source.getCredentialsId());
         this.context = source.getOwner();
+        checkoutRepositoryUrl = source.getRepositoryUrl();
+        configuredByUrl = source.isConfiguredByUrl();
         apiUri = StringUtils.defaultIfBlank(source.getApiUri(), GitHubServerConfig.GITHUB_URL);
         repoOwner = source.getRepoOwner();
         repository = source.getRepository();
@@ -246,7 +253,11 @@ public class GitHubSCMBuilder extends GitSCMBuilder<GitHubSCMBuilder> {
      */
     @NonNull
     public final GitHubSCMBuilder withGitHubRemote() {
-        withRemote(uriResolver().getRepositoryUri(apiUri, repoOwner, repository));
+        String remote = uriResolver().getRepositoryUri(apiUri, repoOwner, repository);
+        if (uriResolver() == HTTPS && configuredByUrl) {
+            remote = checkoutRepositoryUrl;
+        }
+        withRemote(remote);
         final SCMHead h = head();
         String repoUrl;
         if (h instanceof PullRequestSCMHead) {
