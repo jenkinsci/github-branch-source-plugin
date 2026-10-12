@@ -25,6 +25,8 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import static org.junit.Assert.*;
 
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import java.util.Collections;
 import java.util.List;
 import jenkins.branch.BranchSource;
@@ -41,6 +43,17 @@ public class ForkPullRequestDiscoveryTrait2Test {
 
     @Rule
     public JenkinsRule r = new JenkinsRule();
+
+    /**
+     * Saving the project triggers a branch indexing. Against github.com that calls the real API
+     * anonymously, and can sleep in {@link ApiRateLimitChecker} past the test timeout when the
+     * shared quota is low. Point the source at a local server instead; with no stubs it answers
+     * every request with a 404, so indexing finishes immediately. Unmatched requests are expected,
+     * so they must not fail the test.
+     */
+    @Rule
+    public WireMockRule githubApi =
+            new WireMockRule(WireMockConfiguration.options().dynamicPort(), false);
 
     @Ignore(
             "These tests fail because users get automatically migrated to URL-based configuration if they re-save the GitHubSCMSource")
@@ -71,8 +84,12 @@ public class ForkPullRequestDiscoveryTrait2Test {
             throws Exception {
 
         GitHubSCMSource s;
-        if (configuredByUrl) s = new GitHubSCMSource("", "", "https://github.com/nobody/nowhere", true);
-        else s = new GitHubSCMSource("nobody", "nowhere", null, false);
+        if (configuredByUrl)
+            s = new GitHubSCMSource("", "", "http://localhost:" + githubApi.port() + "/nobody/nowhere", true);
+        else {
+            s = new GitHubSCMSource("nobody", "nowhere", null, false);
+            s.setApiUri("http://localhost:" + githubApi.port() + "/api/v3");
+        }
 
         p.setSourcesList(Collections.singletonList(new BranchSource(s)));
         s.setTraits(Collections.singletonList(new ForkPullRequestDiscoveryTrait(0, trust)));
