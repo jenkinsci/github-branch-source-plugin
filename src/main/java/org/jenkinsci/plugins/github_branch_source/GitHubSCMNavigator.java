@@ -224,6 +224,8 @@ public class GitHubSCMNavigator extends SCMNavigator {
     /** The cache of the credentials object */
     @CheckForNull
     private transient volatile StandardCredentials credentials;
+    /** When {@link #credentials} was resolved, as {@link System#currentTimeMillis()}. */
+    private transient volatile long credentialsResolvedAt;
 
     /**
      * Constructor.
@@ -268,8 +270,9 @@ public class GitHubSCMNavigator extends SCMNavigator {
     @CheckForNull
     @Restricted(NoExternalUse.class)
     private StandardCredentials getCredentials(@CheckForNull Item context, boolean forceRefresh) {
-        if (credentials == null || forceRefresh) {
+        if (credentials == null || forceRefresh || Connector.isCredentialsStale(credentialsResolvedAt)) {
             credentials = Connector.lookupScanCredentials(context, getApiUri(), getCredentialsId(), getRepoOwner());
+            credentialsResolvedAt = System.currentTimeMillis();
         }
         return credentials;
     }
