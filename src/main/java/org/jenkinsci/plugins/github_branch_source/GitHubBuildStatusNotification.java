@@ -47,6 +47,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.AbstractGitSCMSource.SCMRevisionImpl;
+import hudson.plugins.git.util.BuildData;
 import jenkins.scm.api.SCMHead;
 import jenkins.scm.api.SCMHeadObserver;
 import jenkins.scm.api.SCMRevision;
@@ -83,6 +84,20 @@ public class GitHubBuildStatusNotification {
                     if (repo != null) {
                         Result result = build.getResult();
                         String revisionToNotify = resolveHeadCommit(revision);
+                        
+                        // Check if we're in a merge queue context by looking at the actual built commit
+                        BuildData buildData = build.getAction(BuildData.class);
+                        if (buildData != null && buildData.getLastBuiltRevision() != null) {
+                            String builtCommit = buildData.getLastBuiltRevision().getSha1String();
+                            // If the built commit differs from what we'd normally report, and we're building a PR,
+                            // this might be a merge queue build
+                            if (builtCommit != null && !builtCommit.equals(revisionToNotify) && revision instanceof PullRequestSCMRevision) {
+                                LOGGER.log(Level.FINE, "Detected possible merge queue build. Using actual built commit {0} instead of PR head {1}", 
+                                    new Object[]{builtCommit, revisionToNotify});
+                                revisionToNotify = builtCommit;
+                            }
+                        }
+                        
                         SCMHead head = revision.getHead();
                         List<AbstractGitHubNotificationStrategy> strategies = new GitHubSCMSourceContext(
                                         null, SCMHeadObserver.none())
