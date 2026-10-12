@@ -147,10 +147,10 @@ public class EventsTest {
     }
 
     @Test
-    public void given_ghPullRequestEventReadyForReview_then_updatedHeadEventFired() throws Exception {
+    public void given_ghPullRequestEventReadyForReview_then_createdHeadEventFired() throws Exception {
         PullRequestGHEventSubscriber subscriber = new PullRequestGHEventSubscriber();
 
-        firedEventType = SCMEvent.Type.UPDATED;
+        firedEventType = SCMEvent.Type.CREATED;
         ghEvent = callOnEvent(subscriber, "EventsTest/pullRequestEventUpdatedReadyForReview.json");
         waitAndAssertReceived(true);
     }
