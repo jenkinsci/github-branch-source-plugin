@@ -299,6 +299,9 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
             Map<SCMHead, SCMRevision> result = new HashMap<>();
             GitHubSCMSourceContext context =
                     new GitHubSCMSourceContext(null, SCMHeadObserver.none()).withTraits(src.getTraits());
+            if ("edited".equals(getPayload().getAction()) && context.ignoreEditedPullRequests()) {
+                return Collections.emptyMap();
+            }
             if (!fork && context.wantBranches()) {
                 final String branchName = ghPullRequest.getHead().getRef();
                 SCMHead head = new BranchSCMHead(branchName);
