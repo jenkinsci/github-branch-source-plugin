@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core">
+    <j:if test="${it.state.name() == 'PENDING'}">
+        <div class="warning" style="padding: 10px; margin: 10px 0;">
+            <strong>This fork pull request requires external approval before it can build.</strong>
+            <br/>
+            PR #${it.prNumber} from ${it.prAuthor}
+            <j:if test="${it.currentPullHash != null}">
+                (commit ${it.currentPullHash.length() &gt; 7 ? it.currentPullHash.substring(0, 7) : it.currentPullHash})
+            </j:if>
+        </div>
+    </j:if>
+</j:jelly>
