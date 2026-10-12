@@ -22,13 +22,9 @@
   </f:radioBlock>
   <f:radioBlock name="configuredByUrlRadio" value="false" checked="false" title="${%Repository Scan - Deprecated Visualization}" inline="true">
     <f:nested>
-      <j:choose>
-        <j:when test="${descriptor.apiUriSelectable}">
-        <f:entry title="${%API endpoint}" field="apiUri">
-          <f:select/>
-        </f:entry>
-        </j:when>
-      </j:choose>
+      <f:entry title="${%API endpoint}" field="apiUri">
+        <f:select/>
+      </f:entry>
       <f:entry title ="${%Owner}" field="repoOwner">
         <f:textbox/>
       </f:entry>
