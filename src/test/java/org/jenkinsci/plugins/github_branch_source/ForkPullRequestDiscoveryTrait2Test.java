@@ -86,7 +86,10 @@ public class ForkPullRequestDiscoveryTrait2Test {
         GitHubSCMSource s;
         if (configuredByUrl)
             s = new GitHubSCMSource("", "", "http://localhost:" + githubApi.port() + "/nobody/nowhere", true);
-        else s = new GitHubSCMSource("nobody", "nowhere", null, false);
+        else {
+            s = new GitHubSCMSource("nobody", "nowhere", null, false);
+            s.setApiUri("http://localhost:" + githubApi.port() + "/api/v3");
+        }
 
         p.setSourcesList(Collections.singletonList(new BranchSource(s)));
         s.setTraits(Collections.singletonList(new ForkPullRequestDiscoveryTrait(0, trust)));
