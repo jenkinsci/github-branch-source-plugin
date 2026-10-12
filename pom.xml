@@ -35,7 +35,7 @@
     <hpi.compatibleSinceVersion>2.2.0</hpi.compatibleSinceVersion>
     <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
     <jenkins.baseline>2.541</jenkins.baseline>
-    <jenkins.version>${jenkins.baseline}.1</jenkins.version>
+    <jenkins.version>2.584-rc38691.4314758a_11ee</jenkins.version>
     <spotless.check.skip>false</spotless.check.skip>
     <ban-commons-lang-2.skip>false</ban-commons-lang-2.skip>
     <hpi.strictBundledArtifacts>true</hpi.strictBundledArtifacts>
