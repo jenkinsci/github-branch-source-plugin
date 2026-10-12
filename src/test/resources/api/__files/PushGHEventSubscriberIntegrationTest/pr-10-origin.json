@@ -1,0 +1,54 @@
+{
+  "id": 10,
+  "number": 10,
+  "state": "open",
+  "title": "Origin PR targeting develop",
+  "user": {
+    "login": "contributor10",
+    "id": 10101,
+    "type": "User"
+  },
+  "body": "This is an origin PR targeting develop branch",
+  "created_at": "2025-10-18T08:00:00Z",
+  "updated_at": "2025-10-18T08:00:00Z",
+  "head": {
+    "label": "test-owner:feature-10",
+    "ref": "feature-10",
+    "sha": "a1b2c3d4e5f6789012345678901234567890def1",
+    "user": {
+      "login": "test-owner",
+      "id": 67890
+    },
+    "repo": {
+      "id": 12345,
+      "name": "test-repo",
+      "full_name": "test-owner/test-repo",
+      "owner": {
+        "login": "test-owner",
+        "id": 67890
+      }
+    }
+  },
+  "base": {
+    "label": "test-owner:develop",
+    "ref": "develop",
+    "sha": "d3e4f5a6b7c89012345678901234567890abcdef",
+    "user": {
+      "login": "test-owner",
+      "id": 67890
+    },
+    "repo": {
+      "id": 12345,
+      "name": "test-repo",
+      "full_name": "test-owner/test-repo",
+      "owner": {
+        "login": "test-owner",
+        "id": 67890
+      }
+    }
+  },
+  "merged": false,
+  "mergeable": true,
+  "draft": false
+}
+
