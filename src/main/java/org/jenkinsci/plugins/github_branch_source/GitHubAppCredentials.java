@@ -27,15 +27,14 @@ import java.io.Serializable;
 import java.security.GeneralSecurityException;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMSource;
 import jenkins.security.SlaveToMasterCallable;
@@ -296,34 +295,26 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId), e);
             }
 
-            List<GHAppInstallation> appInstallations = app.listInstallations().asList();
-            if (appInstallations.isEmpty()) {
-                throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId));
-            }
             final String ownerOrNull = Util.fixEmpty(owner);
             final GHAppInstallation appInstallation;
-            if (ownerOrNull == null && appInstallations.size() == 1) {
-                // This case is only used when AccessSpecifiedRepositories.getOwner is empty.
-                appInstallation = appInstallations.get(0);
-            } else {
-                // Use the possibly inferred owner from the context
-                final String ownerOrEmpty =
-                        Util.fixNull(Optional.ofNullable(ownerOrNull).orElse(inferredOwner));
-                Optional<GHAppInstallation> appInstallationOptional = appInstallations.stream()
-                        .filter(installation -> installation
-                                .getAccount()
-                                .getLogin()
-                                .toLowerCase(Locale.ROOT)
-                                .equals(ownerOrEmpty.toLowerCase(Locale.ROOT)))
-                        .findAny();
-                if (appInstallationOptional.isEmpty()) {
-                    String logins = appInstallations.stream()
-                            .map(installation -> installation.getAccount().getLogin())
-                            .collect(Collectors.joining(", "));
-                    throw new IllegalArgumentException(
-                            String.format(ERROR_NO_OWNER_MATCHING, appId, ownerOrEmpty, logins));
+            if (ownerOrNull == null) {
+                List<GHAppInstallation> appInstallations =
+                        app.listInstallations().asList();
+                if (appInstallations.isEmpty()) {
+                    throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId));
+                } else if (appInstallations.size() == 1) {
+                    // This case is only used when AccessSpecifiedRepositories.getOwner is empty.
+                    appInstallation = appInstallations.get(0);
+                } else {
+                    // Use the possibly inferred owner from the context
+                    appInstallation = findAppInstallationForOwner(appInstallations, Util.fixNull(inferredOwner), appId);
                 }
-                appInstallation = appInstallationOptional.get();
+            } else {
+                // The owner is already known, so there is no reason to unconditionally page
+                // through the app's entire installation list first: stop as soon as the
+                // matching installation is found. On an app with a large number of
+                // installations, listing them all can take longer than the Timeout.limit above.
+                appInstallation = findAppInstallationForOwner(app.listInstallations(), ownerOrNull, appId);
             }
 
             GHAppCreateTokenBuilder builder = appInstallation.createToken();
@@ -357,6 +348,30 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             throw new IllegalArgumentException(
                     "Failed to generate GitHub App installation token for app ID " + appId, e);
         }
+    }
+
+    /**
+     * Finds the installation whose account login matches {@code ownerOrEmpty}, stopping as soon
+     * as a match is found instead of paging through every remaining installation.
+     *
+     * @throws IllegalArgumentException if no installations exist at all, or if none of them
+     *     match {@code ownerOrEmpty}
+     */
+    private static GHAppInstallation findAppInstallationForOwner(
+            Iterable<GHAppInstallation> installations, String ownerOrEmpty, String appId) {
+        List<String> logins = new ArrayList<>();
+        for (GHAppInstallation installation : installations) {
+            String login = installation.getAccount().getLogin();
+            if (login.toLowerCase(Locale.ROOT).equals(ownerOrEmpty.toLowerCase(Locale.ROOT))) {
+                return installation;
+            }
+            logins.add(login);
+        }
+        if (logins.isEmpty()) {
+            throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId));
+        }
+        throw new IllegalArgumentException(
+                String.format(ERROR_NO_OWNER_MATCHING, appId, ownerOrEmpty, String.join(", ", logins)));
     }
 
     private static long getExpirationSeconds(GHAppInstallationToken appInstallationToken) {
