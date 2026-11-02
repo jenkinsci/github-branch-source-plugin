@@ -1,5 +1,7 @@
 package org.jenkinsci.plugins.github_branch_source;
 
+import static org.apache.commons.lang3.StringUtils.removeEnd;
+
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.Actionable;
 import hudson.model.Run;
@@ -39,7 +41,7 @@ public class GitHubRepositoryDetail extends Detail {
             return null;
         }
 
-        return source.getRepositoryUrl();
+        return removeEnd(removeEnd(source.getRepositoryUrl(), "/"), ".git");
     }
 
     @Override

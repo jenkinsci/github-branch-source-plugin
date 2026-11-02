@@ -30,6 +30,19 @@ class GitHubRepositoryDetailTest {
     }
 
     @Test
+    void gitHubRepositoryDetail_linkWithoutGitSuffixOrTrailingSlash() {
+        assertEquals(
+                "https://github.com/cloudbeers/stunning-adventure",
+                linkFor("https://github.com/cloudbeers/stunning-adventure.git"));
+        assertEquals(
+                "https://github.com/cloudbeers/stunning-adventure",
+                linkFor("https://github.com/cloudbeers/stunning-adventure.git/"));
+        assertEquals(
+                "https://github.com/cloudbeers/stunning-adventure",
+                linkFor("https://github.com/cloudbeers/stunning-adventure/"));
+    }
+
+    @Test
     void gitHubRepositoryDetail_noConfiguredSource() {
         Run<?, ?> run = mock(Run.class);
 
@@ -37,5 +50,17 @@ class GitHubRepositoryDetailTest {
 
         assertNull(detail.getDisplayName());
         assertNull(detail.getLink());
+    }
+
+    private static String linkFor(String repositoryUrl) {
+        GitHubSCMSource instance = mock(GitHubSCMSource.class);
+        when(instance.getRepositoryUrl()).thenReturn(repositoryUrl);
+        Run<?, ?> run = mock(Run.class);
+
+        try (MockedStatic<SCMSource.SourceByItem> mocked = mockStatic(SCMSource.SourceByItem.class)) {
+            mocked.when(() -> SCMSource.SourceByItem.findSource(any())).thenReturn(instance);
+
+            return new GitHubRepositoryDetail(run).getLink();
+        }
     }
 }
