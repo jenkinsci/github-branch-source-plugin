@@ -41,6 +41,31 @@ class GitHubCommitDetailTest {
     }
 
     @Test
+    void link_forScmRevisionImpl_whenRepositoryUrlEndsWithGit() {
+        Run run = mock(Run.class);
+        Job job = mock(Job.class);
+        when(run.getParent()).thenReturn(job);
+
+        SCMRevisionAction action = mock(SCMRevisionAction.class);
+        when(run.getAction(SCMRevisionAction.class)).thenReturn(action);
+
+        AbstractGitSCMSource.SCMRevisionImpl revision = mock(AbstractGitSCMSource.SCMRevisionImpl.class);
+        when(revision.getHash()).thenReturn("abcdef1234567890");
+        when(action.getRevision()).thenReturn(revision);
+
+        GitHubSCMSource instance = mock(GitHubSCMSource.class);
+        when(instance.getRepositoryUrl()).thenReturn("https://github.com/octo/hello-world.git");
+
+        try (MockedStatic<SCMSource.SourceByItem> mocked = mockStatic(SCMSource.SourceByItem.class)) {
+            mocked.when(() -> SCMSource.SourceByItem.findSource(any())).thenReturn(instance);
+
+            GitHubCommitDetail detail = new GitHubCommitDetail(run);
+
+            assertEquals("https://github.com/octo/hello-world/commit/abcdef1234567890", detail.getLink());
+        }
+    }
+
+    @Test
     void displayName_and_link_forPullRequestRevision() {
         Run run = mock(Run.class);
         Job job = mock(Job.class);
