@@ -515,6 +515,15 @@ public class Connector {
         }
     }
 
+    static void invalidate(@NonNull GitHub hub) {
+        ConnectionId connectionId = reverseLookup.get(hub);
+        if (connectionId == null) {
+            return;
+        }
+        connections.remove(connectionId);
+        reverseLookup.remove(hub);
+    }
+
     static List<DomainRequirement> githubDomainRequirements(String apiUri) {
         return URIRequirementBuilder.fromUri(StringUtils.defaultIfEmpty(apiUri, GitHubServerConfig.GITHUB_URL))
                 .build();
