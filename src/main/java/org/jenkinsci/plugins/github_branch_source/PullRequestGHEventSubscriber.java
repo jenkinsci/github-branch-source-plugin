@@ -120,13 +120,12 @@ public class PullRequestGHEventSubscriber extends GHEventsSubscriber {
                     return;
                 }
 
-                if ("opened".equals(action)) {
+                if ("opened".equals(action) || "ready_for_review".equals(action)) {
                     fireAfterDelay(new SCMHeadEventImpl(
                             SCMEvent.Type.CREATED, event.getTimestamp(), p, changedRepository, event.getOrigin()));
                 } else if ("reopened".equals(action)
                         || "synchronize".equals(action)
                         || "edited".equals(action)
-                        || "ready_for_review".equals(action)
                         || "converted_to_draft".equals(action)) {
                     fireAfterDelay(new SCMHeadEventImpl(
                             SCMEvent.Type.UPDATED, event.getTimestamp(), p, changedRepository, event.getOrigin()));
