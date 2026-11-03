@@ -23,13 +23,19 @@
  */
 package org.jenkinsci.plugins.github_branch_source;
 
+import edu.umd.cs.findbugs.annotations.CheckForNull;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.model.Item;
+import hudson.util.FormValidation;
 import hudson.util.ListBoxModel;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import jenkins.model.Jenkins;
 import jenkins.scm.api.SCMHeadCategory;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.SCMRevision;
@@ -46,8 +52,14 @@ import jenkins.scm.impl.trait.Discovery;
 import org.jenkinsci.Symbol;
 import org.kohsuke.accmod.Restricted;
 import org.kohsuke.accmod.restrictions.NoExternalUse;
+import org.kohsuke.github.GHLabel;
 import org.kohsuke.github.GHPermissionType;
+import org.kohsuke.github.GHPullRequest;
+import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
+import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
 /**
  * A {@link Discovery} trait for GitHub that will discover pull requests from forks of the
@@ -382,6 +394,176 @@ public class ForkPullRequestDiscoveryTrait extends SCMSourceTrait {
             @Override
             public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
                 return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+        }
+    }
+
+    /**
+     * An {@link SCMHeadAuthority} that holds fork pull requests back until someone approves them.
+     * The job starts out disabled and only builds once an administrator has approved it. Pull
+     * requests from a trusted login, or carrying a trusted label, are approved for you.
+     */
+    public static class TrustExternalApproval extends GitHubForkTrustPolicy {
+        private boolean requireApprovalForNewCommits;
+
+        @CheckForNull
+        private List<String> autoApprovalLabels;
+
+        @CheckForNull
+        private List<String> autoApprovalUsers;
+
+        /** Constructor. */
+        @DataBoundConstructor
+        public TrustExternalApproval() {}
+
+        /** Whether every new commit on the pull request has to be approved again. */
+        public boolean isRequireApprovalForNewCommits() {
+            return requireApprovalForNewCommits;
+        }
+
+        @DataBoundSetter
+        public void setRequireApprovalForNewCommits(boolean requireApprovalForNewCommits) {
+            this.requireApprovalForNewCommits = requireApprovalForNewCommits;
+        }
+
+        /** The labels that approve a pull request on sight, or {@code null} if none are set. */
+        @CheckForNull
+        public List<String> getAutoApprovalLabels() {
+            return autoApprovalLabels;
+        }
+
+        /** The same labels as one comma-separated string, which is how the config form wants them. */
+        @CheckForNull
+        public String getAutoApprovalLabelsString() {
+            return autoApprovalLabels == null ? null : String.join(", ", autoApprovalLabels);
+        }
+
+        /** Reads the labels back from the config form, where they arrive comma-separated. */
+        @DataBoundSetter
+        public void setAutoApprovalLabels(@CheckForNull String autoApprovalLabels) {
+            this.autoApprovalLabels = parseCommaSeparated(autoApprovalLabels);
+        }
+
+        /** Sets the same labels from a list, for callers that already have one. */
+        public void setAutoApprovalLabelsList(@CheckForNull List<String> autoApprovalLabels) {
+            if (autoApprovalLabels == null || autoApprovalLabels.isEmpty()) {
+                this.autoApprovalLabels = null;
+            } else {
+                this.autoApprovalLabels = Collections.unmodifiableList(new ArrayList<>(autoApprovalLabels));
+            }
+        }
+
+        /** The GitHub logins whose pull requests are approved on sight, or {@code null} if none are set. */
+        @CheckForNull
+        public List<String> getAutoApprovalUsers() {
+            return autoApprovalUsers;
+        }
+
+        /** The same logins as one comma-separated string, which is how the config form wants them. */
+        @CheckForNull
+        public String getAutoApprovalUsersString() {
+            return autoApprovalUsers == null ? null : String.join(", ", autoApprovalUsers);
+        }
+
+        /** Reads the logins back from the config form, where they arrive comma-separated. */
+        @DataBoundSetter
+        public void setAutoApprovalUsers(@CheckForNull String autoApprovalUsers) {
+            this.autoApprovalUsers = parseCommaSeparated(autoApprovalUsers);
+        }
+
+        /** Sets the same logins from a list, for callers that already have one. */
+        public void setAutoApprovalUsersList(@CheckForNull List<String> autoApprovalUsers) {
+            if (autoApprovalUsers == null || autoApprovalUsers.isEmpty()) {
+                this.autoApprovalUsers = null;
+            } else {
+                this.autoApprovalUsers = Collections.unmodifiableList(new ArrayList<>(autoApprovalUsers));
+            }
+        }
+
+        @CheckForNull
+        private static List<String> parseCommaSeparated(@CheckForNull String value) {
+            if (value == null || value.isBlank()) {
+                return null;
+            }
+            List<String> result = new ArrayList<>();
+            for (String entry : value.split(",")) {
+                String trimmed = entry.trim();
+                if (!trimmed.isEmpty()) {
+                    result.add(trimmed);
+                }
+            }
+            return result.isEmpty() ? null : Collections.unmodifiableList(result);
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        protected boolean checkTrusted(@NonNull GitHubSCMSourceRequest request, @NonNull PullRequestSCMHead head)
+                throws IOException, InterruptedException {
+            if (autoApprovalUsers != null) {
+                for (String user : autoApprovalUsers) {
+                    // GitHub logins are case-insensitive.
+                    if (user.equalsIgnoreCase(head.getSourceOwner())) {
+                        return true;
+                    }
+                }
+            }
+            if (autoApprovalLabels != null && !autoApprovalLabels.isEmpty()) {
+                for (GHPullRequest pr : request.getPullRequests()) {
+                    if (pr.getNumber() != head.getNumber()) {
+                        continue;
+                    }
+                    for (GHLabel label : pr.getLabels()) {
+                        if (autoApprovalLabels.contains(label.getName())) {
+                            return true;
+                        }
+                    }
+                    break;
+                }
+            }
+            return false;
+        }
+
+        /** Our descriptor. */
+        @Symbol("gitHubTrustExternalApproval")
+        @Extension
+        public static class DescriptorImpl extends SCMHeadAuthorityDescriptor {
+
+            /** {@inheritDoc} */
+            @Override
+            public String getDisplayName() {
+                return Messages.ForkPullRequestDiscoveryTrait_externalApprovalDisplayName();
+            }
+
+            /** {@inheritDoc} */
+            @Override
+            public boolean isApplicableToOrigin(@NonNull Class<? extends SCMHeadOrigin> originClass) {
+                return SCMHeadOrigin.Fork.class.isAssignableFrom(originClass);
+            }
+
+            @Restricted(NoExternalUse.class)
+            @SuppressWarnings("unused") // stapler
+            @POST
+            public FormValidation doCheckAutoApprovalUsers(
+                    @CheckForNull @AncestorInPath Item context, @QueryParameter String value) {
+                // Only someone who can configure the job, or an admin when there is no job in the path.
+                if (context == null) {
+                    Jenkins.get().checkPermission(Jenkins.ADMINISTER);
+                } else {
+                    context.checkPermission(Item.CONFIGURE);
+                }
+                if (value == null || value.isBlank()) {
+                    return FormValidation.ok();
+                }
+                for (String entry : value.split(",")) {
+                    String trimmed = entry.trim();
+                    if (trimmed.isEmpty()) {
+                        continue;
+                    }
+                    if (trimmed.contains(" ")) {
+                        return FormValidation.warning("GitHub logins should not contain spaces: '" + trimmed + "'");
+                    }
+                }
+                return FormValidation.ok();
             }
         }
     }
