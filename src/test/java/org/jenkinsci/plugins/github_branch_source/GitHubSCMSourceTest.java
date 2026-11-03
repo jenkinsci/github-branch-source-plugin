@@ -33,6 +33,7 @@ import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasProperty;
@@ -67,6 +68,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.servlet.http.HttpServletResponse;
 import jenkins.branch.BranchSource;
 import jenkins.model.Jenkins;
 import jenkins.plugins.git.GitSCMSource;
@@ -719,6 +721,197 @@ public class GitHubSCMSourceTest extends GitSCMSourceBase {
         assertThat(
                 source.getTrustedRevision(revision, new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO)),
                 sameInstance(revision));
+    }
+
+    @Test
+    public void fetchForkPRFromCollaborators() throws IOException, InterruptedException {
+        source.setTraits(List.of(new ForkPullRequestDiscoveryTrait(
+                EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
+                new ForkPullRequestDiscoveryTrait.TrustContributors())));
+        githubApi.stubFor(get(urlMatching("(/api/v3)?/repos/cloudbeers/yolo/collaborators"))
+                .inScenario("PR from Fork not Collaborators")
+                .whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile("body-cloudbeers-yolo-collaborators.json")));
+
+        SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
+        source.fetch(
+                (SCMSourceCriteria) (probe, listener) -> probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE,
+                collector,
+                null,
+                null);
+
+        Map<String, SCMHead> byName = new HashMap<>();
+        Map<String, SCMRevision> revByName = new HashMap<>();
+        for (Map.Entry<SCMHead, SCMRevision> h : collector.result().entrySet()) {
+            byName.put(h.getKey().getName(), h.getKey());
+            revByName.put(h.getKey().getName(), h.getValue());
+        }
+
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "PR-4"));
+
+        // Source owner is a collaborator, the trusted revision must be the PR head / merge
+        for (SCMRevision revision : revByName.values()) {
+            assertThat(
+                    source.getTrustedRevision(revision, new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO)),
+                    is(revision));
+        }
+    }
+
+    @Test
+    public void fetchForkPRCannotFindCollaborators() throws IOException, InterruptedException {
+        source.setTraits(List.of(new ForkPullRequestDiscoveryTrait(
+                EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
+                new ForkPullRequestDiscoveryTrait.TrustContributors())));
+        for (Integer errorCode : new int[] {
+            HttpServletResponse.SC_NOT_FOUND, HttpServletResponse.SC_UNAUTHORIZED, HttpServletResponse.SC_FORBIDDEN
+        }) {
+            githubApi.stubFor(get(urlMatching("(/api/v3)?/repos/cloudbeers/yolo/collaborators"))
+                    .inScenario("PR from Fork " + errorCode + " Collaborators")
+                    .whenScenarioStateIs(Scenario.STARTED)
+                    .willReturn(aResponse().withStatus(errorCode)));
+
+            SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
+            source.fetch(
+                    (SCMSourceCriteria)
+                            (probe, listener) -> probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE,
+                    collector,
+                    null,
+                    null);
+
+            assertThat(collector.result().entrySet(), is(empty()));
+        }
+    }
+
+    @Test
+    public void fetchForkPRFromNonCollaborators() throws IOException, InterruptedException {
+        source.setTraits(List.of(new ForkPullRequestDiscoveryTrait(
+                EnumSet.of(ChangeRequestCheckoutStrategy.MERGE),
+                new ForkPullRequestDiscoveryTrait.TrustContributors())));
+        githubApi.stubFor(get(urlMatching("(/api/v3)?/repos/cloudbeers/yolo/collaborators"))
+                .inScenario("PR from Fork not Collaborators")
+                .whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile("body-cloudbeers-yolo-collaborators-none.json")));
+
+        SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
+        source.fetch(
+                (SCMSourceCriteria) (probe, listener) -> probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE,
+                collector,
+                null,
+                null);
+
+        Map<String, SCMHead> byName = new HashMap<>();
+        Map<String, SCMRevision> revByName = new HashMap<>();
+        for (Map.Entry<SCMHead, SCMRevision> h : collector.result().entrySet()) {
+            byName.put(h.getKey().getName(), h.getKey());
+            revByName.put(h.getKey().getName(), h.getValue());
+        }
+
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "PR-4"));
+
+        // Source owner is not a collaborator, the trusted revision must be the base (target) revision, not the head
+        for (SCMRevision revision : revByName.values()) {
+            assertThat(
+                    source.getTrustedRevision(revision, new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO)),
+                    is(((PullRequestSCMRevision) revision).getTarget()));
+        }
+    }
+
+    @Test
+    public void fetchForkPRWithPermissions() throws IOException, InterruptedException {
+        source.setTraits(List.of(new ForkPullRequestDiscoveryTrait(
+                EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustPermission())));
+        githubApi.stubFor(get(urlMatching("(/api/v3)?/repos/cloudbeers/yolo/collaborators/stephenc/permission"))
+                .inScenario("PR from Fork with Permissions")
+                .whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile("body-cloudbeers-yolo-collaborators-stephenc-permission.json")));
+
+        SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
+        source.fetch(
+                (SCMSourceCriteria) (probe, listener) -> probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE,
+                collector,
+                null,
+                null);
+
+        Map<String, SCMHead> byName = new HashMap<>();
+        Map<String, SCMRevision> revByName = new HashMap<>();
+        for (Map.Entry<SCMHead, SCMRevision> h : collector.result().entrySet()) {
+            byName.put(h.getKey().getName(), h.getKey());
+            revByName.put(h.getKey().getName(), h.getValue());
+        }
+
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "PR-4"));
+
+        // Source owner has sufficient permissions, the trusted revision must be the PR head / merge
+        for (SCMRevision revision : revByName.values()) {
+            assertThat(
+                    source.getTrustedRevision(revision, new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO)),
+                    is(revision));
+        }
+    }
+
+    @Test
+    public void fetchForkPRCannotFindPermissions() throws IOException, InterruptedException {
+        source.setTraits(List.of(new ForkPullRequestDiscoveryTrait(
+                EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustPermission())));
+        for (Integer errorCode : new int[] {
+            HttpServletResponse.SC_NOT_FOUND, HttpServletResponse.SC_UNAUTHORIZED, HttpServletResponse.SC_FORBIDDEN
+        }) {
+            githubApi.stubFor(get(urlMatching("(/api/v3)?/repos/cloudbeers/yolo/collaborators/stephenc/permission"))
+                    .inScenario("PR from Fork " + errorCode + " Permissions")
+                    .whenScenarioStateIs(Scenario.STARTED)
+                    .willReturn(aResponse().withStatus(errorCode)));
+
+            SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
+            source.fetch(
+                    (SCMSourceCriteria)
+                            (probe, listener) -> probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE,
+                    collector,
+                    null,
+                    null);
+
+            assertThat(collector.result().entrySet(), is(empty()));
+        }
+    }
+
+    @Test
+    public void fetchForkPRInsufficientPermissions() throws IOException, InterruptedException {
+        source.setTraits(List.of(new ForkPullRequestDiscoveryTrait(
+                EnumSet.of(ChangeRequestCheckoutStrategy.MERGE), new ForkPullRequestDiscoveryTrait.TrustPermission())));
+        githubApi.stubFor(get(urlMatching("(/api/v3)?/repos/cloudbeers/yolo/collaborators/stephenc/permission"))
+                .inScenario("PR from Fork Permissions")
+                .whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile("body-cloudbeers-yolo-collaborators-stephenc-permission-read.json")));
+
+        SCMHeadObserver.Collector collector = SCMHeadObserver.collect();
+        source.fetch(
+                (SCMSourceCriteria) (probe, listener) -> probe.stat("README.md").getType() == SCMFile.Type.REGULAR_FILE,
+                collector,
+                null,
+                null);
+
+        Map<String, SCMHead> byName = new HashMap<>();
+        Map<String, SCMRevision> revByName = new HashMap<>();
+        for (Map.Entry<SCMHead, SCMRevision> h : collector.result().entrySet()) {
+            byName.put(h.getKey().getName(), h.getKey());
+            revByName.put(h.getKey().getName(), h.getValue());
+        }
+
+        assertThat(byName.keySet(), containsInAnyOrder("PR-2", "PR-3", "PR-4"));
+
+        // Cannot find collaborators, the trusted revision must be the base (target) revision, not the head
+        for (SCMRevision revision : revByName.values()) {
+            assertThat(
+                    source.getTrustedRevision(revision, new LogTaskListener(Logger.getAnonymousLogger(), Level.INFO)),
+                    is(((PullRequestSCMRevision) revision).getTarget()));
+        }
     }
 
     private PullRequestSCMRevision createRevision(String sourceOwner) {
