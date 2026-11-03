@@ -65,6 +65,8 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     private Set<ChangeRequestCheckoutStrategy> forkPRStrategies = EnumSet.noneOf(ChangeRequestCheckoutStrategy.class);
     /** {@code true} if notifications should be disabled in this context. */
     private boolean notificationsDisabled;
+    /** {@code true} if builds should not be triggered when a pull request title or description is edited. */
+    private boolean ignoreEditedPullRequests;
     /**
      * Strategies used to notify Github of build status.
      *
@@ -175,6 +177,16 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
      */
     public final boolean notificationsDisabled() {
         return notificationsDisabled;
+    }
+
+    /**
+     * Returns {@code true} if builds should not be triggered when a pull request title or description
+     * is edited.
+     *
+     * @return {@code true} if builds should not be triggered on pull request edited events.
+     */
+    public final boolean ignoreEditedPullRequests() {
+        return ignoreEditedPullRequests;
     }
 
     /**
@@ -299,6 +311,18 @@ public class GitHubSCMSourceContext extends SCMSourceContext<GitHubSCMSourceCont
     @NonNull
     public final GitHubSCMSourceContext withNotificationsDisabled(boolean disabled) {
         notificationsDisabled = disabled;
+        return this;
+    }
+
+    /**
+     * Defines whether builds should be suppressed when a pull request title or description is edited.
+     *
+     * @param ignore {@code true} to suppress builds on pull request edited events.
+     * @return {@code this} for method chaining.
+     */
+    @NonNull
+    public final GitHubSCMSourceContext withIgnoreEditedPullRequests(boolean ignore) {
+        ignoreEditedPullRequests = ignoreEditedPullRequests || ignore;
         return this;
     }
 
