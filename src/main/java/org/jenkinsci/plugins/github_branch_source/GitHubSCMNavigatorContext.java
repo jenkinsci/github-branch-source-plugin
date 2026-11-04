@@ -44,6 +44,9 @@ public class GitHubSCMNavigatorContext
     /** The topic which the repositories must have. */
     private List<String> topics = new ArrayList<>();
 
+    /** The custom properties which the repositories must have. */
+    private List<String> customProperties = new ArrayList<>();
+
     /** If true, archived repositories will be ignored. */
     private boolean excludeArchivedRepositories;
 
@@ -89,6 +92,20 @@ public class GitHubSCMNavigatorContext
      */
     public List<String> getTopics() {
         return topics;
+    }
+
+    /** Sets the custom properties which the repositories must have. */
+    public void setCustomProperties(List<String> customProperties) {
+        this.customProperties = customProperties;
+    }
+
+    /**
+     * Gets the custom properties which the repositories must have.
+     *
+     * @return customProperties
+     */
+    public List<String> getCustomProperties() {
+        return customProperties;
     }
 
     /** @return True if archived repositories should be ignored, false if they should be included. */
