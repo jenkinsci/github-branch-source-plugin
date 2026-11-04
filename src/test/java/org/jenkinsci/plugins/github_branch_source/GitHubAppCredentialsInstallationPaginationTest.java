@@ -5,6 +5,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlMatching;
 
 import com.github.tomakehurst.wiremock.http.RequestMethod;
 import com.github.tomakehurst.wiremock.matching.RequestPatternBuilder;
@@ -19,16 +20,17 @@ import org.junit.Test;
 
 /**
  * Regression coverage for a case reported against a GitHub App with a very large installation
- * count: once a GitHub App has enough installations to span multiple pages, {@code
- * GitHubAppCredentials} still pages through the entire installation list before it ever looks at
- * the credential's already-known owner. On a real GitHub App with ~1,300 installations that
- * pagination eventually takes longer than the hardcoded 30s {@code Timeout.limit} in {@code
- * generateAppInstallationToken}, and token generation fails outright.
+ * count: once a GitHub App has enough installations, {@code GitHubAppCredentials} still paged
+ * through its entire installation list before it ever looked at the credential's already-known
+ * (or inferable) owner. On a real GitHub App with ~1,300 installations that pagination eventually
+ * took longer than the hardcoded 30s {@code Timeout.limit} in {@code
+ * generateAppInstallationToken}, and token generation failed outright.
  *
  * <p>This test does not reproduce the 30s timeout directly (that would make the test itself slow
- * and timing-dependent). Instead it proves the underlying defect deterministically: the
- * credential's matching installation is on page one, so a correct implementation never needs to
- * request page two at all.
+ * and timing-dependent). Instead it proves the fix directly: once the owner is known (explicitly
+ * configured, or inferred from context), the fix resolves the installation with GitHub's
+ * single-call per-owner lookup ({@code GET /orgs/{owner}/installation}) and never lists
+ * installations at all.
  */
 public class GitHubAppCredentialsInstallationPaginationTest extends AbstractGitHubWireMockTest {
 
@@ -41,22 +43,14 @@ public class GitHubAppCredentialsInstallationPaginationTest extends AbstractGitH
                         .withHeader("Content-Type", "application/json; charset=utf-8")
                         .withBodyFile("../AppCredentials/files/body-mapping-githubapp-app.json")));
 
-        // Page 1 already contains the installation that matches the credential's configured
-        // owner ("cloudbeers"), but - exactly like the real GitHub API once an App has more
-        // installations than fit on one page - still advertises a next page via the Link header.
-        githubApi.stubFor(get(urlEqualTo("/app/installations"))
+        // The credential's owner ("cloudbeers") is resolved directly via GitHub's single-call,
+        // non-paginated per-owner lookup. Deliberately NOT stubbing /app/installations at all:
+        // if the fix regresses to listing installations again, the test fails outright rather
+        // than silently falling back to a (still-correct but slow) full listing.
+        githubApi.stubFor(get(urlEqualTo("/orgs/cloudbeers/installation"))
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json; charset=utf-8")
-                        .withHeader("Link", "<" + githubApi.baseUrl() + "/app/installations?page=2>; rel=\"next\"")
-                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations-page1-of-2.json")));
-
-        // A second page that only exists because the App has more installations than fit on page
-        // one. The credential already knows its owner matched on page one, so nothing here
-        // should ever be needed to generate its token.
-        githubApi.stubFor(get(urlEqualTo("/app/installations?page=2"))
-                .willReturn(aResponse()
-                        .withHeader("Content-Type", "application/json; charset=utf-8")
-                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations-page2-of-2.json")));
+                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installation-cloudbeers.json")));
 
         githubApi.stubFor(post(urlEqualTo("/app/installations/654321/access_tokens"))
                 .withRequestBody(equalToJson(
@@ -70,17 +64,70 @@ public class GitHubAppCredentialsInstallationPaginationTest extends AbstractGitH
     }
 
     @Test
-    public void tokenGenerationShouldNotPageThroughInstallationsItDoesNotNeed() throws Exception {
+    public void tokenGenerationShouldNotListInstallationsForAKnownOwner() throws Exception {
         final var credentials = GitHubApp.createCredentials("myAppCredentialsKnownOwner");
         credentials.setRepositoryAccessStrategy(new AccessSpecifiedRepositories("cloudbeers", Collections.emptyList()));
         credentials.setApiUri(githubApi.baseUrl());
 
-        // The credential already knows its owner is "cloudbeers", and that installation is on
-        // the very first page - there is no reason to ever request page 2.
+        // The credential already knows its owner is "cloudbeers" - there is no reason to ever
+        // list installations to find it.
         credentials.getPassword();
 
         githubApi.verify(
-                0, RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlEqualTo("/app/installations?page=2")));
+                0, RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlMatching("/app/installations.*")));
+    }
+
+    @Test
+    public void tokenGenerationShouldNotListInstallationsForAnInferredOwner() throws Exception {
+        // No owner configured on the credential at all (the common real-world shape for a single
+        // App credential shared across many orgs) - the owner only becomes known from context,
+        // the same way it would from the repository actually being built/scanned.
+        final var credentials = GitHubApp.createCredentials("myAppCredentialsInferredOwner");
+        credentials.setRepositoryAccessStrategy(new AccessSpecifiedRepositories(null, Collections.emptyList()));
+        credentials.setApiUri(githubApi.baseUrl());
+
+        final var usageContext = GitHubAppUsageContext.builder()
+                .inferredOwner("cloudbeers")
+                .trust()
+                .build();
+        final var contextualized = credentials.contextualize(usageContext);
+
+        contextualized.getPassword();
+
+        githubApi.verify(
+                0, RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlMatching("/app/installations.*")));
+    }
+
+    @Test
+    public void tokenGenerationShouldFallBackToUserLookupWhenOwnerIsNotAnOrganization() throws Exception {
+        // The owner isn't an organization, so the org lookup 404s first; the fix then tries the
+        // user lookup instead of falling back to listing installations.
+        githubApi.stubFor(get(urlEqualTo("/orgs/a-user-owner/installation"))
+                .willReturn(aResponse().withStatus(404)));
+        githubApi.stubFor(get(urlEqualTo("/users/a-user-owner/installation"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile(
+                                "../AppCredentials/files/body-mapping-githubapp-installation-a-user-owner.json")));
+        githubApi.stubFor(post(urlEqualTo("/app/installations/987654/access_tokens"))
+                .withRequestBody(equalToJson(
+                        "{\"permissions\":{\"pull_requests\":\"write\",\"metadata\":\"read\",\"checks\":\"write\",\"contents\":\"read\"}}",
+                        true,
+                        false))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBody("{\"token\":\"super-secret-token\",\"expires_at\":\"" + createTokenExpiration()
+                                + "\"}")));
+
+        final var credentials = GitHubApp.createCredentials("myAppCredentialsUserOwner");
+        credentials.setRepositoryAccessStrategy(
+                new AccessSpecifiedRepositories("a-user-owner", Collections.emptyList()));
+        credentials.setApiUri(githubApi.baseUrl());
+
+        credentials.getPassword();
+
+        githubApi.verify(
+                0, RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlMatching("/app/installations.*")));
     }
 
     private String createTokenExpiration() {

@@ -29,8 +29,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -54,6 +54,7 @@ import org.kohsuke.github.GHApp;
 import org.kohsuke.github.GHAppCreateTokenBuilder;
 import org.kohsuke.github.GHAppInstallation;
 import org.kohsuke.github.GHAppInstallationToken;
+import org.kohsuke.github.GHFileNotFoundException;
 import org.kohsuke.github.GHPermissionType;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.authorization.AuthorizationProvider;
@@ -295,27 +296,20 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId), e);
             }
 
+            // Use the explicitly configured owner if there is one, otherwise fall back to the
+            // owner inferred from context (e.g. the repository currently being built). Either
+            // way, resolving it below never needs to page through the app's entire installation
+            // list just to find this one.
             final String ownerOrNull = Util.fixEmpty(owner);
-            final GHAppInstallation appInstallation;
-            if (ownerOrNull == null) {
-                List<GHAppInstallation> appInstallations =
-                        app.listInstallations().asList();
-                if (appInstallations.isEmpty()) {
-                    throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId));
-                } else if (appInstallations.size() == 1) {
-                    // This case is only used when AccessSpecifiedRepositories.getOwner is empty.
-                    appInstallation = appInstallations.get(0);
-                } else {
-                    // Use the possibly inferred owner from the context
-                    appInstallation = findAppInstallationForOwner(appInstallations, Util.fixNull(inferredOwner), appId);
-                }
-            } else {
-                // The owner is already known, so there is no reason to unconditionally page
-                // through the app's entire installation list first: stop as soon as the
-                // matching installation is found. On an app with a large number of
-                // installations, listing them all can take longer than the Timeout.limit above.
-                appInstallation = findAppInstallationForOwner(app.listInstallations(), ownerOrNull, appId);
-            }
+            final String ownerOrEmpty =
+                    Util.fixNull(Optional.ofNullable(ownerOrNull).orElse(inferredOwner));
+            // Only when there is no EXPLICIT owner is it correct to fall back to "there's only one
+            // installation, so that must be the one" regardless of whether the inferred owner
+            // actually matches it - an explicitly configured owner that doesn't match must still
+            // surface as a real mismatch, not be silently bypassed.
+            final boolean allowSingleInstallationFallback = ownerOrNull == null;
+            final GHAppInstallation appInstallation =
+                    findAppInstallation(app, ownerOrEmpty, allowSingleInstallationFallback, appId);
 
             GHAppCreateTokenBuilder builder = appInstallation.createToken();
             if (!repositories.isEmpty()) {
@@ -351,27 +345,78 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
     }
 
     /**
-     * Finds the installation whose account login matches {@code ownerOrEmpty}, stopping as soon
-     * as a match is found instead of paging through every remaining installation.
+     * Finds the installation for {@code ownerOrEmpty}. When an owner is known, this uses GitHub's
+     * single-call, non-paginated per-owner lookup ({@code GET /orgs/{owner}/installation} or
+     * {@code GET /users/{owner}/installation}) so the cost is independent of how many
+     * installations the app has, rather than paging through its entire installation list.
+     * Listing is used only as a last resort: when no owner is known at all, or when
+     * {@code allowSingleInstallationFallback} is set and the app happens to have exactly one
+     * installation (in which case that is the only possible choice regardless of whether
+     * {@code ownerOrEmpty} actually matches it), or to build a diagnostic message when a
+     * configured/inferred owner doesn't actually match an installation.
      *
+     * @param allowSingleInstallationFallback whether to use the app's sole installation when no
+     *     owner matches - only correct when no owner was EXPLICITLY configured, since an explicit
+     *     mismatch must surface as an error rather than be silently bypassed
      * @throws IllegalArgumentException if no installations exist at all, or if none of them
      *     match {@code ownerOrEmpty}
      */
-    private static GHAppInstallation findAppInstallationForOwner(
-            Iterable<GHAppInstallation> installations, String ownerOrEmpty, String appId) {
-        List<String> logins = new ArrayList<>();
-        for (GHAppInstallation installation : installations) {
-            String login = installation.getAccount().getLogin();
-            if (login.toLowerCase(Locale.ROOT).equals(ownerOrEmpty.toLowerCase(Locale.ROOT))) {
+    private static GHAppInstallation findAppInstallation(
+            GHApp app, String ownerOrEmpty, boolean allowSingleInstallationFallback, String appId) throws IOException {
+        if (!ownerOrEmpty.isEmpty()) {
+            GHAppInstallation installation = lookupInstallationByOwner(app, ownerOrEmpty);
+            if (installation != null) {
                 return installation;
             }
+        }
+        List<String> logins = new ArrayList<>();
+        GHAppInstallation onlyInstallation = null;
+        GHAppInstallation caseInsensitiveMatch = null;
+        for (GHAppInstallation installation : app.listInstallations()) {
+            String login = installation.getAccount().getLogin();
+            // GitHub account logins are case-insensitive; the single-call lookup above already
+            // relies on GitHub's own case-insensitive matching, but match the same way here too
+            // in case that lookup 404s for a reason unrelated to the owner being wrong (e.g. an
+            // owner value GitHub's org/user endpoints reject but which still matches an
+            // installation's login by case-insensitive comparison).
+            if (caseInsensitiveMatch == null && !ownerOrEmpty.isEmpty() && login.equalsIgnoreCase(ownerOrEmpty)) {
+                caseInsensitiveMatch = installation;
+            }
             logins.add(login);
+            onlyInstallation = logins.size() == 1 ? installation : null;
+        }
+        if (caseInsensitiveMatch != null) {
+            return caseInsensitiveMatch;
         }
         if (logins.isEmpty()) {
             throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId));
         }
+        if (allowSingleInstallationFallback && logins.size() == 1) {
+            // This case is only used when AccessSpecifiedRepositories.getOwner is empty: a
+            // credential with no explicit owner and only one installation anywhere has no real
+            // choice to make, regardless of whether the inferred owner (if any) actually matches.
+            return onlyInstallation;
+        }
         throw new IllegalArgumentException(
                 String.format(ERROR_NO_OWNER_MATCHING, appId, ownerOrEmpty, String.join(", ", logins)));
+    }
+
+    /**
+     * Looks up the installation for an owner directly, without paging through the app's
+     * installation list. An owner can be either an organization or a user account, so this tries
+     * both; {@code null} means neither matched, and the caller should fall back accordingly.
+     */
+    private static GHAppInstallation lookupInstallationByOwner(GHApp app, String owner) throws IOException {
+        try {
+            return app.getInstallationByOrganization(owner);
+        } catch (GHFileNotFoundException e) {
+            // Not an organization account; fall through to try it as a user account.
+        }
+        try {
+            return app.getInstallationByUser(owner);
+        } catch (GHFileNotFoundException e) {
+            return null;
+        }
     }
 
     private static long getExpirationSeconds(GHAppInstallationToken appInstallationToken) {
