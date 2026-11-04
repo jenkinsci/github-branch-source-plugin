@@ -1,0 +1,41 @@
+{
+  "id": 987654,
+  "account": {
+    "login": "a-user-owner",
+    "id": 9876543,
+    "node_id": "asdfasdfasdg",
+    "url": "https://api.github.com/users/a-user-owner",
+    "html_url": "https://github.com/a-user-owner",
+    "followers_url": "https://api.github.com/users/a-user-owner/followers",
+    "following_url": "https://api.github.com/users/a-user-owner/following{/other_user}",
+    "gists_url": "https://api.github.com/users/a-user-owner/gists{/gist_id}",
+    "starred_url": "https://api.github.com/users/a-user-owner/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com/users/a-user-owner/subscriptions",
+    "organizations_url": "https://api.github.com/users/a-user-owner/orgs",
+    "repos_url": "https://api.github.com/users/a-user-owner/repos",
+    "events_url": "https://api.github.com/users/a-user-owner/events{/privacy}",
+    "received_events_url": "https://api.github.com/users/a-user-owner/received_events",
+    "type": "User",
+    "site_admin": false
+  },
+  "repository_selection": "selected",
+  "access_tokens_url": "https://api.github.com/app/installations/987654/access_tokens",
+  "repositories_url": "https://api.github.com/installation/repositories",
+  "html_url": "https://github.com/settings/installations/987654",
+  "app_id": 54321,
+  "target_id": 9876543,
+  "target_type": "User",
+  "permissions": {
+    "checks": "write",
+    "pull_requests": "write",
+    "contents": "read",
+    "metadata": "read"
+  },
+  "events": [
+    "pull_request",
+    "push"
+  ],
+  "created_at": "2019-07-04T01:19:36.000Z",
+  "updated_at": "2019-07-30T22:48:09.000Z",
+  "single_file_name": null
+}

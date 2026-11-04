@@ -37,6 +37,12 @@ public class GitHubAppCredentialsContextualizationTest extends AbstractGitHubWir
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json; charset=utf-8")
                         .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations-multiple.json")));
+        // The credential has no owner configured; it's inferred from the cloudbeers/multibranch-demo
+        // repository below, so the single-call per-owner lookup is all that's needed here.
+        githubApi.stubFor(get(urlEqualTo("/orgs/cloudbeers/installation"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installation-cloudbeers.json")));
         githubApi.stubFor(post(urlEqualTo("/app/installations/654321/access_tokens"))
                 .withRequestBody(equalToJson(
                         "{\"permissions\":{\"pull_requests\":\"write\",\"metadata\":\"read\",\"checks\":\"write\",\"contents\":\"read\"}}",

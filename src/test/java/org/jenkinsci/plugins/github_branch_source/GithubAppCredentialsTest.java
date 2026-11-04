@@ -114,6 +114,13 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json; charset=utf-8")
                         .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installations-multiple.json")));
+        // appCredentials below is deliberately configured with owner "cloudBeers" (mixed case)
+        // to exercise GitHub's own case-insensitive owner resolution, which this single-call
+        // lookup relies on instead of listing every installation.
+        githubApi.stubFor(get(urlEqualTo("/orgs/cloudBeers/installation"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installation-cloudbeers.json")));
 
         final String scenarioName = "credentials-accesstoken";
 

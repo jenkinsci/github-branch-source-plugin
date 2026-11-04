@@ -664,6 +664,13 @@ public class GitHubSCMNavigatorTest extends AbstractGitHubWireMockTest {
                 .willReturn(aResponse()
                         .withHeader("Content-Type", "application/json")
                         .withBody("[{\"id\":654321,\"account\":{\"login\":\"corp\"},\"app_id\":54321}]")));
+        // The configured owner doesn't have the app installed at all, so the single-call
+        // per-owner lookup 404s for both account types - same as it would on real GitHub -
+        // before falling back to listing (where it also won't be found).
+        githubApi.stubFor(get(urlEqualTo("/orgs/org-or-user-without-app/installation"))
+                .willReturn(aResponse().withStatus(404)));
+        githubApi.stubFor(get(urlEqualTo("/users/org-or-user-without-app/installation"))
+                .willReturn(aResponse().withStatus(404)));
         GitHubAppCredentials appCredentials = GitHubApp.createCredentials("test-app-creds");
         appCredentials.setApiUri(githubApi.baseUrl());
         // And using a owner that doesn't have the application installed
