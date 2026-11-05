@@ -1,0 +1,37 @@
+[
+  null,
+  {
+    "id": 800001,
+    "account": null
+  },
+  {
+    "id": 800002,
+    "account": {
+      "login": null
+    }
+  },
+  {
+    "id": 654321,
+    "account": {
+      "login": "cloudbeers"
+    },
+    "permissions": {
+      "checks": "write",
+      "pull_requests": "write",
+      "contents": "read",
+      "metadata": "read"
+    }
+  },
+  {
+    "id": 754321,
+    "account": {
+      "login": "bogus"
+    },
+    "permissions": {
+      "checks": "write",
+      "pull_requests": "write",
+      "contents": "read",
+      "metadata": "read"
+    }
+  }
+]
