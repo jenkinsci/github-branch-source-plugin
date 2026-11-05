@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -310,6 +311,7 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 final String ownerOrEmpty =
                         Util.fixNull(Optional.ofNullable(ownerOrNull).orElse(inferredOwner));
                 Optional<GHAppInstallation> appInstallationOptional = appInstallations.stream()
+                        .dropWhile(Objects::isNull)
                         .filter(installation -> installation
                                 .getAccount()
                                 .getLogin()
