@@ -501,6 +501,37 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
         }
     }
 
+    @Test
+    public void testNullInstallationIdsAreIgnored() throws Exception {
+        githubApi.stubFor(
+                get(urlEqualTo("/app/installations"))
+                        .atPriority(1)
+                        .willReturn(
+                                aResponse()
+                                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                                        .withBodyFile(
+                                                "../AppCredentials/files/body-mapping-githubapp-installations-with-unusable-entries.json")));
+        githubApi.stubFor(post(urlEqualTo("/app/installations/654321/access_tokens"))
+                .atPriority(1)
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBody("{\"token\": \"cloudbeers-token\", \"expires_at\": \""
+                                + printDate(new Date(System.currentTimeMillis()
+                                        + Duration.ofHours(1).toMillis()))
+                                + "\"}")));
+
+        GitHubAppCredentials.AppInstallationToken token = GitHubAppCredentials.generateAppInstallationToken(
+                null,
+                appCredentials.getAppID(),
+                appCredentials.getPrivateKey().getPlainText(),
+                githubApi.baseUrl(),
+                "cloudBeers",
+                Collections.emptyList(),
+                Collections.emptyMap(),
+                "");
+        assertThat(token.getToken().getPlainText(), is("cloudbeers-token"));
+    }
+
     private List<String> getOutputLines() {
         final Formatter formatter = new SimpleFormatter();
         List<LogRecord> result = new ArrayList<>(logRecorder.getLogRecords());
