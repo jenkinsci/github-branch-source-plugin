@@ -19,6 +19,7 @@ import hudson.model.ParametersDefinitionProperty;
 import hudson.model.Result;
 import hudson.model.Slave;
 import hudson.model.StringParameterDefinition;
+import hudson.util.FormValidation;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
@@ -499,6 +500,71 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
             logRecorder.doClear();
         }
+    }
+
+    @Test
+    public void testPasswordIgnoresUnusableInstallations() throws Exception {
+        stubInstallations("body-mapping-githubapp-installations-unusable-before-valid.json");
+
+        GitHubAppCredentials freshCredentials = GitHubApp.createCredentials("invalid-installations-test");
+        freshCredentials.setApiUri(githubApi.baseUrl());
+        freshCredentials.setRepositoryAccessStrategy(
+                new AccessSpecifiedRepositories("cloudBeers", Collections.emptyList()));
+
+        try {
+            freshCredentials.getPassword();
+            githubApi.verify(postRequestedFor(urlEqualTo("/app/installations/654321/access_tokens")));
+        } finally {
+            logRecorder.doClear();
+        }
+    }
+
+    @Test
+    public void testConnectionInfersOwnerFromUsableInstallations() throws Exception {
+        stubInstallations("body-mapping-githubapp-installations-unusable-before-valid.json");
+
+        try {
+            FormValidation result = r.jenkins
+                    .getDescriptorByType(GitHubAppCredentials.DescriptorImpl.class)
+                    .doTestConnection(
+                            appCredentials.getAppID(),
+                            appCredentials.getPrivateKey().getPlainText(),
+                            githubApi.baseUrl(),
+                            null);
+
+            assertThat(result.kind, is(FormValidation.Kind.ERROR));
+            githubApi.verify(postRequestedFor(urlEqualTo("/app/installations/654321/access_tokens")));
+        } finally {
+            logRecorder.doClear();
+        }
+    }
+
+    @Test
+    public void testConnectionWithNoUsableInstallationsReturnsValidationError() throws Exception {
+        stubInstallations("body-mapping-githubapp-installations-only-unusable.json");
+
+        try {
+            FormValidation result = r.jenkins
+                    .getDescriptorByType(GitHubAppCredentials.DescriptorImpl.class)
+                    .doTestConnection(
+                            appCredentials.getAppID(),
+                            appCredentials.getPrivateKey().getPlainText(),
+                            githubApi.baseUrl(),
+                            null);
+
+            assertThat(result.kind, is(FormValidation.Kind.ERROR));
+            assertThat(result.getMessage(), containsString("has it been installed"));
+            assertThat(result.getMessage(), not(containsString("NullPointerException")));
+        } finally {
+            logRecorder.doClear();
+        }
+    }
+
+    private void stubInstallations(String fileName) {
+        githubApi.stubFor(get(urlEqualTo("/app/installations"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json; charset=utf-8")
+                        .withBodyFile("../AppCredentials/files/" + fileName)));
     }
 
     private List<String> getOutputLines() {
