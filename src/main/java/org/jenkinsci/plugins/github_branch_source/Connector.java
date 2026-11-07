@@ -81,7 +81,7 @@ import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
 import org.kohsuke.github.RateLimitHandler;
 import org.kohsuke.github.authorization.ImmutableAuthorizationProvider;
-import org.kohsuke.github.extras.okhttp3.OkHttpConnector;
+import org.kohsuke.github.extras.okhttp3.OkHttpGitHubConnector;
 
 /** Utilities that could perhaps be moved into {@code github-api}. */
 @SuppressFBWarnings("DMI_RANDOM_USED_ONLY_ONCE") // https://github.com/spotbugs/spotbugs/issues/1539
@@ -450,16 +450,31 @@ public class Connector {
     @NonNull
     private static GitHubBuilder createGitHubBuilder(@NonNull String apiUrl, @CheckForNull Cache cache)
             throws IOException {
+        return createGitHubBuilder(apiUrl, cache, baseClient);
+    }
+
+    /**
+     * Creates a {@link GitHubBuilder} whose requests go through {@code client}, with its interceptors.
+     *
+     * @param apiUrl the GitHub API URL to be used for the connection
+     * @param cache the response cache, or {@code null} for none
+     * @param client the client to derive the connection's client from; tests pass their own
+     * @return a configured GitHubBuilder instance
+     * @throws IOException if I/O error occurs
+     */
+    @NonNull
+    static GitHubBuilder createGitHubBuilder(
+            @NonNull String apiUrl, @CheckForNull Cache cache, @NonNull OkHttpClient client) throws IOException {
         GitHubBuilder gb = new GitHubBuilder();
         gb.withEndpoint(apiUrl);
         gb.withRateLimitChecker(new ApiRateLimitChecker.RateLimitCheckerAdapter());
         gb.withRateLimitHandler(CUSTOMIZED);
 
-        OkHttpClient.Builder clientBuilder = baseClient.newBuilder();
+        OkHttpClient.Builder clientBuilder = client.newBuilder();
         if (cache != null) {
             clientBuilder.cache(cache);
         }
-        gb.withConnector(new OkHttpConnector(clientBuilder.build()));
+        gb.withConnector(new OkHttpGitHubConnector(clientBuilder.build()));
         return gb;
     }
 
