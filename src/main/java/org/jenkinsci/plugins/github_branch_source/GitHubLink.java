@@ -26,8 +26,12 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.model.Action;
+import hudson.model.Job;
 import java.net.URL;
+import jenkins.model.experimentalflags.UserExperimentalFlag;
 import org.jenkins.ui.icon.IconSpec;
+import org.kohsuke.stapler.Stapler;
+import org.kohsuke.stapler.StaplerRequest2;
 
 /**
  * Link to GitHub
@@ -35,6 +39,9 @@ import org.jenkins.ui.icon.IconSpec;
  * @author Kohsuke Kawaguchi
  */
 public class GitHubLink implements Action, IconSpec {
+    /** Restricted from plugins, so it can only be looked up by name. */
+    private static final String NEW_JOB_PAGE_FLAG = "jenkins.model.experimentalflags.NewJobPageUserExperimentalFlag";
+
     /** Target of the hyperlink to take the user to. */
     @NonNull
     private final String url;
@@ -54,12 +61,22 @@ public class GitHubLink implements Action, IconSpec {
 
     @Override
     public String getIconClassName() {
-        return "symbol-logo-github plugin-ionicons-api";
+        return isNewJobPage() ? null : "symbol-logo-github plugin-ionicons-api";
     }
 
     @Override
     public String getIconFileName() {
         return getIconClassName();
+    }
+
+    /**
+     * The new job page shows this as a detail instead, see {@link GitHubJobDetailFactory}.
+     */
+    private static boolean isNewJobPage() {
+        StaplerRequest2 request = Stapler.getCurrentRequest2();
+        return request != null
+                && request.findAncestorObject(Job.class) != null
+                && Boolean.TRUE.equals(UserExperimentalFlag.getFlagValueForCurrentUser(NEW_JOB_PAGE_FLAG));
     }
 
     @Override

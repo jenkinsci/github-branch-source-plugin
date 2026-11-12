@@ -2,6 +2,8 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
 import hudson.Extension;
+import hudson.model.Actionable;
+import hudson.model.Job;
 import hudson.model.Run;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -39,6 +41,8 @@ public final class GitHubDetailFactory extends DetailFactory<Run> {
         List<Detail> details = new ArrayList<>();
         SCMRevision revision = scmRevisionAction.getRevision();
 
+        details.add(new GitHubRepositoryDetail(target));
+
         if (revision instanceof PullRequestSCMRevision) {
             details.add(new GitHubPullRequestDetail(target));
         } else {
@@ -46,8 +50,14 @@ public final class GitHubDetailFactory extends DetailFactory<Run> {
         }
 
         details.add(new GitHubCommitDetail(target));
-        details.add(new GitHubRepositoryDetail(target));
 
         return details;
+    }
+
+    /**
+     * @return the job a detail is about, as details can be shown for both a job and its runs
+     */
+    static Job<?, ?> getJob(Actionable object) {
+        return object instanceof Run<?, ?> run ? run.getParent() : (Job<?, ?>) object;
     }
 }
