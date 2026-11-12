@@ -28,7 +28,7 @@ class GitHubDetailFactoryTest {
     }
 
     @Test
-    void createsPrBranchCommitRepo_whenPullRequestRevision() {
+    void createsRepoPrCommit_whenPullRequestRevision() {
         Run<?, ?> run = mock(Run.class);
         SCMRevisionAction action = mock(SCMRevisionAction.class);
         PullRequestSCMRevision prRevision = mock(PullRequestSCMRevision.class);
@@ -40,14 +40,14 @@ class GitHubDetailFactoryTest {
             List<? extends Detail> details = factory.createFor(run);
 
             assertEquals(3, details.size());
-            assertInstanceOf(GitHubPullRequestDetail.class, details.get(0));
-            assertInstanceOf(GitHubCommitDetail.class, details.get(1));
-            assertInstanceOf(GitHubRepositoryDetail.class, details.get(2));
+            assertInstanceOf(GitHubRepositoryDetail.class, details.get(0));
+            assertInstanceOf(GitHubPullRequestDetail.class, details.get(1));
+            assertInstanceOf(GitHubCommitDetail.class, details.get(2));
         }
     }
 
     @Test
-    void createsBranchCommitRepo_whenNonPullRequestRevision() {
+    void createsRepoBranchCommit_whenNonPullRequestRevision() {
         Run<?, ?> run = mock(Run.class);
         SCMRevisionAction action = mock(SCMRevisionAction.class);
         SCMRevision nonPrRevision = mock(SCMRevision.class);
@@ -60,9 +60,9 @@ class GitHubDetailFactoryTest {
             List<? extends Detail> details = factory.createFor(run);
 
             assertEquals(3, details.size());
-            assertInstanceOf(GitHubBranchDetail.class, details.get(0));
-            assertInstanceOf(GitHubCommitDetail.class, details.get(1));
-            assertInstanceOf(GitHubRepositoryDetail.class, details.get(2));
+            assertInstanceOf(GitHubRepositoryDetail.class, details.get(0));
+            assertInstanceOf(GitHubBranchDetail.class, details.get(1));
+            assertInstanceOf(GitHubCommitDetail.class, details.get(2));
         }
     }
 }
