@@ -2,7 +2,6 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.Actionable;
-import hudson.model.Run;
 import jenkins.model.details.Detail;
 import jenkins.model.details.DetailGroup;
 import jenkins.scm.api.SCMDetailGroup;
@@ -36,7 +35,6 @@ public class GitHubBranchDetail extends Detail {
     }
 
     private ObjectMetadataAction getObjectMetadataAction() {
-        Run<?, ?> run = (Run<?, ?>) getObject();
-        return run.getParent().getAction(ObjectMetadataAction.class);
+        return GitHubDetailFactory.getJob(getObject()).getAction(ObjectMetadataAction.class);
     }
 }

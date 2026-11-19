@@ -2,7 +2,6 @@ package org.jenkinsci.plugins.github_branch_source;
 
 import edu.umd.cs.findbugs.annotations.Nullable;
 import hudson.model.Actionable;
-import hudson.model.Run;
 import jenkins.model.details.Detail;
 import jenkins.model.details.DetailGroup;
 import jenkins.scm.api.SCMDetailGroup;
@@ -48,7 +47,7 @@ public class GitHubRepositoryDetail extends Detail {
     }
 
     private GitHubSCMSource getSCMSource() {
-        var source = SCMSource.SourceByItem.findSource(((Run) getObject()).getParent());
+        var source = SCMSource.SourceByItem.findSource(GitHubDetailFactory.getJob(getObject()));
 
         if (source instanceof GitHubSCMSource githubSource) {
             return githubSource;
