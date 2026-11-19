@@ -1421,7 +1421,21 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             }
 
             String fullName = repoOwner + "/" + repository;
-            ghRepository = github.getRepository(fullName);
+            try {
+                ghRepository = github.getRepository(fullName);
+            } catch (HttpException e) {
+                if (e.getResponseCode() != HttpServletResponse.SC_UNAUTHORIZED) {
+                    throw e;
+                }
+                LOGGER.fine(() -> "token seems to be rotated, retrying with fresh credentials");
+                Connector.invalidate(github);
+                GitHub retryGitHub = Connector.connect(apiUri, getCredentials(retrieveContext, true));
+                try {
+                    ghRepository = retryGitHub.getRepository(fullName);
+                } finally {
+                    Connector.release(retryGitHub);
+                }
+            }
             final GHRepository ghRepository = this.ghRepository;
             listener.getLogger()
                     .format(
