@@ -353,12 +353,18 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
     @Test
     public void testAgentRefresh() throws Exception {
         final long notStaleSeconds = GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
+        final boolean originalClearWindowsCache = GitHubAppCredentials.CLEAR_WINDOWS_CREDENTIAL_MANAGER_CACHE;
         try {
             appCredentials.setApiUri(githubApi.baseUrl());
 
             // We want to demonstrate successful caching without waiting for a the default 1 minute
             // Must set this to a large enough number to avoid flaky test
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = 10;
+
+            // Disable Windows Credential Manager cache clearing so its log messages do not
+            // interfere with the strict log-sequence assertions below. The clearing behaviour
+            // is tested separately in GithubAppCredentialsWindowsAgentTest.
+            GitHubAppCredentials.CLEAR_WINDOWS_CREDENTIAL_MANAGER_CACHE = false;
 
             // Ensure we are working from sufficiently clean cache state
             Thread.sleep(Duration.ofSeconds(GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS + 2)
@@ -463,6 +469,7 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
                     0, RequestPatternBuilder.newRequestPattern(RequestMethod.GET, urlPathEqualTo("/rate_limit")));
         } finally {
             GitHubAppCredentials.AppInstallationToken.NOT_STALE_MINIMUM_SECONDS = notStaleSeconds;
+            GitHubAppCredentials.CLEAR_WINDOWS_CREDENTIAL_MANAGER_CACHE = originalClearWindowsCache;
             logRecorder.doClear();
         }
     }
@@ -509,11 +516,12 @@ public class GithubAppCredentialsTest extends AbstractGitHubWireMockTest {
             result.addAll(agentLogs);
         }
 
-        // sort the logs into chronological order
-        // then just format the message.
+        // sort the logs into chronological order, then just format the message.
+        // Agent JVM has its own static field copy (defaults true), so filter its wincred messages.
         return result.stream()
                 .sorted(Comparator.comparingLong(LogRecord::getMillis))
                 .map(formatter::formatMessage)
+                .filter(msg -> !msg.startsWith("Cleared Windows Credential Manager"))
                 .collect(Collectors.toList());
     }
 
