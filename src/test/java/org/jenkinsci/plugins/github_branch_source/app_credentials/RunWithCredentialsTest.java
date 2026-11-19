@@ -127,6 +127,15 @@ public class RunWithCredentialsTest extends AbstractGitHubWireMockTest {
                         .withHeaders(HEADERS)
                         .withBodyFile("../AppCredentials/files/body-mapping-githubapp-app.json")));
 
+        // Every test in this class resolves to owner "cloudbeers" one way or another (explicitly
+        // configured, or inferred from the cloudbeers/repository-a GithubProjectProperty set up
+        // below), so the single-call per-owner lookup below is all that's needed to resolve the
+        // installation - none of these need to list installations at all.
+        githubApi.stubFor(get(urlEqualTo("/orgs/cloudbeers/installation"))
+                .willReturn(aResponse()
+                        .withHeaders(HEADERS)
+                        .withBodyFile("../AppCredentials/files/body-mapping-githubapp-installation-cloudbeers.json")));
+
         // Stub app installation access token
         githubApi.stubFor(post(urlEqualTo("/app/installations/654321/access_tokens"))
                 .withRequestBody(equalToJson(
