@@ -296,7 +296,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 throw new IllegalArgumentException(String.format(ERROR_AUTHENTICATING_GITHUB_APP, appId), e);
             }
 
-            List<GHAppInstallation> appInstallations = app.listInstallations().asList();
+            List<GHAppInstallation> appInstallations =
+                    usableInstallations(app.listInstallations().asList());
             if (appInstallations.isEmpty()) {
                 throw new IllegalArgumentException(String.format(ERROR_NOT_INSTALLED, appId));
             }
@@ -367,6 +368,14 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
             LOGGER.log(Level.WARNING, "Unable to get GitHub App installation token expiration", e);
             return Instant.now().getEpochSecond() + AppInstallationToken.NOT_STALE_MINIMUM_SECONDS;
         }
+    }
+
+    private static List<GHAppInstallation> usableInstallations(List<GHAppInstallation> installations) {
+        return installations.stream()
+                .filter(installation -> installation != null
+                        && installation.getAccount() != null
+                        && installation.getAccount().getLogin() != null)
+                .collect(Collectors.toList());
     }
 
     @NonNull
@@ -861,8 +870,8 @@ public class GitHubAppCredentials extends BaseStandardCredentials implements Sta
                 if (owner == null || owner.isEmpty()) {
                     GitHub gitHubApp = TokenProvider.createTokenRefreshGitHub(
                             appID, privateKey, gitHubAppCredential.actualApiUri());
-                    List<GHAppInstallation> appInstallations =
-                            gitHubApp.getApp().listInstallations().toList();
+                    List<GHAppInstallation> appInstallations = usableInstallations(
+                            gitHubApp.getApp().listInstallations().toList());
                     if (appInstallations.size() > 1) {
                         // Just pick the owner of the first installation, so we have a valid
                         // owner to create an access token for testing the connection.
