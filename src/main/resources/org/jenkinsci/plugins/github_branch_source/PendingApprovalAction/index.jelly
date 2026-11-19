@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:l="/lib/layout" xmlns:f="/lib/form">
+    <l:layout title="External Approval - PR #${it.prNumber}">
+        <l:main-panel>
+            <h1>External Approval Required</h1>
+            <table class="jenkins-table">
+                <tr>
+                    <td><strong>Pull Request</strong></td>
+                    <td>#${it.prNumber}</td>
+                </tr>
+                <tr>
+                    <td><strong>Author</strong></td>
+                    <td>${it.prAuthor}</td>
+                </tr>
+                <tr>
+                    <td><strong>Status</strong></td>
+                    <td>
+                        <j:choose>
+                            <j:when test="${it.state.name() == 'PENDING'}">
+                                <span style="color: orange; font-weight: bold;">Pending Approval</span>
+                            </j:when>
+                            <j:otherwise>
+                                <span style="color: green; font-weight: bold;">Approved</span>
+                            </j:otherwise>
+                        </j:choose>
+                    </td>
+                </tr>
+                <j:if test="${it.currentPullHash != null}">
+                    <tr>
+                        <td><strong>Commit</strong></td>
+                        <td><code>${it.currentPullHash}</code></td>
+                    </tr>
+                </j:if>
+                <j:if test="${it.requireApprovalForNewCommits}">
+                    <tr>
+                        <td><strong>Mode</strong></td>
+                        <td>Approval required for each new commit</td>
+                    </tr>
+                </j:if>
+            </table>
+            <j:if test="${it.state.name() == 'PENDING'}">
+                <div style="margin-top: 20px;">
+                    <f:form method="POST" action="approve" style="display: inline;">
+                        <f:submit value="Approve"/>
+                    </f:form>
+                </div>
+            </j:if>
+            <j:if test="${it.state.name() == 'APPROVED'}">
+                <div style="margin-top: 20px;">
+                    <f:form method="POST" action="reject" style="display: inline;">
+                        <f:submit value="Revoke Approval"/>
+                    </f:form>
+                </div>
+            </j:if>
+        </l:main-panel>
+    </l:layout>
+</j:jelly>
