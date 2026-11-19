@@ -2245,6 +2245,7 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
             return GitHubSCMNavigator.DescriptorImpl.getPossibleApiUriItems(context);
         }
 
+        @Deprecated
         public boolean isApiUriSelectable() {
             return !GitHubConfiguration.get().getEndpoints().isEmpty();
         }
