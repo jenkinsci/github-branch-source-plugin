@@ -1,0 +1,18 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+  <f:entry title="${%Days stale}" field="daysStale">
+    <f:number clazz="setting-input" min="1" step="1"/>
+  </f:entry>
+  <f:entry title="${%Include regex}" field="includeRegex"
+           description="${%Only apply stale filtering to pull requests whose head name matches this regular expression, e.g. PR-42 or PR-42-merge. Leave blank to apply to all pull requests.}">
+    <f:textbox clazz="setting-input" checkMethod="post"/>
+  </f:entry>
+  <f:entry title="${%Exclude regex}" field="excludeRegex"
+           description="${%Pull requests whose head name matches this regular expression are never filtered as stale, regardless of age. Leave blank to disable.}">
+    <f:textbox clazz="setting-input" checkMethod="post"/>
+  </f:entry>
+  <f:entry title="${%Dry run}" field="dryRun"
+           description="${%Preview only. Log which pull requests would be filtered as stale without actually excluding them.}">
+    <f:checkbox/>
+  </f:entry>
+</j:jelly>
