@@ -180,6 +180,16 @@ public class GitHubSCMSource extends AbstractGitSCMSource {
     private static /* mostly final */ int mergeableStatusRetries = SystemProperties.getInteger(
             GitHubSCMSource.class.getName() + ".mergeableStatusRetries", Integer.valueOf(4));
 
+    /**
+     * Preview: for merge-strategy PRs, build GitHub's precomputed merge commit ({@code
+     * refs/pull/N/merge}) directly instead of reconstructing the merge locally against the base
+     * branch. Fixes stacked PRs whose base PR is behind the target branch (issue #1545), where the
+     * derived base commit is a synthetic merge ref unreachable from any branch. Opt-in and subject to
+     * change; affects all merge-strategy PRs, not only stacked ones.
+     */
+    static /* mostly final */ boolean preferGitHubMergeCommit =
+            SystemProperties.getBoolean(GitHubSCMSource.class.getName() + ".preferGitHubMergeCommit");
+
     //////////////////////////////////////////////////////////////////////
     // Configuration fields
     //////////////////////////////////////////////////////////////////////
