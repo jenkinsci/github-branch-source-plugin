@@ -1,0 +1,34 @@
+{
+  "request": {
+    "url": "/repos/cloudbeers/pipeline-model-definition-plugin",
+    "method": "GET"
+  },
+  "response": {
+    "status": 200,
+    "bodyFileName": "body-cloudbeers-pipeline-model-definition-plugin.json",
+    "headers": {
+      "Server": "GitHub.com",
+      "Date": "Wed, 12 Jun 2024 01:16:15 GMT",
+      "Content-Type": "application/json; charset=utf-8",
+      "Transfer-Encoding": "chunked",
+      "Status": "200 OK",
+      "X-RateLimit-Limit": "600",
+      "X-RateLimit-Remaining": "600",
+      "X-RateLimit-Reset": "1495039662",
+      "Cache-Control": "public, max-age=60, s-maxage=60",
+      "Vary": ["Accept", "Accept-Encoding"],
+      "ETag": "W/\"a59a6c9d309683ec22eea939ae2521e6\"",
+      "Last-Modified": "Mon, 07 Nov 2016 16:21:08 GMT",
+      "X-GitHub-Media-Type": "github.v3; format=json",
+      "Access-Control-Expose-Headers": "ETag, Link, X-GitHub-OTP, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, X-OAuth-Scopes, X-Accepted-OAuth-Scopes, X-Poll-Interval",
+      "Access-Control-Allow-Origin": "*",
+      "Content-Security-Policy": "default-src 'none'",
+      "Strict-Transport-Security": "max-age=31536000; includeSubdomains; preload",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "deny",
+      "X-XSS-Protection": "1; mode=block",
+      "X-Served-By": "2d7a5e35115884240089368322196939",
+      "X-GitHub-Request-Id": "DB5C:2FAD06:FBFFAF:1A2FE8D:6668F6DF"
+    }
+  }
+}
