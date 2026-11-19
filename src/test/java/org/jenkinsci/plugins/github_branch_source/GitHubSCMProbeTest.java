@@ -12,6 +12,7 @@ import java.io.IOException;
 import jenkins.scm.api.SCMHeadOrigin;
 import jenkins.scm.api.mixin.ChangeRequestCheckoutStrategy;
 import org.apache.commons.io.FileUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,8 +37,11 @@ public class GitHubSCMProbeTest {
 
     private GitHubSCMProbe probe;
 
+    private int cacheSize;
+
     @Before
     public void setUp() throws Exception {
+        cacheSize = GitHubSCMSource.getCacheSize();
         // Clear all caches before each test
         File cacheBaseDir = new File(j.jenkins.getRootDir(), GitHubSCMProbe.class.getName() + ".cache");
         if (cacheBaseDir.exists()) {
@@ -56,6 +60,11 @@ public class GitHubSCMProbeTest {
         // validate api url
         githubApi.stubFor(get(urlEqualTo("/"))
                 .willReturn(aResponse().withBody("{\"rate_limit_url\": \"https://localhost/placeholder/\"}")));
+    }
+
+    @After
+    public void restoreCacheSize() {
+        GitHubSCMSource.setCacheSize(cacheSize);
     }
 
     void createProbeForPR(int number) throws IOException {
@@ -104,7 +113,11 @@ public class GitHubSCMProbeTest {
     @Issue("JENKINS-54126")
     @Test
     public void statWhenRoot404andThenIncorrectCached() throws Exception {
-        GitHubSCMSource.setCacheSize(10);
+        // The disk cache stays off on Windows, as it is by default there: its open files would keep JenkinsRule from
+        // deleting JENKINS_HOME.
+        if (!hudson.Functions.isWindows()) {
+            GitHubSCMSource.setCacheSize(10);
+        }
 
         createProbeForPR(9);
 
@@ -148,12 +161,12 @@ public class GitHubSCMProbeTest {
 
         // Verify the expected requests were made
         if (hudson.Functions.isWindows()) {
-            // On windows caching is disabled by default, so the work around doesn't happen
+            // Without a cache there is no conditional request, so the work around doesn't happen
             githubApi.verify(
                     3,
                     RequestPatternBuilder.newRequestPattern(
                                     RequestMethod.GET, urlPathEqualTo("/repos/cloudbeers/yolo/contents/"))
-                            .withHeader("Cache-Control", equalTo("max-age=0"))
+                            .withHeader("Cache-Control", absent())
                             .withHeader("If-Modified-Since", absent())
                             .withHeader("If-None-Match", absent()));
         } else {
