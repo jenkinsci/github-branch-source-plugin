@@ -4,13 +4,13 @@
     "method": "GET"
   },
   "response": {
-    "status": 401,
+    "status": 200,
     "bodyFileName": "body-yolo-collaborators-ug5Pu.json",
     "headers": {
       "Server": "GitHub.com",
       "Date": "Tue, 06 Dec 2016 17:32:19 GMT",
       "Content-Type": "application/json; charset=utf-8",
-      "Status": "401 Unauthorized",
+      "Status": "200 OK",
       "X-RateLimit-Limit": "600",
       "X-RateLimit-Remaining": "596",
       "X-RateLimit-Reset": "1481048932",

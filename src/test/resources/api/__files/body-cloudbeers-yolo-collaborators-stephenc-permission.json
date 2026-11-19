@@ -1,0 +1,32 @@
+{
+  "permission": "write",
+  "user": {
+    "login": "stephenc",
+    "id": 209336,
+    "node_id": "MjA5MzM2OlVzZXIyMDkzMzYK",
+    "avatar_url": "https://avatars.githubusercontent.com/u/209336?v=3",
+    "gravatar_id": "",
+    "url": "https://api.github.com//users/stephenc",
+    "html_url": "https://api.github.com/stephenc",
+    "followers_url": "https://api.github.com//users/stephenc/followers",
+    "following_url": "https://api.github.com//users/stephenc/following{/other_user}",
+    "gists_url": "https://api.github.com//users/stephenc/gists{/gist_id}",
+    "starred_url": "https://api.github.com//users/stephenc/starred{/owner}{/repo}",
+    "subscriptions_url": "https://api.github.com//users/stephenc/subscriptions",
+    "organizations_url": "https://api.github.com//users/stephenc/orgs",
+    "repos_url": "https://api.github.com//users/stephenc/repos",
+    "events_url": "https://api.github.com//users/stephenc/events{/privacy}",
+    "received_events_url": "https://api.github.com//users/stephenc/received_events",
+    "type": "User",
+    "site_admin": false,
+    "permissions": {
+      "admin": false,
+      "maintain": false,
+      "push": true,
+      "triage": true,
+      "pull": true
+    },
+    "role_name": "write"
+  },
+  "role_name": "write"
+}
