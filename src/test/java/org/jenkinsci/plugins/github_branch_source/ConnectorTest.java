@@ -13,11 +13,20 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import java.io.File;
+import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
 import okhttp3.Response;
@@ -123,5 +132,144 @@ class ConnectorTest {
         assertEquals(5000, e.getLimit());
         assertEquals(0, e.getRemaining());
         assertEquals(reset, e.getReset());
+    }
+
+    @Test
+    void callTimeoutEndsAResponseThatNeverFinishes() throws Exception {
+        // Each chunk arrives well within OkHttp's 10 s read timeout, so only a call timeout ends the request.
+        githubApi.stubFor(
+                get(urlEqualTo(REPO_PATH)).willReturn(okJson(REPO_JSON).withChunkedDribbleDelay(10, 30_000)));
+        long saved = Connector.CALL_TIMEOUT_SECONDS;
+        Connector.CALL_TIMEOUT_SECONDS = 1;
+        try {
+            GitHub github = Connector.createGitHubBuilder(githubApi.baseUrl(), null, new OkHttpClient())
+                    .build();
+
+            long start = System.nanoTime();
+            IOException e = assertThrows(IOException.class, () -> github.getRepository("cloudbeers/yolo"));
+            long elapsed = TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - start);
+
+            assertTrue(elapsed < 15, "the call should have timed out after about 1 s, took " + elapsed + " s");
+            assertTrue(hasCause(e, InterruptedIOException.class), "expected a call timeout, got " + e);
+        } finally {
+            Connector.CALL_TIMEOUT_SECONDS = saved;
+        }
+    }
+
+    @Test
+    void reverifyingAConnectionDoesNotBlockOtherCallers() throws Exception {
+        stubApiRoot();
+        BlockingRoot blocking = new BlockingRoot();
+        Connector.GitHubConnection connection = connection(blocking);
+        connection.verifyConnection();
+        // Make the periodic re-verification due, then hang it.
+        connection.lastVerified = 0;
+        blocking.blockNext();
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> first = executor.submit(() -> {
+                connection.verifyConnection();
+                return null;
+            });
+            assertTrue(blocking.entered.await(10, TimeUnit.SECONDS), "re-verification never reached GitHub");
+
+            Future<?> second = executor.submit(() -> {
+                connection.verifyConnection();
+                return null;
+            });
+            // Before the fix this waited on the connection's monitor until the first call finished.
+            second.get(10, TimeUnit.SECONDS);
+
+            blocking.release.countDown();
+            first.get(10, TimeUnit.SECONDS);
+            githubApi.verify(2, getRequestedFor(urlEqualTo("/")));
+        } finally {
+            blocking.release.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    @Test
+    void neverVerifiedConnectionIsVerifiedByEachCaller() throws Exception {
+        stubApiRoot();
+        BlockingRoot blocking = new BlockingRoot();
+        Connector.GitHubConnection connection = connection(blocking);
+        blocking.blockNext();
+
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            Future<?> first = executor.submit(() -> {
+                connection.verifyConnection();
+                return null;
+            });
+            assertTrue(blocking.entered.await(10, TimeUnit.SECONDS), "verification never reached GitHub");
+
+            // The second caller must not use the connection unchecked, nor wait for the first caller.
+            executor.submit(() -> {
+                        connection.verifyConnection();
+                        return null;
+                    })
+                    .get(10, TimeUnit.SECONDS);
+            githubApi.verify(1, getRequestedFor(urlEqualTo("/")));
+
+            blocking.release.countDown();
+            first.get(10, TimeUnit.SECONDS);
+        } finally {
+            blocking.release.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    private static void stubApiRoot() {
+        githubApi.stubFor(get(urlEqualTo("/"))
+                .willReturn(okJson("{\"rate_limit_url\": \"" + githubApi.baseUrl() + "/rate_limit\"}")));
+        String limit = "{\"limit\": 5000, \"remaining\": 5000, \"reset\": " + (System.currentTimeMillis() / 1000 + 3600)
+                + ", \"used\": 0}";
+        githubApi.stubFor(get(urlEqualTo("/rate_limit"))
+                .willReturn(okJson("{\"resources\": {\"core\": " + limit + ", \"search\": " + limit
+                        + ", \"graphql\": " + limit + ", \"integration_manifest\": " + limit + "}, \"rate\": "
+                        + limit + "}")));
+    }
+
+    private static Connector.GitHubConnection connection(BlockingRoot blocking) throws IOException {
+        OkHttpClient client =
+                new OkHttpClient.Builder().addInterceptor(blocking).build();
+        GitHub github =
+                Connector.createGitHubBuilder(githubApi.baseUrl(), null, client).build();
+        return new Connector.GitHubConnection(github, null, false);
+    }
+
+    private static boolean hasCause(Throwable t, Class<? extends Throwable> type) {
+        for (Throwable c = t; c != null; c = c.getCause()) {
+            if (type.isInstance(c)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Holds the next request for the API root until released, standing in for a GitHub call that hangs. */
+    private static class BlockingRoot implements okhttp3.Interceptor {
+        final CountDownLatch entered = new CountDownLatch(1);
+        final CountDownLatch release = new CountDownLatch(1);
+        private final AtomicInteger toBlock = new AtomicInteger();
+
+        void blockNext() {
+            toBlock.set(1);
+        }
+
+        @Override
+        public Response intercept(Chain chain) throws IOException {
+            if (chain.request().url().encodedPath().equals("/") && toBlock.getAndUpdate(n -> Math.max(0, n - 1)) > 0) {
+                entered.countDown();
+                try {
+                    release.await();
+                } catch (InterruptedException e) {
+                    throw new InterruptedIOException();
+                }
+            }
+            return chain.proceed(chain.request());
+        }
     }
 }

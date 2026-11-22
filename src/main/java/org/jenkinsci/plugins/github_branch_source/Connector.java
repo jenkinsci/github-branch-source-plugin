@@ -55,6 +55,7 @@ import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
@@ -63,6 +64,7 @@ import java.util.Random;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
@@ -98,6 +100,15 @@ public class Connector {
     private static final String SALT = Long.toHexString(ENTROPY.nextLong());
     private static final OkHttpClient baseClient =
             JenkinsOkHttpClient.newClientBuilder(new OkHttpClient()).build();
+
+    /**
+     * Upper bound, in seconds, on a whole GitHub API call: connecting, sending, and reading the response body.
+     * OkHttp's connect and read timeouts do not bound a call that never manages to connect or that receives
+     * its response slowly, so without this a call can hang forever. Zero or less means no limit. Applies to
+     * connections created after it is changed.
+     */
+    static /* non-final for modification from the script console and tests */ long CALL_TIMEOUT_SECONDS =
+            SystemProperties.getLong(Connector.class.getName() + ".CALL_TIMEOUT_SECONDS", 60L);
 
     private Connector() {
         throw new IllegalAccessError("Utility class");
@@ -474,6 +485,9 @@ public class Connector {
         if (cache != null) {
             clientBuilder.cache(cache);
         }
+        if (CALL_TIMEOUT_SECONDS > 0) {
+            clientBuilder.callTimeout(Duration.ofSeconds(CALL_TIMEOUT_SECONDS));
+        }
         gb.withConnector(new OkHttpGitHubConnector(clientBuilder.build()));
         return gb;
     }
@@ -659,9 +673,12 @@ public class Connector {
         private final boolean cleanupCacheFolder;
         private final AtomicInteger usageCount = new AtomicInteger(1);
         private final AtomicLong lastUsed = new AtomicLong(System.currentTimeMillis());
-        private long lastVerified = Long.MIN_VALUE;
+        /** When the connection was last verified, or {@link Long#MIN_VALUE} if never. Package-private for tests. */
+        volatile long lastVerified = Long.MIN_VALUE;
 
-        private GitHubConnection(GitHub gitHub, Cache cache, boolean cleanupCacheFolder) {
+        private final AtomicBoolean verifying = new AtomicBoolean();
+
+        GitHubConnection(GitHub gitHub, Cache cache, boolean cleanupCacheFolder) {
             this.gitHub = gitHub;
             this.cache = cache;
             this.cleanupCacheFolder = cleanupCacheFolder;
@@ -730,18 +747,39 @@ public class Connector {
             }
         }
 
+        /**
+         * Checks the API URL, at most once per {@link #API_URL_REVALIDATE_MILLIS} for a connection that has been
+         * verified before.
+         *
+         * <p>Never holds a lock across the network call: a slow or hung GitHub must not stall every other caller
+         * of the connection. While one thread re-verifies a connection that was already verified, other threads
+         * carry on without waiting. A connection that has never been verified is verified by each caller that
+         * finds it so, so no caller uses it unchecked.
+         */
         public void verifyConnection() throws IOException {
-            synchronized (this) {
+            long verified = lastVerified;
+            if (verified > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
+                return;
+            }
+            boolean owner = verifying.compareAndSet(false, true);
+            if (!owner && verified != Long.MIN_VALUE) {
+                return;
+            }
+            try {
+                // Another caller may have finished verifying since the first check above.
                 if (lastVerified > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
                     return;
                 }
-
                 // Connection verification should ignore rate limits
                 // It is possible this method will exceed the rate limit,
                 // but very unlikely.
                 ApiRateLimitChecker.verifyConnection(gitHub);
 
                 lastVerified = System.currentTimeMillis();
+            } finally {
+                if (owner) {
+                    verifying.set(false);
+                }
             }
         }
     }
