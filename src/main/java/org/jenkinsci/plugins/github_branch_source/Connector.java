@@ -766,6 +766,10 @@ public class Connector {
                 return;
             }
             try {
+                // Another caller may have finished verifying since the first check above.
+                if (lastVerified > System.currentTimeMillis() - API_URL_REVALIDATE_MILLIS) {
+                    return;
+                }
                 // Connection verification should ignore rate limits
                 // It is possible this method will exceed the rate limit,
                 // but very unlikely.
