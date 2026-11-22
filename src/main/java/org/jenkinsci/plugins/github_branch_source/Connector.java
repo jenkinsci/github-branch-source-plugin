@@ -108,8 +108,7 @@ public class Connector {
      * connections created after it is changed.
      */
     static /* non-final for modification from the script console and tests */ long CALL_TIMEOUT_SECONDS =
-            SystemProperties.getLong(
-                    Connector.class.getName() + ".CALL_TIMEOUT_SECONDS", TimeUnit.MINUTES.toSeconds(5));
+            SystemProperties.getLong(Connector.class.getName() + ".CALL_TIMEOUT_SECONDS", 60L);
 
     private Connector() {
         throw new IllegalAccessError("Utility class");
